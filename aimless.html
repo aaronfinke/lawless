@@ -1,0 +1,1099 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head><title>CCP4 Program Suite: aimless</title></head><body>
+<h1>AIMLESS (CCP4: Supported Program)</h1>
+<h2>NAME</h2>
+<span style="font-weight: bold;">aimless<br></span><b>&nbsp;</b>- scale together multiple observations of reflections
+<h2>SYNOPSIS</h2>
+<p><b>aimless HKLIN</b> <i>foo_in.mtz</i> <b>HKLOUT</b> <i>foo_out.mtz</i>
+<br>
+<a href="#keywords">[Keyworded Input</a>] </p>
+<p>
+<a href="#keyword_summary">Keyworded input summary</a> <br>
+<a href="#references">References</a> <br>
+<a href="#InputOutput">Input and Output files</a> <br>
+<a href="#release_notes">Release Notes</a><br>
+</p>
+<h2><a name="description"></a>DESCRIPTION</h2>
+<p><a href="#scaling_options">Scaling options</a><br>
+<a href="#control_of_flow">Control of flow through the program</a><br>
+<a href="#Appendix1">Partially recorded reflections</a><br>
+<a href="#Scaling">Scaling algorithm<br></a><a href="#data_from_denzo">Data from Denzo</a><br>
+<a href="#datasets">Datasets</a><a href="#data_harvesting"></a><br>
+</p>
+<p>This program scales together multiple observations of reflections,
+and merges multiple observations into an average intensity: it is a successor program to SCALA </p>
+<p> Various scaling models can be used. The scale factor is a function
+of the primary beam direction, either as a smooth function of Phi (the
+rotation angle ROT), or expressed as BATCH (image) number (deprecated).
+In addition,
+the scale may be a function of the secondary beam direction, acting
+principally as an absorption correction, either expanded as spherical
+harmonics, or as a interpolated three-dimensional function of Phi and
+the spatial coordinates of the measured spot on the detector.
+Such three-dimensional scaling is typically somewhat ill-determined,
+but it is
+generally useful if suitably restrained (see below for discussion of
+this) and should normally be used.
+The secondary beam correction is related to the absorption anisotropy
+correction described by Blessing (<a href="#ref7">Ref Blessing (1995)
+</a>), the interpolated three-dimensional correction is similar to
+that described by Kabsch (<a href="#ref2">Ref Kabsch (1988)</a>). </p>
+<p> The merging algorithm analyses the data for outliers, and gives
+detailed analyses. It generates a weighted mean of the observations
+of the same reflection, after rejecting the outliers.</p>
+<p>The program does three main passes through the data: </p>
+<ol>
+  <li>a scaling pass: firstly, there is an initial estimate of the
+scales, then the scale parameters are refined </li>
+  <li>an analysis pass to refine the standard
+deviation estimates </li>
+  <li>a
+final pass to apply scales, analyse agreement &amp; write the
+output file, usually with merged intensities, but alternatively as file
+with scaled but unmerged observations, with partials summed and
+outliers rejected.<br>
+ </li>
+</ol>
+<p>Normally anomalous scattering is ignored during the scale
+determination (I+ &amp; I- observations are treated together), but the
+merged file always contains I+ &amp; I-, even if the ANOMALOUS OFF
+command is used. Switching ANOMALOUS ON does affect the statistics and
+the outlier rejection (qv)
+</p>
+<h2><a name="scaling_options"></a>Scaling options</h2>
+<p>The optimum form of the scaling will depend a great deal on how the
+data were collected. It is not possible to lay down definitive rules,
+but some of the following hints may help. For most purposes, my normal
+recommendation is</p>
+<pre>  scales rotation spacing 5 secondary  bfactor on brotation spacing 20 <br></pre>
+Other hints:-
+<ol>
+  <li>If successive images are collected with the same detector
+(on-line
+detector) or equivalent detectors, and the beam intensity is steady or
+smoothly varying, then use a smoothed scaling options. Only use the
+SCALE BATCH option if every image is different from every other one, <em>i.e.</em>
+off-line detectors (including film), or rapidly or
+discontinuously changing incident beam flux. This may sometimes but
+rarely be the
+case for synchrotron data (if a "dose" mode is not used). It is
+possible
+to "mix-and-match" options. For instance, the best option for data from
+an unstable synchrotron beam may be <em>e.g.</em> SCALES BATCH BFACTOR
+ON
+BROTATION SPACING 10, which will make the Bfactor variation smooth, but
+the scales discontinuous by batch. </li>
+  <li>If there is a discontinuity between one set of images and another
+(<em>e.g.</em> change of exposure time), then flag them as different
+RUNs. This will be done automatically if no runs are specified.</li>
+  <li> The SECONDARY correction is recommended: this provides a
+correction for absorption. It
+should always be restrained with a TIE SURFACE command (this is the
+default): under these conditions it is reasonably stable under most
+conditions. The ABSORPTION
+(crystal frame)
+correction is similar to SECONDARY (camera frame) in most cases, but
+may be preferable if data has been collected from multiple alignments
+of the same crystal. </li>
+  <li>Use a
+B-factor correction unless the data are only low-resolution.
+Traditionally, the relative B-factor is a correction for radiation
+damage (hence it is a function of time), but it also includes some
+other corrections eg absorption. <br>
+  </li><li>When trying out more complex scaling options, it is a
+good idea to try a simple scaling first, to check that
+the more elaborate model gives a real improvement.</li>
+  <li>When scaling multiple MAD data sets they should
+all be scaled together in one pass, outliers rejected across all
+datasets, then each wavelength merged separately. This is&nbsp; the
+default if multiple datasets are present in the input file. For
+isomorphous replacement, it may sometimes be useful to
+provide a
+native
+dataset as a reference, to make the systematic errors in the
+derivative similar to those in the native (ie "local" scaling, using
+the SECONDARY option).</li>
+</ol>
+Other options are described in greater detail under the <a href="#keywords"> KEYWORDS</a>.
+<h2><a name="control_of_flow"></a>Control of flow through the program</h2>
+Each of the stages can be individually activated or suppressed (NOT IMPLEMENTED&nbsp;YET)<h2>Partially recorded
+reflections</h2>
+<a href="#Appendix1">See appendix 1</a>
+
+<p>The different options for the treatment of partials are set by&nbsp; the PARTIALS command. Partials may
+either be summed or scaled : in the latter case, each part is treated
+independently of the others. </p>
+<p>Summed partials [default]: <br>
+All the parts are summed (after applying
+scales) to give the total intensity, provided some checks are passed.
+The number of reflections failing the checks is printed. You
+should make sure that you are not losing too many reflections in these
+checks. </p>
+<p>Scaled partials:<br>
+In this option, each individual partial observation scaled up by the
+inverse
+FRACTIONCALC, provided that the fraction is greater than
+&lt;minimum_fraction&gt;
+[default = 0.5]. This only works well if the calculated fractions are
+accurate, which is not usually the case.<br>
+</p>
+<h2><a name="scaling_algorithm"></a>Scaling algorithm</h2>
+<a href="#Scaling"> See appendix 2</a><br><br><h2><a name="data_from_denzo"></a>Data from Denzo</h2>
+Data integrated with Denzo may be scaled and merged with Aimless as
+an alternative to Scalepack, or unmerged output from scalepack may be
+used. Both have some limitations. <a href="#Appendix3"> See appendix 3</a>
+for more details.&nbsp;
+<p><a name="datasets"></a>Datasets</p>
+
+TBD<h2><a name="keywords"></a>KEYWORDED INPUT - DESCRIPTION</h2>
+<p>In the definitions below "[]" encloses optional items,
+"|" delineates alternatives. All keywords are
+case-insensitive, but are listed below in upper-case. Anything after
+"!" or "#" is treated as comment. The available
+keywords are:</p>
+<p><b><a href="#analysis">ANALYSIS</a>, <a href="#anomalous">ANOMALOUS</a></b>,
+<a href="#bins"><b>BINS</b></a>,
+<a href="#dump"><b>DUMP</b></a>,
+<a href="#exclude"><b>EXCLUDE</b></a>,
+<a href="#intensities"><b>INTENSITIES</b></a>,
+<a href="#name"><b>NAME</b></a>,
+<a href="#onlymerge"><b>ONLYMERGE</b></a>,
+<a href="#output"><b>OUTPUT</b></a>,
+<a href="#partials"><b>PARTIALS</b></a>, <a href="#refine">REFINE</a>, <a href="#reject"><b>REJECT</b></a>,
+<a href="#resolution"><b>RESOLUTION</b></a>,
+<a href="#restore"><b>RESTORE</b></a>, <a href="#run"><b>RUN</b></a>,
+<a href="#scales"><b>SCALES</b></a>,
+<a href="#sdcorrection"><b>SDCORRECTION</b></a>,
+<a href="#tie"><b>TIE</b></a>,
+<a href="#title"><b>TITLE</b></a><a href="#xybins"><b> <br>
+</b></a></p>
+<h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
+
+<p>Define a "run" : Nrun is the Run number, with an arbitrary
+integer label (<em>i.e.</em> not necessarily 1,2,3 etc). A "run"
+defines
+a set of reflections which share a set of scale factors. Typically a
+run
+will be a continuous rotation around a single axis. The definition of a run may use several RUN
+commands. If no RUN command is given
+then run assignment will be done automatically, with run breaks at
+discontinuities in dataset, batch number or Phi. </p><h3><a name="scales"></a>SCALES [&lt;subkeys&gt;] </h3>
+<p>Define layout of scales, ie the scaling model. Note that a layout
+may be defined for all runs (no RUN subkeyword), then overridden for
+particular runs by additional commands. </p>
+<dl>
+  <dt>Subkeys: </dt>
+  <dd>
+    <dl>
+      <dt><a name="scales_run"></a>RUN &lt;run_number&gt; </dt>
+      <dd>Define run to which this command applies: the run must have
+been previously
+defined. If no run is defined, it applies to all runs </dd>
+      <dt><a name="scales_rotation"></a>ROTATION &lt;Nscales&gt; |
+SPACING &lt;delta_rotation&gt; </dt>
+      <dd>Define layout of scale factors along rotation axis (<em>i.e.</em>
+primary beam),
+either as number of scales or (if SPACING keyword present) as interval
+on rotation [default SPACING 10] </dd>
+      <dt><a name="scales_batch"></a>BATCH </dt>
+      <dd>Set "Batch" mode, no interpolation along rotation
+(primary) axis. This option is compulsory if a ROT column is not
+present in
+the input file, but otherwise the ROTATION option is preferred. </dd>
+      <dt><a name="scales_bfactor"></a>BFACTOR ON | OFF&nbsp; </dt>
+      <dd>Switch Bfactors on or off. The default is ON.<br>
+ </dd>
+      <dt><a name="scales_brotation"></a>BROTATION&nbsp;&lt;Ntime&gt; | SPACING
+&lt;delta_time&gt; </dt>
+      <dd>Define number of B-factors or (if SPACING keyword present)
+the
+interval on "time": usually no time is defined in the input file, and
+the rotation angle is used as its proxy.<br>
+ </dd>
+      <dt><a name="scales_secondary"></a>SECONDARY [&lt;Lmax&gt;] </dt>
+      <dd>Secondary beam correction expanded in spherical harmonics up
+to
+maximum order Lmax in the camera spindle frame. The number of
+parameters increases as (Lmax + 1)**2, so you should use the minimum
+order needed (eg 4 - 6). This correction would typically be combined
+with the usual primary beam correction (eg ROTATION SPACING 5
+SECONDARY 6). The deviation of the surface from spherical should be
+restrained eg with TIE SURFACE 0.001 [default] </dd>
+      <dt><a name="scales_absorption"></a>ABSORPTION [&lt;Lmax&gt;] </dt>
+      <dd>Secondary beam correction expanded in spherical harmonics up
+to
+maximum order Lmax in the crystal frame based on POLE (qv). The number
+of parameters increases as (Lmax + 1)**2, so you should use the
+minimum order needed (eg 4 - 6). This correction would typically be
+combined with the usual primary beam correction (eg ROTATION SPACING 5
+ABSORPTION 6). The deviation of the surface from spherical should be
+restrained eg with TIE SURFACE 0.001 [default]. This is not
+substantially different from SECONDARY in most cases, but may be
+preferred if data are collected from multiple settings of the same
+crystal, and you want to use the same absorption surface. This would
+only be strictly valid if the beam is larger than the crystal. </dd>
+      <dt><a name="scales_pole"></a> POLE &lt;h|k|l&gt;</dt>
+      <dd> Define the polar axis for ABSORPTION or SURFACE as h, k or l
+(eg
+POLE L): the pole will default to either the closest axis to the
+spindle (if known), or l (k for monoclinic space-groups). </dd>
+      <dt><a name="scales_constant"></a>CONSTANT </dt>
+      <dd>One scale for each run (equivalent to ROTATION 1) </dd>
+      <dt><br></dt></dl></dd>
+</dl>
+<h3><a name="sdcorrection"></a>SDCORRECTION [[NO]REFINE]&nbsp;&nbsp;
+[INDIVIDUAL | SAME&nbsp; [FIXSDB] <br>
+</h3>
+<h3>[RUN
+&lt;RunNumber&gt;] [FULL | PARTIAL] &lt;SdFac&gt; [&lt;SdB&gt;]
+&lt;SdAdd&gt; [DAMP &lt;dampfactor&gt;] <br>
+</h3>
+<h3>[[NO]TIE&nbsp; SdFac | SdB | SdAdd &lt;targetvalue&gt; &lt;SDtarget&gt;]<br>
+</h3>
+<h3>
+</h3>
+
+ Input or set options for the "corrections" to the input standard
+deviations: these are modified to 
+
+<pre>        sd(I) corrected = SdFac * sqrt{sd(I)**2 + SdB*Ihl + (SdAdd*Ihl)**2}<br></pre>
+<p>
+where Ihl is the intensity and&nbsp;
+(SdB may be omitted in the input).&nbsp;<br>
+The default is "SDCORRECTION REFINE INDIVIDUAL", If eplicit values are given, the default changes to NOREFINE.<br>
+</p>
+<p>The keyword REFINE controls refinement of the correction parameters,
+essentially trying to make the plot of the SD of the distribution of
+fraction deviations (Ihl - &lt;I&gt;)/sigma&nbsp; = 1.0&nbsp; over all
+intensity ranges. The residual minimised is Sum( w * (1 - SD)^2) + Restraint Residual
+<br>
+</p>
+<p> Other subkeys
+control what values are determined and used for each run (if more
+than one)<br>
+</p>
+
+<ul>
+  
+  <li>SAME &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; same SD
+parameters for all runs, different for fulls and partials</li><li>INDIVIDUAL&nbsp;&nbsp; [default] use different SD parameters for
+each run, fulls and partials</li>
+  
+  <li>FIXSDB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+fixes the SdB parameter in the refinement (but it seems best to let it
+refine, even though it has no obvious physical meaning) <br>
+</li>
+  <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+set dampfactor to damp shifts in the refinement [default 0.05]</li>
+  <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+set restraints for named parameter, "SdFac", "SdB", or "SdAdd". Each
+restraint is to a specified target value, with a weight =
+1/(SDtarget^2). The default is to restrain SdB only, target value 0.0,
+SD 20. NOTIE removes all restraints, TIE without values sets the
+defaults.<br>
+
+  </li>
+
+
+</ul>
+
+<p>RUN &lt;run_number&gt; <br>
+Define run for which values are given the run must have been
+previously
+defined. If no run is defined, it applies to all runs. Different values
+may be specified for fully recorded reflections (FULL) and for
+partially
+recorded reflections (PARTIAL), or the same values may be used for both if one set is given, <em>e.g.</em> </p>
+<pre>         sdcorrection full 1.4 0.11 part 1.4 0.05<br></pre>
+
+<h3><a name="partials"></a>PARTIALS [[NO]CHECK] [TEST
+[&lt;lower_limit&gt;
+&lt;upper_limit&gt;] [CORRECT &lt;minimum_fraction&gt;] [[NO]GAP [&lt;maxgap&gt;]]<br>
+
+</h3>
+
+
+<dl>
+  </dl><p>Set criteria for accepting complete or incomplete partials. Default is CHECK TEST 0.95 1.05 CORRECT 0.95 NOGAP<br>
+</p>
+<p>After
+all parts have been assembled, the total observation is accepted if:-</p>
+
+<ol><li>
+    <p style="margin-bottom: 0cm;">the CHECK flag is set [default] and
+the MPART flags are all consistent (these flags indicate that a set of
+parts is eg 1 of 3, 2 of 3, 3 of 3) </p>
+  </li><li>
+    <p style="margin-bottom: 0cm;">if CHECK fails, then the total
+fraction is checked to lie between lower_limit &amp; upper_limit
+[default 0.95, 1.05] </p>
+  </li><li>
+    <p>if this fails, then the incomplete partial is scaled up by the
+total fraction if&nbsp; it is &gt; minimum_fraction [default 0.95] (NB Pointless has different default)</p></li>
+  <li>a reflection has a gap in the middle may be accepted if GAP is
+set, maxgap is maximum number of missing slots [default 1 if GAP is set]<br>
+  </li>
+</ol>
+<h3><a name="intensities"></a>INTENSITIES [INTEGRATED | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
+&lt;Ipower&gt;] <br>
+ </h3>
+<p>Set which intensity to use, of the integrated intensity (column I)
+or
+profile-fitted (column IPR), if both are present. This applies to
+all stages of the program, scaling &amp; averaging. </p>
+
+<dl>
+<dt>Subkeys: </dt><dd>
+    <dl><dt><a name="intensities_integrated"></a>INTEGRATED </dt><dd>summation integrated intensity I. </dd><dt><a name="intensities_profile"></a>PROFILE </dt><dd>profile-fitted intensity IPR [default if present]. Note that
+this will
+not be used for scaled partials unless PARTIALS USE_PROFILE is set.</dd><dt><a name="intensities_combine"></a>COMBINE [&lt;Imid&gt;]
+[POWER &lt;Ipower&gt;] </dt><dd>Use weighted mean of profile-fitted &amp; integrated
+intensity,
+profile-fitted for weak data, summation integration value for strong. </dd><dd> I = w*Ipr + (1-w)*Iint </dd><dd> w = 1/(1 + (Iint/Imid)**Ipower)</dd><br><dd>Imid may either be given here explicitly or by default will
+be set to the
+mean unscaled intensity. <br>
+Ipower defaults to 3.</dd></dl>
+  </dd>
+</dl>
+<h3><a name="reject"></a>REJECT <dd>[SCALE | MERGE] [COMBINE]
+[SEPARATE]
+</dd>
+<dd> &lt;Sdrej&gt; [&lt;Sdrej2&gt;]
+</dd>
+<dd> [ALL &lt;Sdrej+-&gt; [&lt;Sdrej2+-&gt;]] </dd>
+<dd>[KEEP | REJECT | LARGER | SMALLER]</dd><dt>[EMAX &lt;Emax&gt;]<br>
+</dt>
+
+</h3>
+
+<p>Define rejection criteria for outliers: different criteria may be
+set for the scaling and for the merging (FINAL) passes. If neither
+SCALE nor MERGE are specified, the same values are used for both
+stages. The default values are REJECT 6 ALL -8, ie test within I+ or
+I- sets on 6sigma, between I+ &amp; I- with a threshold adjusted
+upwards
+from 8sigma according to the strength of the anomalous signal. The
+adjustment of the ALL test is not necessarily reliable. </p>
+<p> If there are multiple datasets, by default, deviation calculations
+include data from all datasets [COMBINE]. The SEPARATE flag means that
+outlier rejections are done only between observations from the same
+dataset. The usual case of multiple datasets is MAD data.</p>
+<p>If ANOMALOUS ON is set, then the main outlier test is done in
+the merging step only within the I+ &amp; I- sets for that reflection,
+ie
+Bijvoet-related reflections are treated as independent. The ALL
+keyword here enables an additional test on all observations including
+I+ &amp; I- observations. Observations rejected on this second check
+are
+flagged "@" in the ROGUES file. In the scaling step, the outlier check
+includes all observations, unless anomalous observations are kept
+separate in scaling (INTENSITIES ANOMALOUS: this is an unusual option
+for special cases only).</p>
+<dl>
+  <dt>Subkeys: </dt>
+  <dd>
+    <dl>
+      <dt><a name="reject_separate"></a>SEPARATE </dt>
+      <dd>rejection &amp; deviation calculations only between
+observations
+from the same dataset</dd>
+      <dt><a name="reject_combine"></a>COMBINE </dt>
+      <dd>rejection &amp; deviation calculations are done with all
+datasets
+[default]</dd>
+      <dt><a name="reject_scale"></a>SCALE </dt>
+      <dd>use these values for the scaling pass </dd>
+      <dt><a name="reject_merge"></a>MERGE </dt>
+      <dd>use these values for the merging (FINAL) pass </dd>
+      <dt><a name="reject_sdrej"></a>sdrej </dt>
+      <dd>sd multiplier for maximum deviation from weighted mean I
+[default 6.0] </dd>
+      <dt><a name="reject_sdrej2"></a>[sdrej2] </dt>
+      <dd>special value for reflections measured twice [default =
+sdrej] </dd>
+      <dt><a name="reject_all"></a>ALL </dt>
+      <dd>check outliers in merging step between as well as within I+
+&amp; I- sets (not
+relevant if ANOMALOUS OFF). A negative value [default -8] means adjust
+the value upwards according to the slope of the normal probability
+analysis of anomalous differences (AnomPlot)</dd>
+      <dt><a name="reject_sdrejanom"></a>sdrej+- </dt>
+      <dd>sd multiplier for maximum deviation from weighted mean I
+including
+all I+ &amp; I- observations (not relevant if ANOMALOUS OFF)[default
+check within I+ &amp; I- sets only] </dd>
+      <dt><a name="reject_sdrej2anom"></a>[sdrej2+-] </dt>
+      <dd>special value for reflections measured twice [default =
+sdrej+-] </dd>
+      <dt><a name="reject_keep"></a>KEEP</dt>
+      <dd>in merging, if two observations disagree, keep both of them
+[default]</dd>
+      <dt><a name="reject_reject"></a>REJECT</dt>
+      <dd>in merging, if two observations disagree, reject both of them</dd>
+      <dt><a name="reject_larger"></a>LARGER</dt>
+      <dd>in merging, if two observations disagree, reject the larger</dd>
+      <dt><a name="reject_smaller"></a>SMALLER</dt>
+      <dd>in merging, if two observations disagree, reject the smaller</dd><dt><a name="reject_emax"></a>EMAX</dt>
+      <dd>maximum acceptable value for E = normalised |F| [default = 10.0 for acentrics] <br>
+      </dd>
+
+    </dl>
+  </dd>
+</dl>
+<p>The test for outliers is described in <a href="#outlier">Appendix 4</a>
+</p>
+<h3><a name="anomalous"></a>ANOMALOUS [OFF] [ON] </h3><dl>
+  
+  <dd>
+    <dl>
+      <dt><a name="anomalous_off"></a>OFF [default] </dt>
+      <dd>no anomalous used, I+ &amp; I- observations averaged together
+in merging </dd>
+      <dt><a name="anomalous_on"></a>ON </dt>
+      <dd>separate anomalous observations in the final output pass, for
+statistics
+&amp; merging: this is also selected the keyword ANOMALOUS on its own </dd>
+      </dl><dl>
+    </dl>
+    <dl>
+    </dl>
+  </dd>
+</dl>
+<h3><a name="resolution"></a>RESOLUTION [RUN &lt;RunNumber&gt;] [[LOW]
+&lt;Resmin&gt;]
+[[HIGH] &lt;Resmax&gt;] </h3>
+<p>Set resolution limits in Angstrom, either order, optionally for
+individual
+datasets. The keywords LOW or HIGH, followed by a number, may be used
+to set the
+low or high resolution limits explicitly: an unset limit will be set as
+in the input HKLIN file. If a RUN is specified this limit applies only
+to that run: this may a previous general limit for all runs, and may be
+used with automatic run generation. [Default use all data] </p>
+<h3><a name="title"></a>TITLE &lt;new title&gt; </h3>
+<p>Set new title to replace the one taken from the input file. By
+default,
+the title is copied from hklin to hklout</p>
+<h3><a name="analysis"></a>ANALYSIS CONE &lt;angle&gt; CCMINIMUM
+&lt;MinimumHalfdatasetCC&gt; ISIGMINIMUM &lt;MinimumIoverSigma&gt;
+BATCHISIGMINIMUM &lt;MinimumBatchIoverSigma&gt;<br>
+</h3>
+<p>Specify analysis parameters: <br>
+</p>
+<p>CONE specifies the half-angle (degrees) for cones around each reciprocal axis, for anisotropy analysis [default 20°]<br>
+</p>CCMINIMUM &amp; ISIGMINIMUM specify limits for estimation of
+suitable
+resolution cut-off limits, both overall and along each reciprocal axis.
+These estimates are printed in the final Results summary, and give
+guide to possible cut-offs. BATCHISIGMINIMUM gives the cutoff for the
+analysis of maximum resolution by batch, on &lt;I/sd&gt; before
+averaging<br>
+
+
+<ul>
+  <li>MinimumHalfdatasetCC&nbsp;&nbsp; minimum half-dataset CC [default 0.5]</li>
+  <li>MinimumIoverSigma&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; minimum &lt;&lt;I&gt;/sd(&lt;I&gt;)&gt; (=~ signal/noise) [default 2.0]</li>
+  <li>MinimumBatchIoverSigma&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+minimum &lt;I/sd(I)&gt; (=~ signal/noise) [default 1.0, a smaller value
+as I/sd is before averaging]</li>
+
+</ul>
+<h3><a name="onlymerge"></a>ONLYMERGE </h3>
+
+
+<p>Only do the merge step, no initial analysis, no scaling.<br>
+</p>
+<p>
+  
+</p>
+<h3><a name="dump"></a>DUMP [&lt;Scale_file_name&gt;]<span style="color: rgb(255, 102, 0);"></span> </h3>
+
+<p>Dump all scale factors to a file after the main scaling. These can be used
+to restart scaling using the RESTORE option, or for rerunning the merge
+step. If no filename is given, the scales will be written to logical
+file
+SCALES, which may be assigned on the command line.<br>
+ </p>
+<p> </p>
+
+<h3><a name="restore"></a>RESTORE [&lt;Scale_file_name&gt;]<span style="color: rgb(255, 102, 0);"></span> </h3>
+<p>Read initial scales from a SCALES file from a previous run of Aimless
+(see DUMP).&nbsp;<br>
+ </p>
+
+<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt;]<br>
+ </h3>
+<h3><span style="color: rgb(255, 102, 0);"></span><span style="font-weight: normal;">Define number of refinement cycles Ncycle and method for scale refinement.</span></h3>&nbsp;&nbsp;&nbsp; BFGS use BFGS optimisation (usual method)<br>
+&nbsp;&nbsp;&nbsp; FH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; use Fox-Holmes least-squares algorithm (not recommended)<br>
+<br>
+SELECT&nbsp; define selection limits for the two rounds of scaling. If unset, suitable values will be chosen automatically<br>
+<ul>
+  <li>IovSDmin &lt;I&gt;/sd'(I)&nbsp; limit for selection of reflections for 1st round scaling</li>
+  <li>E2min&nbsp;&nbsp;&nbsp;&nbsp; minimum E<sup>2</sup> for selection of reflections for main scaling</li>
+</ul>
+
+<h3><a name="exclude"></a>EXCLUDE&nbsp;BATCH &lt;batch range&gt;|&lt;batch list&gt;]
+<br>
+</h3><dl><dd><dl><dt>BATCH | &lt;b1&gt; &lt;b2&gt;
+&lt;b3&gt; ...
+| &lt;b1&gt; TO &lt;b2&gt; | </dt>
+      <dd>Define a list of batches, or a range of batches, to be
+excluded
+altogether. </dd>
+      </dl>
+  </dd>
+</dl>
+<h3><a name="tie"></a>TIE [SURFACE &lt;Sd_srf&gt;] [BFACTOR &lt;Sd_bfac&gt;] [ZEROB &lt;Sd_zerob&gt;] [ROTATION &lt;Sd_z&gt;] </h3>
+<p>Apply or remove restraints to parameters. These can be pairs of
+neighbouring scale factors on rotation axis (ROTATION = primary beam) to have the same
+value, or neighbouring Bfactors, or surface spherical harmonic
+parameters to zero (for SECONDARY or SURFACE corrections, to keep the
+correction approximately spherical), with a standard deviation as
+given. This may be used if scales are varying too wildly, particularly
+in the detector plane. The default is no restraints on scales. A tie
+is recommended for SECONDARY or SURFACE corrections, eg TIE
+SURFACE 0.001. A negative SD value indicates no tie. </p>
+
+<dl>
+  <dl>
+    <dt>SURFACE: tie surface parameters to spherical surface [default
+is TIE
+SURFACE 0.001]</dt>
+    <dt>BFACTOR: tie Bfactors along rotation</dt><dt>ZEROB: tie all B-factors to zero<br>
+    </dt>
+
+    
+    <dt>ROTATION: tie parameters along rotation axis (mainly useful
+with
+BATCH mode)</dt>
+    
+  </dl>
+</dl>
+<h3><a name="output"></a>OUTPUT [MTZ] [NO]MERGED<span style="color: rgb(255, 102, 0);"></span> | UNMERGED [SCALEPACK [MERGED<span style="color: rgb(255, 102, 0);"></span> | UNMERGED]]</h3>
+<h3> </h3>
+
+Control what goes in the output file. Two types of output files
+may be produced, either in MTZ format or in Scalepack format: (a)
+MERGED (or AVERAGE), average intensity for each hkl (I+ &amp;
+I-) (b) UNMERGED, unaveraged observations, but with scales
+applied, partials summed or scaled, and outliers rejected. Up to four
+types of files may be created at the same time: UNMERGED filenames are
+created from the HKLOUT filename (with dataset
+appended if there are multiple datasets) with the string "_unmerged"
+appended.
+<p>The default is to create a merged MTZ file for each dataset.<br>
+</p>
+<dl><dt>File format options: </dt>
+  <dd>
+    <dl>
+      <dt><a name="output_none"></a>NONE </dt>
+      <dd>no output file written </dd>
+      <dt><a name="output_average"></a>MERGED or AVERAGE</dt>
+      <dd>[default] output averaged intensities, &lt;I+&gt; &amp;
+&lt;I-&gt;
+for each hkl </dd>
+      <dt><a name="output_separate"></a>UNMERGED </dt>
+      <dd>apply scales, sum or scale partials, reject outliers, but do
+not
+average observations </dd>
+      <dt><a name="output_polish"></a>SCALEPACK or POLISH </dt>
+      <dd>Write reflections to a formatted file in a format as written by
+"scalepack" (or my best approximation to it). If the UNMERGED option is also selected, then the output
+matches the scalepack "output nomerge original index", otherwise it is
+the "normal" scalepack output, with either I, sigI or I+ sigI+, I-,
+sigI-, depending on the "anomalous" flag. </dd>
+    </dl>
+  </dd>
+</dl><h3><a name="keep"></a>KEEP [OVERLOADS|BGRATIO
+&lt;bgratio_max&gt;|PKRATIO &lt;pkratio_max&gt;|GRADIENT
+&lt;bg_gradient_max&gt;|EDGE]&nbsp;<span style="color: rgb(255, 102, 0);"></span> </h3>
+
+<p>Set options to accept observations flagged as rejected by the FLAG
+column from Mosflm. By default, any
+observation with FLAG .ne. 0 is rejected. Flagged reflections which are accepted may be marked in the ROGUES file.<br>
+
+</p>
+<dl>
+  <dt>Subkeys: </dt>
+  <dd>
+    <dl>
+      <dt><a name="accept_overload"></a>OVERLOADS </dt>
+      <dd>Accept profile-fitted overloads</dd>
+      <dt><a name="accept_bgratio"></a>BGRATIO </dt>
+      <dd>Observations are flagged in Mosflm if the ratio of rms
+background
+deviation relative to its expected value from counting statistics is
+too large. This option accepts observations if bgratio &lt; bgratio_max
+[default in Mosflm 3.0]</dd>
+      <dt><a name="accept_pkratio"></a>PKRATIO </dt>
+      <dd>Accept observations with peak fitting rms/sd ratio pkratio
+&lt;
+pkratio_max [default maximum in Mosflm 3.5]. Only set for fully
+recorded
+observations</dd>
+      <dt><a name="accept_gradient"></a>GRADIENT </dt>
+      <dd>Accept observations with background gradient &lt;
+bg_gradient_max [default in Mosflm 0.03].</dd>
+      <dt><a name="accept_edge"></a>EDGE </dt>
+      <dd>Accept profile-fitted observations on edge of active area of
+detector</dd>
+    </dl>
+  </dd>
+</dl><h3><a name="link"></a>LINK [SURFACE|TAILS] ALL | &lt;run_2&gt; TO
+&lt;run_1&gt;&nbsp;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
+<p>run_2 will use the same SURFACE (or SECONDARY) or TAILS parameters
+as run_1. This can be useful when different runs come from the same
+crystal, and may stabilize the parameters. LINK TAILS ALL will use the
+same tails parameters for all runs for which TAILS parameters are
+refined. The keyword ALL will be assumed if omitted.
+</p>
+
+<ul>
+  <li> For TAILS parameters, the default is LINK TAILS ALL,
+but any LINK or UNLINK command will override this.</li>
+  <li> For SECONDARY or SURFACE parameters, the default is to link runs
+which come from the same dataset. They should be UNLINKed if they are
+different.</li>
+</ul>
+<h3><a name="unlink"></a>UNLINK [SURFACE|TAILS] ALL | &lt;run_2&gt; TO
+&lt;run_1&gt;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
+<p>Remove links set by LINK command (or by default). The keyword ALL
+will
+be assumed if omitted, <em>e.g.</em> UNLINK TAILS [ALL] will use
+separate tails
+parameters for each run. </p>
+
+<h3><a name="bins"></a>BINS RESOLUTION &lt;Nsbins&gt; INTENSITY &lt;Nibins&gt;<br>
+ </h3>
+<p>Define number of resolution and intensity bins for analysis [default 10] </p><h3><a name="smoothing"></a>SMOOTHING &lt;subkeyword&gt; &lt;value&gt;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
+<p>Set smoothing factors ("variances" of weights). A larger
+"variance" leads to greater smoothing</p>
+<dl>
+  <dt>Subkeys: </dt>
+  <dd>
+    <dl>
+      <dt><a name="smoothing_time"></a>TIME &lt;Vt&gt; </dt>
+      <dd>smoothing of B-factors [default 0.5] </dd>
+      <dt><a name="smoothing_rotation"></a>ROTATION &lt;Vz&gt; </dt>
+      <dd>smoothing of scale along rotation [default 1.0] </dd>
+      <dt><a name="smoothing_detector"></a>PROB_LIMIT
+&lt;DelMax_t&gt; &lt;DelMax_z&gt;
+&lt;DelMax_xy&gt; </dt>
+      <dd>maximum values of normalized squared deviation (del**2/V) to
+include
+a scale [default set automatically, typically 3.</dd></dl></dd></dl><h3><a name="name">NAME</a>&nbsp;
+PROJECT &lt;project_name&gt; CRYSTAL &lt;crystal_name&gt; DATASET
+&lt;dataset_name&gt;</h3>&nbsp;<span style="color: rgb(255, 102, 0);"></span>Assign or reassign project/crystal/dataset names, for output file.
+The names given here supersede those in the input file and redefines the single output dataset.<br>
+Note that these names apply to all data: if multiple datasets are
+required, these must be specified in Pointless. DATASET must be
+present, and may optionally be given in the syntax
+crystal_name/dataset_name<h3><a name="base">BASE</a> [CRYSTAL &lt;crystal_name&gt;] DATASET
+&lt;base_dataset_name&gt;&nbsp;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
+<p>If there are multiple datasets in the input file, define the "base"
+dataset for analysis of dispersive (isomorphous) differences.
+Differences between other datasets and the base dataset are analysed
+for correlation and ratios, ie for the i'th dataset (I(i) - I(base)).
+By default, the datasets with the shortest wavelength will be chosen
+as the base (or dataset 1 if wavelength is unknown). Typically, the
+CRYSTAL keyword may be omitted.
+</p><h2 align="center"><a name="InputOutput"></a>INPUT AND OUTPUT FILES</h2>
+<h3>Input</h3>
+<dl compact="compact">
+  <dt>HKLIN</dt>
+  <dd>The input file must be sorted on H K L M/ISYM BATCH </dd>
+  <p>Compulsory columns: </p>
+  <pre>        H K L           indices<br>        M/ISYM          partial flag, symmetry number<br>        BATCH           batch number<br>        I               intensity  (integrated intensity)<br>        SIGI            sd(intensity)   (integrated intensity)<br></pre>
+  <p>Optional columns: </p>
+  <pre>        XDET YDET       position on detector of this reflection: these<br>                        may be in any units (<em>e.g.</em> mm or pixels), but the<br>                        range of values must be specified in the<br>                        orientation data block for each batch. If<br>                        these columns are absent, the scale may not be<br>                        varied across the detector (<em>i.e.</em> only SCALES<br>                        DETECTOR 1 is valid)<br>        ROT             rotation angle of this reflection ("Phi"). If<br>                        this column is absent, only SCALES BATCH is valid.<br>        IPR             intensity  (profile-fitted intensity)     <br>        SIGIPR          sd(intensity)   (profile-fitted intensity)<br>        SCALE           previously calculated scale factor (<em>e.g.</em> from<br>                        previous run of Scala). This will be applied<br>                        on input<br>        SIGSCALE        sd(SCALE)<br>        TIME            time for B-factor variation (if this is<br>                        missing, ROT is used instead)<br>        MPART           partial flag from Mosflm<br>        FRACTIONCALC    calculated fraction, required to SCALE PARTIALS<br>        LP              Lorentz/polarization correction (already applied)<br>        FLAG            error flag (packed bits) from Mosflm (v6.2.3<br>                        or later). By default, if this column is present, <br>                        observations with a non-zero FLAG will be<br>                        omitted. They may be conditionally accepted<br>                        using the ACCEPT command (qv)<br>                        Bit flags:<br>                              1         BGRATIO too large<br>                              2         PKRATIO too large<br>                              4         Negative &gt; 5*sigma<br>                              8         BG Gradient too high<br>                             16         Profile fitted overload<br>                             32         Profile fitted "edge" reflection<br>        BGPKRATIOS      packed background &amp; peak ratios, &amp; background<br>                        gradient, from Mosflm, to go with FLAG<br></pre>
+</dl>
+<span style="font-weight: normal;"></span><span style="font-weight: normal;">
+</span>
+<h3>Output</h3>
+<dl compact="compact">
+  <dt>HKLOUT</dt>
+  <dl>
+    <dt>(a) Option MERGED (AVERAGE) </dt>
+    <dd>The output file contains columns </dd>
+    <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)<br></pre>
+    <p>Note that there are no M/ISYM or BATCH columns. I(+) &amp; I(-)
+are
+the means of the Bijvoet positive and negative reflections respectively
+and are always present even for the option ANOMALOUS OFF.<br>
+    </p>
+    <p>If the "TOGETHER" option is selected, then all datasets will be
+written to the same file, with the column labels augmented by the
+dataset name<br>
+    </p>
+  </dl>
+</dl>
+<pre>	IMEAN_dataset SIGIMEAN_dataset  I(+)_dataset SIGI(+)_dataset  I(-)_dataset SIGI(-)_dataset<br></pre>
+<dl compact="compact">
+  <dl>
+    <dt>If the "SPLIT" option&nbsp; is specified then separate files
+are written for each dataset:&nbsp; files are named with the base
+HKLOUT name with the dataset name appended, as "_dataset"</dt>
+    <span style="font-family: monospace;"><br>
+    </span>
+    <dt>(b) Option UNMERGED </dt>
+    <dd>Unmerged data with scales applied, with no partials (<em>i.e.</em>
+partials
+have been summed or scaled, unmatched partials removed), &amp; outliers
+rejected. If a separate profile-fitted intensity column IPR, SIGIPR is
+present in the input file as well as columns I, SIGI, only one set will
+be chosen, as specified. Columns defining the diffraction geometry (<em>e.g.</em>
+XDET YDET ROT TIME LP FRACTIONCALC) will be preserved in the output
+file. If both MERGED &amp; UNMERGED are specified, then the filename
+for the unmerged file has "_unmerged" appended<br>
+    </dd>
+    <p>Output columns: </p>
+    <pre>        H,K,L     REDUCED or ORIGINAL indices (see OUTPUT options)<br>        M/ISYM    Symmetry number (REDUCED), = 1 for ORIGINAL indices<br>        BATCH     batch number as for input<br>        I, SIGI   scaled intensity &amp; sd(I)<br>        SCALEUSED scale factor applied<br>        SIGSCALEUSED  sd(SCALE applied)<br>        NPART     number of parts, = 1 for fulls, negated for scaled<br>                   partials, <em>i.e.</em> = -1 for scaled single part partial<br>        TIME      copied from input if present<br>        XDET,YDET copied from input if present<br>        ROT       copied from input if present (averaged for<br>                    multi-part partials)<br>        FRACTIONCALC total fraction (if present in input file)<br>        LP        copied from input if present<br>   If BEAM option is used:-<br>        S0X, S0Y, S0Z  direction cosines of incident beam in<br>                  orthogonalised crystal frame ( x,y,z axes along<br>                  a*, c x a*, c)<br>        S2X, S2Y, S2Z  direction cosines of diffracted beam in<br>                  orthogonalised crystal frame<br></pre>
+  </dl>
+  </dl>
+<dl style="margin-left: 40px;">
+  <dt>(c) SCALEPACK output</dt>
+  <dd>MERGED or UNMERGED format<br>
+  </dd>
+</dl>
+<dl compact="compact">
+  <dt><br>
+  </dt>
+  <dt>SCALES </dt>
+
+  <dd>scale factors from DUMP, used by RESTORE option </dd>
+  <dt>ROGUES </dt>
+  <dd>list of bad agreements </dd>
+  <dt>PLOT </dt>
+  <dd>If SCALES SECONDARY or SURFACE options are used, graph of
+correction surface (Plot84 format)</dd>
+  <dt>NORMPLOT </dt>
+  <dd>normal probability plot from merge stage <br>
+*** this is at present written is a format for plotting program xmgr
+(aka grace) *** </dd>
+  <dt>ANOMPLOT </dt>
+  <dd>normal probability plot of anomalous differences
+    <pre>            (I+ - I-)/sqrt[sd(I+)**2 + sd(I-)**2]<br></pre>
+*** this is at present written is a format for plotting program
+xmgr (aka grace) *** </dd>
+  <dt>CORRELPLOT </dt>
+  <dd>scatter plot of pairs of anomalous differences (in multiples of
+RMS) from random half-datasets. One of these files is generated for
+each output dataset<br>
+*** this is at present written is a format for plotting program
+xmgr (aka grace) ***</dd>
+  <dt>ROGUEPLOT</dt>
+  <dd>a plot of the position on the detector (on an ideal virtual
+detector with the rotation axis horizontal) of rejected outliers, with
+the position of the principle ice rings shown <br>
+*** this is at present written is a format for plotting program
+xmgr (aka grace) ***&nbsp;</dd><p><a name="references"></a></p>
+  <h2>REFERENCES</h2>
+</dl>
+
+<dl compact="compact">
+  <ol>
+    <ol>
+      <li>P.R.Evans "An
+introduction to data reduction: space-group determination, scaling and
+intensity statistics", Acta Cryst. D67, 282-292 (2011)</li>
+      <li>P.R.Evans, "Scaling and assessment&nbsp;
+of data quality", Acta
+Cryst. D62, 72-82&nbsp; (2006). Note that definitions of R<sub>meas</sub>
+and R<sub>pim</sub> in this paper are missing a square-root on the
+(1/n-1) factor<br>
+      </li>
+
+      <li> W. Kabsch, J.Appl.Cryst. 21, 916-924
+(1988)</li>
+      <li>P.R.Evans, "Data reduction", Proceedings
+of CCP4 Study Weekend,
+1993, on Data Collection &amp; Processing, pages 114-122 </li>
+      <li>P.R.Evans, "Scaling of MAD Data",
+Proceedings of CCP4 Study
+Weekend, 1997, on Recent Advances in Phasing, <a href="http://www.dl.ac.uk/CCP/CCP4/proceedings/1997/p_evans/main.html">
+Click here</a> </li>
+      <li>R.Read, "Outlier rejection", Proceedings
+of CCP4 Study Weekend,
+1999, on Data Collection &amp; Processing </li>
+      <li> Hamilton, Rollett &amp; Sparks, Acta
+Cryst. 18, 129-130 (1965)</li>
+      <li> Blessing, R.H., Acta Cryst. A51, 33-38
+(1995)</li>
+      <li> Kay Diederichs &amp; P. Andrew Karplus,
+"Improved R-factors for
+diffraction data analysis in macromolecular crystallography", Nature
+Structural Biology, 4, 269-275 (1997) </li>
+      <li> Manfred Weiss &amp; Rolf Hilgenfeld,
+"On the use of the merging R factor as a quality indicator for X-ray
+data", J.Appl.Cryst. 30, 203-205 (1997)</li>
+      <li> Manfred Weiss, "Global Indicators of X-ray data quality"
+J.Appl.Cryst. 34, 130-135 (2001)</li>
+    </ol>
+  </ol>
+</dl>
+<a name="Appendix1"></a>
+<dl compact="compact">
+  <h2> Appendix 1: Partially recorded reflections</h2>
+  <p>Partials
+may either be summed (subkeyword PARTIALS, with various options), or
+scaled
+(subkeyword SCALE_PARTIALS): in the latter case, each part is treated
+independently
+of the others. If summed partials are used in scaling with the SCALES
+BATCH
+option, the FRACTIONCALC is used to partition the effects of the
+different
+scales for the two halves. In the input file, partials are flagged with
+M=1 in the M/ISYM column, and have a calculated fraction in the
+FRACTIONCALC
+column. Data from Mosflm also has a column MPART which enumerates each
+part (<em>e.g.</em> for a reflection predicted to run over 3 images,
+the 3 parts are
+labelled 31, 32, 33), allowing a check that all parts have been found:
+MPART = 10 for partials already summed in MOSFLM. </p>
+  
+  <p>Summed partials: <br>
+All the parts are summed (after applying scales) to give the total
+intensity,
+provided some checks are passed. The parameters for the checks are set by the
+PARTIALS
+command.
+The number of reflections failing the checks is printed. You should
+make
+sure that you are not losing too many reflections in these checks. </p>
+  <dl compact="compact">
+    <dt>(a) </dt>
+    <dd>At least two parts must be present (unless the CORRECT option
+is
+set,
+see (e) below) </dd>
+    <dt>(b)</dt>
+    <dd>not more than MAXWIDTH &lt;maximum_width&gt; parts must be
+present
+[default maximum_width = 5] </dd>
+    <dt>(c)</dt>
+    <dd>if the CHECK option is set (the default if an MPART column is
+present),
+the MPART flags are examined. If they are consistent, the summed
+intensity
+is accepted. If they are inconsistent (quite common), the total
+fraction
+is checked unless NOTEST is specified, in which case they are rejected.
+NOCHECK switches off this check. </dd>
+    <dt>(d)</dt>
+    <dd>if the TEST option is set (default if no MPART column), the
+summed
+reflection is accepted if the total fraction (the sum of the
+FRACTIONCALC
+values) lies between &lt;lower_limit&gt; -&gt; &lt;upper_limit&gt;
+[default
+limits = 0.95 1.2] </dd>
+    <dt>(e)</dt>
+    <dd>if the CORRECT option is set, the total intensity is scaled by
+the
+inverse total fraction for total fractions between
+&lt;minimum_fraction&gt;
+to &lt;lower_limit&gt;. This works also for a single unmatched partial.
+As for the scaled partial option, this correction relies on accurate
+FRACTIONCALC
+values, so beware. </dd>
+    <dt>(f)</dt>
+    <dd>if the GAP option is set, partials with a gap in are accepted, <em>e.g.</em>
+a
+partial over 3 parts with the middle one missing. The GAP option
+implies
+TEST &amp; NOCHECK, &amp; the CORRECT option may also be set. </dd>
+  </dl>
+  <p>By setting the TEST &amp; CORRECT limits, you can control
+summation
+&amp; scaling of partials, e.g . </p>
+  <pre>      TEST 1.2 1.2 CORRECT 0.5 <br></pre>
+  <p>will scale up all partials with a total fraction between 0.5 &amp;
+1.2 </p>
+  <pre>      TEST 0.95 1.05           <br></pre>
+  <p>will accept summed partials 0.95-&gt;1.05, no scaling </p>
+  <pre>      TEST 0.95 1.05 CORRECT 0.4  <br></pre>
+  <p>will accept summed partials 0.95-&gt;1.05, and scale up those with
+fractions
+between 0.4 &amp; 0.95 </p>
+  <p>Note that a profile-fitted intensity, if present in the file as a
+separate
+IPR column, will not be used for a scaled partial, unless the PARTIALS
+USE_PROFILE flag is set. </p>
+  <p>Scaled partials:<br>
+In this option, each individual partial observation scaled up by the
+inverse
+FRACTIONCALC, provided that the fraction is greater than
+&lt;minimum_fraction&gt;
+[default = 0.5]. </p>
+  <hr> <a name="Scaling"> </a>
+  <h2>Appendix 2: Scaling algorithm</h2>
+  <p>For each reflection h, we have a number of observations Ihl, with
+estimated
+standard deviation shl, which defines a weight whl. We need to
+determine
+the inverse scale factor ghl to put each observation on a common scale
+(as Ihl/ghl). This is done by minimizing</p>
+  <pre> <br>        Sum( whl * ( Ihl - ghl * Ih )**2 )   <a href="#ref6">Ref Hamilton, Rollett &amp; Sparks</a><br><br></pre>
+  <p>where Ih is the current best estimate of the "true" intensity </p>
+  <pre>        Ih = Sum ( whl * ghl * Ihl ) / Sum ( whl * ghl**2)<br><br></pre>
+  <p>Each observation is assigned to a "run", which corresponds
+to a set of scale factors. A run would typically consist of a
+continuous
+rotation of a crystal about a single axis. </p>
+  <p>The inverse scale factor ghl is derived as follows: </p>
+  <pre>        ghl = Thl * Chl * Shl<br><br></pre>
+  <p>where Thl is an optional relative B-factor contribution, Chl is
+a scale factor,
+and Shl is a anisotropic correction expressed as spherical harmonics
+(ie SECONDARY, ABSORPTION options). </p>
+  <p><b>a) B-factor (optional)</b> </p>
+  <p>For each run, a relative B-factor (Bi) is determined at intervals
+in
+"time" ("time" is normally defined as rotation angle
+if no independent time value is available), at positions ti (t1, t2, .
+. tn). Then for an observation measured at time tl </p>
+  <pre>        B = Sum[i=1,n] ( p(delt) Bi ) / Sum (p(delt))<br><br>        where   Bi  are the B-factors at time ti<br>                delt    = tl - ti<br>                p(delt) = exp ( - (delt)**2 / Vt )<br>                Vt  is "variance" of weight, &amp; controls the smoothness<br>                        of interpolation<br><br>        Thl = exp ( + 2 s B )<br>                s = (sin theta / lambda)**2<br><br></pre>
+  <p>An alternative anisotropic B-factor may be used to correct for
+anisotropic
+fall-off of scattering: THIS OPTION IS NOT RECOMMENDED. This is
+parameterized on the components of the
+scattering vector (divided by 2 for compatibility with the normal
+definition
+of B) in two directions perpendicular to the Xray beam (y &amp; z in
+the
+"Cambridge" coordinate frame with x along the beam). </p>
+  <pre>        Thl = exp ( + 2[uy**2 Byy + 2 uy uz Byz + uz**2 Bzz])<br><br>        where  uy, uz are the components of d*/2<br><br></pre>
+  <p>Byy, Byz, Bzz are functions of time ti or batch as for the
+isotropic
+Bfactor. The principal components of B (Bfac_min, Bfac_max) are also
+printed. </p>
+  <p><b>b) Scale factors</b> </p>
+  <p>For each run, scale factors Cz are determined at intervals on rotation angle z. Then for an observation
+at position (z0), </p>
+  <pre>        Chl(z0) =<br>   Sum(z)[p(delz)*Cxyz]/Sum(z)[p(delz)]<br><br>where   delz    = z - z0<br>        p(delz) = exp(-delz**2/Vz)<br>        Vz is the "variance" of the weight &amp; controls the smoothness of interpolation<br><br></pre>
+  <p>For the SCALES BATCH option, the scale along z is discontinuous:
+the normal option has one scale factor for each batch.&nbsp; </p>
+  <p><b>c) Anisotropy factor</b> </p>
+  <p> The optional surface or anisotropy factor Shl is expressed as a
+sum of spherical harmonic terms as a function of the direction of <br>
+(1) the secondary beam (SECONDARY correction) in the camera spindle
+frame, <br>
+(2) the secondary beam (ABSORPTION correction) in the crystal frame,
+permuted to put either a*, b* or c* along the spherical polar axis <br>
+or <br>
+(3) the scattering vector in the crystal frame (SURFACE option). </p>
+  <ol>
+    <li> SECONDARY beam direction (camera frame)
+      <pre>         s  =  [Phi] [UB] h<br>         s2 = s - s0       <br>         s2' = [-Phi] s2<br>Polar coordinates:<br>         s2' = (x y z)<br>         PolarTheta = arctan(sqrt(x**2 + y**2)/z)<br>         PolarPhi   = arctan(y/x)<br><br>                             where [Phi] is the spindle rotation matrix<br>                                   [-Phi] is its inverse<br>                                   [UB]  is the setting matrix<br>                                   h = (h k l)<br></pre>
+    </li>
+    <li> ABSORPTION: Secondary beam direction (permuted crystal frame)
+      <pre>         s    = [Phi] [UB] h<br>         s2   = s - s0       <br>         s2c' = [-Q] [-U] [-Phi] s2<br>Polar coordinates:<br>         s2' = (x y z)<br>         PolarTheta = arctan(sqrt(x**2 + y**2)/z)<br>         PolarPhi   = arctan(y/x)<br><br>                             where [Phi] is the spindle rotation matrix<br>                                   [-Phi] is its inverse<br>                                   [Q] is a permutation matrix to put<br>                                       h, k, or l along z (see POLE option)<br>                                   [U]  is the orientation matrix<br>                                   [B]  is the orthogonalization matrix<br>                                   h = (h k l)<br></pre>
+    </li>
+    
+  </ol>
+then
+  <pre> Shl = 1  +  Sum[l=1,lmax] Sum[m=-l,+l] Clm  Ylm(PolarTheta,PolarPhi)<br><br>                             where Ylm is the spherical harmonic function for<br>                                       the direction given by the polar angles<br>                                   Clm are the coefficients determined by<br>                                       the program<br><br></pre>
+Notes:
+  <ul>
+    <li>The initial term "1" is essentially the l = 0 term, but with a
+fixed
+coefficient.</li>
+    <li>The number of terms = (lmax + 1)**2 - 1</li>
+    <li>Even terms (ie l even) are centrosymmetric, odd terms
+antisymmetric</li>
+    <li>Restraining all terms to zero (with the TIE SURFACE) reduces
+the
+anisotropic correction. This should always be done</li>
+  </ul>
+  <sup>
+  <hr></sup><a name="Appendix3"></a><h2>Appendix 3: Data from Denzo</h2>
+  <p> DENZO is often run refining the cell and orientation angles for
+each image independently, then postrefinement is done in
+Scalepack. It is essential that you do this postrefinement. Either
+then reintegrate the images with the cell parameters fixed,
+or use unmerged output from scalepack as input to Aimless. The DENZO or
+SCALEPACK outputs will need to be converted to a multi-record MTZ file
+using COMBAT (see COMBAT documentation) or POINTLESS (for Scalepack
+output only).</p>
+  <p> Both of these options have some problems</p>
+  <ul>
+    <li>If you take the output from Denzo into Scala, there may be
+problems with partially recorded reflections: it is difficult for
+Scala to determine reliably that it has all parts of a partial to sum
+together.</li>
+    <li>If you take unmerged output from scalepack into Aimless, most of
+the
+geometrical information about how the observations were collected is
+lost, so many of the scaling options in Aimless are not available. Only
+Batch scaling can be used, but simultaneous scaling of several
+wavelengths or derivatives may still be useful</li>
+  </ul>
+  <hr> <a name="outlier"> </a>
+  <h2>Appendix 4: Outlier algorithm</h2>
+  <p>The test for outliers is as follows: </p>
+  <dl compact="compact">
+    <dt>(1)</dt>
+    <dd>if there are 2 observations (left), then </dd>
+    <dl compact="compact">
+      <dt>(a)</dt>
+      <dd>for each observation Ihl, test deviation </dd>
+      <pre>     Delta(hl) =  (Ihl - ghl Iother) / sqrt[sigIhl**2 + (ghl*sdIother)**2]<br></pre>
+      <p>against sdrej2, where Iother = the other observation </p>
+      <dt>(b)</dt>
+      <dd>if either |Delta(hl)| &gt; sdrej2, then </dd>
+      <ol>
+        <li>in scaling, reject reflection. Or: </li>
+        <li>in merging, </li>
+        <ol>
+          <li>keep both (default or if KEEP subkey given) or </li>
+          <li>reject both (subkey REJECT) or </li>
+          <li>reject larger (subkey LARGER) or </li>
+          <li>reject smaller (subkey SMALLER). </li>
+        </ol>
+      </ol>
+    </dl>
+    <dt>(2)</dt>
+    <dd>if there 3 or more observations left, then </dd>
+    <dl compact="compact">
+      <dt>(a)</dt>
+      <dd>for each observation Ihl, </dd>
+      <ol>
+        <li>calculate weighted mean of all other observations
+&lt;I&gt;n-1 &amp;
+its sd(&lt;I&gt;n-1) </li>
+        <li>deviation </li>
+        <pre>          Delta(hl) =<br>       (Ihl - ghl &lt;I&gt;n-1&gt;) / sqrt[sigIhl**2 + (ghl*sd(&lt;I&gt;n-1))**2]<br></pre>
+        <li>find largest deviation max|Delta(hl)| </li>
+        <li>count number of observations for which Delta(hl) .ge. 0
+(ngt), &amp;
+for which Delta(hl) .lt. 0 (nlt) </li>
+      </ol>
+      <dt>(b) </dt>
+      <dd>if max|Delta(hl)| &gt; sdrej, then reject one observation,
+but
+which
+one? </dd>
+      <ol>
+        <li>if ngt == 1 .or. nlt == 1, then one observation is a long
+way
+from
+the others, and this one is rejected </li>
+        <li>else reject the one with the worst deviation max|Delta(hl)|
+        </li>
+      </ol>
+    </dl>
+    <dt>(3)</dt>
+    <dd>iterate from beginning </dd>
+  </dl>
+  <sup>
+  <hr></sup><a name="release_notes"> </a>
+  <h2>RELEASE NOTES</h2>
+</dl><dl compact="compact"><h2>AUTHOR</h2>
+  <p>Phil Evans, MRC Laboratory of Molecular Biology, Cambridge
+(pre@mrc-lmb.cam.ac.uk)
+See above for Release Notes. </p>
+  <h2>SEE ALSO</h2>
+  
+</dl>
+</body></html>

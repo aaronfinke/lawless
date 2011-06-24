@@ -1,0 +1,263 @@
+// scalemodel.hh
+//
+//  Scale model for reflection list
+//
+//  The inverse scale factor ghl for a given observation (or part) is the product of
+//  number of parts
+//
+//    ghl = g(primary_beam_direction) g(time) g(secondary_beam_direction) ...
+//
+//  For each run, there is a primary beam component, and an index into lists for
+//  each of the other components, so that multiple runs may share these (eg secondary)
+//  
+
+#ifndef SCALEMODEL_HEADER
+#define SCALEMODEL_HEADER
+
+#include <vector>
+#include "InputAll.hh"
+#include "hkl_unmerge.hh"
+#include "scaletypes.hh"
+#include "Output.hh"
+#include "tie.hh"
+
+namespace scala {
+  //--------------------------------------------------------------
+  class ValidScaleModel {
+    // For each run, does the data have suffcient information to support each
+    // type of scale model?
+  public:
+    ValidScaleModel(): nruns(0) {}
+    ValidScaleModel(hkl_unmerge_list& hkl_list);
+    void init(hkl_unmerge_list& hkl_list);
+
+    //! validity flag for primary beam corrections, for irun'th run
+    bool ValidPrimary(const int& irun) const
+    {return validprimary.at(irun);}
+
+    //! validity flag for batch corrections, for irun'th run
+    bool ValidBatch(const int& irun) const
+    {return validbatch.at(irun);}
+
+    //! validity flag for secondary beam corrections, for irun'th run
+    bool ValidSecondary(const int& irun) const
+    {return validsecondary.at(irun);}
+
+    //! validity flag for tile corrections, for irun'th run
+    bool ValidTile(const int& irun) const
+    {return validtile.at(irun);}
+
+  private:
+    // Validity flags for each run
+    int nruns;
+    std::vector<bool> validprimary;   // smooth primary scale (& B-factor)
+    std::vector<bool> validbatch;     // batch number
+    std::vector<bool> validsecondary; // secondary beam, ie full geometry
+    std::vector<bool> validtile;      // tile information
+  }; // class ValidScaleModel
+  //--------------------------------------------------------------
+  class ScaleModel 
+  {
+  public:
+    // types of parameter
+    enum ScaleParameterType {NONE, SCALE, BFACTOR, SECONDARY, TILE};
+    // String representation
+    static std::string ScaleParameterTypeString(const ScaleParameterType& type);
+
+    ScaleModel(){}
+    // Construct from input commands and reflection list
+    //  All secondary beam direction in hkl_list will be calculated if needed
+    ScaleModel(const phaser_io::InputAll& input,
+	       hkl_unmerge_list& hkl_list,
+	       phaser_io::Output& output);
+
+    // Initialise from input commands and reflection list
+    //  All secondary beam direction in hkl_list will be calculated if needed
+    void init(const phaser_io::InputAll& input,
+	      hkl_unmerge_list& hkl_list,
+	      phaser_io::Output& output);
+
+    // Setup from scale specifications and reflection list
+    // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
+    void setup(const std::vector<phaser_io::ScaleSpecification>& scaleSpecs,
+	       hkl_unmerge_list& hkl_list,
+	       phaser_io::Output& output);
+
+    void SetConstant(hkl_unmerge_list& hkl_list,
+		     phaser_io::Output& output);  // set SCALE CONSTANT for all runs
+
+    void SetupTies(const phaser_io::InputAll& input,
+		   const hkl_unmerge_list& hkl_list);
+
+
+    // Get vector of parameters
+    std::vector<double> GetParameters() const;
+    // get type for all parameters
+    std::vector<ScaleParameterType> GetParameterType() const;
+    // get type for a parameter
+    ScaleParameterType GetParameterType(const int& Ipar) const;
+
+    // get lower bound for parameter, depending on type: return false if unbounded
+    bool GetLowerBound(const int& Ipar, double& Lower) const;
+    // get upper bound for parameter, depending on type: return false if unbounded
+    bool GetUpperBound(const int& Ipar, double& Upper) const;
+    // get "large shift" value for parameter, depending on type
+    double GetLargeShift(const int& Ipar) const;
+
+
+    // Set all parameters from vector and count of number of contributions
+    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs);
+    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs);
+
+    // Normalise scales & B-factors
+    void NormaliseParameters();
+
+    // Set initial primary scales, eg from InitialScales
+    // also store count of number of observations
+    void SetInitialScales(const std::vector<double>& gscales,
+			  const std::vector<int>& numobsrotrange);
+
+    // Return true if model is refinable, ie not just one scale and one B-factor
+    bool IsRefinable() const;
+    // Total number of parameters
+    int Nparameters() const {return nparameters;}
+    //  Number of primary scale parameters
+    int Nscales() const {return nprimaryscale;}
+    //  Number of Bfactor parameters
+    int NBfactors() const {return nbfactors;}
+    // Number of secondary scale parameters
+    int Nsecondary() const {return nsecondaryscale;}
+
+    // Return primary scale for specified run
+    PrimaryScale primary_scale(const int& irun) const {return primary_scales.at(irun);}
+    // Return Bfactor for specified run
+    RelativeBfactor Bfactor(const int& irun) const {return  relative_bfactors.at(irun);}
+
+    // return number of ranges in run, for batch scale = Nbatches, else number of scales-1
+    int Nrange(const int& irun) const {return primary_scales.at(irun).Nintervals();}
+
+    // Scale observation, returns scale applied
+    double ScaleObs(observation& obs, const Rtype& invresolsq) const;
+
+    // Scale observation, returns scale applied and
+    // partial derivative vector d(ghl)/dp
+    double ScaleObs(observation& obs, const Rtype& invresolsq,
+		   std::vector<double>& dghldp) const;
+
+    // Return restraint target, and optionally gradient & Hessian contributions
+    double TieValues(const bool& DoGradient, const bool& DoHessian,
+		     const std::vector<double>& params,
+		     std::vector<double>& dRdpi,
+		     std::vector<TieHessian>& Htie);
+
+    // Print scale layout
+    void PrintLayout(phaser_io::Output& output);
+    // Print all scale parameters
+    void PrintScales(phaser_io::Output& output);
+
+    //!
+    void Check() const {if (nsecscales > 0) secondary_scales[0].Check();}
+
+    //! Dump scale model to file
+    void Save(const std::string& dumpfilename,
+	      const std::vector<Run>& runlist) const;
+
+    //! Format scalemodel for save/restore
+    // NB ties are not saved
+    std::string FormatSave(const std::vector<Run>& runlist) const;
+
+    //! Restore from file
+    void Restore(const std::string& restorefilename,
+		 const std::vector<Run>& runlist);
+    
+
+  private:
+    std::string SetupScale(const int& irun,
+			   const phaser_io::ScaleSpecification& scaleSpec,
+			   const Run& run,
+			   const ValidScaleModel&  validscalemodel);
+
+    void CountParameters();
+
+    // Returns index into scale specification list for run index irun
+    //  returns -1 if not found
+    int scaleSpecIndex(const int& irun,
+		       const std::vector<phaser_io::ScaleSpecification>& scaleSpecs,
+		       const std::vector<Run>& runList) const;
+
+    // Run information
+    std::vector<int> runnumbers;
+
+    // Primary beam things
+    int nruns;  // number of runs == number of primary models
+    std::vector<PrimaryScale> primary_scales;        // for each run
+    // index to 1st primary scale parameter for each run
+    std::vector<int> idxrun_primary_scales;
+    std::vector<RelativeBfactor> relative_bfactors;  // for each run
+    // index to 1st B-factor parameter for each run
+    std::vector<int> idxrun_bfactors;
+
+    // Secondary beam things
+    std::vector<SecondaryScale> secondary_scales;  // secondary models
+    int nsecscales;                                // number of secondary models <= nruns
+    std::vector<int> sec_scale_index_run;  // index into secondary scale list for each run
+					   // set up by [UN]LINK or by default
+    // index to 1st secondary parameter for each run
+    std::vector<int> idxrun_secondary;
+    // for ABSORPTION, pole = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
+    int pole;
+
+    //t    // Scaling by tile
+    //t    //   typically only one scale set, unless different runs are from different detectors
+    //t    int ntilescales;                       // number of different tile scales
+    //t    std::vector<TileScale> tile_scales;    // the tile scales
+    //t    std::vector<int> tile_scale_index_run; // which scale for each run?
+
+    // Ties
+    int nties;
+    std::vector<Tie> ties;
+    // counts for each type
+    int nties_rot, nties_bfac, nties_zerob, nties_surf, nties_tiles;
+
+    double sd_rotation;
+    double sd_bfactor;
+    double sd_zerob;
+    double sd_surface;
+    double sd_tile;
+    double sd_tile2;
+
+    int nparameters;      // Number of parameters
+    int nprimaryscale;    //  Number of primary scale parameters
+    int nbfactors;        //  Number of B-factor parameters
+    int nsecondaryscale;  //  Number of secondary scale parameters
+    int ntilescales;      //  Number of tile scale parameters
+
+    // Normalisation:
+    int scalenormrun;    // run for scale  normalisation
+    int scalenormbatch;  // batch number for scale  normalisation, -1 for 1st
+			 //  after construction, batch serial number in run
+
+    int bfacnormrun;     // run number for B-factor normalisation
+    int bfacnormbatch;   // batch number for B-factor  normalisation, -1 for best
+			 //  after construction, batch serial number in run
+
+    // Print wrapping lines:
+    //   line 1, values v (double), label t1
+    //   line 2, values n (int),    label t2
+    //   fw  field width
+    //   fd  number of decimal points for v
+    std::string PrintTwoWrappingLines(const std::vector<double>& v,
+				      const std::string& t1,
+				      const std::vector<int>& n,
+				      const std::string& t2,
+				      const int& fw,
+				      const int& fd);
+
+    // return index in runlist, -1 if not found
+    int RunNotFound(const std::vector<Run>& runlist,
+		    const std::vector<int>& batchnumbers) const;
+
+  }; // class ScaleModel 
+}
+
+#endif

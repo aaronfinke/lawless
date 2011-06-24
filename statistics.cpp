@@ -1,0 +1,743 @@
+//
+// statistics.cpp
+//
+// Print all merging statistics etc
+//
+
+// Clipper
+#include <clipper/clipper.h>
+using clipper::Message;
+using clipper::Message_fatal;
+
+#include "statistics.hh"
+#include "score_datatypes.hh"
+#include "printing.hh"
+#include "selectedobservations.hh"
+#include "reject.hh"
+#include "intensitybin.hh"
+#include "halfdataset.hh"
+#include "Output.hh"
+#include "summarystatistics.hh"
+#include "cumulativecompleteness.hh"
+#include "sdanalysis.hh"
+#include "cone.hh"
+
+namespace scala {
+  // ------------------------------------------------------------
+  void BatchScales0(const std::vector<Batch>& batches,
+		    const int& datasetIndex, const ScaleModel& AllScales,
+		    std::vector<float>& scale0batch,
+		    std::vector<float>& bfacbatch)
+  // Set arrays of Primary scales at theta=0 for centre of each batch,
+  // & Bfactor, for selected dataset
+  //
+  // On entry:
+  //  batches        list of all batches (including those not in this dataset)
+  //  datasetIndex   dataset index number to select dataset
+  //  AllScales      scales
+  //
+  // On exit:
+  //  scale0batch    primary scales at theta=0 for centre of each batch
+  //  bfacbatch      Bfactor for each batch
+  {
+    int nbatches = batches.size();
+    scale0batch.assign(nbatches, 0.0);
+    bfacbatch.assign(nbatches, 0.0);
+    float ps;
+
+    for (int ib=0;ib<nbatches;++ib) {
+      // Is it this dataset?
+      if (batches[ib].index() == datasetIndex) {
+	if (batches[ib].Accepted()) {
+	  int irun = batches[ib].RunIndex();
+	  if (irun >= 0) {
+	    PrimaryScale pscale = AllScales.primary_scale(irun);
+	    if (pscale.IsBatchScale()) {
+	      ps = pscale.Scale(batches[ib].num());
+	    } else {
+	      ps = pscale.Scale(batches[ib].MidPhi());
+	    }
+	    if (ps != 0.0) {
+	      scale0batch[ib] = 1./ps;
+	    } else {
+	      scale0batch[ib] = 0.0;
+	    }
+	    
+	    RelativeBfactor bfac = AllScales.Bfactor(irun);
+	    if (bfac.IsBatchBfactor()) {
+	      int batchN = batches[ib].num();
+	      ps = bfac.BfactorValueB(batchN);
+	    } else {
+	      ps = bfac.BfactorValue(batches[ib].MidTime());
+	    }
+	    bfacbatch[ib] = ps;
+	  }
+	}
+      }
+    } // end loop batches
+  }
+  // ------------------------------------------------------------
+  void AddDelStats(const float& delI, const float& AvI, const int& nmult,
+		   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
+		   const int& mres,
+		   std::vector<Rfactor>& rmergeRes,
+		   std::vector<Rfactor>& rmeasRes,
+		   std::vector<Rfactor>& rpimRes,
+		   const int& mint,
+		   std::vector<Rfactor>& rmergeInt,
+		   std::vector<Rfactor>& rmeasInt,
+		   std::vector<Rfactor>& rpimInt)
+  // Add in deviations to Rmerge statistics etc
+  // by batch, resolution, intensity
+  //
+  // On entry:
+  //  obs       observation
+  //  delI      Ihl - <I>
+  //  AvI       <I>
+  //  nmult     multiplicity for this observation
+  //  jbatch    batch serial number, < 0 don't use
+  //  mres      resolution bin, < 0 don't use
+  //  mint      intensity bin, < 0 don't use
+  //
+  // On exit:
+  //  rmergebatch  updated Rmerge by batch
+  //  rmergeRes    updated Rmerge by resolution
+  //  rmeasRes     updated Rmeas by resolution
+  //  rpimRes      updated Rpim by resolution
+  //  rmergeInt    updated Rmerge by intensity
+  //  rmeasInt     updated Rmeas by intensity
+  //  rpimInt      updated Rpim by intensity
+  //  
+  {
+    double unitw = 1.0;
+    if (jbatch >= 0) rmergebatch[jbatch].add(delI, AvI, unitw);
+    double an = nmult;
+    if (mres >= 0) {
+      rmergeRes[mres].add(delI, AvI, unitw); // Rmerge
+      double w = sqrt(an/(an-1.0));
+      rmeasRes[mres].add(delI, AvI, w);  // Rmeas
+      w = sqrt(1.0/(an-1.0));
+      rpimRes[mres].add(delI, AvI, w);  // Rpim
+    }
+    if (mint >= 0) {
+      rmergeInt[mint].add(delI, AvI, unitw); // Rmerge
+      double w = sqrt(an/(an-1.0));
+      rmeasInt[mint].add(delI, AvI, w);  // Rmeas
+      w = sqrt(1.0/(an-1.0));
+      rpimInt[mint].add(delI, AvI, w);  // Rpim
+    }
+  }
+  // ------------------------------------------------------------
+  void AddDelStatsOv(const float& delI, const float& AvI, const int& nmult,
+		     const int& mres,
+		     std::vector<Rfactor>& rmergeResOv,
+		     std::vector<Rfactor>& rmeasResOv,
+		     std::vector<Rfactor>& rpimResOv)
+  // Add in deviations to Rmerge statistics etc
+  // by resolution, over all I+ & I- observations together
+  //
+  // On entry:
+  //  obs       observation
+  //  delI      Ihl - <I>
+  //  AvI       <I>
+  //  nmult     multiplicity for this observation
+  //  mres      resolution bin, < 0 don't use
+  //
+  // On exit:
+  //  rmergeRes    updated Rmerge by resolution
+  //  rmeasRes     updated Rmeas by resolution
+  //  rpimRes      updated Rpim by resolution
+  //  
+  {
+    double unitw = 1.0;
+    double an = nmult;
+    if (mres >= 0) {
+      rmergeResOv[mres].add(delI, AvI, unitw); // Rmerge
+      double w = sqrt(an/(an-1.0));
+      rmeasResOv[mres].add(delI, AvI, w);  // Rmeas
+      w = sqrt(1.0/(an-1.0));
+      rpimResOv[mres].add(delI, AvI, w);  // Rpim
+    }
+  }
+  // ------------------------------------------------------------
+  void AddDelStats(const float& delI, const float& AvI,
+		   const int& jbatch,  std::vector<Rfactor>& rmergebatch)
+  {
+    double unitw = 1.0;
+    if (jbatch >= 0) rmergebatch[jbatch].add(delI, AvI, unitw);
+  }
+  // ------------------------------------------------------------
+  void BiasSums(const SelectedObservations& allobs, const IsigI& AvI,
+		MeanSD& biasRes,
+		MeanSD& biasIRes)
+  //
+  //  Bias calculation
+  //  This compairs each "partial" observation  Ihl with the mean of
+  //  the "fulls" <Ifull>. For this purpose, "fulls" are considered as
+  //  all observations with the minimum number of parts for this refecltion
+  //  (=1 for true fulls), and "partials" are all observations with more parts
+  //
+  // On entry:
+  //  allobs    observations for this reflection (I+ & I-)
+  //  AvI       average IsigI
+  //
+  // On exit:
+  //  biasRes   update Sum(<Ifull> - Ipartial)
+  //  biasIRes  update Sum(<I>)
+  {
+    observation this_obs;
+    int idx;
+    MeanSD AvIsmall;  
+
+    int minparts = 1000000;
+    // Find smallest width (fulls if present)
+    while ((idx=allobs.next_observation(this_obs)) >= 0) {
+      minparts = Min(minparts, this_obs.num_parts());
+    }
+    while ((idx=allobs.next_observation(this_obs)) >= 0) {
+      if (this_obs.num_parts() == minparts) {
+	AvIsmall.Add(this_obs.kI());
+      }
+    }
+    float Ifull = AvIsmall.Mean();
+    while ((idx=allobs.next_observation(this_obs)) >= 0) {
+      if (this_obs.num_parts() > minparts) {
+	biasRes.Add(Ifull - this_obs.kI());
+	biasIRes.Add(AvI.I());
+      }
+    }
+  }
+  // ------------------------------------------------------------
+  void SmoothStatisticsByBatch(const std::vector<std::vector<MeanSD> >& mnIsdResBatch,
+			       std::vector<double>& maxresbatchsmoothed,
+			       std::vector<Rfactor>& rmergebatch,
+			       const std::vector<Batch>& batches,
+			       const std::vector<Run>& runlist,
+			       const ResoRange& ResRange,
+			       const double& MinimumIoverSigmaBatch,
+			       const int& NbatchSmooth)
+  // Arguments:
+  // mnIsdResBatch by batch for each resolution bin = Mean(<I>/sd(<I>))
+  // maxresbatchsmoothed (returned) "maximum resolution" by batch smoothed over NbatchSmooth batches
+  // rmergebatch by batch, replaced by smooth version
+  // MinimumIoverSigmaBatch     threshold for resolution
+  // NbatchSmooth should be odd, if not forced to be odd here
+  {
+    int nbatches = mnIsdResBatch.size();
+    maxresbatchsmoothed.assign(nbatches, 0.0);
+    std::vector<Rfactor> Rsmooth(nbatches);
+
+    int nbs = (NbatchSmooth/2)*2 + 1; // force odd
+
+    for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
+      int irun = batches[ib].RunIndex(); // run index for central batch
+      int nbatrun = runlist[irun].Nbatches(); // number of batches in run
+      int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
+      if (nbsr >= 3) { // don't bother smoothing if very few batches
+	nbsr = (nbsr/2)*2 + 1;	// Make it odd
+	if (nbsr > nbatrun) nbsr -= 2; // // ... but not larger than nbatrun
+	int half = nbsr/2;
+	int i2 = Min(ib+half, nbatches); // last batch in group + 1
+	// is it in the same run? loop backwards if necessary until it is
+	while (batches[i2-1].RunIndex() != irun) {
+	  i2--;
+	}
+	int i1 = i2 - nbsr;
+	if (i1 < 0) {
+	  i1 = 0;
+	}
+	// is it in the same run? loop forwards if necessary until it is
+	while (batches[i1].RunIndex() != irun) {
+	  i1++;
+	}
+	i2 = i1 + nbsr;
+	ASSERT (i2 <= nbatches);
+	ASSERT (batches[i2-1].RunIndex() == irun);
+	// Number of resolution bins
+	int nrbins = mnIsdResBatch[ib].size();
+	std::vector<MeanSD> msd(nrbins); // for each resolution bin
+	for (int j=i1;j<i2;++j) { // loop nbsr batches
+	  Rsmooth[ib] += rmergebatch[j];  // Rmerge
+	  for (int i=0;i<nrbins;++i) { // loop resolution bins
+	    msd[i] += mnIsdResBatch[j][i];
+	  }
+	}
+	//	std::cout <<ib<<" "<< i1 <<" "<<i2
+	//		  <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
+	//		  <<" " << rmergebatch[ib].R()
+	//		  <<" " << Rsmooth[ib].R()
+	//		  << " i1,i2\n"; //^
+	
+	// assign resolution limit for this group to batch ib
+	ResolutionLimit batchreslimit(msd, ResRange,
+				      MinimumIoverSigmaBatch);
+	maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 
+      }
+    } // end loop batches
+    rmergebatch = Rsmooth;
+    return;
+  }
+  // ------------------------------------------------------------
+  SummaryStatistics Statistics(const ScaleModel& AllScales,
+			       const hkl_unmerge_list& hkl_list,
+			       SDmodel& SDM,
+			       const all_controls& controls,
+			       const int& datasetIndex, 
+			       const ResoRange& ResRange,
+			       const Normalise& NormRes,
+			       const AnomDistribution& anomDistribution,
+			       const float& anomProbSlope,
+			       phaser_io::Output& output)
+  //
+  // Statistics for within a dataset datasetIndex
+  //
+  //  On entry:
+  //   AllScales    scale model
+  //   hkl_list     list with scales applied & outliers rejected
+  //   SDM          Sd correction model
+  //   controls     all controls
+  //   datasetIndex dataset index
+  //   ResRange     resolution range with bins
+  //   NormRes      normalisation object, over all data (no run/batch dependence)
+  //   anomProbSlope slope of anomalous normal probability plot
+  //   output
+  //   
+  {
+    // Check valid datasetIndex
+    if (datasetIndex < 0 || datasetIndex >= hkl_list.num_datasets()) {
+      Message::message(Message_fatal("Statistics: datasetIndex "+
+				     clipper::String(datasetIndex)+" out of range"));
+    }
+
+    // Summary data
+    SummaryStatistics summaryStatistics;
+
+    // Project/Crystal/Dataset for this dataset
+    PxdName dataset_pxd = hkl_list.xdataset(datasetIndex).pxdname();
+    summaryStatistics.StorePXDname(dataset_pxd);
+    std::vector<Run> runlist = hkl_list.RunList();
+    Xdataset this_dataset =  hkl_list.xdataset(datasetIndex);
+    // Statistics by batch
+    //   batches in whole file, including other datasets
+    int nbatches = hkl_list.num_batches();
+
+    std::string tt = "Merging statistics for dataset "+dataset_pxd.format();
+    std::string marks(tt.size()+4,'*');
+
+    output.logTab(0,LOGFILE,"\n\n"+marks);
+    output.logTab(0,LOGFILE,"* "+tt+" *");
+    output.logTab(0,LOGFILE,marks+"\n");
+
+    // Resolution ranges
+    int nresbin =  ResRange.Nbins();
+    summaryStatistics.StoreResRanges(ResRange, ResRange.BinRange(0),
+				     ResRange.BinRange(nresbin-1)); 
+
+    // Intensity bins etc
+    int NintBin = controls.analysis.NiBins();
+    //   Number of bins, number of "reference" bin,
+    //   intensity at "reference" bin, maximum intensity
+    float Iav = NormRes.Imean();
+    float Jmax = NormRes.Imax();
+    IntensityBin Irange(NintBin, NintBin/2, Iav, Jmax);
+
+    //  these determined for each batch 
+    std::vector<float> scale0batch(nbatches);  // mean scale at theta=0
+    std::vector<float> bfacbatch(nbatches);    // B-factor
+    std::vector<Batch> batches = hkl_list.Batches();  // all batches
+    BatchScales0(batches, datasetIndex, AllScales, scale0batch, bfacbatch);
+    std::vector<int> rejectedbatch(nbatches);   // count of outliers
+    // NOT DONE //    std::vector<int> overloadsbatch(nbatches);  // count of overloads
+    std::vector<std::vector<MeanSD> >  mnIsdResBatch(nbatches);  // Mean(<I>/sd(<I>))
+    for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
+      mnIsdResBatch[i].assign(nresbin,MeanSD());
+    }
+
+    // Accumulated over all data
+    std::vector<MeanSD>  scalebatch(nbatches);   // mean scale overall
+    std::vector<Rfactor> rmergebatch(nbatches);  // Rmerge
+    std::vector<MeanSD>  imeanbatch(nbatches);   // Imean (all I+, I-)
+    std::vector<MeanSD>  rmsDbatch(nbatches);    // RMS scatter from mean (all I+,I-)
+    // by resolution
+    // within I+/I- sets
+    std::vector<Rfactor> rmergeRes(nresbin); // Rmerge
+    std::vector<Rfactor> rmeasRes(nresbin);  // Rmeas
+    std::vector<Rfactor> rpimRes(nresbin);   // Rpim
+    // over all I+ & I- sets
+    std::vector<Rfactor> rmergeResOv(nresbin); // Rmerge
+    std::vector<Rfactor> rmeasResOv(nresbin);  // Rmeas
+    std::vector<Rfactor> rpimResOv(nresbin);   // Rpim
+
+    std::vector<MeanSD>  imeanRes(nresbin);  // <I>
+    std::vector<MeanSD>  rmsDRes(nresbin);   // RMS scatter from mean (all I+,I-)
+
+    std::vector<MeanSD>  avSdRes(nresbin);   // Average corrected SD
+    std::vector<MeanSD>  mnIsdRes(nresbin);  // Mean(<I>/sd(<I>))
+    std::vector<MeanSD>  biasRes(nresbin);   // bias Mean (<I"full"> - Ihl(partial))
+    std::vector<MeanSD>  biasIRes(nresbin);  // Mean <I> for fractional bias
+    std::vector<int> NumRef(nresbin,0);      // Number of unique reflections
+    std::vector<int> NumObs(nresbin,0);      // Number of observations
+    int NumRefAll = 0;
+    int NumObsAll = 0;
+    std::vector<int> NumRefSphere(nresbin,0);  // Number unique in sphere
+    std::vector<int> NumCentric(nresbin,0);    // Number unique centric
+    std::vector<int> NumACentric(nresbin,0);   // Number unique acentric
+    std::vector<int> NumAnom(nresbin,0);       // number unique anomalous
+    std::vector<int> NumAnomSphere(nresbin,0); // number unique in sphere
+    std::vector<double> SNumAnomPairs(nresbin,0.0); // anomalous pairs
+    // by intensity
+    // over all I+ & I- sets
+    std::vector<Rfactor> rmergeInt(NintBin); // Rmerge
+    std::vector<Rfactor> rmeasInt(NintBin);  // Rmeas
+    std::vector<Rfactor> rpimInt(NintBin);   // Rpim
+    std::vector<MeanSD>  imeanInt(NintBin);  // <I>
+    std::vector<MeanSD>  rmsDInt(NintBin);   // RMS scatter from mean (all I+,I-)
+    std::vector<MeanSD>  avSdInt(NintBin);   // Average corrected SD
+    std::vector<MeanSD>  mnIsdInt(NintBin);  // Mean(<I>/sd(<I>))
+    std::vector<MeanSD>  biasInt(NintBin);   // bias Mean (<I"full"> - Ihl(partial))
+    std::vector<MeanSD>  biasIInt(NintBin);  // Mean <I> for fractional bias
+
+    // I/sd analysis in anisotropic cones, by resolution
+    std::vector<std::vector<MeanSD> > mnIsdResCone(3);  // Mean(<I>/sd(<I>))
+    for (int i=0;i<3;++i) {mnIsdResCone[i].resize(nresbin);}
+    Cone cone(controls.analysis.ConeAngle()); // angle set from input or default
+
+    // Half dataset correlations etc, by resolution
+    HalfDataset halfDatasetScores(nresbin, dataset_pxd);
+    // Store relevant anomalous statistics
+    halfDatasetScores.StoreAnomStats(anomDistribution);
+
+    // SD analysis by intensity, runs, full/partial
+    SDanalysis sdanalysis(Irange, SDM, false);
+    // "core" data only, ie within smaller limits on delta
+    SDanalysis sdanalysiscore(Irange, SDM, false);
+
+    reflection this_refl;
+    observation this_obs;
+
+    CumulativeCompleteness cumulativecompleteness(nbatches);
+
+    bool Anom = controls.Anomalous;
+    summaryStatistics.SetAnom(Anom);
+
+    SelectedObservations allobs;     // all I+ and I-
+    SelectedObservations obsplus;    // just I+
+    SelectedObservations obsminus;   // just I-
+    std::vector<float> delI;
+    std::vector<float> delIplus;
+    std::vector<float> delIminus;
+    IsigI AvIsig, AvIsigplus, AvIsigminus;
+    SDM.ResetRange();  // range of sd correction values
+
+    float sdrej = 5.0;     // for now, FIXME
+    float sdrej2 = 5.0;
+    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
+    RejectFlags rejflags(sdrej, sdrej2, Rej2policy);
+
+    // Count outliers/batch
+    std::vector<int> outliercount = CountOutliers(hkl_list, rejectedbatch);
+    float maxinvresolsq = 0.0; // actual maximum resolution
+    // number of symmetry operators including lattice centering
+    float NumSymm = hkl_list.symmetry().Nsym();  
+    hkl_list.rewind();
+
+    // * * * * Loop reflections
+    while (hkl_list.next_reflection(this_refl) >= 0)  {
+      Rtype invresolsq = this_refl.invresolsq();
+      bool Centric = hkl_list.symmetry().is_centric(this_refl.hkl());
+
+      // Multiplicity is number of times this reflection will occur in a
+      //     complete sphere of data. This is Nsym/Epsilon, multiplied by 2
+      //     for acentric reflections (since Nsym symmetry operations generate
+      //     a hemisphere of acentric data, but all centric reflections)
+      // NOTE this is not the same as the multiplicity used for weighting
+      //     <I> in Wilson plot calculations (see Iwasaki & Ito, Acta Cryst,
+      //     A33,227-229(1977))
+      float epsiln = hkl_list.symmetry().epsilon(this_refl.hkl());
+      int multcy;
+      if (epsiln == 0.0) {
+	// systematic absence
+	multcy = 0;
+      } else {
+	multcy = Nint(float(NumSymm)/epsiln);
+	if (!Centric) multcy = multcy*2;
+      }
+
+      // Resolution bin
+      int mres = ResRange.bin(invresolsq);
+      maxinvresolsq = Max(maxinvresolsq, invresolsq);
+
+      //  Apply current SD correction to reflection (all observations)
+      SDM.CorrectReflection(this_refl);
+
+      // Select all (I+ & I-) accepted observations for this dataset
+      allobs.init(this_refl, datasetIndex, ALL);
+      AvIsig = allobs.Average();  // average I, 1/variance weight
+      delI = allobs.DelI(); 
+
+      // Intensity bins
+      int mint = Irange.bin(AvIsig.I());
+
+      // Anisotropic analysis
+      int jconeaxis = cone.Axis(this_refl.hkl(), invresolsq, hkl_list.Cell());
+
+      // Counts
+      if (allobs.Number() > 0) {
+	float IovsigI = AvIsig.I()/AvIsig.sigI();
+	mnIsdRes[mres].Add(IovsigI);
+	mnIsdInt[mint].Add(IovsigI);
+	// by cone
+	if (jconeaxis >= 0) {
+	  mnIsdResCone[jconeaxis][mres].Add(IovsigI);
+	}
+
+	NumRef[mres]++;                    // Number unique
+	NumObs[mres] += allobs.Number();   // Number observed
+	NumRefAll++;
+	NumObsAll += allobs.Number();
+	// Counts for completeness & multiplicity
+	//  Total in sphere allowing for symmetry multiplicity
+	NumRefSphere[mres] += multcy;      // Total unique in sphere
+	if (Centric) {
+	  NumCentric[mres]++;
+	} else {
+	  NumACentric[mres]++;
+	}
+
+      };
+      if (allobs.Number() > 1) {
+	BiasSums(allobs, AvIsig, biasRes[mres], biasIRes[mres]); // Bias
+	BiasSums(allobs, AvIsig, biasInt[mint], biasIInt[mint]); // Bias
+      }
+      // Store multiplicity of reflection for cumulative completeness
+      cumulativecompleteness.StartReflection(multcy);
+      int idx;
+      //      double wrfac_batch = 1.0;        // conventional R by batch
+
+
+      while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all observations
+	int batchn = this_obs.Batch();  // batch number
+	int jbatch = hkl_list.batch_serial(batchn); // batch serial
+	// record an observation for cumulative completeness
+	cumulativecompleteness.AddObservationBatch(batchn, jbatch);
+	scalebatch[jbatch].Add(1./this_obs.Gscale());    // actual scale = 1/g
+	
+	imeanbatch[jbatch].Add(this_obs.kI());        // Imean (all I+-)
+	imeanRes[mres].Add(this_obs.kI());
+	avSdRes[mres].Add(this_obs.ksigI());
+	imeanInt[mint].Add(this_obs.kI());
+	avSdInt[mint].Add(this_obs.ksigI());
+	// by resolution for each batch
+	mnIsdResBatch[jbatch][mres].Add(this_obs.kI()/this_obs.ksigI());
+
+	if (allobs.Number() > 1) {
+	  rmsDbatch[jbatch].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+	  AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
+	  rmsDRes[mres].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+	  rmsDInt[mint].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+	}
+	if (Centric) {
+	  // No anomalous
+	  if (allobs.Number() > 1) {
+	    // Rmerge etc 
+	    AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
+			jbatch, rmergebatch,
+			mres, rmergeRes, rmeasRes, rpimRes,
+			mint, rmergeInt, rmeasInt, rpimInt);
+	  }
+	}
+	if (allobs.Number() > 1) {
+	  // over all I+ & I- sets
+	  AddDelStatsOv(delI[idx], AvIsig.I(), allobs.Number(),
+			mres, rmergeResOv, rmeasResOv, rpimResOv);
+	}
+      }  // end loop observations
+
+
+      // Correlations on <I>
+      halfDatasetScores.AddMean(mres, allobs);
+      // Anisotropic analysis
+      // Halfdataset correlations by cone: for inner resolution bin, use all data
+      if (jconeaxis >= 0 || mres == 0) {
+	halfDatasetScores.AddAniso(mres, jconeaxis, allobs);
+      }
+
+      if (Centric) {
+	// Dummy anomalous as control
+	halfDatasetScores.AddAnomCentric(mres, allobs);
+      } else {
+	// Always get I+ & I- sets (unless centric) for anomalous analysis
+	obsplus.init(this_refl, datasetIndex, IPLUS);
+	obsminus.init(this_refl, datasetIndex, IMINUS);
+	halfDatasetScores.AddAnom(mres, obsplus, obsminus);
+
+	// Statistics within  the I+/I-1 sets even if Anomalous Off
+	AvIsigplus = obsplus.Average();  // average I+, 1/variance weight
+	delIplus = obsplus.DelI(); 
+	AvIsigminus = obsminus.Average();  // average I+, 1/variance weight
+	delIminus = obsminus.DelI();
+	
+	// Counts for anomalous completeness & multiplicity
+	bool both = false;
+	if (obsplus.Number() > 0 && obsminus.Number() > 0) {
+	  both = true;
+	  NumAnom[mres]++;           // number unique
+	  NumAnomSphere[mres] += multcy;   // number unique in sphere
+	  // Multiplicity = Min(n+, n-) + Dn/Dn+1 where Dn = ||n+ - n-||
+	  float Dn = std::abs(obsplus.Number() - obsminus.Number());
+	  SNumAnomPairs[mres] += Min(obsplus.Number(), obsminus.Number()) + Dn/(Dn+1.0f);
+	}
+	
+	while ((idx=obsplus.next_observation(this_obs)) >= 0) {  // loop I+ observations
+	  int batchn = this_obs.Batch();  // batch number
+	  int jbatch = hkl_list.batch_serial(batchn); // batch serial
+	  // record an observation for cumulative completeness
+	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IPLUS);
+	  if (obsplus.Number() > 1) {
+	    // Rmerge etc 
+	    AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
+			jbatch, rmergebatch,
+			mres, rmergeRes, rmeasRes, rpimRes,
+			mint, rmergeInt, rmeasInt, rpimInt);
+	  }
+	}
+	
+	while ((idx=obsminus.next_observation(this_obs)) >= 0) {  // loop I- observations
+	  int batchn = this_obs.Batch();  // batch number
+	  int jbatch = hkl_list.batch_serial(batchn); // batch serial
+	  // record an observation for cumulative completeness
+	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IMINUS);
+	  if (obsminus.Number() > 1) {
+	    // Rmerge etc 
+	    AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
+			jbatch, rmergebatch,
+			mres, rmergeRes, rmeasRes, rpimRes,
+			mint, rmergeInt, rmeasInt, rpimInt);
+	  }
+	}
+      } // end acentric
+
+      // Analysis of delta = deviation/sigma in intensity bins
+      // intensity bins mint / NintBin
+      // runs                  nruns
+      // full/partial
+      if (!Anom || Centric) {
+	// No anomalous, selectedobservations are in allobx1s
+	sdanalysis.AddSelobsDelta2(allobs, mint);
+	allobs.Outliers(rejflags);
+	sdanalysiscore.AddSelobsDelta2(allobs, mint);
+      } else {
+	// Anomalous
+	sdanalysis.AddSelobsDelta2(obsplus, mint);
+	sdanalysis.AddSelobsDelta2(obsminus, mint);
+	obsplus.Outliers(rejflags);
+	obsminus.Outliers(rejflags);
+	sdanalysiscore.AddSelobsDelta2(obsplus, mint);
+	sdanalysiscore.AddSelobsDelta2(obsminus, mint);
+      }
+      cumulativecompleteness.EndReflection();
+    }  // end loop reflections
+    // ================================================================
+
+    std::vector<float> batchcompleteness =
+      cumulativecompleteness.BatchCompleteness
+      (ResRange, hkl_list.symmetry(), hkl_list.Cell());
+    std::vector<float> batchanomcompleteness =
+      cumulativecompleteness.BatchAnomCompleteness
+      (ResRange, hkl_list.symmetry(), hkl_list.Cell());
+
+    // Estimates of "maximum resolution" for each batch, based on MinimumIoverSigma
+    std::vector<double> maxresbatch(nbatches);
+    double MinimumIoverSigmaBatch = controls.analysis.MinimumBatchIoverSigma();
+    for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
+      ResolutionLimit batchreslimit(mnIsdResBatch[i], ResRange,
+				    MinimumIoverSigmaBatch);
+      maxresbatch[i] = batchreslimit.HighResolution();
+    }
+    // and generate a smoothed version of this, as well as Rmerge
+    std::vector<double> maxresbatchsmoothed = maxresbatch;
+    std::vector<Rfactor> rmergebatchsmoothed = rmergebatch;
+
+    if (controls.analysis.NbatchSmooth() > 1) {
+      SmoothStatisticsByBatch(mnIsdResBatch, maxresbatchsmoothed,
+			      rmergebatchsmoothed,
+			      batches,
+			      runlist,
+			      ResRange,
+			      MinimumIoverSigmaBatch,
+			      controls.analysis.NbatchSmooth());
+    }
+
+    // Print stuff
+    output.logTabPrintf(0,LOGFILE,"\nNumber of unique reflections                  %9d\n",
+			NumRefAll);
+    output.logTabPrintf(0,LOGFILE,"Number of observations                        %9d\n",
+			NumObsAll);
+    output.logTabPrintf(0,LOGFILE,"Number of rejected outliers                   %9d\n",
+			outliercount.at(0)+outliercount.at(1));
+    output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
+			outliercount.at(2));
+
+
+    PrintScalesByBatch(dataset_pxd, batches, runlist, datasetIndex,
+		       scale0batch, bfacbatch, scalebatch,
+		       output);
+    PrintDeviationsByBatch(dataset_pxd, batches, datasetIndex,
+			   imeanbatch, rmsDbatch, rmergebatch, rmergebatchsmoothed, rejectedbatch,
+			   batchcompleteness, batchanomcompleteness,
+			   maxresbatch, maxresbatchsmoothed,
+			   MinimumIoverSigmaBatch, controls.analysis.NbatchSmooth(),
+			   ResRange, output);
+    // process halfdataset scores, work out resolution "limits"
+    halfDatasetScores.Analyse(ResRange,
+			      controls.analysis.MinimumHalfdatasetCC());
+    
+    PrintHalfDatasetCorrelations(dataset_pxd,
+				 ResRange,
+				 halfDatasetScores,
+				 summaryStatistics, output);
+    
+    
+    PrintAnisotropyAnalysis(dataset_pxd,
+			    ResRange, halfDatasetScores, mnIsdResCone,
+			    cone.ConeAngle(), controls.analysis.MinimumIoverSigma(),
+			    summaryStatistics, output);
+
+    PrintDeviationsByResolution(dataset_pxd, ResRange, rmergeRes, rmeasRes,
+    				rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
+    				biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
+				summaryStatistics, output);
+    PrintDeviationsByResolutionOv(dataset_pxd, ResRange,
+				    rmergeRes, rmeasRes, rpimRes,
+				    rmergeResOv, rmeasResOv, rpimResOv,
+				    summaryStatistics, output);
+    PrintDeviationsByIntensity(dataset_pxd, Irange, rmergeInt, rmeasInt,
+			       rpimInt, imeanInt, rmsDInt, avSdInt, mnIsdInt,
+			       biasInt, biasIInt, output);
+    summaryStatistics.StoreRtopI(rmergeInt[NintBin-1]);
+    
+    PrintCompletenessMultiplicity(dataset_pxd, ResRange, hkl_list.symmetry(), hkl_list.Cell(),
+				  NumRef, NumObs, NumRefSphere, NumCentric, NumACentric,
+				  NumAnom, NumAnomSphere, SNumAnomPairs,
+				  summaryStatistics, output);
+    
+    
+    PrintSDanalysis(sdanalysis, sdanalysiscore, rejflags, Irange, runlist,
+		    SDM, datasetIndex, dataset_pxd, output);
+
+    // Correlplot
+    halfDatasetScores.PlotCorrel();
+    // Other things for summary
+    summaryStatistics.StoreAverageCell(hkl_list.cell(dataset_pxd));
+    summaryStatistics.StoreSpaceGroupName(hkl_list.symmetry().symbol_xHM());
+    float minsdcorrfulls, maxsdcorrfulls, minsdcorrpartials, maxsdcorrpartials;
+    SDM.GetSDcorrectionRanges(minsdcorrfulls, maxsdcorrfulls,
+			      minsdcorrpartials, maxsdcorrpartials);
+    summaryStatistics.StoreSDcorrectioRange(minsdcorrfulls, maxsdcorrfulls,
+					    minsdcorrpartials, maxsdcorrpartials);
+    summaryStatistics.StoreAnomNPslope(anomProbSlope);
+    summaryStatistics.StoreAverageMosaicity(hkl_list.xdataset(datasetIndex).Mosaicity());
+    return summaryStatistics;
+  }  // Statistics
+  // ------------------------------------------------------------   
+}
