@@ -225,7 +225,7 @@ namespace scala {
 			"Mean((I)/sd(I))                       %10.1f%10.1f%10.1f\n",
 			MnIsd[0], MnIsd[1], MnIsd[2]);
     output.logTabPrintf(0,OUTSTREAM,
-			"<I> correlation between half-sets     %10.3f%10.3f%10.3f\n",
+			"Mn(I) correlation between half-sets   %10.3f%10.3f%10.3f\n",
 			Icorrelation[0], Icorrelation[1], Icorrelation[2]);
 
     output.logTabPrintf(0,OUTSTREAM,

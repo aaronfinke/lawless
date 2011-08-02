@@ -15,7 +15,7 @@
 using namespace scala;
 
 //--------------------------------------------------------------
-void PrintTitle( phaser_io::Output& output);
+void PrintTitle(phaser_io::Output& output);
 //--------------------------------------------------------------
 void PrintFileInfoToXML(const std::string& StreamName,
 			const std::string& FileName,

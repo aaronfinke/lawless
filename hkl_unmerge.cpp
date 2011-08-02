@@ -86,6 +86,7 @@ namespace scala {
   int SelectI::selecticolflag = -1; // Use Ipr (if present)
   int SelectI::ipowercomb = 3;      // Ipower =3
   double SelectI::imid = -1.0;         // unset
+  bool SelectI::iprpresent = false; // true if we have a second intensity Ipr stored
   //--------------------------------------------------------------
   void SelectI::SetIcolFlag(const int& IcolFlag, const double& Imid, const int Ipower)
   {
@@ -105,14 +106,29 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
-  IsigI SelectI::GetCombinedI(const Rtype& Ic, const Rtype& varIc,
-				     const Rtype& Ipr, const Rtype& varIpr)
+  void SelectI::ResetAverageIntensity(const double& meanI)
+  // store imid = overall <I> if needed
+  {
+    if (selecticolflag > 0) {
+      imid = meanI;
+    }
+  }
+  //--------------------------------------------------------------
+  IsigI SelectI::GetCombinedI(const Rtype& Iraw, const Rtype& Ic, const Rtype& varIc,
+			      const Rtype& Ipr, const Rtype& varIpr)
   // Return combined I, sigI 
   {
     // COMBINE option, weighted mean of I & Ipr
-    double w = 1.0/(1.0 + pow((std::abs(Ic)/imid), ipowercomb));
+    double w = 1.0/(1.0 + pow((std::abs(Iraw)/imid), ipowercomb));
     return IsigI((w*Ipr+(1.0-w)*Ic),
 		 sqrt(w*varIpr + (1.0-w)*varIc));
+  }
+  //--------------------------------------------------------------
+  IsigI SelectI::GetCombinedI(const Rtype& Iraw, const IsigI& Isc, const IsigI& Ispr)
+  {
+    Rtype varIc  = Isc.sigI()*Isc.sigI();
+    Rtype varIpr = Ispr.sigI()*Ispr.sigI();
+    return GetCombinedI(Iraw, Isc.I(), varIc, Ispr.I(), varIpr);
   }
   //--------------------------------------------------------------
   std::string SelectI::format() 
@@ -123,10 +139,11 @@ namespace scala {
     } else if (selecticolflag == 0) {
       s = "Summation-integration (or sole) intensities will be used";
     } else {
-      s = "Combined intensities will be used: weighted mean of profile-fitted & integrated intensities\n";
-      s += "    I = w * Ipr + (1-w) * Iint\n";
+      s = "Combined intensities will be used:\n";
+      s += "  weighted mean of profile-fitted (Ipr) & summation (Isum) intensities\n";
+      s += "    I = w * Ipr + (1-w) * Isum\n";
 
-      s += "    w = 1/(1+(I/"+
+      s += "    w = 1/(1+(Iraw/"+
 	StringUtil::Strip(StringUtil::ftos(imid,8,1))+
 	")^"+StringUtil::Strip(clipper::String(ipowercomb))+")";
     }
@@ -243,6 +260,120 @@ namespace scala {
     }
     return std::pair<float,float>(Xd/float(Npart_),Yd/float(Npart_));
   }
+  //--------------------------------------------------------------
+  IsigI observation::IsigIsummation()
+  {
+    // Return "summation" integration I sigI, summed over partials if necessary
+    // This is also the sole intensity if there is only one 
+    // Also sets mean phi, time, LP
+    Rtype Itot = 0.0;
+    Rtype varItot = 0.0;
+    IsigI Is;
+    bool  scaled = false;
+    observation_part this_part;
+    // Stored values
+    phi_ = 0.0;
+    time_ = 0.0;
+    LP_ = 0.0;
+    
+    if (Npart_ == 1) {
+      // Full
+      Is = get_part(0).I_sigI();
+      phi_ = get_part(0).phi();
+      time_ = get_part(0).time();
+      LP_ = get_part(0).LP();
+      batch_ = get_part(0).batch();
+    } else {  // partial
+      Rtype max_bit = -1.0;
+      batch_ = 0;
+      for (int kpart = 0; kpart < Npart_; kpart++) { // loop parts
+	this_part = get_part(kpart);
+	Itot += this_part.Ic();
+	varItot += this_part.sigIc()*this_part.sigIc();
+	phi_  += this_part.phi();
+	time_  += this_part.time();
+	LP_ += this_part.LP();
+	// find biggest bit to mark as central batch
+	if (this_part.fraction_calc() > max_bit) {
+	  max_bit = this_part.fraction_calc();
+	  batch_ = this_part.batch();
+	}
+      } // end loop parts 
+      phi_ = phi_/Npart_;  // average phi over all parts
+      time_ = time_/Npart_;  // average time over all parts
+      LP_ = LP_/Npart_;
+      Rtype sigItot = sqrt(varItot);
+      if (part_flag == SCALE) {
+	Itot /= totalfraction;
+	sigItot /= totalfraction;
+      }
+      // Central batch
+      if (batch_ == 0) {
+	// Not set, use one in the middle
+	batch_ = get_part(Npart_/2).batch();
+      }
+      Is = IsigI(Itot, sigItot);
+    } // end if partial
+    return Is;
+  }
+  //--------------------------------------------------------------
+  IsigI observation::IsigIpr() const
+  {
+    // Return "profile" integration I sigI, summed over partials if necessary
+    Rtype Itot = 0.0;
+    Rtype varItot = 0.0;
+    IsigI Is;
+    observation_part this_part;
+      
+    if (Npart_ == 1) {
+      // Full
+      Is = get_part(0).I_sigIpr();
+    } else {  // partial
+      Rtype max_bit = -1.0;
+      for (int kpart = 0; kpart < Npart_; kpart++) { // loop parts
+	this_part = get_part(kpart);
+	Itot += this_part.Ipr();
+	varItot += this_part.sigIpr()*this_part.sigIpr();
+      } // end loop parts 
+      Rtype sigItot = sqrt(varItot);
+      if (part_flag == SCALE) {
+	Itot /= totalfraction;
+	sigItot /= totalfraction;
+      }
+      Is = IsigI(Itot, sigItot);
+    } // end if partial
+    return Is;
+  }
+  //--------------------------------------------------------------
+  void observation::sum_partials()
+  {
+    // Sum (or scale) all partials for this observation
+    // Assumes that SelectI has been set up correctly to choose
+    // either summation, profile or combined intensity measurements
+    //
+    // Sets I_, sigI_, phi_, time_, LP_, batch_
+    // - - - -
+
+    // Get summation integration or sole intensity, sum parts, set phi, time, LP
+    IsigI Ic = IsigIsummation();
+    IsigI Ipr;
+    if (SelectI::IsIprPresent()) {
+      // ... and for Ipr if present
+      Ipr = IsigIpr();
+    }
+    IsigI Isum;
+    if (SelectI::Combine()) {
+      Rtype Iraw = Ic.I();
+      if (LP_ > 0.0) Iraw /= LP_;  // raw intensity back-corrected for LP
+      Isum = SelectI::GetCombinedI(Iraw, Ic, Ipr);
+    } else if (SelectI::SelectIcolFlag() < 0) { // profile
+      Isum = Ipr;
+    } else {
+      Isum = Ic;
+    }
+    I_ = Isum.I();
+    sigI_ = Isum.sigI();
+  }
   // ****************** reflection   *******************
   reflection::reflection()  {}   // dummy
   // Normal constructor
@@ -306,103 +437,21 @@ namespace scala {
     Npart = 0;
     Nscaled = 0;
     NvalidObs = 0; // counts valid and accepted
-    observation_part this_part;
-    Rtype sigItot;
 
     for (int lobs = 0; lobs < num_observations(); lobs++)  {
-      Rtype Itot = 0.0;
-      Rtype varItot = 0.0;
-      Rtype ItotPr = 0.0;
-      Rtype varItotPr = 0.0;
-      Rtype phi = 0.0;
-      Rtype time = 0.0;
-      Rtype LP = 0.0;
-      int Ntot = 0;
-      bool scaled = false;
-      int NpartObs = observations[lobs].num_parts();
-      
-      if (NpartObs == 1) {
-	// Full
-	if (SelectI::Combine()) {
-	  // For combination, we want both Ic & Ipr
-	  Itot = observations[lobs].get_part(0).Ic();
-	  varItot = observations[lobs].get_part(0).sigIc()*
-	    observations[lobs].get_part(0).sigIc();
-	  ItotPr = observations[lobs].get_part(0).Ipr();
-	  varItotPr = observations[lobs].get_part(0).sigIpr()*
-	    observations[lobs].get_part(0).sigIpr();
-	  IsigI Is = SelectI::GetCombinedI(Itot, varItot, ItotPr, varItotPr);
-	  Itot = Is.I();
-	  sigItot = Is.sigI();	      
-	} else {
-	  // Select either Ic or Ipr
-	  Itot = observations[lobs].get_part(0).Ic(SelectI::SelectIcolFlag());
-	  sigItot = observations[lobs].get_part(0).sigIc(SelectI::SelectIcolFlag());
-	}
-	phi = observations[lobs].get_part(0).phi();
-	time = observations[lobs].get_part(0).time();
-	LP = observations[lobs].get_part(0).LP();
-	// Can't be scaled
-	observations[lobs].set_IsigI_phi_time(Itot, sigItot, phi, time, LP);
-	observations[lobs].set_batch(observations[lobs].get_part(0).batch());
+      observations[lobs].sum_partials();
+      if (observations[lobs].IsFull()) {
 	if (observations[lobs].IsAccepted()) {NvalidObs++;}
 	Nfull++;
       } else {  // partial
-	Rtype max_bit = -1.0;
-	int central_batch = 0;
-	for (int kpart = 0; kpart < NpartObs; kpart++) {
-	  this_part = observations[lobs].get_part(kpart);
-	  Ntot++;
-	  if (SelectI::Combine()) {
-	    // For combination, we want both Ic & Ipr
-	    Itot += this_part.Ic();
-	    varItot += this_part.sigIc()*
-	      this_part.sigIc();
-	    ItotPr += this_part.Ipr();
-	    varItotPr += this_part.sigIpr()*
-	      this_part.sigIpr();
-	  } else {
-	    // Select either Ic or Ipr
-	    Itot += this_part.Ic(SelectI::SelectIcolFlag());
-	    varItot += this_part.sigIc(SelectI::SelectIcolFlag())*
-	      this_part.sigIc(SelectI::SelectIcolFlag());
-	  }
-	  phi  += this_part.phi();
-	  time  += this_part.time();
-	  LP += this_part.LP();
-	  // find biggest bit to mark as central batch
-	  if (this_part.fraction_calc() > max_bit) {
-	    max_bit = this_part.fraction_calc();
-	    central_batch = this_part.batch();
-	  }
-	}
-	phi = phi/Ntot;  // average phi over all parts
-	time = time/Ntot;  // average time over all parts
-	LP = LP/Ntot;
-	if (SelectI::Combine()) {
-	  IsigI Is = SelectI::GetCombinedI(Itot, varItot, ItotPr, varItotPr);
-	  Itot = Is.I();
-	  sigItot = Is.sigI();
-	} else {
-	  sigItot = sqrt(varItot);
-	}
-	// Store total
-	// scales incomplete partial if necessary
-	scaled = observations[lobs].set_IsigI_phi_time(Itot, sigItot, phi, time, LP);
-	if (scaled) Nscaled++;
-	// Central batch
-	if (central_batch == 0) {
-	  // Not set, use one in the middle
-	  central_batch = observations[lobs].get_part(NpartObs/2).batch();
-	}
-	observations[lobs].set_batch(central_batch);
+	if (observations[lobs].PartFlag() == SCALE) Nscaled++;
 	if (observations[lobs].IsAccepted()) {NvalidObs++;}
 	Npart++;
+      } // end if partial
+      if (observations[lobs].sigI() > 0.0) {
+	sdmin = Min(sdmin, observations[lobs].sigI());
       }
-      if (sigItot > 0.0) {
-	sdmin = Min(sdmin, sigItot);
-      }
-    }
+    } // end loop observations
     if (sdmin > sdmin0*0.9) sdmin = -1.0;  
     return sdmin;
   }
@@ -1687,13 +1736,14 @@ namespace scala {
     return Nobservations;
   } // end partials
   //--------------------------------------------------------------
-  int hkl_unmerge_list::sum_partials()
-    //                   ^^^^^^^^^^^
-    // Sum partials within each observation for all reflections
-    // Returns number of valid partials
+  int hkl_unmerge_list::sum_partials(const bool& forcesum)
+  //                   ^^^^^^^^^^^
+  // Sum partials within each observation for all reflections
+  // If forcesum is true, sum them even if already summed
+  // Returns number of valid partials
   {
-    if (status == SUMMED) return Nobs_partial;
-    if (status != PREPARED) 
+    if (!forcesum && (status == SUMMED)) return Nobs_partial;
+    if (!(status == PREPARED) && (status != SUMMED)) 
       Message::message(Message_fatal("hkl_unmerge_list::sum_partials - not PREPARED") );
 
     sigmamin = +1000000.;
@@ -1704,21 +1754,19 @@ namespace scala {
     Nobs_scaled = 0;
     int Nfull, Npart, Nscaled;
 
-    for (size_t j = 0; j < refl_list.size(); j++)  // loop all reflections
-      {
-	// Sum partials
-	//    reflection.sum_partials returns min sigma found
-	//    (excluding zeroes)
-	sm = refl_list[j].sum_partials(Nfull, Npart, Nscaled);
-        if (sm > 0.0) 
-	  {
-	    sigmamin = Min(sigmamin, sm);
-	    Nref_valid++;
-	    Nobs_full += Nfull;
-	    Nobs_partial += Npart;
-	    Nobs_scaled += Nscaled;
-	  }
+    for (size_t j = 0; j < refl_list.size(); j++) {  // loop all reflections
+      // Sum partials
+      //    reflection.sum_partials returns min sigma found
+      //    (excluding zeroes)
+      sm = refl_list[j].sum_partials(Nfull, Npart, Nscaled);
+      if (sm > 0.0) {
+	sigmamin = Min(sigmamin, sm);
+	Nref_valid++;
+	Nobs_full += Nfull;
+	Nobs_partial += Npart;
+	Nobs_scaled += Nscaled;
       }
+    }
     status = SUMMED;
     NextRefNum = 0;        // point to first reflection in list
     return Nobs_partial;
@@ -2448,4 +2496,4 @@ namespace scala {
     return *this; 
   }
 
-} // namespace scala
+} // namespace 

@@ -269,6 +269,7 @@ namespace scala {
 	//		  << " i1,i2\n"; //^
 	
 	// assign resolution limit for this group to batch ib
+
 	ResolutionLimit batchreslimit(msd, ResRange,
 				      MinimumIoverSigmaBatch);
 	maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 

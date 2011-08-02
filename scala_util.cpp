@@ -49,7 +49,7 @@ namespace scala
 	  break;
 	}
       }
-      if (i < int(name.size())-1) {
+      if (dot && i < int(name.size())-1) {
 	return name.substr(i+1, name.size()-1-i);
       }
     }

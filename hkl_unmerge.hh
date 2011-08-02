@@ -67,9 +67,18 @@ namespace scala
     static int& SelectIcolFlag() {return selecticolflag;}
     // store imid = overall <I> if needed and not set
     static void SetAverageIntensity(const double& meanI);
+    // store imid = overall <I> if needed
+    static void ResetAverageIntensity(const double& meanI);
 
-    static IsigI GetCombinedI(const Rtype& Ic, const Rtype& varIc,
+    static IsigI GetCombinedI(const Rtype& Iraw, const Rtype& Ic, const Rtype& varIc,
 			      const Rtype& Ipr, const Rtype& varIpr);
+
+    static IsigI GetCombinedI(const Rtype& Iraw, const IsigI& Isc, const IsigI& Ispr);
+
+    //! set true if we have a second intensity Ipr stored
+    static void SetIprPresent(const bool& Isiprpresent) {iprpresent = Isiprpresent;}
+    //! return true if we have a second intensity Ipr stored
+    static bool IsIprPresent() {return iprpresent;}
 
     static std::string format();
 
@@ -77,6 +86,7 @@ namespace scala
     static int selecticolflag;
     static int ipowercomb;
     static double imid;
+    static bool iprpresent; // true if we have a second intensity Ipr stored
   //===================================================================
   };  // SelectI
 
@@ -177,7 +187,6 @@ namespace scala
   //! An observation of a reflection, which may consist of one or more parts
   class observation
   {
-    // 
   public:
     observation();
     observation(const Hkl hkl_in,
@@ -199,6 +208,19 @@ namespace scala
     Rtype ksigI() const {return sigI_/gscale;} //!< return scaled sigI
     IsigI kI_sigI() const {return IsigI(I_/gscale,sigI_/gscale);}    //!< return scaled I, sigI
 
+    //! Return "summation" integration IsigI, summed over partials if necessary
+    // This is also the sole intensity if there is only one 
+    // Also sets mean phi, time, LP
+    IsigI IsigIsummation();
+
+    // Return "profile" integration I sigI, summed over partials if necessary
+    IsigI IsigIpr() const;
+
+    // Sum (or scale) all partials for this observation
+    // Assumes that SelectI has been set up correctly to choose
+    // either summation, profile or combined intensity measurements
+    // Sets I_, sigI_, phi_, time_, LP_, batch_
+    void sum_partials();
 
     Rtype phi() const {return phi_;}  //!< return rotation angle "phi"
     Rtype time() const {return time_;} //!< return "time"
@@ -429,7 +451,6 @@ namespace scala
     //! Copy operator throws exception unless object is EMPTY
     hkl_unmerge_list& operator= (const hkl_unmerge_list& List);
 
-
     // Set controls, limits, etc ----------
     void SetResoLimits(const float& LowReso, const float& HighReso); //!< set resolution
 
@@ -580,7 +601,8 @@ namespace scala
     int prepare();
     //! Sum partials
     /*!  return number of partials */
-    int sum_partials();
+    /*! If forcesum is true, sum them even if already summed */
+    int sum_partials(const bool& forcesum=false);
 
     //! Calculate all secondary beam directions, in chosen frame
     /*! On entry:

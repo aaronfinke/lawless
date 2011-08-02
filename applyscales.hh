@@ -10,7 +10,8 @@
 #include "hkl_unmerge.hh"
 
 namespace scala {
-  void ApplyScales(const ScaleModel& AllScales, hkl_unmerge_list& hkl_list);
+  //! Apply scales to all data, return mean(I) in resolution limits
+ double ApplyScales(const ScaleModel& AllScales, hkl_unmerge_list& hkl_list);
 }
 
 #endif

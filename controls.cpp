@@ -103,9 +103,15 @@ namespace scala
   // Set up observation_part class (static method) with current flags
   // conditional on Ipr present or absent (col_Ipr == 0 absent)
   {
-    if (col_Ipr <= 0) SelectIcolFlag = 0;
+    if (col_Ipr <= 0) {
+      SelectIcolFlag = 0;
+      prfpresent = false;
+    } else {
+      prfpresent = true; // both profile-fitted and summation intensities
+    }
     int Iflag = SelectIcolFlag;
     SelectI::SetIcolFlag(Iflag, imid, IpowerComb);
+    SelectI::SetIprPresent(prfpresent);
   }
   //------------------------------------------------------------
   std::string RejectFlags::formatReject2Policy() const

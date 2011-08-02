@@ -122,7 +122,7 @@ class col_controls
 //  (a) profile-fitted or integrated intensity column
 {
 public:
-  col_controls() : SelectIcolFlag(-1), imid(-1.0) {}
+  col_controls() : prfpresent(false), SelectIcolFlag(-1), imid(-1.0), IpowerComb(3) {}
 
   // Set column selection flags
   // see class observation_part (hkl_unmerge.hh) for implementation
@@ -135,7 +135,17 @@ public:
   // conditional on Ipr present or absent (col_Ipr == 0 absent)
   void SetupColSelection(const int col_Ipr=1);
 
+  // Return selection flag
+  int IcolFlag() const {return SelectIcolFlag;}
+
+  //! return true if Imid was set from command input
+  bool IsImidSet() const {return (imid > 0.1);}
+
+  //! return true if file contains both profile-fitted and summation Is
+  bool BothIpresent() const {return prfpresent;}
+
 private:
+  bool prfpresent;     // true if file contains both profile-fitted and summation Is
   int SelectIcolFlag;
   int IpowerComb;
   double imid;

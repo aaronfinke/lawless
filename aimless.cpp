@@ -25,6 +25,7 @@
 #include "writeoutputfiles.hh"
 #include "timer.hh"
 #include "string_util.hh"
+#include "optimisecombine.hh"
 
 #include "version.hh"
 #include "ccp4_program.h"
@@ -51,7 +52,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/06/24 15:12:17 $";
+  std::string rcsdate = "$Date: 2011/08/02 10:11:15 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -219,8 +220,23 @@ int main(int argc, char* argv[])
 		       hkl_list.cell(),
 		       hkl_list.symmetry().symbol_xHM(),
 		       output);
-    
-    output.logTab(0,LOGFILE, "\n"+SelectI::format());
+
+    bool optimiseCombine = true;
+    if (column_selection.IcolFlag() > 0) {
+      // INTENSITIES COMBINE option
+      if (column_selection.IsImidSet()) {
+	// Imid set explicitly, so it won't be changed
+	output.logTab(0,LOGFILE, "\n"+SelectI::format());
+	optimiseCombine = false;
+      } else {
+	output.logTab(0,LOGFILE, "\nSelection of intensity type (Isum or Ipr) will be optimised");
+	output.logTab(0,LOGFILE, "Profile fitted value Ipr will be used for 1st scaling");
+	SelectI::SetIcolFlag(-1, -1.0);
+      }
+    } else { // INTENSITIES PROFILE or INTEGRATED
+      output.logTab(0,LOGFILE, "\n"+SelectI::format());
+      optimiseCombine = false;
+    }
     if (Npart > 0) {
       output.logTab(0,LOGFILE,controls.partials.format());
     //    output.logTabPrintf(0,LOGFILE,"\nNumber of reflections     =  %10d\n",
@@ -258,6 +274,7 @@ int main(int argc, char* argv[])
     // Set up scale model
     scala::ScaleModel AllScales;
     bool initialscale = FC.initialScale;
+    double overallmeankI = -1000000.0;  // mean I
 
     // Restoring scales from file?
     if (input.Restore()) {
@@ -267,7 +284,7 @@ int main(int argc, char* argv[])
       initialscale = false; // no initial scales
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
-      ApplyScales(AllScales, hkl_list);
+      overallmeankI = ApplyScales(AllScales, hkl_list);
     } else {
       if (FC.OnlyMerge()) {
 	// Onlymerge, set scales CONSTANT
@@ -358,7 +375,8 @@ int main(int argc, char* argv[])
       }
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
-      ApplyScales(AllScales, hkl_list);
+      overallmeankI = ApplyScales(AllScales, hkl_list);
+
       output.logFlush();
 
       // Overall Normalisation 
@@ -384,6 +402,18 @@ int main(int argc, char* argv[])
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
       output.logTabPrintf(0,LOGFILE,
 			  "Time for 1st scaling:%8.1f secs\n", timer.Stop());
+
+      // ----- Optimise Combine settings
+      if (optimiseCombine) {
+	OptimiseCombine OptCombine(hkl_list, output);
+	if (OptCombine.IsOptimised()) {
+	  output.logTabPrintf(0,LOGFILE,
+           "\nTime for optimisation of intensity type selection:%8.1f secs\n", timer.Stop());
+	  // Revaluate summed partials for scaling
+	  hkl_list.sum_partials(true);
+	}
+      }
+      // -----
 
       // First rough SD analysis before main scaling: assumes scales have been applied
       // SD corrections are not applied, but SD_model is updated

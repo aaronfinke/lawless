@@ -36,8 +36,7 @@ generally useful if suitably restrained (see below for discussion of
 this) and should normally be used.
 The secondary beam correction is related to the absorption anisotropy
 correction described by Blessing (<a href="#ref7">Ref Blessing (1995)
-</a>), the interpolated three-dimensional correction is similar to
-that described by Kabsch (<a href="#ref2">Ref Kabsch (1988)</a>). </p>
+</a>). </p>
 <p> The merging algorithm analyses the data for outliers, and gives
 detailed analyses. It generates a weighted mean of the observations
 of the same reflection, after rejecting the outliers.</p>
@@ -96,7 +95,7 @@ correction is similar to SECONDARY (camera frame) in most cases, but
 may be preferable if data has been collected from multiple alignments
 of the same crystal. </li>
   <li>Use a
-B-factor correction unless the data are only low-resolution.
+B-factor correction unless the data are only very low-resolution.
 Traditionally, the relative B-factor is a correction for radiation
 damage (hence it is a function of time), but it also includes some
 other corrections eg absorption. <br>
@@ -115,8 +114,11 @@ derivative similar to those in the native (ie "local" scaling, using
 the SECONDARY option).</li>
 </ol>
 Other options are described in greater detail under the <a href="#keywords"> KEYWORDS</a>.
-<h2><a name="control_of_flow"></a>Control of flow through the program</h2>
-Each of the stages can be individually activated or suppressed (NOT IMPLEMENTED&nbsp;YET)<h2>Partially recorded
+<h2><a name="control_of_flow"></a>Control of flow through the program</h2>The
+ONLYMERGE flag skips the scaling (often in conjuction with RESTORE to
+read in previously determined scales),&nbsp; calculates statistics and
+outputs the data.<br>
+<h2>Partially recorded
 reflections</h2>
 <a href="#Appendix1">See appendix 1</a>
 
@@ -334,25 +336,35 @@ total fraction if&nbsp; it is &gt; minimum_fraction [default 0.95] (NB Pointless
 set, maxgap is maximum number of missing slots [default 1 if GAP is set]<br>
   </li>
 </ol>
-<h3><a name="intensities"></a>INTENSITIES [INTEGRATED | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
+<h3><a name="intensities"></a>INTENSITIES [SUMMATION | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
 &lt;Ipower&gt;] <br>
  </h3>
 <p>Set which intensity to use, of the integrated intensity (column I)
 or
 profile-fitted (column IPR), if both are present. This applies to
-all stages of the program, scaling &amp; averaging. </p>
+all stages of the program, scaling &amp; averaging. Mosflm produces two
+different estimates of the intensity, from summation integration and
+from profile fitting. Generally the profile-fitted estimate is better,
+but for the strongest reflections the summation value is often better.
+The default is to use a weighted mean, depending on the "raw" intensity
+ie before LP correction (COMBINE option), and to optimise automatically
+the switch-over point Imid, to give the best overallR <sub>meas</sub>. </p>
 
 <dl>
 <dt>Subkeys: </dt><dd>
-    <dl><dt><a name="intensities_integrated"></a>INTEGRATED </dt><dd>summation integrated intensity I. </dd><dt><a name="intensities_profile"></a>PROFILE </dt><dd>profile-fitted intensity IPR [default if present]. Note that
-this will
-not be used for scaled partials unless PARTIALS USE_PROFILE is set.</dd><dt><a name="intensities_combine"></a>COMBINE [&lt;Imid&gt;]
+    <dl><dt><a name="intensities_integrated"></a>SUMMATION </dt><dd>use summation integrated intensity Isum. </dd><dt><a name="intensities_profile"></a>PROFILE </dt><dd>use profile-fitted intensity Ipr. <br>
+</dd><dt><a name="intensities_combine"></a>COMBINE [&lt;Imid&gt;]
 [POWER &lt;Ipower&gt;] </dt><dd>Use weighted mean of profile-fitted &amp; integrated
 intensity,
-profile-fitted for weak data, summation integration value for strong. </dd><dd> I = w*Ipr + (1-w)*Iint </dd><dd> w = 1/(1 + (Iint/Imid)**Ipower)</dd><br><dd>Imid may either be given here explicitly or by default will
-be set to the
-mean unscaled intensity. <br>
-Ipower defaults to 3.</dd></dl>
+profile-fitted for weak data, summation integration value for strong.</dd></dl>
+    <dl>
+      <dt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; If no value is given for Imid, it will be automatically optimised <br>
+      </dt>
+    </dl>
+    <dl>
+<dd> I = w*Ipr + (1-w)*Isum </dd><dd> w = 1/(1 + (Iraw/Imid)**Ipower)</dd><br><dd>Ipower defaults to 3.</dd>
+    </dl>
+
   </dd>
 </dl>
 <h3><a name="reject"></a>REJECT <dd>[SCALE | MERGE] [COMBINE]
@@ -521,15 +533,19 @@ SCALES, which may be assigned on the command line.<br>
 (see DUMP).&nbsp;<br>
  </p>
 
-<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt;]<br>
+<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt; [&lt;E2max&gt;]]<br>
  </h3>
 <h3><span style="color: rgb(255, 102, 0);"></span><span style="font-weight: normal;">Define number of refinement cycles Ncycle and method for scale refinement.</span></h3>&nbsp;&nbsp;&nbsp; BFGS use BFGS optimisation (usual method)<br>
 &nbsp;&nbsp;&nbsp; FH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; use Fox-Holmes least-squares algorithm (not recommended)<br>
 <br>
 SELECT&nbsp; define selection limits for the two rounds of scaling. If unset, suitable values will be chosen automatically<br>
 <ul>
-  <li>IovSDmin &lt;I&gt;/sd'(I)&nbsp; limit for selection of reflections for 1st round scaling</li>
-  <li>E2min&nbsp;&nbsp;&nbsp;&nbsp; minimum E<sup>2</sup> for selection of reflections for main scaling</li>
+  <li>IovSDmin &lt;I&gt;/sd'(I)&nbsp; limit for selection of reflections for 1st round scaling (&lt; 0 for automatic selection)<br>
+</li>
+  <li>E2min&nbsp;&nbsp;&nbsp;&nbsp; minimum E<sup>2</sup> for selection of reflections for main scaling [default 0.8]<br>
+</li>
+  <li>E2max &nbsp;&nbsp; maximum E<sup>2</sup> for selection of reflections for main scaling [default 5.0]</li>
+
 </ul>
 
 <h3><a name="exclude"></a>EXCLUDE&nbsp;BATCH &lt;batch range&gt;|&lt;batch list&gt;]
@@ -1033,15 +1049,15 @@ wavelengths or derivatives may still be useful</li>
   <h2>Appendix 4: Outlier algorithm</h2>
   <p>The test for outliers is as follows: </p>
   <dl compact="compact">
-    <dt>(1)</dt>
-    <dd>if there are 2 observations (left), then </dd>
+    <dt>(1) if there are 2 observations (left), then </dt>
+    
     <dl compact="compact">
-      <dt>(a)</dt>
-      <dd>for each observation Ihl, test deviation </dd>
+      <dt>(a) for each observation Ihl, test deviation </dt>
+      
       <pre>     Delta(hl) =  (Ihl - ghl Iother) / sqrt[sigIhl**2 + (ghl*sdIother)**2]<br></pre>
       <p>against sdrej2, where Iother = the other observation </p>
-      <dt>(b)</dt>
-      <dd>if either |Delta(hl)| &gt; sdrej2, then </dd>
+      <dt>(b) if either |Delta(hl)| &gt; sdrej2, then </dt>
+      
       <ol>
         <li>in scaling, reject reflection. Or: </li>
         <li>in merging, </li>
@@ -1053,11 +1069,11 @@ wavelengths or derivatives may still be useful</li>
         </ol>
       </ol>
     </dl>
-    <dt>(2)</dt>
-    <dd>if there 3 or more observations left, then </dd>
+    <dt>(2) if there 3 or more observations left, then </dt>
+    
     <dl compact="compact">
-      <dt>(a)</dt>
-      <dd>for each observation Ihl, </dd>
+      <dt>(a) for each observation Ihl, </dt>
+      
       <ol>
         <li>calculate weighted mean of all other observations
 &lt;I&gt;n-1 &amp;
@@ -1069,11 +1085,11 @@ its sd(&lt;I&gt;n-1) </li>
 (ngt), &amp;
 for which Delta(hl) .lt. 0 (nlt) </li>
       </ol>
-      <dt>(b) </dt>
-      <dd>if max|Delta(hl)| &gt; sdrej, then reject one observation,
+      <dt>(b) if max|Delta(hl)| &gt; sdrej, then reject one observation,
 but
 which
-one? </dd>
+one? </dt>
+      
       <ol>
         <li>if ngt == 1 .or. nlt == 1, then one observation is a long
 way
@@ -1083,13 +1099,15 @@ the others, and this one is rejected </li>
         </li>
       </ol>
     </dl>
-    <dt>(3)</dt>
-    <dd>iterate from beginning </dd>
+    <dt>(3)&nbsp; iterate from beginning </dt>
+    
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact"><h2>AUTHOR</h2>
+</dl><dl compact="compact">0.0.14&nbsp; Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default<br>
+  <h2>AUTHOR</h2>
+
   <p>Phil Evans, MRC Laboratory of Molecular Biology, Cambridge
 (pre@mrc-lmb.cam.ac.uk)
 See above for Release Notes. </p>

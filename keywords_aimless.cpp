@@ -1275,7 +1275,7 @@ INTENSITIES::INTENSITIES() : CCP4base(), InputBase()
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
 
-  selecticolflag = -1; // use Ipr if present
+  selecticolflag = +1; // default COMBINE
   ipowercomb = 3;
   imid = -1.0;
 }
@@ -1283,7 +1283,7 @@ INTENSITIES::INTENSITIES() : CCP4base(), InputBase()
 Token_value INTENSITIES::parse(std::istringstream& input_stream)
 // Read parameters for SD correction
 // Syntax:
-// INTENSITIES [INTEGRATED | PROFILE | COMBINE [<Imid>] [POWER <Ipower>] ]
+// INTENSITIES [SUMMATION | PROFILE | COMBINE [<Imid>] [POWER <Ipower>] ]
 {
   int expectingNumber = 0; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
@@ -1292,7 +1292,7 @@ Token_value INTENSITIES::parse(std::istringstream& input_stream)
     if (tokenIs(1,NAME)) {
       if (expectingNumber > 0) {throw SyntaxError
 	  (keywords, "INTENSITIES: expecting number not "+string_value);}
-      if (keyIs("INTEGRATED")) {
+      if (keyIs("SUMMATION") || keyIs("INTEGRATED")) {
 	selecticolflag = 0;
       } else if (keyIs("PROFILE")) {
 	selecticolflag = -1;
