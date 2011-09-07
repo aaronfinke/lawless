@@ -5950,7 +5950,7 @@ else
 echo "$as_me: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&2;}
         have_ccp4=yes
       else
-        CCP4_CXXFLAGS="-I$ccp4_prefix/lib/src"
+        CCP4_CXXFLAGS="-I$ccp4_prefix/lib/src -I$ccp4_prefix/lib/libccp4/ccp4"
         CCP4_LIBS="-L$ccp4_prefix/lib/src -L$ccp4_prefix/lib -lccp4f -lccp4c -lccif -lmmdb"
         { echo "$as_me:$LINENO: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&5
 echo "$as_me: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&2;}
