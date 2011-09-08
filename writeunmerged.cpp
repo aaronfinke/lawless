@@ -320,9 +320,10 @@ namespace MtzIO
 	    else icn = 1;             // I+
 	  }
 	  fprintf(scafile, "%4d%4d%4d%4d%4d%4d%6d%2d%2d%3d%8.1f%8.1f\n",
-		 hkl.h(), hkl.k(), hkl.l(), hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
-		 batch, icn, ispndle, iasym,
-		 scale*this_obs.kI(), scale*this_obs.ksigI());
+		  hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
+		  hkl.h(), hkl.k(), hkl.l(),
+		  batch, icn, ispndle, iasym,
+		  scale*this_obs.kI(), scale*this_obs.ksigI());
 	  nref++;
 	}
       } // end loop observations

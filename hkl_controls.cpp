@@ -21,6 +21,8 @@ namespace scala {
       range_sel = input.getRESO();
       // batch exclusions
       batchexclude = input.BatchExclusions();
+      // batch inclusions from explicit RUN specification
+      batchinclude = input.RunBatches();
       // Check that fileSeries specified on selection commands match
       // specified files. Fail here if not
       batchexclude.CheckSeries(NumFileSeries); 
@@ -55,7 +57,15 @@ namespace scala {
   //  any renumbering (fileSeriesList == 0), no test will be done
   //  (ie always returns true) unless fileSeries == 0
   {
-    return !(batchexclude.InSelection(batch_number, fileSeries));
+    bool accept = true;
+    if (!batchinclude.Null()) {
+      // We have inclusions from specified RUNs
+      //  accept if within selection
+      accept = batchinclude.InSelection(batch_number, fileSeries);
+    }
+    if (batchexclude.InSelection(batch_number, fileSeries)) {
+      accept = false;
+    }
+    return accept;
   }
-
 }

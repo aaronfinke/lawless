@@ -179,7 +179,8 @@ run
 will be a continuous rotation around a single axis. The definition of a run may use several RUN
 commands. If no RUN command is given
 then run assignment will be done automatically, with run breaks at
-discontinuities in dataset, batch number or Phi. </p><h3><a name="scales"></a>SCALES [&lt;subkeys&gt;] </h3>
+discontinuities in dataset, batch number or Phi. If any RUN definitions are given, then all batches not explicitly specified will be excluded.<br>
+ </p><h3><a name="scales"></a>SCALES [&lt;subkeys&gt;] </h3>
 <p>Define layout of scales, ie the scaling model. Note that a layout
 may be defined for all runs (no RUN subkeyword), then overridden for
 particular runs by additional commands. </p>
@@ -1105,7 +1106,8 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact">0.0.14&nbsp; Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default<br>
+</dl><dl compact="compact">0.0.15&nbsp; if run definitions are given explicitly, then unspecified batches are excluded<br>
+0.0.14&nbsp; Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default<br>
   <h2>AUTHOR</h2>
 
   <p>Phil Evans, MRC Laboratory of Molecular Biology, Cambridge

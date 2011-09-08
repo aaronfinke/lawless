@@ -269,7 +269,7 @@ namespace scala {
 	  double AvI = MnSd(intensities[idts]).first; // mean I
 	  double an = intensities[idts].size();
 	  double w = sqrt(an/(an-1.0));
-	  for (size_t i=0;i<intensities.size();++i) { // loop observations
+	  for (size_t i=0;i<intensities[idts].size();++i) { // loop observations
 	    double delI = intensities[idts][i] - AvI;
 	    rmeasRes[mres].add(delI, AvI, w);  // Rmeas in resolution bins
 	  }

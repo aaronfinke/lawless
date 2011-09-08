@@ -401,7 +401,8 @@ namespace scala {
     // I/sd analysis in anisotropic cones, by resolution
     std::vector<std::vector<MeanSD> > mnIsdResCone(3);  // Mean(<I>/sd(<I>))
     for (int i=0;i<3;++i) {mnIsdResCone[i].resize(nresbin);}
-    Cone cone(controls.analysis.ConeAngle()); // angle set from input or default
+    Cone cone(controls.analysis.ConeAngle(),
+	      hkl_list.symmetry()); // angle set from input or default
 
     // Half dataset correlations etc, by resolution
     HalfDataset halfDatasetScores(nresbin, dataset_pxd);
@@ -519,6 +520,7 @@ namespace scala {
       while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all observations
 	int batchn = this_obs.Batch();  // batch number
 	int jbatch = hkl_list.batch_serial(batchn); // batch serial
+	
 	// record an observation for cumulative completeness
 	cumulativecompleteness.AddObservationBatch(batchn, jbatch);
 	scalebatch[jbatch].Add(1./this_obs.Gscale());    // actual scale = 1/g

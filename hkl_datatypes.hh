@@ -769,7 +769,6 @@ namespace scala
     void AddRange(const int& batch1, const int& batch2,
 		  const int& fileSeriesList, const int& flag=-1);
 
-
     //! Return index in list if in selection, for given file series, else -1
     int FindInSelection(const int& batch,
 			const int& fileSeriesTest) const;

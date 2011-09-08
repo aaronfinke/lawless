@@ -5,6 +5,8 @@
 
 // Clipper
 #include <clipper/clipper.h>
+using clipper::Message;
+using clipper::Message_fatal;
 
 #include "cone.hh"
 
@@ -16,8 +18,38 @@ namespace scala {
     coneangle = clipper::Util::d2rad(CONEDEGREES);
   }
 // ------------------------------------------------------------
-  Cone::Cone(const double& angledegrees) {
+  Cone::Cone(const double& angledegrees,
+	     const hkl_symmetry& Symm)
+    : symmetry(Symm)
+  {
     SetConeAngle(angledegrees);
+    idxaxis.assign(3,-1);
+    for (int jaxis=0;jaxis<3;++jaxis) { // loop axes
+      // Check that this axis is not symmetry related to another
+      Hkl haxis(0,0,0);
+      haxis[jaxis] = 12;  // multiple of 2,3,4 just in case
+      int isym;
+      Hkl symaxis = symmetry.put_in_asu(haxis, isym);
+      if (haxis != symaxis) {
+	int nz = 0;
+	for (int i=0;i<3;++i) {
+	    if (symaxis[i] == 0) {
+	      nz++;  // count zeroes
+	    } else {
+	      idxaxis[jaxis] = i;   // translation of jaxis -> symmetry version
+	    }
+	}
+	ASSERT (nz == 2); // should always have 2 zero values, ie axis
+      } else {
+	idxaxis[jaxis] = jaxis;
+      }
+    } // axes
+      // Sanity check
+    for (int i=0;i<3;++i) {
+      if (idxaxis[i] < 0) { // shouldn't happen
+	Message::message(Message_fatal("Cone: unset index"));
+      }
+    }
   }
   // ------------------------------------------------------------
   //! set cone angle in degrees
@@ -48,7 +80,7 @@ namespace scala {
       // dot products have length = d* a*, d* b*, d* c*
       double ang = acos(Min(1.0,std::abs(xabc[i])/(dstar*reccell[i])))  ;
       if (ang < coneangle && ang < minang) {
-	jaxis = i;
+	jaxis = idxaxis[i];   // reindex if necessary to symmetry axis
 	minang = ang;
       }
     }

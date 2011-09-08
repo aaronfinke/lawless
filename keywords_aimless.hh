@@ -445,7 +445,7 @@ namespace phaser_io {
     //
     // Read parameters for selecting intensities
     // Syntax:
-    // INTENSITIES [INTEGRATED | PROFILE | COMBINE [<Imid>] [POWER <Ipower>] ]
+    // INTENSITIES [SUMMATION | PROFILE | COMBINE [<Imid>] [POWER <Ipower>] ]
 
   {
   public:

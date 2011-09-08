@@ -1,0 +1,6 @@
+0.0.15
+ if run definitions are given explicitly, then unspecified batches are excluded
+
+0.0.14
+ Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default
+

@@ -68,6 +68,7 @@ namespace scala
     int nrej_mflag, nrej_reso;
     ResoRange range_sel;
     BatchSelection batchexclude;  // List/ranges of batches to exclude
+    BatchSelection batchinclude;  // List/ranges of batches to include (from RUN)
     float inputscale;             // scale factor to apply on input
     // fraction of maximum resolution to use in test for blank batches
     float nullResolutionfraction;

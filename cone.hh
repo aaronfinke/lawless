@@ -7,13 +7,15 @@
 #define CONE_HEADER
 
 #include "hkl_datatypes.hh"
+#include "hkl_symmetry.hh"
 
 namespace scala {
   class Cone
   {
   public:
     Cone();
-    Cone(const double& angledegrees);
+    Cone(const double& angledegrees,
+	 const hkl_symmetry& Symm);
 
     //! set cone angle in degrees
     void SetConeAngle(const double& angledegrees);
@@ -26,6 +28,8 @@ namespace scala {
 
   private:
     double coneangle; // radians
+    hkl_symmetry symmetry;
+    std::vector<int> idxaxis;  // to translate axis index into symmetry related axis
   };
 } // namespace scala
 

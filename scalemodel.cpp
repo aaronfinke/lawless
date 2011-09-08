@@ -1307,24 +1307,26 @@ namespace scala {
 
     for (int ib=0;ib<nbatches;++ib) { // loop batches
       int irun = batches[ib].RunIndex();  // run serial number
-      // For smooth primary beam corrections (scale & B-factor) we need valid Phi values
-      if (!batches[ib].ValidPhi() || std::abs(batches[ib].PhiRange()) < 0.0001) {
-	validprimary.at(irun) = false;
-	// Primary data missing implies secondary as well
-	validsecondary.at(irun) = false;
-      }
-      // For valid secondary beam calculation, we need full geometry
-      if (!batches[ib].ValidOrientation()) {
-	validsecondary.at(irun) = false;
-      }
-      // For valid tile information, we need detector [pixel] coordinates
-      std::vector<std::vector<float> > detrange = batches[ib].DetectorCoordinateRange();
-      if (std::abs(detrange[1][0] - detrange[0][0]) < 0.001) {
-	validtile.at(irun) = false;
-      }
-      if (std::abs(detrange[1][1] - detrange[0][1]) < 0.001) {
-	validtile.at(irun) = false;
-      }
+      if (irun >= 0) {  // only for batches assigned to a run
+	// For smooth primary beam corrections (scale & B-factor) we need valid Phi values
+	if (!batches[ib].ValidPhi() || std::abs(batches[ib].PhiRange()) < 0.0001) {
+	  validprimary.at(irun) = false;
+	  // Primary data missing implies secondary as well
+	  validsecondary.at(irun) = false;
+	}
+	// For valid secondary beam calculation, we need full geometry
+	if (!batches[ib].ValidOrientation()) {
+	  validsecondary.at(irun) = false;
+	}
+	// For valid tile information, we need detector [pixel] coordinates
+	std::vector<std::vector<float> > detrange = batches[ib].DetectorCoordinateRange();
+	if (std::abs(detrange[1][0] - detrange[0][0]) < 0.001) {
+	  validtile.at(irun) = false;
+	}
+	if (std::abs(detrange[1][1] - detrange[0][1]) < 0.001) {
+	  validtile.at(irun) = false;
+	}
+      }   // if valid run
     } // end loop batches
   }
   //--------------------------------------------------------------
