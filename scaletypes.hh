@@ -10,10 +10,13 @@
 #include <vector>
 ///#include "InputAll.hh"
 ///#include "keywords_aimless.hh"
-#include "hkl_unmerge.hh"
+///#include "hkl_unmerge.hh"
 #include "sphericalharmonic.hh"
 #include "tie.hh"
 #include "fileread.hh"
+#include "tile.hh"
+#include "hash.hh"
+
 
 namespace scala {
   //--------------------------------------------------------------
@@ -366,6 +369,8 @@ namespace scala {
     // Parameterised as sum of spherical harmonics
 
   public:
+    enum SecondaryScaleType {NONE, SECONDARY, ABSORPTION};
+
     SecondaryScale() : secscltype(NONE), lmax(0) {}
     SecondaryScale(const SecondaryScaleType& secSclType,
 		   const int& lmax, const int& lmaxodd,
@@ -422,6 +427,35 @@ namespace scala {
     std::vector<double> sphcoefficients;  // coefficients for each spherical harmonic
     std::vector<int> nobsPar;  //  number of observations for each coefficient
 
+  };
+  //--------------------------------------------------------------
+  class ScaleSpecification
+  // The specification from one SCALES command (in case of multiple runs)
+  {
+  public:
+    ScaleSpecification() : run(-1), batch(false), nscales(-1), spacing(5.0),
+			   nbfac(-1), bspacing(20.0),
+			   sec_abs(scala::SecondaryScale::NONE),
+			   lmax(4), lmaxodd(3), pole(-1),
+			   ntilex(-1), ntiley(-1),
+			   detectorscaletype(DetectorScale::NONE) {}
+    void dump() const;
+
+    void SetConstant(const int& irun=-1); // SCALES CONSTANT
+
+    int run;     // Run number for this specification, = -1 for all runs
+    bool batch;  // true for batch mode
+    int nscales; // Number of scales, = -1 for spacing specified
+    float spacing; // ROTATION SPACING
+    int nbfac;   // number of Bfactors, = 0 OFF, = -1 spacing specified
+    float bspacing; // BROTATION SPACING
+    SecondaryScale::SecondaryScaleType sec_abs; // NONE, SECONDARY, ABSORPTION
+    int lmax;    // Order for secondary|absorption correction (must be even)
+    int lmaxodd; //   maximum order for odd terms, < lmax
+    int pole;  // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
+    
+    int ntilex, ntiley;  // number of tiles, ntilex < 0 for no correction
+    DetectorScale::DetectorScaleType detectorscaletype;
   };
 }
 

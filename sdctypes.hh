@@ -14,7 +14,7 @@ namespace scala
   // sd' = SDfac * Sqrt(sd^2 + SdB * I + (SDadd * I)^2)
   {
   public:
-    SDcorrection() : sdfac(1.0), sdadd(0.0), fixsdb(true) {ClearRestraints();}
+    SDcorrection();
     SDcorrection(const double& SDfac, const double& SDb, const double& SDadd,
 		 const bool& fixSDb=false);
 

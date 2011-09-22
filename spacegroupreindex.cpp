@@ -19,7 +19,7 @@ namespace scala {
   // in same crystal system
   // Mainly (only?) for C2<->I2 and H3<->R3
   // Throws a clipper::Message_warn exception if the space groups are
-  // not just alternative settings (ie have differnt reference groups)
+  // not just alternative settings (ie have different reference groups)
   {
     // from space group
     std::string frname = CCtbxSym::CCTBX_SGsymbol_HorR(from_SGname);
@@ -28,7 +28,7 @@ namespace scala {
     // Change of basis to reference setting
     sgtbx::change_of_basis_op ChB_ref_from = from_SG.type().cb_op();
     sgtbx::space_group from_SG_ref = from_SG.change_basis(ChB_ref_from);
-    //^  CCtbxSym::PrintChBOp(ChB_ref_from);
+    //^    CCtbxSym::PrintChBOp(ChB_ref_from); //^
 
     // to space group
     sgtbx::space_group to_SG =
@@ -37,7 +37,7 @@ namespace scala {
     // Change of basis to reference setting
     sgtbx::change_of_basis_op ChB_ref_to = to_SG.type().cb_op();
     sgtbx::space_group to_SG_ref = to_SG.change_basis(ChB_ref_to);
-    //^  CCtbxSym::PrintChBOp(ChB_ref_to);
+    //^    CCtbxSym::PrintChBOp(ChB_ref_to); //^
 
     // Reference groups should be the same
     if (from_SG_ref != to_SG_ref) {
@@ -98,8 +98,7 @@ namespace scala {
   CCtbxSym::PointGroup PG(Input_SGname);
   PG.SetCell(cell.UnitCell(), Reindex, GC.AllowI2());
 
-  Reindex = PG.RefSGreindex();
-
+  ///  Reindex = PG.RefSGreindex();  /// No!
   output.logTab(0,LOGFILE,
 		"Reindexing data with operator "+Reindex.as_hkl()+
 		" from space group "+HKLIN_SGname+" to "+Input_SGname);

@@ -74,7 +74,7 @@ namespace scala {
 	lattype = HorR;
       }
       if (!scala::AllowedLatticeType(lattype)) {
-	Message::message(Message_fatal("Illegal lattice type "+lattype));
+	Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
       }
       sname = StringUtil::Trim(sname.substr(1));
       std::string lt = std::string(1,lattype);
@@ -182,15 +182,15 @@ namespace scala {
       rotsymops[i] = clipper::Symop(clipper::RTop<>(csymops[i].rot()));
       invrotsymops[i] = clipper::Symop(clipper::RTop<>(csymops[i].rot()).inverse());
     }
+    if (spacegroupname == "Unknown") {
+      spacegroupname = CCP4spaceGroupName();  // construct from csymops
+    }
     spacegroupname = symbol_hm();
     spacegroupnumber = spacegroup_number();
     CCP4spacegroupnumber = spacegroupnumber;
     // Sort out name if unknown
     //^    std::cout << "SpaceGroup: HM: " << symbol_hm()
     //^	      << "  Hall: " << symbol_hall() << "\n";
-    if (spacegroupname == "Unknown") {
-      spacegroupname = CCP4spaceGroupName();
-    }
     // Always consult CCP4 libraries for space group numbers
     CCP4spaceGroupNumber();
     SetLatType();
@@ -236,6 +236,14 @@ namespace scala {
     else {return h;}
   }
   //--------------------------------------------------------------
+  //! return the symop corresponding to Isym from put_in_asu
+  clipper::Symop SpaceGroup::SymopFromIsym(const int& isym) const
+  {
+    if (isym < 1 || isym > 2*Nsymp) 
+      Message::message(Message_fatal("SymopFromIsym - ISYM out of range") );
+    return csymops[(isym-1)/2];
+  }
+  //--------------------------------------------------------------
   SpaceGroup  SpaceGroup::NewLatticePointGroup(const char& Lattype) const
   //! Return group with new lattice, keeping point group operators
   {
@@ -277,15 +285,18 @@ namespace scala {
   // Change basis by reindex operator
   {
     for (size_t js=0;js<csymops.size();js++) {
+      //^      std::cout <<"ChangeBasis Symop in:  " << csymops[js].format() <<"\n";
       // If [H] is the reindex operator,
       //  [S'] = [H]^-1 [S] [H]
-      clipper::Mat33<double> HR = H.rot();
-      clipper::Mat33<double> S = csymops[js].rot();
-      clipper::Vec3<double>  t = csymops[js].trn();
-      clipper::RTop<double> Sp(HR.inverse()*S*HR, HR.inverse() * t);
-      csymops[js] = clipper::Symop(Sp);
+      csymops[js] = H.Symop(csymops[js]);
+      //      clipper::Mat33<double> S = csymops[js].rot();
+      //      clipper::Vec3<double>  t = csymops[js].trn();
+      //      clipper::RTop<double> Sp(HR.inverse()*S*HR, HR.inverse() * t);
+      //      csymops[js] = clipper::Symop(Sp);
+      //^      std::cout <<"ChangeBasis Symop out: " << csymops[js].format() <<"\n";
     }
-    init();
+    spacegroupname = "Unknown";  // force review of name
+    init(csymops);
   }
   //--------------------------------------------------------------
   bool SpaceGroup::IsSymopIdentity(const int& symN) const
@@ -392,15 +403,17 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::string SpaceGroup::CCP4spaceGroupName() const
-  // Use CCP4 library routine to get name from operators
+  // Use CCP4 library routine to get name from operators csymops
   {
     int nsym = num_symops();
     std::vector<CSym::ccp4_symop> ccp4ops(nsym);
     for (int i=0;i<nsym;++i) {
-      ccp4ops[i] = MakeCCP4symop(symop(i));
+      //^      std::cout << "Symop " << csymops[i].format() <<"\n"; //^-
+      ccp4ops[i] = MakeCCP4symop(csymops[i]);
     }
     CSym::CCP4SPG* ccp4spg = CSym::ccp4_spgrp_reverse_lookup(nsym, &*ccp4ops.begin());
     if (ccp4spg == NULL) return "";
+    //^    std::cout << "CCP4 spgname: " << std::string(ccp4spg->symbol_xHM) <<"\n"; //^
     return std::string(ccp4spg->symbol_xHM);
   }
   //--------------------------------------------------------------
@@ -829,6 +842,23 @@ namespace scala {
     return true;
   }
   //--------------------------------------------------------------
+  bool hkl_symmetry::equals_r_order(const hkl_symmetry& other) const
+    // true if spacegroup other is same ignoring translations
+    // with operators in the same order
+  {
+    if (Nsymp != other.Nsymp) return false;
+    if (LatType != other.LatType) return false;
+    // compare symcodes corresponding to rotation-only parts
+    // for all symops in same order
+    bool found = true;
+    for (int i=0; i < Nsymp; i++) {
+      if (inv_rot_symcodes[i] != other.inv_rot_symcodes[i]) {
+	found = false;
+      }
+    }
+    return found;
+  }
+  //--------------------------------------------------------------
   bool hkl_symmetry::equals_rt(const hkl_symmetry& other) const
   {
     if (Nsymp != other.Nsymp) return false;
@@ -853,10 +883,17 @@ namespace scala {
   //--------------------------------------------------------------
   std::vector<double> hkl_symmetry::SymopInElement(const int& lsym,
 					      const int& kelement) const
-    // Return rotation part of lsym'th symmetry operator of
+    // Return rotation part of lsym'th inverse symmetry operator of
     // kelement'th symmetry element
   {
     return MVutil::SetVMat33(spaceGroup.InvRotSymop(elements[kelement].symops[lsym]).rot());
+  }
+  //--------------------------------------------------------------
+  clipper::Symop hkl_symmetry::ClipperSymopInElement(const int& lsym,
+					      const int& kelement) const
+  // Return lsym'th inverse symmetry operator of  kelement'th symmetry element
+  {
+    return spaceGroup.InvRotSymop(elements[kelement].symops[lsym]);
   }
   //--------------------------------------------------------------
   std::vector<clipper::Symop> hkl_symmetry::RotSymopsInElement(const int& kelement) const
@@ -989,7 +1026,8 @@ namespace scala {
       return ((-hkl.h()+hkl.k()+hkl.l())%3 == 0);	  
     } else {
       Message::message
-	(Message_fatal("hkl_symmetry::LatticePresent: unrecognised lattice "+LatType));
+	(Message_fatal(clipper::String("hkl_symmetry::LatticePresent: unrecognised lattice ")
+		       +LatType));
     }
     return false;  // dummy, never gets here
   }

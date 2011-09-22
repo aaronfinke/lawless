@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/09/08 16:43:41 $";
+  std::string rcsdate = "$Date: 2011/09/22 13:53:13 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -152,12 +152,15 @@ int main(int argc, char* argv[])
 					 input.getSclMinLim(),
 					 input.getCheck(),
 					 input.getMaxGap());
+    int NbatchsmoothDefault = -1;
     controls.analysis = AnalysisControls(input.getResoBins(),
 					 input.getIntBins(),
 					 input.ConeAngle(),
 					 input.MinimumHalfdatasetCC(),
 					 input.MinimumIoverSigma(),
-					 input.MinimumBatchIoverSigma());
+					 input.MinimumBatchIoverSigma(),
+					 NbatchsmoothDefault,
+					 input.DetectorAnalysis());
 
     controls.outlierScale = input.GetOutlierControlsScale();
     controls.outlierMerge = input.GetOutlierControlsMerge();
@@ -356,7 +359,7 @@ int main(int argc, char* argv[])
       output.logTabPrintf(0,LOGFILE,
 			  "\n========= First round scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
-	  "\nFirst scaling: %7d reflections selected from %8d with I/sd < %6.2f",
+	  "\nFirst scaling: %7d reflections selected from %8d with I/sd > %6.2f",
 			  hkl_list.num_reflections()-selrej.first,
 			  hkl_list.num_reflections(), IovSDmin);
       if (selrej.second > 1) {
@@ -438,7 +441,7 @@ int main(int argc, char* argv[])
       output.logTabPrintf(0,LOGFILE,
 			  "\n========= Main scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
-	 "\nMain scaling: %7d reflections selected from %8d with |E^2| < %6.2f or |E^2| > %6.2f\n\n",
+	 "\nMain scaling: %7d reflections selected from %8d with |E^2| > %6.2f and |E^2| < %6.2f\n\n",
 			  hkl_list.num_reflections()-selrej.first,
 			  hkl_list.num_reflections(), E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
@@ -454,6 +457,8 @@ int main(int argc, char* argv[])
       ApplyScales(AllScales, hkl_list);
       output.logTabPrintf(0,LOGFILE,
 			  "Time for main scaling:%8.1f secs\n", timer.Stop());
+
+      AllScales.WriteImage("TILEIMAGE");
 
       // Dump scale model
       AllScales.Save(input.DumpFileName(), hkl_list.RunList());

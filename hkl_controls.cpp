@@ -37,6 +37,10 @@ namespace scala {
     nrej_reso = 0;
     nrej_mflag = 0;
     inputscale = 1.0;
+    // fraction of maximum resolution to use in test for blank batches
+    nullResolutionfraction = -1.0;
+    // Threshold on proportion of negative reflections
+    nullNegativeReject = -1.0;
   }
   //--------------------------------------------------------------
   void file_select::set_reslimits(const ResoRange& resrange)

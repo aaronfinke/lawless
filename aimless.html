@@ -172,14 +172,17 @@ keywords are:</p>
 <h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
 
 <p>Define a "run" : Nrun is the Run number, with an arbitrary
-integer label (<em>i.e.</em> not necessarily 1,2,3 etc). A "run"
+integer label (<em>i.e.</em>
+not necessarily 1,2,3 etc). A "run"
 defines
 a set of reflections which share a set of scale factors. Typically a
 run
-will be a continuous rotation around a single axis. The definition of a run may use several RUN
+will be a continuous rotation around a single axis. The definition of a
+run may use several RUN
 commands. If no RUN command is given
 then run assignment will be done automatically, with run breaks at
-discontinuities in dataset, batch number or Phi. If any RUN definitions are given, then all batches not explicitly specified will be excluded.<br>
+discontinuities in dataset, batch number or Phi. If any RUN definitions
+are given, then all batches not explicitly specified will be excluded.<br>
  </p><h3><a name="scales"></a>SCALES [&lt;subkeys&gt;] </h3>
 <p>Define layout of scales, ie the scaling model. Note that a layout
 may be defined for all runs (no RUN subkeyword), then overridden for
@@ -1106,7 +1109,9 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact">0.0.15&nbsp; if run definitions are given explicitly, then unspecified batches are excluded<br>
+</dl><dl compact="compact">0.1.0 &nbsp; fixed some bugs found by cppcheck and valgrind<br>
+0.0.16  fixed small bug in INTENSITIES COMBINE optimisation<br>
+0.0.15 if run definitions are given explicitly, then unspecified batches are excluded<br>
 0.0.14&nbsp; Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default<br>
   <h2>AUTHOR</h2>
 

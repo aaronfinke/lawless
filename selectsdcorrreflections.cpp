@@ -7,6 +7,7 @@
 // 1) no singletons
 // 2) Roughly evenly distributed of |E^2| in lower intensity bins
 // 3) all higher intensities E^2 > E2min
+// 4) no ice rings
 //
 // Note that analysis is done on intensity bins, not E^2 bins, so the
 // distribution will not be even on intensity bins: this doesn't matter

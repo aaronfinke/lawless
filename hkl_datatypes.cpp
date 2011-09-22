@@ -228,6 +228,16 @@ namespace scala
     //	      << symm.symop(kbest).rot().inverse().format() << "\n\n"; //^-
   }
   //--------------------------------------------------------------
+  //! change basis of symmetry operator
+  clipper::Symop ReindexOp::Symop(const clipper::Symop& symop) const
+  {
+    // S' = H^-1 S H
+    // t' = H^-1 t
+    clipper::Mat33<double> HR = rot();
+    clipper::RTop<double> Sp(HR.inverse()*symop.rot()*HR, HR.inverse() * symop.trn());
+    return clipper::Symop(Sp);
+  }
+  //--------------------------------------------------------------
   bool operator == (const ReindexOp& a,const ReindexOp& b)
   {
     return a.equals(b);
@@ -673,10 +683,9 @@ namespace scala
     Vec3<double> v = vh * reindex_op;
     Newhkl = Hkl(Nint(v[0]), Nint(v[1]), Nint(v[2]));
     bool OK = true;
-    for (int i=0;i<3;i++)
-      {
-	if (std::abs(v[i]-double(Newhkl[i])) > 0.05) OK = false;
-      }
+    for (int i=0;i<3;i++) {
+      if (std::abs(v[i]-double(Newhkl[i])) > 0.05) OK = false;
+    }
     return OK; 
   }
   //--------------------------------------------------------------
@@ -1248,10 +1257,10 @@ namespace scala
     std::vector<float> lims(2);
     std::vector<std::vector<float> > xylims(2);
     lims[0] = batchinfo.detlm[0][0][0]; // XDET
-    lims[1] = batchinfo.detlm[1][0][0];
+    lims[1] = batchinfo.detlm[0][0][1];
     xylims[0] = lims;
     lims[0] = batchinfo.detlm[0][1][0]; // YDET
-    lims[1] = batchinfo.detlm[1][1][0];
+    lims[1] = batchinfo.detlm[0][1][1];
     xylims[1] = lims;
     return xylims;
   }

@@ -79,7 +79,7 @@ namespace scala {
 
     // Setup from scale specifications and reflection list
     // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
-    void setup(const std::vector<phaser_io::ScaleSpecification>& scaleSpecs,
+    void setup(const std::vector<ScaleSpecification>& scaleSpecs,
 	       hkl_unmerge_list& hkl_list,
 	       phaser_io::Output& output);
 
@@ -96,6 +96,9 @@ namespace scala {
     std::vector<ScaleParameterType> GetParameterType() const;
     // get type for a parameter
     ScaleParameterType GetParameterType(const int& Ipar) const;
+
+    //! return detector scale number & scale index into detector parameter list
+    std::pair<int,int> DetectorParameterNumber(const int& Ipar) const;
 
     // get lower bound for parameter, depending on type: return false if unbounded
     bool GetLowerBound(const int& Ipar, double& Lower) const;
@@ -155,6 +158,9 @@ namespace scala {
     // Print all scale parameters
     void PrintScales(phaser_io::Output& output);
 
+    //! Write image[s] for each detector scale
+    void WriteImage(const std::string imagefilename) const;
+
     //!
     void Check() const {if (nsecscales > 0) secondary_scales[0].Check();}
 
@@ -173,7 +179,7 @@ namespace scala {
 
   private:
     std::string SetupScale(const int& irun,
-			   const phaser_io::ScaleSpecification& scaleSpec,
+			   const ScaleSpecification& scaleSpec,
 			   const Run& run,
 			   const ValidScaleModel&  validscalemodel);
 
@@ -182,7 +188,7 @@ namespace scala {
     // Returns index into scale specification list for run index irun
     //  returns -1 if not found
     int scaleSpecIndex(const int& irun,
-		       const std::vector<phaser_io::ScaleSpecification>& scaleSpecs,
+		       const std::vector<ScaleSpecification>& scaleSpecs,
 		       const std::vector<Run>& runList) const;
 
     // Run information
@@ -207,11 +213,14 @@ namespace scala {
     // for ABSORPTION, pole = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     int pole;
 
-    //t    // Scaling by tile
-    //t    //   typically only one scale set, unless different runs are from different detectors
-    //t    int ntilescales;                       // number of different tile scales
-    //t    std::vector<TileScale> tile_scales;    // the tile scales
-    //t    std::vector<int> tile_scale_index_run; // which scale for each run?
+    // Scaling by tile (or other detector scale)
+    //   typically only one scale set, unless different runs are from different detectors
+    std::vector<DetectorType> detectortypes;
+    std::vector<DetectorScale> detector_scales;    // the tile scales
+    std::vector<int> detector_scale_index_run; // which scale for each run?
+    int ndetscales;  // number of detector scales
+    // index to 1st detector parameter for each run
+    std::vector<int> idxrun_detector;
 
     // Ties
     int nties;
@@ -223,14 +232,19 @@ namespace scala {
     double sd_bfactor;
     double sd_zerob;
     double sd_surface;
-    double sd_tile;
-    double sd_tile2;
+
+    // For CCD tiles:
+    //  sdties[0] for r
+    //  sdties[1] for w
+    //  sdties[2] for A
+    //  sdties[3] for x0, y0
+    std::vector<double> sd_tile; // other types, no ties
 
     int nparameters;      // Number of parameters
     int nprimaryscale;    //  Number of primary scale parameters
     int nbfactors;        //  Number of B-factor parameters
     int nsecondaryscale;  //  Number of secondary scale parameters
-    int ntilescales;      //  Number of tile scale parameters
+    int ntilescale;       //  Number of tile scale parameters
 
     // Normalisation:
     int scalenormrun;    // run for scale  normalisation

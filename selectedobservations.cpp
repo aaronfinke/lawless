@@ -277,36 +277,64 @@ namespace scala
       float Iothers;
       float varothers;
       float g;
+
+      std::vector<IsigI> mnothers = MeanIothers(); // mean of other observations
+   
+      for (int i=0;i<nobs;i++) {
+	if (use[i]) {
+	  // <I>(others)  ie excluding this observation
+	  //  and its variance (scaled to this observation)
+	  varothers = mnothers[i].sigI() * mnothers[i].sigI();
+	  Iothers = mnothers[i].I();
+	  float vv = this_ref->get_observation(i).sigI()*
+	    this_ref->get_observation(i).sigI() +
+	    varothers;
+	  if (!(vv > 0.0)) {
+	    std::cout << "Aaargh " << vv << " "
+		      << this_ref->get_observation(i).sigI()
+		      << " " << varothers << "\n";
+	  }
+	  ASSERT (vv > 0.0);
+	  delta[i] = (this_ref->get_observation(i).I() - Iothers)/
+	    sqrt(this_ref->get_observation(i).sigI()*
+		 this_ref->get_observation(i).sigI() +
+		 varothers);
+	}
+      }
+    }
+    State = +2;
+    return delta;
+  }
+  // ------------------------------------------------------------
+  // For each observation, return mean of other observations, scaled to each observation
+  //   returns mnothers(NobsRefl), unused slots set = 0.0 ie not closed down
+  // 
+  std::vector<IsigI> SelectedObservations::MeanIothers()
+  {
+    std::vector<IsigI> mnothers(nobs, IsigI(0.0,0.0));
+    if (Nused <= 0) return mnothers;
+    if (State == 0) Average();
+    if (Nused > 1) {
+      // we need at least 2 observations
+      float Iothers;
+      float varothers;
+      float g;
       
       for (int i=0;i<nobs;i++) {
 	if (use[i]) {
 	  // <I>(others)  ie excluding this observation
 	  //  and its variance
 	  ASSERT ((sumwg2 - wg2[i]) != 0.0);
-	  ///	  if ((sumwg2 - wg2[i]) == 0.0) {
-	  ///	    std::cout << this_ref->hkl().format() <<" help\n";
-	  ///^	  }
 	  varothers = 1./(sumwg2 - wg2[i]);
-	  Iothers = (sumwgI - wgI[i]) * varothers;
 	  g = this_ref->get_observation(i).Gscale();
-	  float vv = this_ref->get_observation(i).sigI()*
-	    this_ref->get_observation(i).sigI() +
-	    g*g*varothers;
-	  if (!(vv > 0.0)) {
-	    std::cout << "Aaargh " << vv << " "
-		      << this_ref->get_observation(i).sigI()
-		      << " " << g << " " << varothers << "\n";
-	  }
-	  ASSERT (vv > 0.0);
-	  delta[i] = (this_ref->get_observation(i).I() - g * Iothers)/
-	    sqrt(this_ref->get_observation(i).sigI()*
-		 this_ref->get_observation(i).sigI() +
-		 g*g*varothers);
+	  mnothers[i].I() = g * (sumwgI - wgI[i]) * varothers;
+	  ASSERT (varothers >= 0.0);
+	  mnothers[i].sigI() = g * sqrt(varothers);
 	}
       }
     }
-    State = +2;
-    return delta;
+    State = +1;
+    return mnothers;
   }
   // ------------------------------------------------------------
   std::vector<float> SelectedObservations::Delta2()

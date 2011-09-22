@@ -21,8 +21,7 @@
 #include "hash.hh"
 #include "runthings.hh"
 
-namespace scala
-{
+namespace scala {
   //==============================================================
   class data_flags
   //! Data column flags to indicate which columns are present in the file

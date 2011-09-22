@@ -83,7 +83,7 @@ namespace scala {
   // ******************************************************************
   //--------------------------------------------------------------
   // Initialise static members
-  int SelectI::selecticolflag = -1; // Use Ipr (if present)
+  int SelectI::selecticolflag = 0;  // No Ipr
   int SelectI::ipowercomb = 3;      // Ipower =3
   double SelectI::imid = -1.0;         // unset
   bool SelectI::iprpresent = false; // true if we have a second intensity Ipr stored
@@ -269,7 +269,6 @@ namespace scala {
     Rtype Itot = 0.0;
     Rtype varItot = 0.0;
     IsigI Is;
-    bool  scaled = false;
     observation_part this_part;
     // Stored values
     phi_ = 0.0;
@@ -329,7 +328,6 @@ namespace scala {
       // Full
       Is = get_part(0).I_sigIpr();
     } else {  // partial
-      Rtype max_bit = -1.0;
       for (int kpart = 0; kpart < Npart_; kpart++) { // loop parts
 	this_part = get_part(kpart);
 	Itot += this_part.Ipr();
@@ -356,7 +354,7 @@ namespace scala {
 
     // Get summation integration or sole intensity, sum parts, set phi, time, LP
     IsigI Ic = IsigIsummation();
-    IsigI Ipr;
+    IsigI Ipr(0.0, 0.0);
     if (SelectI::IsIprPresent()) {
       // ... and for Ipr if present
       Ipr = IsigIpr();

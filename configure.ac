@@ -2,13 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 
 dnl package-name version-number bugs-to:
-AC_INIT(aimless, 0.0.13, pre@lmb-mrc.ac.uk) 
+AC_INIT(aimless, 0.1.0, pre@lmb-mrc.ac.uk) 
 
 AC_CANONICAL_TARGET
 
 dnl package-name version-number, the gzip'd tar file is named
 dnl package-version.tar.gz.  
-AM_INIT_AUTOMAKE(aimless, 0.0.13)
+AM_INIT_AUTOMAKE(aimless, 0.1.0)
 
 AC_CONFIG_SRCDIR([aimless.cpp])
 

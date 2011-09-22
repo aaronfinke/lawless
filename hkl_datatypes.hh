@@ -146,7 +146,13 @@ namespace scala
     //! returns true if determinant is positive (desirable!)
     bool Positive() const {
       return (rot().det() > 0.0);}
-    
+    //! Returns true if there is a translation component
+    bool IsTranslation() const {
+      return trn() != clipper::Vec3<double>(0.0,0.0,0.0);}
+
+    //! change basis of symmetry operator
+    clipper::Symop Symop(const clipper::Symop& symop) const;
+
     //! format as string [h,k,l]
     std::string as_hkl() const;
     //! format as matrix
@@ -680,6 +686,9 @@ namespace scala
     //! Return range of detector pixel coordinates
     std::vector<std::vector<float> > DetectorCoordinateRange() const;
 
+    //! return number of detectors
+    int Ndet() const {return batchinfo.ndet;}
+
     //! return MTZ batch: only use this for writing MTZ file
     /*! otherwise information retrieval should be through explicit calls */
     CMtz::MTZBAT batchdata() const {return batchinfo;}
@@ -839,5 +848,4 @@ namespace scala
   };
 }  // namespace scala
 #endif
-
 // end  hkl_datatypes.hh

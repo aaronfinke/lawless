@@ -19,6 +19,9 @@ namespace scala {
   const int SDcorrection::NPARALL;               // number of parameters = 3
 
   //--------------------------------------------------------------
+  SDcorrection::SDcorrection() : sdfac(1.0), sdadd(0.0) {ResetRange();}
+  // Reset minimum & maximum
+  //--------------------------------------------------------------
   SDcorrection::SDcorrection(const double& SDfac,
 			     const double& SDb, const double& SDadd,
 			     const bool& fixSDb)
@@ -28,6 +31,7 @@ namespace scala {
     sdadd2 = sdadd * sdadd;
     SetRefineParameters();
     ClearRestraints();
+    ResetRange();
   }
   //--------------------------------------------------------------
   void SDcorrection::Set(const double& SDfac, const double& SDb, const double& SDadd)

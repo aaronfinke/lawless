@@ -55,6 +55,9 @@ namespace scala {
     clipper::Symop InvRotSymop(const int& symN) const
     {return invrotsymops.at(symN);}  //!< return symN'th inverse symop
 
+    //! return the symop corresponding to Isym from put_in_asu
+    clipper::Symop SymopFromIsym(const int& isym) const;
+
     //! return symop codes for rotation symmetry operators
     clipper::Symop_code RotSymopCode(const int& symN) const
     {return clipper::Symop_code(rotsymops.at(symN));}
@@ -225,9 +228,14 @@ namespace scala {
 
     //! return number of operators in kelement'th symmetry element
     int NopInElement(const int& kelement) const;
-    //! Return rotation part of j'th symmetry operator of kelement'th symmetry element
+    //! Return rotation part of j'th inverse symmetry operator of kelement'th symmetry element
     std::vector<double> SymopInElement(const int& j,
 				       const int& kelement) const;
+    //! Return lsym'th inverse symmetry operator of  kelement'th symmetry element
+    clipper::Symop ClipperSymopInElement(const int& lsym,
+					 const int& kelement) const;
+
+
     //! Return symmetry-element number (from 0->Nelement-1) relating observations with ISYM =  isym1,isym2
     /*! Isym = 2 * SymNumber + 1  for h+
      Isym = 2 * SymNumber + 2  for h-
@@ -269,6 +277,9 @@ namespace scala {
     /*!  not equals_r & equals_rt test number of operators &  lattice type (centering) */
     bool equals_rt(const hkl_symmetry& other) const; //!< test all operators including translation
     bool equals_r(const hkl_symmetry& other) const; //!< test just rotation parts
+    // true if spacegroup other is same ignoring translations
+    // with operators in the same order
+    bool equals_r_order(const hkl_symmetry& other) const;
 
     //!  simple test, ignore translations
     bool operator==(const hkl_symmetry& other) const {return equals_r(other);}

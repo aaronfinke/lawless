@@ -4,6 +4,7 @@
 #include "jiffy.hh"
 #include "scala_util.hh"
 #include "hkl_datatypes.hh"
+#include "scaletypes.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -53,7 +54,7 @@ SCALES::SCALES() : CCP4base(), InputBase()
   nspecs = 1;
   specs.clear();
   // Set up default SCALES parameters
-  ScaleSpecification spec_default;
+  scala::ScaleSpecification spec_default;
   spec_default.run = -1;        // all runs
   spec_default.batch = false;   // smooth
   spec_default.nscales = -1;
@@ -61,9 +62,11 @@ SCALES::SCALES() : CCP4base(), InputBase()
   spec_default.nbfac = -1;
   spec_default.bspacing = 20.;  // brotation spacing 20
   ////  spec_default.sec_abs = scala::NONE;  // for now
-  spec_default.sec_abs = scala::SECONDARY;
+  spec_default.sec_abs = scala::SecondaryScale::SECONDARY;
   spec_default.lmax = 4;        // lmax for spherical harmonics
   spec_default.pole = -1;       // unspecified pole
+  spec_default.ntilex = -1;
+  spec_default.detectorscaletype = scala::DetectorScale::NONE;
   specs.push_back(spec_default);
 }
 //--------------------------------------------------------------
@@ -74,10 +77,11 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 // [SECONDARY  [<Lmax> [<LmaxOdd>]]]
 // [ABSORPTION [<Lmax> [<LmaxOdd>]] [POLE [h|k|l]]]
 // [CONSTANT]
+// [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]]
 {
   // Read one SCALES specification
   int irun = -1;
-  ScaleSpecification spec;
+  scala::ScaleSpecification spec;
   //**  if (nspecs > 0) spec = specs[0];
   int expectingNumber = 0; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
@@ -85,11 +89,13 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   int bfac_spec = 0;
   int secabs = 0;         // SECONDARY or ABSORPTION given
 			  // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
+  int tile = -1;
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
       if (expectingNumber > 0) {throw SyntaxError
 	  (keywords, "SCALES: expecting number not "+string_value);}
+      secabs = 0;
       if (keyIs("RUN")) {
 	// RUN <Irun>, next token must be number
 	irun = 0;
@@ -135,11 +141,11 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	bfac_spec = +3;
 	expectingNumber = +1;
       } else if (keyIs("SECONDARY")) {
-	spec.sec_abs = scala::SECONDARY;
+	spec.sec_abs = scala::SecondaryScale::SECONDARY;
 	expectingNumber = -1;
 	secabs = +1;
       } else if (keyIs("ABSORPTION")) {
-	spec.sec_abs = scala::ABSORPTION;
+	spec.sec_abs = scala::SecondaryScale::ABSORPTION;
 	expectingNumber = -1;
 	secabs = +2;
       } else if (keyIs("POLE")) {
@@ -159,11 +165,24 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	  throw SyntaxError
 	    (keywords, "SCALES: POLE must be h, k or l)");
 	}
+      } else if (keyIs("TILE")) {
+	tile = 0;  // expecting Ntilex next
+	spec.detectorscaletype = scala::DetectorScale::AUTOMATIC;
+	expectingNumber = -1;
+      } else if (tile >= 0) {
+      	if (keyIs("FLAT")) {
+	  spec.detectorscaletype = scala::DetectorScale::FLAT;
+	} else if (keyIs("CCD")) {
+	  spec.detectorscaletype = scala::DetectorScale::CCD;
+	} else if (keyIs("PIXEL")) {
+	  spec.detectorscaletype = scala::DetectorScale::PIXEL;
+	}
       }
     } else if (tokenIs(1,NUMBER)) {
       if (expectingNumber == 0) {throw SyntaxError
 	  (keywords, "SCALES: not expecting number"+
 	   clipper::String(number_value));}
+      expectingNumber = 0;
       if (irun == 0) {
 	// Run number
 	spec.run = Nint(number_value);
@@ -198,8 +217,15 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	//  force odd & < lmax
 	spec.lmaxodd = ((Min(spec.lmaxodd, spec.lmax)+1)/2)*2-1;
 	secabs = +3;
+      } else if (tile == 0) {
+	spec.ntilex = Nint(number_value);
+	spec.ntiley = spec.ntilex;
+	tile = +1;
+	expectingNumber = -1;
+      } else if (tile == +1) {
+	spec.ntiley = Nint(number_value);
+	tile = +2;
       }
-      expectingNumber = 0;
     } else {
       throw SyntaxError
 	(keywords, "SCALES: invalid syntax");
@@ -210,7 +236,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
     spec.lmaxodd = ((spec.lmax+1)/2)*2-1;
   }
   if (secabs != 0 && spec.lmax == 0) {
-    spec.sec_abs = scala::NONE;
+    spec.sec_abs = scala::SecondaryScale::NONE;
   }
 
   if (irun >= 0) {
@@ -222,54 +248,6 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   }
   nspecs = specs.size();  
   return ENDLINE;
-}
-//--------------------------------------------------------------
-void ScaleSpecification::SetConstant(const int& irun)
-// SCALES CONSTANT
-{
-  run = irun;
-  batch = false;
-  nscales = 1;
-  spacing = 0.0;
-  nbfac = 0;
-  sec_abs = scala::NONE;
-}
-//--------------------------------------------------------------
-void ScaleSpecification::dump() const
-{
-  if (run < 0) {
-    std::cout << "\nScaleSpecification for all runs\n";
-  } else {
-    std::cout << "\nScaleSpecification for run " << run << "\n";
-  }
-  if (batch) {
-    std::cout << "BATCH mode\n";
-    std::cout
-      << "nscales " << nscales << "\n"
-      << "nbfac " << nbfac << "\n";
-  } else {
-    std::cout << "ROTATION mode\n";
-    if (nscales >= 0) {
-      std::cout  << "nscales " << nscales << "\n";
-    } else {
-      std::cout << "spacing " << spacing << "\n";
-    }
-    if (nbfac >= 0) {
-      std::cout << "nbfac " << nbfac << "\n";
-    } else {
-      std::cout << "bspacing " << bspacing << "\n";
-    }
-  }
-  if (sec_abs == scala::NONE)
-    {std::cout << "sec_abs NONE\n";}
-  else if (sec_abs == scala::SECONDARY) {
-    std::cout << "sec_abs SECONDARY\n";
-    std::cout    << "lmax " << lmax << " " << lmaxodd << "\n";
-  } else if (sec_abs == scala::ABSORPTION) {
-    std::cout << "sec_abs ABSORPTION\n";
-    std::cout    << "lmax " << lmax << " " << lmaxodd << "\n"
-		 << "pole " << pole << "\n";
-  }
 }
 //--------------------------------------------------------------
 RUNSET::RUNSET() : CCP4base(), InputBase()
@@ -768,18 +746,20 @@ TIE::TIE()
   tiesd_rotation = -1.0;
   tiesd_bfactor = -1.0; 
   tiesd_zerob = -1.0; 
-  tiesd_tile = 0.05;    
-  tiesd_tile2 = 0.05;   
+  // SDs for CCD tile, parameters r, w, A, x0|y0
+  // SDs for r, w, xy0 are relative to maximum radius
+  float sd_tile[] = {0.1, 0.1, 0.05, 0.05};
+  tiesd_tile.assign(sd_tile, sd_tile+4);
 }
 //--------------------------------------------------------------
 Token_value TIE::parse(std::istringstream& input_stream)
 {
-  // TIE <parameter> <sd> [sd2>]
+  // TIE <parameter> <sd> [<sd2> etc]
   //  <parameter> = SURFACE    for SECONDARY or ABSORPTION
   //              = ROTATION   for primary scale parameters (eg BATCH)
   //              = BFACTOR    for B-factors
   //              = ZEROB      for B-factors tied to B = 0
-  //              = TILE       for tile correction parameters (2 sds)
+  //              = TILE       for tile correction parameters (4 sds)
   bool invalid = false;
   while (get_token(input_stream) != ENDLINE)  {
     if (tokenIs(1,NAME)) {
@@ -796,12 +776,15 @@ Token_value TIE::parse(std::istringstream& input_stream)
 	tiesd_zerob = get1num(input_stream);
 	if (tiesd_zerob < 0.0) invalid = true;
       } else if (keyIs("TILE")) {
-	tiesd_tile = get1num(input_stream);
-	if (tiesd_tile < 0.0) invalid = true;
-	tiesd_tile2 = tiesd_tile;
-	if (tokenIs(1,NUMBER)) {
-	  tiesd_tile2 = get1num(input_stream);
-	  if (tiesd_tile2 < 0.0) invalid = true;
+	// Expect 4 numbers
+	tiesd_tile.clear();
+	tiesd_tile.push_back(get1num(input_stream));
+	tiesd_tile.push_back(get1num(input_stream));
+	tiesd_tile.push_back(get1num(input_stream));
+	tiesd_tile.push_back(get1num(input_stream));
+	ASSERT (tiesd_tile.size() == 4);
+	for (size_t i=0;i<tiesd_tile.size();++i) {
+	  if (tiesd_tile[i] < 0.0) invalid = true;
 	}
       }
     }
@@ -1496,7 +1479,8 @@ ANALYSIS::ANALYSIS()  : coneangledegrees(20.0),
 			minimumhalfdatasetcc(0.5),
 			minimumioversigma(2.0),
 			minimumbatchioversigma(1.0),
-			smoothstatisticsrange(-1.0)
+			smoothstatisticsrange(-1.0),
+			detector(false)
 {
   Add_Key("ANALYSIS");
   //Add to CCP4base;
@@ -1526,6 +1510,8 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
       else if (keyIs("CCMINIMUM"))   minimumhalfdatasetcc = get1num(input_stream);
       else if (keyIs("ISIGMINIMUM")) minimumioversigma = get1num(input_stream);
       else if (keyIs("BATCHISIGMINIMUM")) minimumbatchioversigma = get1num(input_stream);
+      else if (keyIs("DETECTOR")) detector = true;
+      else if (keyIs("NODETECTOR")) detector = false;
     }
   }
   return skip_line(input_stream);

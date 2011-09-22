@@ -22,6 +22,43 @@ using phaser_io::ftos;
 
 namespace scala {
   //--------------------------------------------------------------
+  void ScaleSpecification::dump() const
+  {
+    if (run < 0) {
+    std::cout << "\nScaleSpecification for all runs\n";
+    } else {
+      std::cout << "\nScaleSpecification for run " << run << "\n";
+    }
+    if (batch) {
+      std::cout << "BATCH mode\n";
+      std::cout
+	<< "nscales " << nscales << "\n"
+	<< "nbfac " << nbfac << "\n";
+    } else {
+      std::cout << "ROTATION mode\n";
+      if (nscales >= 0) {
+	std::cout  << "nscales " << nscales << "\n";
+      } else {
+	std::cout << "spacing " << spacing << "\n";
+      }
+      if (nbfac >= 0) {
+	std::cout << "nbfac " << nbfac << "\n";
+      } else {
+	std::cout << "bspacing " << bspacing << "\n";
+      }
+    }
+    if (sec_abs == SecondaryScale::NONE)
+      {std::cout << "sec_abs NONE\n";}
+    else if (sec_abs == SecondaryScale::SECONDARY) {
+      std::cout << "sec_abs SECONDARY\n";
+      std::cout    << "lmax " << lmax << " " << lmaxodd << "\n";
+    } else if (sec_abs == SecondaryScale::ABSORPTION) {
+      std::cout << "sec_abs ABSORPTION\n";
+      std::cout    << "lmax " << lmax << " " << lmaxodd << "\n"
+		   << "pole " << pole << "\n";
+    }
+  }
+  //--------------------------------------------------------------
   SmoothedValue::SmoothedValue(const Range& Xrange, const int& Ns)
   // Construct from range of raw unnormalised coordinate & number of
   // sample intervals
@@ -284,7 +321,7 @@ namespace scala {
     std::vector<Tie> ties;
     if (sdtie > 0.0) {
       double weight = 1./(sdtie*sdtie);
-      // parameters are tied togther in pairs
+      // parameters are tied together in pairs
       // loop from 2nd scale values, batch or smoothed
       if (nscales > 1) {
 	for (int i=1;i<nscales;++i) {
@@ -369,7 +406,7 @@ namespace scala {
     ASSERT (jb >= 0 && jb < nscales);
     scale = batchscales[jb]; 
     if (Deriv) {
-      dgdp = std::vector<double>(nscales,0.0);
+      dgdp.assign(nscales,0.0);
       dgdp[jb] = 1.0;
     }
   }
@@ -939,4 +976,16 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-}
+  void ScaleSpecification::SetConstant(const int& irun)
+  // SCALES CONSTANT
+  {
+    run = irun;
+    batch = false;
+    nscales = 1;
+    spacing = 0.0;
+    nbfac = 0;
+    sec_abs = SecondaryScale::NONE;
+  }
+  //--------------------------------------------------------------
+} // namespace scala
+

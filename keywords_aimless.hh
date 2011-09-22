@@ -10,10 +10,12 @@
 #include "sdctypes.hh"
 #include "observationflags.hh"
 #include "globalcontrols.hh"
+#include "scaletypes.hh"
 
 using scala::ResoRange;
+
 namespace scala {
-  enum SecondaryScaleType {NONE, SECONDARY, ABSORPTION};
+  class ScaleSpecification;
 }
 
 namespace phaser_io {
@@ -36,30 +38,6 @@ namespace phaser_io {
 
   };
   //--------------------------------------------------------------
-  class ScaleSpecification
-  // The specification from one SCALES command (in case of multiple runs)
-  {
-  public:
-    ScaleSpecification() : run(-1), batch(false), nscales(-1), spacing(5.0),
-			   nbfac(-1), bspacing(20.0),
-			   sec_abs(scala::NONE), lmax(4), lmaxodd(3), pole(-1) {}
-    void dump() const;
-
-    void SetConstant(const int& irun=-1); // SCALES CONSTANT
-
-    int run;     // Run number for this specification, = -1 for all runs
-    bool batch;  // true for batch mode
-    int nscales; // Number of scales, = -1 for spacing specified
-    float spacing; // ROTATION SPACING
-    int nbfac;   // number of Bfactors, = 0 OFF, = -1 spacing specified
-    float bspacing; // BROTATION SPACING
-    scala::SecondaryScaleType sec_abs; // NONE, SECONDARY, ABSORPTION
-    int lmax;    // Order for secondary|absorption correction (must be even)
-    int lmaxodd; //   maximum order for odd terms, < lmax
-    int pole;  // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
-  };
-
-  //--------------------------------------------------------------
   class SCALES: public InputBase, virtual public CCP4base
     // SCALES [RUN <irun>]
     // [BATCH || ROTATION [<nscales> || SPACING <spacing>]
@@ -67,6 +45,7 @@ namespace phaser_io {
     // [SECONDARY  [<Lmax>]]
     // [ABSORPTION [<Lmax>] [POLE [h|k|l]]]
     // [CONSTANT]
+    // [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]]
   {
   public:
     SCALES();
@@ -75,13 +54,13 @@ namespace phaser_io {
 
     void analyse(){}
 
-    std::vector<ScaleSpecification> getScaleSpecifications() const
+    std::vector<scala::ScaleSpecification> getScaleSpecifications() const
     {return specs;}
     
   private:
     int nspecs;
     // 1st specification is always the default one (run -1)
-    std::vector<ScaleSpecification> specs;
+    std::vector<scala::ScaleSpecification> specs;
   };
   //--------------------------------------------------------------
   class RUNSET : public InputBase, virtual public CCP4base
@@ -257,8 +236,7 @@ namespace phaser_io {
     //              = ROTATION   for primary scale parameters (eg BATCH)
     //              = BFACTOR    for B-factors
     //              = ZEROB      for B-factors tied to B = 0
-    //              = TILE       for tile correction parameters (2 sds)
-    //                           FIXME tile restraints to be determined later!
+    //              = TILE       for tile correction parameters (4 sds for CCD)
     //
     // SD parameters defaulted to -1 if no restraint
   {
@@ -274,16 +252,15 @@ namespace phaser_io {
     float TIE_sd_rotation() const {return tiesd_rotation;}
     float TIE_sd_bfactor()  const {return tiesd_bfactor;}
     float TIE_sd_zerob()    const {return tiesd_zerob;}
-    float TIE_sd_tile  ()   const {return tiesd_tile;}
-    float TIE_sd_tile2 ()   const {return tiesd_tile2;}
+    std::vector<double> TIE_sd_tile  ()   const {return tiesd_tile;}
 
   private:
     float tiesd_surface;  // sd for SURFACE, < 0.0 for no restraint
     float tiesd_rotation; // sd for ROTATION, < 0.0 for no restraint
     float tiesd_bfactor;  // sd for BFACTOR, < 0.0 for no restraint
     float tiesd_zerob;    // sd for ZEROB, < 0.0 for no restraint
-    float tiesd_tile;     // sd for TILE, < 0.0 for no restraint
-    float tiesd_tile2;    // sd2 for TILE, < 0.0 for no restraint
+   // sds for TILE, < 0.0 for no restraint, 4 values for CCD tiles
+    std::vector<double> tiesd_tile;
   };
   //--------------------------------------------------------------
   class NAME : public InputBase, virtual public CCP4base
@@ -564,6 +541,10 @@ namespace phaser_io {
     // MinimumBatchIoverSigma     minimum <I/sd(I)> for resolution warning by batch, from unmerged I
     // SmoothStatisticsRange angle in degrees over which (roghly) to smooth
     //            batch statistics, <0 to default to automatic setting,
+    //
+    //   ANALYSIS [NO]DETECTOR
+    //     Analyse (or not) scales on the detector, images written to DETECTORIMAGE
+    //
   {
   public:
     ANALYSIS();
@@ -575,6 +556,9 @@ namespace phaser_io {
     double MinimumIoverSigma() const {return minimumioversigma;}
     double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
     double SmoothStatisticsRange() const {return smoothstatisticsrange;}
+
+    bool DetectorAnalysis() const {return detector;}  // detector analysis flag
+
     void analyse(){}
 
   private:
@@ -583,6 +567,8 @@ namespace phaser_io {
     double minimumioversigma;
     double minimumbatchioversigma;
     double smoothstatisticsrange;
+    // Detector analysis things
+    bool detector;
   };
   //--------------------------------------------------------------
 } // phaser_io

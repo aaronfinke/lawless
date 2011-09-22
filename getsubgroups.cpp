@@ -72,8 +72,8 @@ namespace scala
   }
   //--------------------------------------------------------------
   void RemoveImplicitSubgroups(std::vector<CCtbxSym::PointGroup>& subgroups,
-			       const hkl_symmetry& mergeSymm)
-  // mergeSymm reindexed into lattice frame
+			       const hkl_symmetry& mergeSymm, const ReindexOp& reindex)
+  // symops from mergeSymm can be reindexed into lattice frame by reindex
   {
     std::vector<bool> keepsubgroup(subgroups.size(), true); // flags to keep subgroup
     bool anyremoved = false;
@@ -83,7 +83,9 @@ namespace scala
       // loop symmetry elements in mergeSymm
       for (int iel=0;iel<mergeSymm.Nelement();++iel) {
 	// 1st op in element
-	std::vector<double> Rmatrix = mergeSymm.SymopInElement(0,iel);
+	clipper::Symop invsymop = mergeSymm.ClipperSymopInElement(0,iel);
+	invsymop = reindex.Symop(invsymop); // reindex to lattice cell
+	std::vector<double> Rmatrix =  MVutil::SetVMat33(invsymop.rot()); // ... as matrix
 	// Is this element in the subgroup?
 	if (!subgroups[igl].HasElement(Rmatrix)) {
 	  // fail, all elements must be present

@@ -21,6 +21,7 @@ using clipper::Message_fatal;
 #include "cumulativecompleteness.hh"
 #include "sdanalysis.hh"
 #include "cone.hh"
+#include "tile.hh"
 
 namespace scala {
   // ------------------------------------------------------------
@@ -414,6 +415,12 @@ namespace scala {
     // "core" data only, ie within smaller limits on delta
     SDanalysis sdanalysiscore(Irange, SDM, false);
 
+    // Analysis on detector
+    DetectorAnalysis detectoranalysis;
+    if (controls.analysis.DetectorAnalysis()) {
+      detectoranalysis.init(hkl_list);
+    }
+    
     reflection this_refl;
     observation this_obs;
 
@@ -428,6 +435,7 @@ namespace scala {
     std::vector<float> delI;
     std::vector<float> delIplus;
     std::vector<float> delIminus;
+    std::vector<IsigI> AvIothers;
     IsigI AvIsig, AvIsigplus, AvIsigminus;
     SDM.ResetRange();  // range of sd correction values
 
@@ -476,12 +484,17 @@ namespace scala {
       allobs.init(this_refl, datasetIndex, ALL);
       AvIsig = allobs.Average();  // average I, 1/variance weight
       delI = allobs.DelI(); 
+      AvIothers = allobs.MeanIothers();
 
       // Intensity bins
       int mint = Irange.bin(AvIsig.I());
 
       // Anisotropic analysis
       int jconeaxis = cone.Axis(this_refl.hkl(), invresolsq, hkl_list.Cell());
+      //^ 
+      //      if (jconeaxis == 0) {
+      //	std::cout << "=0\n";
+      //      }//^-
 
       // Counts
       if (allobs.Number() > 0) {
@@ -538,6 +551,14 @@ namespace scala {
 	  AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
 	  rmsDRes[mres].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
 	  rmsDInt[mint].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+	  // Detector analysis
+	  if (controls.analysis.DetectorAnalysis()) {
+	    // AvIothers   <I> of other observations
+	    float xd = this_obs.XYdet().first;
+	    float yd = this_obs.XYdet().second;
+	    detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
+				      this_obs.run(), xd, yd);
+	  }
 	}
 	if (Centric) {
 	  // No anomalous
@@ -730,6 +751,11 @@ namespace scala {
 
     // Correlplot
     halfDatasetScores.PlotCorrel();
+
+    // Analysis on the detector
+    if (controls.analysis.DetectorAnalysis()) {
+      detectoranalysis.WriteImages("DETECTORIMAGE");  // write out analyses as images
+    }
     // Other things for summary
     summaryStatistics.StoreAverageCell(hkl_list.cell(dataset_pxd));
     summaryStatistics.StoreSpaceGroupName(hkl_list.symmetry().symbol_xHM());

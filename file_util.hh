@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string>
 
-FILE* OpenFile(const std::string& Filename, const bool& Write);
+FILE* OpenFile(const std::string& Filename, const bool& Write,
+	       const bool Binary=false);
 
 #endif

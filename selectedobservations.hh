@@ -73,6 +73,12 @@ namespace scala
     //!  fac = sqrt(n/n-1)
     std::vector<float> Delta2();
 
+    // For each observation, return mean of other observations,
+    //   scaled to each observation
+    //   returns mnothers(NobsRefl), unused slots set = 0.0 ie not closed down
+    // 
+    std::vector<IsigI> MeanIothers();
+
     //! List of delI (scaled)
     //!  returns delI(Nobs), unused slots set = 0.0 ie not closed down
     std::vector<float> DelI();

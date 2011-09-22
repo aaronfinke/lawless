@@ -148,12 +148,12 @@ void RefineScale::TargetGradientHessian(bool DoGradient,
 	ghl.push_back(g);
 	if (DoGradient) {
 	  dghldp_obs.push_back(dghldp);
-	  //	  if (DEBUG) {
-	  //	    std::cout << "\nhkl, Obs, ghl, dghldp " << this_refl.hkl().format()
-	  //		      << " " << this_obs.I() << " " << g << "\n";
-	  //	    for (int i=0;i<npar;++i) {std::cout << "  " << dghldp[i];}
-	  //	    std::cout << "\n";
-	  //	  }
+	  	  if (DEBUG) {
+	  	    std::cout << "\nhkl, Obs, ghl, dghldp " << this_refl.hkl().format()
+	  		      << " " << this_obs.I() << " " << g << "\n";
+	  	    for (int i=0;i<npar;++i) {std::cout << "  " << dghldp[i];}
+	  	    std::cout << "\n";
+	  	  }
 	}
       }
     }
@@ -200,10 +200,10 @@ void RefineScale::TargetGradientHessian(bool DoGradient,
 	    if (dmnIgldp[ip] != 0.0) {
 	      wdmnIgldp =  w * dmnIgldp[ip];
 	      gradient[ip] += - di * wdmnIgldp;
-	      //	      if (DEBUG) {
-	      //		std::cout << " " <<
-	      //		  (- w * di * dmnIgldp[ip]) << " " << gradient[ip];
-	      //	      }
+	      	      if (DEBUG) {
+	      		std::cout << " " <<
+	      		  (- w * di * dmnIgldp[ip]) << " " << gradient[ip];
+	      	      }
 	    
 	      if (DoHessian) {
 		ip1 = ip*npar;
@@ -252,15 +252,38 @@ void RefineScale::TargetGradientHessian(bool DoGradient,
       }
     }
   }
+
+  //^
+  //  int npp = Min(5, npar);  
+  //  if (DoGradient) {
+  //    std::cout << "\nGradient:";
+  //    for (int ip=0;ip<npp;++ip) {
+  //      std::cout << " " << gradient[ip];
+  //    }
+  //    std::cout <<"\n";
+  //    if(DoHessian) {
+  //      std::cout <<"\nPart Hessian: "<<H.dim(1) <<" "<<H.dim(2)<<"\n";
+  //      for (int i=0;i<npp;i++) {
+  //  	for (int j=0;j<npp;j++) {
+  //  	  printf(" %9.3g", H(i+1,j+1));
+  //  	}
+  //  	std::cout <<"\n";
+  //      }
+  //    }
+  //   }
+  //^-
+
+
+
   //^
   //  std::cout << "\n** Parameters: ";
   //  for (int i=0;i<npar;i++) {std::cout << params[i] << " ";}
   //  std::cout <<"\n";
-  //  std::cout << "** Residual: " << target
-  //	    << " Restraint residual " << Rtie
-  //	    << " Total " << target+Rtie
-  //	    << "  Nobservations " << nobs<< "\n";
-  //-!
+  //    std::cout << "** Residual: " << target
+  //  	    << " Restraint residual " << Rtie
+  //  	    << " Total " << target+Rtie
+  //  	    << "  Nobservations " << nobs<< "\n";
+  //^-
 
   if (DoGradient) gradientOK = true;
   target = target + Rtie;

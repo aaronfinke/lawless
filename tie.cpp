@@ -18,11 +18,11 @@ floatType Tie::R(const std::vector<double>& params)
     d = 0.0;
     for (size_t i=0;i<kpidx.size();++i) {
       d += params[kpidx[i]];}
-    d /= double(kpidx.size());
+    d /= double(kpidx.size());  // average parameter
     double sd = 0.0;
     double s;
     for (size_t i=0;i<kpidx.size();++i) {
-      s = (params[kpidx[i]] - s);
+      s = (params[kpidx[i]] - d);
       sd += s*s;
     }
     return weight * sd;

@@ -122,7 +122,7 @@ class col_controls
 //  (a) profile-fitted or integrated intensity column
 {
 public:
-  col_controls() : prfpresent(false), SelectIcolFlag(-1), imid(-1.0), IpowerComb(3) {}
+  col_controls() : prfpresent(false), SelectIcolFlag(0), IpowerComb(3), imid(-1.0) {}
 
   // Set column selection flags
   // see class observation_part (hkl_unmerge.hh) for implementation
@@ -162,10 +162,12 @@ public:
   AnalysisControls(const int& Nresobins, const int& Nibins, const double& Coneangle,
 		   const double& MinimumHalfdatasetCC,
 		   const double& MinimumIoverSigma, const double& MinimumBatchIoverSigma,
-		   const int& Nbatchsmooth=1)
+		   const int& Nbatchsmooth,
+		   const bool& Detectoranalysis)
     : nresobins(Nresobins), nibins(Nibins), coneangledegrees(Coneangle),
       minimumhalfdatasetcc(MinimumHalfdatasetCC), minimumioversigma(MinimumIoverSigma),
-      minimumbatchioversigma(MinimumBatchIoverSigma), nbatchsmooth(Nbatchsmooth)
+      minimumbatchioversigma(MinimumBatchIoverSigma), nbatchsmooth(Nbatchsmooth),
+      detectoranalysis(Detectoranalysis)
 {}
 
   int NresoBins() const {return nresobins;}
@@ -176,6 +178,7 @@ public:
   double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
   int NbatchSmooth() const {return nbatchsmooth;}
   void SetNbatchSmooth(const int& Nbatchsmooth) {nbatchsmooth = Nbatchsmooth;}
+  bool DetectorAnalysis() const {return detectoranalysis;}
 
 private:
   int nresobins;    // number of resolution bins
@@ -185,6 +188,7 @@ private:
   double minimumioversigma;
   double minimumbatchioversigma;
   int nbatchsmooth; // number of batches over which to smooth statistics
+  bool detectoranalysis;
 };
 //------------------------------------------------------------
 class RejectFlags {
