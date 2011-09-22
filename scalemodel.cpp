@@ -1107,13 +1107,18 @@ namespace scala {
 	int i2 = bfacs.size();
 	if (!relative_bfactors[irun].IsBatchBfactor() &&
 	    i2 > 2) {
-	  i1 = 1;
+	  // ... but for smoothed values add in the mean of first & last pairs
+	  double bf = 0.5 * (bfacs[0] + bfacs[1]);
+	  bfnorm = Max(bfnorm, bf);
+	  bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
+	  bfnorm = Max(bfnorm, bf);
+	  i1 = 1;  // now omit 1st & last
 	  i2--;
 	}
 	for (int i=i1;i<i2;++i) {
 	  bfnorm = Max(bfnorm, bfacs[i]);
 	}
-      }
+      } // end loop runs
       if (bfnorm > -999999.) {
 	for (int irun=0;irun<nruns;irun++) {
 	  //  B-factors for this run
