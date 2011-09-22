@@ -93,7 +93,8 @@ am_aimless_OBJECTS = aimless.$(OBJEXT) InputAll_aimless.$(OBJEXT) \
 	rotation.$(OBJEXT) runthings.$(OBJEXT) scala_util.$(OBJEXT) \
 	score_datatypes.$(OBJEXT) spacegroupreindex.$(OBJEXT) \
 	spline.$(OBJEXT) string_util.$(OBJEXT) timer.$(OBJEXT) \
-	zone.$(OBJEXT) tablegraph.$(OBJEXT) optimisecombine.$(OBJEXT)
+	zone.$(OBJEXT) tablegraph.$(OBJEXT) optimisecombine.$(OBJEXT) \
+	tile.$(OBJEXT) imagearray.$(OBJEXT)
 aimless_OBJECTS = $(am_aimless_OBJECTS)
 am__DEPENDENCIES_1 =
 aimless_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -290,7 +291,7 @@ aimless_SOURCES = \
         openinputfile.cpp pointgroup.cpp probfunctions.cpp range.cpp \
         rotation.cpp runthings.cpp scala_util.cpp score_datatypes.cpp \
         spacegroupreindex.cpp spline.cpp string_util.cpp timer.cpp \
-        zone.cpp tablegraph.cpp optimisecombine.cpp \
+        zone.cpp tablegraph.cpp optimisecombine.cpp tile.cpp imagearray.cpp \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
@@ -318,7 +319,7 @@ aimless_SOURCES = \
         probfunctions.hh range.hh rotation.hh runthings.hh scala.hh \
         scala_util.hh score_datatypes.hh spacegroupreindex.hh spline.hh \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
-	optimisecombine.hh
+	optimisecombine.hh tile.hh imagearray.hh
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
 aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) $(FCLIBS) ./MinLib/libbfgs.a
@@ -425,6 +426,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hkl_symmetry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hkl_unmerge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icering.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/imagearray.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/initialscales.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intensitybin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interpretcommandline.Po@am__quote@
@@ -479,6 +481,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/summarystatistics.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tablegraph.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tie.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/writeoutputfiles.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/writeunmerged.Po@am__quote@
