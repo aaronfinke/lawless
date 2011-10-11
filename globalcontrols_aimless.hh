@@ -138,17 +138,43 @@ public:
   bool  Split() const {return split;}
   bool& Split() {return split;}
 
-  bool  Writemtz() const {return (mtzoutputtype != NONE);}
-  bool  Polish() const {return (scaoutputtype != NONE);}
+  //! set filenames from here or from environment
+  void SetFilenames(const std::string& hkloutname, const std::string& hkloutunmergedname,
+		    const std::string& scaoutname, const std::string& scaoutunmergedname);
 
-  std::string Filename() const {return filename;}
-  std::string& Filename() {return filename;}
+  //! return base filename
+  std::string Filename() const {return basefilename;}
+
+  //! return output merged MTZ filename, with optional dataset name appended
+  std::string Mtzmergedfilename(const std::string& datasetname) const
+  {return FileDatasetName(mtzmergedfilename, datasetname);}
+  //! return output unmerged MTZ filename
+  std::string Mtzunmergedfilename(const std::string& datasetname) const
+  {return FileDatasetName(mtzunmergedfilename, datasetname);}
+  //! return output merged Scalepackfilename
+  std::string Scamergedfilename(const std::string& datasetname) const 
+  {return FileDatasetName(scamergedfilename, datasetname);}
+  //! return output unmerged Scalepackfilename
+  std::string Scaunmergedfilename(const std::string& datasetname) const
+  {return FileDatasetName(scaunmergedfilename, datasetname);}
 
 private:
-  std::string filename; // base file name
+  std::string basefilename; // base file name
+  std::string mtzmergedfilename;
+  std::string mtzunmergedfilename;
+  std::string scamergedfilename;
+  std::string scaunmergedfilename;
+
   bool split;    // true to split multiple datasets into separate MTZ files
   OutputType mtzoutputtype;  // MERGED (averaged), UNMERGED for mtz file
   OutputType scaoutputtype;  // MERGED (averaged), UNMERGED for sca file
+
+  // return name is set, otherwise try to get the enviroment value of logname, else return logname
+  std::string MakeName(const std::string& name, const std::string& logname) const;
+
+  // return output filename, with optional dataset name appended
+  std::string FileDatasetName(const std::string& name,
+			      const std::string& datasetname) const;
 }; // OutputControls
 //=================================================================
 class ScoreAccept

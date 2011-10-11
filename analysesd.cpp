@@ -175,10 +175,8 @@ namespace scala
       //		      "\nSD correction parameters after 2nd normal probability correction\n"+
       //		      SDM.format());
       //      }
-      double dtime = timer.Stop();
-      output.logTabPrintf(0,LOGFILE,
-			  "\nTime for SD optimisation = %10.1f secs\n",
-			  dtime);
+      output.logTab(0,LOGFILE,
+		    "\nTime for SD optimisation = "+timer.format(true));
     } else { // norefine
 	output.logTab(0,LOGFILE,
       "\nNo refinement of SD correction parameters\n"+SDM.format());      

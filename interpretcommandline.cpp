@@ -63,6 +63,15 @@ namespace phaser_io {
 	else if (stoup(fields[ifld]) == "HKLOUT") {
 	  HkloutName = fields[++ifld];
 	}
+	else if (stoup(fields[ifld]) == "HKLOUTUNMERGED") {
+	  HkloutUnmergedName = fields[++ifld];
+	}
+	else if (stoup(fields[ifld]) == "SCALEPACK") {
+	  ScaoutName = fields[++ifld];
+	}
+	else if (stoup(fields[ifld]) == "SCALEPACKUNMERGED") {
+	  ScaoutUnmergedName = fields[++ifld];
+	}
 	else if (stoup(fields[ifld]) == "XMLOUT") {
 	  XmloutName = fields[++ifld];
 	}
@@ -90,27 +99,6 @@ namespace phaser_io {
       return HklinNames[0];
     } else {return "";}
   }
-  //--------------------------------------------------------------
-  std::vector<std::string> InterpretCommandLine::getHKLIN()
-  {return HklinNames;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getXDSIN()
-  {return XDSinName;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getSCAIN()
-  {return SCAinName;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getHKLREF()
-  {return HklrefName;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getHKLOUT()
-  {return HkloutName;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getXMLOUT()
-  {return XmloutName;}
-  //--------------------------------------------------------------
-  std::string InterpretCommandLine::getXYZIN()
-  {return XyzinName;}
   //--------------------------------------------------------------
   //--------------------------------------------------------------
 }  // phaser_io

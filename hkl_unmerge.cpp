@@ -372,6 +372,21 @@ namespace scala {
     I_ = Isum.I();
     sigI_ = Isum.sigI();
   }
+  //--------------------------------------------------------------
+  Rtype observation::width() const  //! return reflection width (degrees, from input)
+  {
+    // Average over parts
+    if (Npart_ == 1) {
+      return get_part(0).width();
+    } 
+    // partial
+    Rtype width = 0.0;
+    for (int kpart = 0; kpart < Npart_; kpart++) { // loop parts
+      width += get_part(kpart).width();
+    }
+    return width/Rtype(Npart_);
+  }
+  //--------------------------------------------------------------
   // ****************** reflection   *******************
   reflection::reflection()  {}   // dummy
   // Normal constructor

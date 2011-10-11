@@ -284,6 +284,7 @@ namespace phaser_io {
   {
     // Syntax: REFINE BFGS|FH CYCLE [Ncyc1>] <Ncycles>
     //            SELECT <IovSDmin> <E2min> [<E2Max>]
+    //            PARALLEL [AUTO] | <nproc> | <fproc>
     //    CYCLE
     //         Ncyc1   number of cycles in 1st stage [default 2]
     //         Ncycles number of cycles in main scaling [default 10]
@@ -293,6 +294,11 @@ namespace phaser_io {
     //    IovSDmin   <I>/sd'(<I>) limit for 1st pass scaling
     //    E2min      |E^2| limit for 2nd pass scaling
     //    E2max      |E^2| limit for 2nd pass scaling
+    // If OpenMP is enabled:
+    //    PARALLEL  number of processors to use in scaling, or
+    //              fraction of available processors to use, or
+    //              AUTO determine a "best" number of processors to use
+    //    If PARALLEL is specified without an argument, then AUTO is assumed
   public:
     REFINE();
     virtual ~REFINE() {}

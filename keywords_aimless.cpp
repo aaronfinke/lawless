@@ -857,6 +857,7 @@ REFINE::REFINE() : CCP4base(), InputBase()
 Token_value REFINE::parse(std::istringstream& input_stream)
 // Syntax: REFINE BFGS|FH CYCLE [Ncyc1>] <Ncycles> CONVERGE <convergeLimit>
 //            SELECT <IovSDmin> <E2min> [<E2max>]
+//            PARALLEL [AUTO] | <nproc> | <fproc>
 //    CYCLE
 //         Ncyc1   number of cycles in 1st stage [default 2]
 //         Ncycles number of cycles in main scaling [default 10]
@@ -866,10 +867,20 @@ Token_value REFINE::parse(std::istringstream& input_stream)
 // Selection criteria for scaling reflections:
 //    IovSDmin   <I>/sd'(<I>) limit for 1st pass scaling
 //    E2min      |E^2| limit for 2nd pass scaling
+// If OpenMP is enabled:
+//    PARALLEL  number of processors to use in scaling, or
+//              fraction of available processors to use, or
+//              AUTO determine a "best" number of processors to use
+//    If PARALLEL is specified without an argument, then AUTO is assumed
 {
   int nn = -1; // counter for CYCLES
   int ns = -1; // counter for SELECT
   int nc = -1; // counter for CONVERGE
+
+  // for NPROC: 0 default, -1 AUTO, +1 waiting for number, +2 number read
+  int nproc = 0;
+  float fproc = +1.0; // value read for NPROC
+
   int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
 
@@ -901,6 +912,13 @@ Token_value REFINE::parse(std::istringstream& input_stream)
 	  expectingNumber = +1;
 	  ns = 0;
 	}
+      } else if (keyIs("PARALLEL")) {
+	expectingNumber = -1;
+	nproc = +1;
+      } else if (keyIs("AUTO")) {
+	expectingNumber = 0;
+	nproc = -1;
+	fproc = -1.0;
       }
     } else if (tokenIs(1,NUMBER)) {
       if (expectingNumber == 0) {
@@ -930,8 +948,21 @@ Token_value REFINE::parse(std::istringstream& input_stream)
 	refinecontrol.E2max() = number_value;
 	ns = -1;
 	expectingNumber = 0;
+      } else if (nproc == +1) {
+	fproc = number_value;
+	nproc = +2;
       }
     }
+  }
+  if (nproc != 0) {
+    // NPROC set: 0 default, -1 AUTO, +1 NPROC but no number, +2 number read
+    // NPROC set
+    if (nproc < 0) {
+      fproc = -1.0;  // AUTO, determine later
+    } else if (nproc == +1) {
+      fproc = -1.0;  // no argument given, assume AUTO
+    }
+    refinecontrol.SetNprocs(fproc); // set number of processors
   }
   return ENDLINE;
 }

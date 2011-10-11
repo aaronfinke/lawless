@@ -227,7 +227,7 @@ namespace scala
       }
     }
      Rtype R() const    {
-      if (n_f == 0) {
+      if (n_f < 4) {
 	return 0.0;
       } else {
 	return sum_df/sum_f;

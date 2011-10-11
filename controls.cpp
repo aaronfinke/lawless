@@ -1,5 +1,10 @@
 // controls.cpp
 
+#include <sstream> 
+#if _OPENMP
+#include <omp.h>
+#endif
+
 #include "controls.hh"
 #include "hkl_unmerge.hh"
 #include "string_util.hh"
@@ -204,6 +209,47 @@ namespace scala
     iovsdmin = -3.0;
     e2min = 0.8;
     e2max = 5.0;
+    nprocs = 1;
+    maxprocs = 1;
+  }
+  //------------------------------------------------------------
+  // Set number of processors from number or fraction (<1)
+  void RefineControl::SetNprocs(const float& fproc)
+  {
+    // Ignore if OpenMP not enabled
+    nprocs = 1;
+#if _OPENMP
+    //  Find out how many we are allowed
+    maxprocs = 0;
+    if (getenv("OMP_NUM_THREADS") != NULL) {
+      std::stringstream(std::string(getenv("OMP_NUM_THREADS"))) >> maxprocs;
+    }
+    if (fproc > 0.99) {
+      // Explicitly set
+      nprocs = Min(Nint(fproc), maxprocs); // reset to maximum if greater
+    } else if (fproc >= 0.0) {
+      // fraction of maximum, at least 1
+      nprocs = Max(1, Nint(fproc*maxprocs));
+    } else if (fproc < 0.0) {
+      nprocs = -1;  // set later (AUTO)
+    }
+#endif
+  }
+  //------------------------------------------------------------
+  std::string RefineControl::format() const
+  {
+    std::string s;
+    if (nprocs == 1) {
+      s = "Refinement stages will use a single processor\n";
+    } else if (nprocs > 1) {
+      s = FormatOutput::logTabPrintf(0,
+   "Number of processors used for refinement stages = %2d of maximum %2d\n",
+				     nprocs, maxprocs);
+    } else {
+      s =
+     "Number of processors for refinement stages will be determined from number of observations\n";
+    }
+    return s;
   }
   //------------------------------------------------------------
 }

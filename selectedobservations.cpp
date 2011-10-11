@@ -265,11 +265,12 @@ namespace scala
   // List of deviations delta (ie delI/sigma(I) ) where delI
   //  is difference from mean of other observations
   //   returns delta(NobsRefl), unused slots set = 0.0 ie not closed down
+  //   Rejected observations are left with their original delta,
+  //     accepted ones are reevaluated after rejection
   //   delta.size() = total number of observations in reflection
   // 
   std::vector<float> SelectedObservations::Deviations()
   {
-    delta.assign(nobs,0.0);
     if (Nused <= 0) return delta;
     if (State == 0) Average();
     if (Nused > 1) {

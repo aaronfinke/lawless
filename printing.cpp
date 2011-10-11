@@ -370,6 +370,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 const ResoRange& ResRange,
 				 const std::vector<Rfactor>& rmergeRes,
+				 const std::vector<Rfactor>& rmergeResFull,
 				 const std::vector<Rfactor>& rmeasRes,
 				 const std::vector<Rfactor>& rpimRes,
 				 const std::vector<MeanSD>&  imeanRes,
@@ -385,6 +386,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
 		std::string("\n Rmrg    :- conventional Rmerge = Sum(|Ihl - <Ih>|)/Sum(<Ih>)\n")+
 		" Rcum    :- Rmrg up to this range\n"+
+		" Rfull   :- Rmrg for fully-recorded observations only\n"+
 		" Rmeas   :- multiplicity-independent R = Sum(Sqrt(N/(N-1))(|Ihl - <Ih>|))/Sum(<Ih>)\n"+
 		" Rpim    :- Precision-indicating R = Sum(Sqrt(1/(N-1))(|Ihl - <Ih>|))/Sum(<Ih>)\n"+
 		" Nmeas   :- Number of observations used in statistics\n"+
@@ -405,20 +407,21 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(4);   // for each graph
-  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't nned to do this)
+  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   for (int i=0;i<ResRange.Nbins();++i) {
     float frcbias = 0.0;
     if (biasIRes[i].Count() > 0) {
       frcbias = biasRes[i].Mean()/biasIRes[i].Mean();
     }
     // Graphs are
-    // 1. I/sigma, Mean Mn(I)/sd(Mn(I))  (cols 12,13)
-    // 2. Rmerge, Rmeas, Rpim v Resolution  (cols 4,6,7)
-    // 3. Average I, RMSdeviation and Sd (cols 9,10,11)
-    // 4. Fractional bias (col 14)
+    // 1. I/sigma, Mean Mn(I)/sd(Mn(I))  (cols 13,14)
+    // 2. Rmerge, Rfull, Rmeas, Rpim v Resolution  (cols 4,5,6,7)
+    // 3. Average I, RMSdeviation and Sd (cols 10,11,12)
+    // 4. Fractional bias (col 15)
     yranges[0].update(imeanRes[i].Mean()/sqrt(rmsDRes[i].Mean()));  // I/sigma
     yranges[0].update(mnIsdRes[i].Mean()); //Mn(I/sd)
     yranges[1].update(rmergeRes[i].R());   // Rmerge
+    yranges[1].update(rmergeResFull[i].R());   // Rfull
     yranges[1].update(rmeasRes[i].R());    // Rmeas
     yranges[1].update(rpimRes[i].R());     // Rpim
     yranges[2].update(imeanRes[i].Mean()); // AvI
@@ -428,19 +431,19 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   } // end line loop
 
   output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {2,12,13};
+  int c[] = {2,13,14};
   std::vector<int> cln(c,c+3);
   output.logTab(0,LOGFILE,
 		table.Graph("I/sigma, Mean Mn(I)/sd(Mn(I))",GraphAxesType(xrange,yranges[0],true),cln));
-  int c2[] = {2,4,6,7};
-  cln.assign(c2, c2+4);
+  int c2[] = {2,4,5,6,7};
+  cln.assign(c2, c2+5);
   output.logTab(0,LOGFILE,
-		table.Graph("Rmerge, Rmeas, Rpim v Resolution",GraphAxesType(xrange,yranges[1],true),cln));
-  int c3[] = {2,9,10,11};
+		table.Graph("Rmerge, Rfull, Rmeas, Rpim v Resolution",GraphAxesType(xrange,yranges[1],true),cln));
+  int c3[] = {2,10,11,12};
   cln.assign(c3, c3+4);
   output.logTab(0,LOGFILE,
 		table.Graph("Average I, RMSdeviation and Sd",GraphAxesType(xrange,yranges[2],true),cln));
-  int c4[] = {2,14};
+  int c4[] = {2,15};
   cln.assign(c4, c4+2);
   output.logTab(0,LOGFILE,
 		table.Graph("Fractional bias",GraphAxesType(xrange,yranges[3],false),cln));
@@ -449,24 +452,26 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   collabels.push_back("1/d^2");     // 2
   collabels.push_back("Dmid");      // 3
   collabels.push_back("Rmrg");      // 4
-  collabels.push_back("Rcum");      // 5
-  collabels.push_back("Rmeas");     // 6
-  collabels.push_back("Rpim");      // 7
-  collabels.push_back("Nmeas");     // 8
-  collabels.push_back("AvI");       // 9
-  collabels.push_back("RMSdev");    // 10
-  collabels.push_back("sd");        // 11
-  collabels.push_back("I/RMS");     // 12
-  collabels.push_back("Mn(I/sd)");  // 13
-  collabels.push_back("FrcBias");   // 14
-  bool z[] = {false, false, false, true, true, true, true, false, true, true, true, true, true, true};
-  std::vector<bool> Zero(z, z+14);
-  std::string fmt = "%7.3f%7.3f%7.3f%7.3f%9d%9d%7d%7d%7.1f%9.1f%9.3f\n"; // excluding 1st 3 columns
+  collabels.push_back("Rfull");     // 5 
+  collabels.push_back("Rcum");      // 6 
+  collabels.push_back("Rmeas");     // 7 
+  collabels.push_back("Rpim");      // 8 
+  collabels.push_back("Nmeas");     // 9 
+  collabels.push_back("AvI");       // 10
+  collabels.push_back("RMSdev");    // 11
+  collabels.push_back("sd");        // 12
+  collabels.push_back("I/RMS");     // 13
+  collabels.push_back("Mn(I/sd)");  // 14
+  collabels.push_back("FrcBias");   // 15
+  bool z[] =
+    {false, false, false, true, true, true, true, true, false, true, true, true, true, true, true};
+  std::vector<bool> Zero(z, z+15);
+  std::string fmt = "%7.3f%7.3f%7.3f%7.3f%7.3f%9d%9d%7d%7d%7.1f%9.1f%9.3f\n"; // excluding 1st 3 columns
   output.logTab(0,LOGFILE,
 		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
   int nc = collabels.size();
   Rfactor Rcum;  // cumulative R
-  Rfactor Rmeas, Rpim;
+  Rfactor Rfull, Rmeas, Rpim;
   MeanSD Imean, rmsD, avSd, mnIsd, bias, biasI;
 
   int n=1;
@@ -482,13 +487,14 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     output.logTab(0,LOGFILE,
 		  table.Line(nc, n++, ResRange.middle(i),
 			     ResRange.middleA(i),
-			     rmergeRes[i].R(), Rcum.R(),
+			     rmergeRes[i].R(), rmergeResFull[i].R(), Rcum.R(),
 			     rmeasRes[i].R(), rpimRes[i].R(),
 			     rmergeRes[i].result().count,
 			     Nint(imeanRes[i].Mean()), Nint(sqrt(rmsDRes[i].Mean())),
 			     Nint(avSdRes[i].Mean()), imeanRes[i].Mean()/sqrt(rmsDRes[i].Mean()),
 			     mnIsdRes[i].Mean(), frcbias));
     // Totals
+    Rfull += rmergeResFull[i];
     Rmeas += rmeasRes[i];
     Rpim  += rpimRes[i];
     Imean += imeanRes[i];
@@ -507,7 +513,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   fmt = "Overall:          "+fmt;
   // //  fmt = "Overall:          "+fmt+"\n";
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
-		   Rcum.R(), Rcum.R(),
+		      Rcum.R(), Rcum.R(), Rfull.R(),
 		      Rmeas.R(), Rpim.R(), Rcum.result().count,
 		   Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
 		   Imean.Mean()/sqrt(rmsD.Mean()), mnIsd.Mean(), frcbias);
@@ -541,7 +547,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
 		"\nStatistics labelled 'Ov' are relative to the overall mean I+/-, ignoring anomalous");
   output.logTab(0,LOGFILE,
-		"Other statistics are with eitehr I+ or I- sets, for acentrics, ie with anomalous\n\n");
+		"Other statistics are with either I+ or I- sets, for acentrics, ie with anomalous\n\n");
   TableGraph table(" Analysis against resolution, with & without anomalous (Ov), "+dataset_pxd.dname());
 
   Range xrange = ResRange; // x axis range to full resolution limit

@@ -25,7 +25,8 @@ class RefineScale : public phaser::RefineBase2
 public:
   RefineScale(){}
   RefineScale(const hkl_unmerge_list& Hkl_list,
-			   ScaleModel& Scalemodel);
+	      ScaleModel& Scalemodel,
+	      const int& Nprocs);
 
   floatType    targetFn();  //this is where main body goes
   floatType    gradientFn(TNT::Vector<floatType>&);
@@ -53,6 +54,8 @@ private:
 
   TNT::Vector<floatType> gradient;
   floatType target;
+
+  int nprocs;
 
   void TargetGradientHessian(bool DoGradient,
 			     bool DoHessian,

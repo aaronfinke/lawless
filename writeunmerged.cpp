@@ -38,6 +38,7 @@ namespace MtzIO
 		 MTZCOL* col[], int& ic, MTZ* mtzout, MTZSET* baseset,
 		 const char* label, const char* type)
     // Conditional column addition, only if coln > 0
+    
   {
     if (coln)
 	col[ic++] = MtzAddColumn(mtzout, baseset, label, type);
@@ -138,6 +139,13 @@ namespace MtzIO
     col[ic++] = MtzAddColumn(mtzout, baseset, "BATCH", "B");
     col[ic++] = MtzAddColumn(mtzout, baseset, "I", "J");
     col[ic++] = MtzAddColumn(mtzout, baseset, "SIGI", "Q");
+
+    if (summedpartials) {
+      OptAddCol(true, col, ic, mtzout, baseset, "SCALEUSED", "R");
+      OptAddCol(true, col, ic, mtzout, baseset, "SIGSCALEUSED", "R");
+      // output of observations, write NPART as number of images used for observation
+      OptAddCol(true, col, ic, mtzout, baseset, "NPART", "I");
+    }
     // Optional columns, add in only if present (ie read from input file)
     // also increment ic
     if (!summedpartials) {  // only for raw output
@@ -148,14 +156,11 @@ namespace MtzIO
     OptAddCol(col_sel.is_Xdet, col, ic, mtzout, baseset, "XDET", "R");
     OptAddCol(col_sel.is_Ydet, col, ic, mtzout, baseset, "YDET", "R");
     OptAddCol(col_sel.is_Rot, col, ic, mtzout, baseset, "ROT", "R");
-    if (!summedpartials) {  // only for raw output
-      OptAddCol(col_sel.is_Width, col, ic, mtzout, baseset, "WIDTH", "R");
-    }
+    OptAddCol(col_sel.is_Width, col, ic, mtzout, baseset, "WIDTH", "R");
     OptAddCol(col_sel.is_LP, col, ic, mtzout, baseset, "LP", "R");
     if (!summedpartials) {  // only for raw output
+      // MPART only if in input file
       OptAddCol(col_sel.is_Mpart, col, ic, mtzout, baseset, "MPART", "I");
-    }
-    if (!summedpartials) {  // only for raw output
       OptAddCol(col_sel.is_ObsFlag, col, ic, mtzout, baseset, "FLAG", "I");
       OptAddCol(col_sel.is_BgPkRatio, col, ic, mtzout, baseset, "BGPKRATIOS", "R");
     }
@@ -163,15 +168,11 @@ namespace MtzIO
     if (!summedpartials) {  // only for raw output
       OptAddCol(col_sel.is_scale, col, ic, mtzout, baseset, "SCALE", "R");
       OptAddCol(col_sel.is_sigscale, col, ic, mtzout, baseset, "SIGSCALE", "R");
-    } else {
-      OptAddCol(col_sel.is_scale, col, ic, mtzout, baseset, "SCALEUSED", "R");
-      OptAddCol(col_sel.is_sigscale, col, ic, mtzout, baseset, "SIGSCALEUSED", "R");
     }
     int NumCol = ic;
     
     // List is sorted on the first 5 columns
     MtzSetSortOrder(mtzout, col);
-
     
     // History    
     char history[MTZRECORDLENGTH];
@@ -420,41 +421,43 @@ namespace MtzIO
       // loop observations
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
 	if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
-	  // Packed M/ISYM, M = 1 for partial
+	  // Packed M/ISYM
+	  // always M = 0 for "full" since partials have been summed (but see NPART)
 	  int isym = this_obs.Isym();
-	  int M_Isym = isym;
-	  if (this_obs.num_parts() > 1) M_Isym = 256 + isym;
-	  data[3] = M_Isym;
-	  
-	  data[4] = this_obs.Batch();
-	  data[5] = this_obs.kI();
-	  data[6] = this_obs.ksigI();
-	  
+	  ic = 3;
+	  data[ic++] = isym;
+	  data[ic++] = this_obs.Batch();
+	  data[ic++] = this_obs.kI();
+	  data[ic++] = this_obs.ksigI();
+	  // Applied scale
+	  float g = this_obs.Gscale();
+	  if (g != 0.0) g = 1.0f/g;
+	  data[ic++] = g;
+	  data[ic++] = 0.0;
+	  data[ic] = this_obs.num_parts(); // NPART = number of parts
+	  // negate for scaled partial
+	  if (this_obs.PartFlag() == SCALE) {data[ic] = -data[ic];}
+	  ic++;
+
 	  // Optional columns
-	  ic = 7;
 	  if (col_sel.is_fractioncalc) data[ic++] = this_obs.TotalFraction();
 	  std::pair<float,float> xydet = this_obs.XYdet();
 	  if (col_sel.is_Xdet) data[ic++] = xydet.first;
 	  if (col_sel.is_Ydet) data[ic++] = xydet.second;
-	  if (col_sel.is_Rot) data[ic++] = this_obs.phi();
+	  if (col_sel.is_Rot) data[ic++]  = this_obs.phi();
+	  if (col_sel.is_Width) data[ic++] = this_obs.width();
 	  if (col_sel.is_LP) data[ic++] = this_obs.LP();
-	}
-	if (col_sel.is_time) data[ic++] = this_obs.time();
-	// Optional scale: dummy for now
-	if (col_sel.is_scale) {
-	  float g = this_obs.Gscale();
-	  if (g != 0.0) g = 1.0f/g;
-	  data[ic++] = g;
-	  if (col_sel.is_sigscale) data[ic++] = 0.0;
-	}
-	ASSERT (ic == NumCol);
-	
-	// count observation parts by batch serial
-	nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;
-	
-	ccp4_lwrefl(mtzout, data, col, NumCol, i+1);
-	i++;
-      }
+
+	  if (col_sel.is_time) data[ic++] = this_obs.time();
+	  ASSERT (ic == NumCol);
+	  
+	  // count observation parts by batch serial
+	  nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;
+	  
+	  ccp4_lwrefl(mtzout, data, col, NumCol, i+1);
+	  i++;
+	}  // end dataset selection
+      } // end loop observations
     }  // end loop reflections
     return nobsbatch;
   }

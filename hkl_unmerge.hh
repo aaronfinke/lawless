@@ -224,6 +224,7 @@ namespace scala {
     Rtype phi() const {return phi_;}  //!< return rotation angle "phi"
     Rtype time() const {return time_;} //!< return "time"
     int Isym() const {return isym_;}  //!< return symmetry number ISYM
+    Rtype width() const;  //! return reflection width (degrees, from input)
     Rtype LP() const {return LP_;}
 
     //! return run number

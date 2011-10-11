@@ -269,6 +269,14 @@ private:
     float& E2max() {return e2max;}
     float E2max() const {return e2max;}
 
+    int& Nprocs() {return nprocs;}
+    int Nprocs() const {return nprocs;}
+
+    // Set number of processors from number or fraction (<1)
+    void SetNprocs(const float& fproc);
+
+    std::string format() const;
+
   private:
     bool bfgs;           // or Fox-Holmes if false
     int  ncyc1;          // number of 1st stage cycles
@@ -277,6 +285,8 @@ private:
     float iovsdmin;      // <I>/sd'(<I>) limit for 1st pass scaling
     float e2min;         // |E^2| limit for 2nd pass scaling
     float e2max;         // |E^2| maximum limit for 2nd pass scaling
+    int nprocs;          // number of processors to use
+    int maxprocs;        // maximum number
   };
 //=================================================================
 class DatasetControl

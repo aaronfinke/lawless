@@ -64,7 +64,7 @@ namespace scala {
   {
   public:
     // Construct & store addresses
-    RejectList(const reflection& This_Refl,
+    RejectList(reflection& This_Refl,
 	       const OutlierControl& Outliercontrol)
       : this_refl(&This_Refl), outliercontrol(&Outliercontrol), discrepant(false)
     {deviations.assign(This_Refl.num_observations(), 0.0);}  // clear deviation list
@@ -84,8 +84,11 @@ namespace scala {
     //! Return true if outliers found even if not rejected
     bool Discrepant() const {return discrepant;}
 
+    // Update reflection with new observation status flags
+    void UpdateReflection();
+
   private:
-    const reflection* this_refl;
+    reflection* this_refl;
     const OutlierControl* outliercontrol;
 
     std::vector<int> rejected;
@@ -147,6 +150,20 @@ namespace scala {
     }
   }
   // ------------------------------------------------------------
+  void RejectList::UpdateReflection()
+  // Update reflection with new observation status flags
+  {
+    if (rejected.size() > 0) {
+      // Set outlier flags back into observations within reflections
+      for (size_t i=0;i<rejected.size();++i) {
+	observation this_obs = this_refl->get_observation(rejected[i]);
+	this_obs.UpdateStatus(statusflags[i]);
+	this_refl->replace_observation(this_obs);
+      }
+    }
+  }
+  // ------------------------------------------------------------
+  // ------------------------------------------------------------
   void RejectOutlier(hkl_unmerge_list& hkl_list,
 		     const SDmodel& SDM,
 		     const Normalise& NormRes,
@@ -181,7 +198,8 @@ namespace scala {
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
       bool Centric = hkl_list.symmetry().is_centric(this_refl.hkl());
       temp_refl = this_refl;  // copy
-      RejectList rejlist(temp_refl, outliercontrol); // start reject list
+      // start reject list, store pointers to temp_refl and outliercontrol
+      RejectList rejlist(temp_refl, outliercontrol);
       //  Apply current SD correction to reflection (all observations)
       SDM.CorrectReflection(temp_refl);
 
@@ -199,6 +217,7 @@ namespace scala {
 	  rejlist.Check(IMINUS,dts_index, ObservationStatus::OBSSTAT_OUTLIER);
 	  if (outliercontrol.Anom()) {
 	    // check for outliers between I+ & I-
+	    rejlist.UpdateReflection();  // update flags for rejections within I+/-
 	    rejlist.Check(BOTH, dts_index, ObservationStatus::OBSSTAT_OUTLIERANOM);
 	  }
 	} else {
@@ -219,16 +238,21 @@ namespace scala {
 				   rejlist.Statusflags().end());
 
       ASSERT (rejected.size() == statusflags.size());
-      // Set outlier flags back into observations within reflections
-      for (size_t i=0;i<rejected.size();++i) {
-	this_obs = this_refl.get_observation(rejected[i]);
-	this_obs.UpdateStatus(statusflags[i]);
-	this_refl.replace_observation(this_obs);
-      }
-      hkl_list.replace_reflection(this_refl);
-      // Optional output to ROGUES file & ROGUEPLOT
-      if (RoguesList.Open() && rejlist.Discrepant()) {
-	RoguesList.RogueReflection(this_refl, rejlist.Deviations(), NormRes);
+      if (rejlist.Discrepant() > 0) {
+	if (rejected.size() > 0) {
+	  // Set outlier flags back into observations within reflections
+	  for (size_t i=0;i<rejected.size();++i) {
+	    this_obs = this_refl.get_observation(rejected[i]);
+	    this_obs.UpdateStatus(statusflags[i]);
+	    this_refl.replace_observation(this_obs);
+	  }
+	  hkl_list.replace_reflection(this_refl);
+	}
+	// Optional output to ROGUES file & ROGUEPLOT
+	if (RoguesList.Open()) {
+	  SDM.CorrectReflection(this_refl);
+	  RoguesList.RogueReflection(this_refl, rejlist.Deviations(), NormRes);
+	}
       }
     } // end loop reflections
   }

@@ -80,8 +80,9 @@ namespace scala {
   // ------------------------------------------------------------
   void AddDelStats(const float& delI, const float& AvI, const int& nmult,
 		   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
-		   const int& mres,
+		   const int& mres, const bool& isfull,
 		   std::vector<Rfactor>& rmergeRes,
+		   std::vector<Rfactor>& rmergeResFull,
 		   std::vector<Rfactor>& rmeasRes,
 		   std::vector<Rfactor>& rpimRes,
 		   const int& mint,
@@ -103,6 +104,7 @@ namespace scala {
   // On exit:
   //  rmergebatch  updated Rmerge by batch
   //  rmergeRes    updated Rmerge by resolution
+  //  rmergeResFull updated Rmerge by resolution for fulls only
   //  rmeasRes     updated Rmeas by resolution
   //  rpimRes      updated Rpim by resolution
   //  rmergeInt    updated Rmerge by intensity
@@ -115,6 +117,9 @@ namespace scala {
     double an = nmult;
     if (mres >= 0) {
       rmergeRes[mres].add(delI, AvI, unitw); // Rmerge
+      if (isfull) {
+	rmergeResFull[mres].add(delI, AvI, unitw); // Rmerge for fulls
+      }
       double w = sqrt(an/(an-1.0));
       rmeasRes[mres].add(delI, AvI, w);  // Rmeas
       w = sqrt(1.0/(an-1.0));
@@ -363,6 +368,7 @@ namespace scala {
     // by resolution
     // within I+/I- sets
     std::vector<Rfactor> rmergeRes(nresbin); // Rmerge
+    std::vector<Rfactor> rmergeResFull(nresbin); // Rmerge for fulls
     std::vector<Rfactor> rmeasRes(nresbin);  // Rmeas
     std::vector<Rfactor> rpimRes(nresbin);   // Rpim
     // over all I+ & I- sets
@@ -381,6 +387,9 @@ namespace scala {
     std::vector<int> NumObs(nresbin,0);      // Number of observations
     int NumRefAll = 0;
     int NumObsAll = 0;
+    int NumObsFull = 0;
+    int NumObsPart = 0;
+    int NumObsScaled = 0;
     std::vector<int> NumRefSphere(nresbin,0);  // Number unique in sphere
     std::vector<int> NumCentric(nresbin,0);    // Number unique centric
     std::vector<int> NumACentric(nresbin,0);   // Number unique acentric
@@ -510,6 +519,7 @@ namespace scala {
 	NumObs[mres] += allobs.Number();   // Number observed
 	NumRefAll++;
 	NumObsAll += allobs.Number();
+
 	// Counts for completeness & multiplicity
 	//  Total in sphere allowing for symmetry multiplicity
 	NumRefSphere[mres] += multcy;      // Total unique in sphere
@@ -530,9 +540,17 @@ namespace scala {
       //      double wrfac_batch = 1.0;        // conventional R by batch
 
 
-      while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all observations
+      while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all valid observations
 	int batchn = this_obs.Batch();  // batch number
 	int jbatch = hkl_list.batch_serial(batchn); // batch serial
+	bool isfull = (this_obs.PartFlag() == FULL);  // true if fully recorded, false for partial
+
+	if (isfull) {
+	  NumObsFull++;
+	} else {
+	  NumObsPart++;
+	  if (this_obs.PartFlag() == SCALE) {NumObsScaled++;}  // scaled partial
+	}
 	
 	// record an observation for cumulative completeness
 	cumulativecompleteness.AddObservationBatch(batchn, jbatch);
@@ -565,8 +583,9 @@ namespace scala {
 	  if (allobs.Number() > 1) {
 	    // Rmerge etc 
 	    AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
-			jbatch, rmergebatch,
-			mres, rmergeRes, rmeasRes, rpimRes,
+			jbatch, rmergebatch, 
+			mres, isfull,
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -619,9 +638,11 @@ namespace scala {
 	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IPLUS);
 	  if (obsplus.Number() > 1) {
 	    // Rmerge etc 
+	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
-			jbatch, rmergebatch,
-			mres, rmergeRes, rmeasRes, rpimRes,
+			jbatch, rmergebatch, 
+			mres, isfull,
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -633,9 +654,11 @@ namespace scala {
 	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IMINUS);
 	  if (obsminus.Number() > 1) {
 	    // Rmerge etc 
+	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
-			jbatch, rmergebatch,
-			mres, rmergeRes, rmeasRes, rpimRes,
+			jbatch, rmergebatch, 
+			mres, isfull,
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -693,11 +716,20 @@ namespace scala {
     }
 
     // Print stuff
-    output.logTabPrintf(0,LOGFILE,"\nNumber of unique reflections                  %9d\n",
+    output.logTabPrintf(0,LOGFILE,
+	        "\nAccepted data:\nNumber of unique reflections                  %9d\n",
 			NumRefAll);
     output.logTabPrintf(0,LOGFILE,"Number of observations                        %9d\n",
 			NumObsAll);
-    output.logTabPrintf(0,LOGFILE,"Number of rejected outliers                   %9d\n",
+    if (NumObsPart > 0 && NumObsFull > 0) {
+      output.logTabPrintf(0,LOGFILE,"Number of fully-recorded observations         %9d\n",
+			  NumObsFull);
+      output.logTabPrintf(0,LOGFILE,"Number of partially-recorded observations     %9d\n",
+			  NumObsPart);
+      output.logTabPrintf(0,LOGFILE,"Number of scaled partial observations         %9d\n",
+			  NumObsScaled);
+    }
+    output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers                   %9d\n",
 			outliercount.at(0)+outliercount.at(1));
     output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
 			outliercount.at(2));
@@ -727,7 +759,7 @@ namespace scala {
 			    cone.ConeAngle(), controls.analysis.MinimumIoverSigma(),
 			    summaryStatistics, output);
 
-    PrintDeviationsByResolution(dataset_pxd, ResRange, rmergeRes, rmeasRes,
+    PrintDeviationsByResolution(dataset_pxd, ResRange, rmergeRes, rmergeResFull, rmeasRes,
     				rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
     				biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
 				summaryStatistics, output);

@@ -2,6 +2,7 @@
 // globalcontrols.cpp
 
 #include "globalcontrols.hh"
+#include "scala_util.hh"
 
 namespace scala
 {
@@ -85,6 +86,71 @@ namespace scala
   bool OutputControls::UnMerged() const
   {
     return (MTZoutputUnmerged() || SCAoutputUnmerged());
+  }
+  //------------------------------------------------------------
+  std::string OutputControls::MakeName(const std::string& name, const std::string& logname) const
+  // return name is set, otherwise try to get the enviroment value of logname, else return null
+  {
+    if (name != "") return name;
+    std::string fname = "";
+    // try logname environment variable
+    if (getenv(logname.c_str()) != NULL) {
+	fname = std::string(getenv(logname.c_str()));
+    }
+    return fname;
+  }
+  //------------------------------------------------------------
+
+  //! set filenames from here or from environment
+  void OutputControls::SetFilenames(const std::string& hkloutname, const std::string& hkloutunmergedname,
+				    const std::string& scaoutname, const std::string& scaoutunmergedname)
+  {
+    mtzmergedfilename = MakeName(hkloutname, "HKLOUT");
+
+    basefilename = FileNameNoExtension(mtzmergedfilename);  // basename from HKLOUT
+    if (basefilename == "") {
+      mtzmergedfilename =  "HKLOUT";
+      basefilename = mtzmergedfilename;
+    }
+
+    std::string ext = FileNameExtension(mtzmergedfilename); // save extension if any
+    AddFileExtension(mtzmergedfilename, "mtz");  // if not there already
+
+    // Make unmerged MTZ filename, if not set explicitly, in case it is needed
+    mtzunmergedfilename = MakeName(hkloutunmergedname, "HKLOUTUNMERGED");
+    if (mtzunmergedfilename == "") {
+      // add string to base and put extension back if it was present
+      mtzunmergedfilename = basefilename+"_unmerged";
+      if (ext != "") {mtzunmergedfilename += "."+ext;}
+    }
+    AddFileExtension(mtzunmergedfilename, "mtz");  // if not there already
+
+    // Make merged Scalepack filename, if not set explicitly, in case it is needed
+    scamergedfilename = MakeName(scaoutname, "SCALEPACK");
+    if (scamergedfilename == "") {
+      scamergedfilename = basefilename;
+    }
+    AddFileExtension(scamergedfilename, "sca");  // if not there already
+
+    // Make unmerged Scalepack filename, if not set explicitly, in case it is needed
+    scaunmergedfilename = MakeName(scaoutunmergedname, "SCALEPACKUNMERGED");
+    if (scaunmergedfilename == "") {
+      scaunmergedfilename = FileNameNoExtension(scamergedfilename);
+      ext = FileNameExtension(scamergedfilename);
+      scaunmergedfilename = basefilename+"_unmerged";
+      if (ext != "") {scaunmergedfilename += "."+ext;}
+    }
+    AddFileExtension(scaunmergedfilename, "sca");  // if not there already
+  }
+  //------------------------------------------------------------
+  //------------------------------------------------------------
+  // return output filename, with optional dataset name appended
+  std::string OutputControls::FileDatasetName(const std::string& name,
+					      const std::string& datasetname) const
+  {
+    if (datasetname == "") {return name;}
+    std::string ext = FileNameExtension(name);
+    return FileNameNoExtension(name)+"_"+datasetname+"."+ext;
   }
   //------------------------------------------------------------
   //------------------------------------------------------------

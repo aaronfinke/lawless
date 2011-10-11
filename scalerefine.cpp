@@ -21,7 +21,8 @@ namespace scala {
   {
     // Set up up refinement object:
     //  store addresses of reflection & scale objects 
-    RefineScale refscl(hkl_list, AllScales);
+    RefineScale refscl(hkl_list, AllScales,
+		       controls.refinecontrol.Nprocs());
 
     // default protocols
     phaser::protocolPtr cPtr(new phaser::ProtocolScale(Ncycles));

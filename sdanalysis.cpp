@@ -510,7 +510,7 @@ namespace scala
 		  std::string("\nAnalysis of standard deviations\n")+
 		  "===============================\n"+
 		  "This analyses the distribution of the normalised deviations\n"+
-		  "Delta = (Ihl - Mn(Iothers) )/sqrt[sd](Ihl**2 + sd(Mn(I))**2)\n"+
+		  "Delta = (Ihl - Mn(Iothers) )/sqrt[sd(Ihl)**2 + sd(Mn(I))**2]\n"+
 		  "If the SD is a true estimate of the error, this distribution should have\n"+
 		  " Mean=0.0 and Sigma=1.0 for all ranges of intensity\n"		  
 		  "\nThe analysis is repeated for ranges of increasing Imean\n"+

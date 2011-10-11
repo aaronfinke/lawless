@@ -38,23 +38,15 @@ namespace scala {
     if (outputcontrols.MTZoutputUnmerged()) {
       bool summedpartials = true;  // observations not parts (ie summed partials)
       int datasetindex = -1;  // all datasets
-      std::string filename = FileNameNoExtension(outputcontrols.Filename());
-      std::string ext = FileNameExtension(outputcontrols.Filename()); // save extension if any
-      if (outputcontrols.MTZoutputMerged()) {
-	// merged file as well, add to unmerged filename
-	filename += "_unmerged";
-      }
-      filename += "."+ext; // put extension back if it was present
-      AddFileExtension(filename, "mtz");  // if not there already
-
+      std::string filename = outputcontrols.Mtzunmergedfilename("");
       if (datasetindex < 0) {
 	output.logTab(0, LOGFILE,
-		      "\nWriting unmerged data for all datasets to file "+
+		      "\n==== Writing unmerged data for all datasets to file "+
 		      filename);
       } else {
 	PxdName pxdname = hkl_list.xdataset(datasetindex).pxdname();
 	output.logTab(0, LOGFILE,
-		      "\nWriting unmerged data for dataset "+pxdname.format()+
+		      "\n==== Writing unmerged data for dataset "+pxdname.format()+
 		    " to file "+filename+"\n");
       }
       int nref =
@@ -63,26 +55,19 @@ namespace scala {
       output.logTabPrintf(0, LOGFILE,
 			  "\nNumber of observations written = %8d\n", nref);
     }
+
     // SCA output
     if (outputcontrols.SCAoutputUnmerged()) {
       for (int idts=0;idts<hkl_list.num_datasets();++idts) {  // loop datasets
-	std::string filename =
-	  FileNameNoExtension(outputcontrols.Filename());
-	if (outputcontrols.SCAoutputMerged()) {
-	  // merged file as well, add to unmerged filename
-	  filename += "_unmerged";
-	}
-	
-	if (hkl_list.num_datasets() > 1) {  // adjust filename
-	  PxdName pxdname = hkl_list.xdataset(idts).pxdname();
-	  filename = FileNameNoExtension(filename)+"_"+pxdname.dname();
-	}
-	AddFileExtension(filename, "sca");  // if not there already
-	
 	PxdName pxdname = hkl_list.xdataset(idts).pxdname();
+	std::string filedname = pxdname.dname(); // append to filename if > 1 dataset
+	if (hkl_list.num_datasets() <= 1) {
+	  filedname = "";
+	}
+	std::string filename = outputcontrols.Scaunmergedfilename(filedname);
 	output.logTab(0, LOGFILE,
-		      "\nWriting unmerged data for dataset "+pxdname.format()+
-		    " to file "+filename+"\n");
+		      "\n==== Writing unmerged data for dataset "+pxdname.format()+
+		      " to file "+filename+"\n");
 	int nref =
 	  MtzIO::WriteUnmergedSCA(hkl_list, SDM, idts, filename, Imax);
 	output.logTabPrintf(0, LOGFILE,
@@ -113,24 +98,19 @@ namespace scala {
 
     for (int idts=0;idts<mergedlist.NumberDatasets();++idts) {
       PxdName pxdname = xdatasets[idts].pxdname();
-      std::string filename = FileNameNoExtension(outputcontrols.Filename());
-      std::string ext = FileNameExtension(outputcontrols.Filename()); // save extension if any
+      std::string filedname = "";
       if (nfiles > 1) {
-	filename += "_"+pxdname.dname();
+	filedname = pxdname.dname();  // multiple files identified by dataset name
       }
-      // Scalepack format, replace extension
-      if (outputformat == +2) {
-	ext = "sca";
-	filename += "."+ext;
-      } else if (outputformat == +1) {
-	if (ext != "") {
-	  filename += "."+ext; // put extension back if it was present
-	}
-	ext = "mtz";
-	AddFileExtension(filename, ext);  // if not there already
+      std::string filename;
+
+      if (outputformat == +2) {  // Scalepack format
+	filename = outputcontrols.Scamergedfilename(filedname);
+      } else if (outputformat == +1) { // MTZ format
+	filename = outputcontrols.Mtzmergedfilename(filedname);
       }
       output.logTab(0, LOGFILE,
-		    "\nWriting merged data for dataset "+pxdname.format()+
+		    "\n==== Writing merged data for dataset "+pxdname.format()+
 		    " to file "+filename);
 
       int nref;

@@ -19,7 +19,7 @@ namespace scala {
   const int SDcorrection::NPARALL;               // number of parameters = 3
 
   //--------------------------------------------------------------
-  SDcorrection::SDcorrection() : sdfac(1.0), sdadd(0.0) {ResetRange();}
+  SDcorrection::SDcorrection() : sdfac(1.0), sdb(0.0), sdadd(0.0) {ResetRange();}
   // Reset minimum & maximum
   //--------------------------------------------------------------
   SDcorrection::SDcorrection(const double& SDfac,

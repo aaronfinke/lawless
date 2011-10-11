@@ -121,7 +121,7 @@ namespace scala {
   {
     // Set up up refinement object:
     //  store addresses of reflection & scale objects 
-    RefineScale refscl(hkl_list, AllScales);
+    RefineScale refscl(hkl_list, AllScales, 1);
     
     int minFiltered = 2;
     if (AllScales.NBfactors() == 0) minFiltered = 1;  // case of no Bfactors

@@ -22,13 +22,16 @@ namespace phaser_io {
     void analyse(void) {}
 
     std::string getHKLIN1();   // return 1st one or ""
-    std::vector<std::string> getHKLIN();
-    std::string getXDSIN();
-    std::string getSCAIN();
-    std::string getHKLREF();
-    std::string getHKLOUT();
-    std::string getXMLOUT();
-    std::string getXYZIN();
+    std::vector<std::string> getHKLIN() const {return HklinNames;}
+    std::string getXDSIN() const {return XDSinName;}
+    std::string getSCAIN() const {return SCAinName;}
+    std::string getHKLREF() const {return HklrefName;}
+    std::string getHKLOUT() const {return HkloutName;}
+    std::string getHKLOUTUNMERGED() const {return HkloutUnmergedName;}
+    std::string getSCAOUT() const {return ScaoutName;}
+    std::string getSCAOUTUNMERGED() const {return ScaoutUnmergedName;}
+    std::string getXMLOUT() const {return XmloutName;}
+    std::string getXYZIN() const {return XyzinName;}
     //  copyFlag true to just copy file
     bool CopyFlag() const {return copy;}
   private:
@@ -37,6 +40,9 @@ namespace phaser_io {
     std::string SCAinName;
     std::string HklrefName;
     std::string HkloutName;
+    std::string HkloutUnmergedName;
+    std::string ScaoutName;
+    std::string ScaoutUnmergedName;
     std::string XmloutName;
     std::string XyzinName;
 

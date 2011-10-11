@@ -27,6 +27,10 @@
 #include "string_util.hh"
 #include "optimisecombine.hh"
 
+#if _OPENMP
+#include <omp.h>
+#endif
+
 #include "version.hh"
 #include "ccp4_program.h"
 
@@ -52,7 +56,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/09/22 13:53:13 $";
+  std::string rcsdate = "$Date: 2011/10/11 14:58:30 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -65,7 +69,6 @@ int main(int argc, char* argv[])
 
   GlobalControls GC;
   std::string hklin_filename = "";
-  std::string hklout_filename = "";
 
   Timer timer;
 
@@ -74,7 +77,6 @@ int main(int argc, char* argv[])
     // 
     phaser_io::InterpretCommandLine CL(argc, argv);
     hklin_filename = CL.getHKLIN1();
-    hklout_filename = CL.getHKLOUT();
     if (CL.getXMLOUT() != "")
       {output.setXmlout(CL.getXMLOUT());}
 
@@ -108,24 +110,20 @@ int main(int argc, char* argv[])
     //  outlier controls
     all_controls controls;
 
-    // Scaling refinement options
+    // Scaling refinement options: parallel stuff set later
     controls.refinecontrol = input.RefineControl();
 
     if (controls.refinecontrol.Ncyc1() <= 0) FC.SetRoughScale(false);
     if (controls.refinecontrol.Ncycles() <= 0) FC.SetMainScale(false);
     if (input.Onlymerge()) FC.SetOnlyMerge();  // No scaling option ONLYMERGE
+
+    // Output settings
+    //  Merge/unmerge options
     OutputControls outputcontrols = input.Outputcontrols();
 
-    if (hklout_filename == "") {
-      // try HKLOUT environment variable
-      if (getenv("HKLOUT") != NULL) {
-	hklout_filename = std::string(getenv("HKLOUT"));
-      }
-      if (hklout_filename == "") {
-	hklout_filename = "HKLOUT";
-      }
-    }
-    outputcontrols.Filename() = hklout_filename;
+    // set filenames from command line or environment
+    outputcontrols.SetFilenames(CL.getHKLOUT(), CL.getHKLOUTUNMERGED(),
+				CL.getSCAOUT(), CL.getSCAOUTUNMERGED());
 
     //  Setup up controls for reflection & column selection etc
     // Set Profile-fitted [default] or integrated intensity
@@ -191,8 +189,8 @@ int main(int argc, char* argv[])
 		     Tolerance, outputstring, verbose,
 		     hkl_list);
     output.logTab(0,LOGFILE,outputstring);
-    output.logTabPrintf(0,LOGFILE,
-			  "Time for reading HKLIN:%8.1f secs\n", timer.Stop());
+    output.logTab(0,LOGFILE,
+		  "\nTime for reading HKLIN: "+timer.format(true));
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);
 
@@ -279,6 +277,33 @@ int main(int argc, char* argv[])
     bool initialscale = FC.initialScale;
     double overallmeankI = -1000000.0;  // mean I
 
+    #if _OPENMP
+    // Parallel stuff
+    output.logTab(0,LOGFILE,
+		  "\nParallisation of refinement:\n");
+    if (controls.refinecontrol.Nprocs() < 0) {
+      // NPROC AUTO, set number of processors from number of observations Nobs
+      // maximum number of processors to use
+      const int MAXUSEDPROCS = 8;
+      // number of observations/processor: what is the "best" value?
+      const float NUMOBSPERPROC = 200000;
+      // Number to use
+      int nproc = Max(1,Nint(float(Nobs)/NUMOBSPERPROC));
+      nproc = Min(MAXUSEDPROCS, nproc);
+      controls.refinecontrol.SetNprocs(float(nproc));
+      output.logTab(0,LOGFILE,
+		    std::string("Number of processors determined automatically\n")+
+		    "  from number of observations "+
+		    StringUtil::Strip(clipper::String(Nobs))+
+		    " and number/processor "+
+		    StringUtil::Strip(clipper::String(NUMOBSPERPROC)));
+    }
+    output.logTab(0,LOGFILE,
+		  controls.refinecontrol.format());
+
+    omp_set_num_threads(controls.refinecontrol.Nprocs());
+#endif
+
     // Restoring scales from file?
     if (input.Restore()) {
       AllScales.init(input, hkl_list, output);
@@ -341,8 +366,8 @@ int main(int argc, char* argv[])
     if (FC.initialScale) {
       timer.Start();
       InitialScales(hkl_list, AllScales, controls, output);
-      output.logTabPrintf(0,LOGFILE,
-			  "Time for initial scaling:%8.1f secs\n", timer.Stop());
+      output.logTab(0,LOGFILE,
+		    "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
     }
 
@@ -403,15 +428,16 @@ int main(int argc, char* argv[])
 
       
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
-      output.logTabPrintf(0,LOGFILE,
-			  "Time for 1st scaling:%8.1f secs\n", timer.Stop());
+      output.logTab(0,LOGFILE,
+		    "\nTime for 1st scaling: "+timer.format(true));
 
       // ----- Optimise Combine settings
       if (optimiseCombine) {
 	OptimiseCombine OptCombine(hkl_list, output);
 	if (OptCombine.IsOptimised()) {
-	  output.logTabPrintf(0,LOGFILE,
-           "\nTime for optimisation of intensity type selection:%8.1f secs\n", timer.Stop());
+	  output.logTab(0,LOGFILE,
+			"\nTime for optimisation of intensity type selection: "+
+			timer.format(true));
 	  // Revaluate summed partials for scaling
 	  hkl_list.sum_partials(true);
 	}
@@ -455,8 +481,8 @@ int main(int argc, char* argv[])
       // All observations are scaled, including rejected ones
       hkl_list.ResetReflAccept();  // set to accept everything
       ApplyScales(AllScales, hkl_list);
-      output.logTabPrintf(0,LOGFILE,
-			  "Time for main scaling:%8.1f secs\n", timer.Stop());
+      output.logTab(0,LOGFILE,
+		    "\nTime for main scaling: "+timer.format(true));
 
       AllScales.WriteImage("TILEIMAGE");
 
@@ -475,6 +501,7 @@ int main(int argc, char* argv[])
       nresbin =  ResRange.Nbins();
     }
 
+    timer.Start();
     // Overall Normalisation 
     double MinIsigRatio = -1.0;  // no resolution cutoff
     bool Overall = true;  // no run|time variation, just one curve
@@ -506,6 +533,8 @@ int main(int argc, char* argv[])
     anomOn = controls.Anomalous;  // from input
     std::vector<float> anomProbSlopes;
     anomProbSlopes = AnalyseAnom(hkl_list, SD_model, controls, true, output);
+    output.logTab(0,LOGFILE,
+		  "\nTime for SD analysis: "+timer.format(true));
     output.logFlush();
 
     output.logTab(0,LOGFILE,"\nOutlier analysis\n================\n");
@@ -526,6 +555,8 @@ int main(int argc, char* argv[])
     output.logTabPrintf(0,LOGFILE,
 	"Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
 			nrejs[0], nrejs[1], nrejs[2]);
+    output.logTab(0,LOGFILE,
+		  "\nTime for outlier analysis: "+timer.format(true));
     output.logFlush();
 
     output.logTab(0,LOGFILE,
@@ -592,6 +623,9 @@ int main(int argc, char* argv[])
     output.WriteResult();
     output.logTab(0,LOGFILE,
      "==============================================================\n");
+    output.logTab(0,LOGFILE,
+		  "\nTime for final statistics: "+timer.format(true));
+
 
     MergedList mergedlist;
     if (outputcontrols.Merged()) {
@@ -606,6 +640,8 @@ int main(int argc, char* argv[])
       scala::WriteUnmergedOutputFiles(runTitle, hkl_list, SD_model,
 				      NormRes.Imax(), outputcontrols, output);
     }
+    output.logTab(0,LOGFILE,
+		  "\nTime for reflection file output: "+timer.format(true));
   }  // end try
 
   catch (phaser_io::PreprocessorError& capErr) {
@@ -636,9 +672,8 @@ int main(int argc, char* argv[])
 
   if (output.doXmlout()) output.logTab(0, LXML,"</AIMLESS>");
 
-  output.logTabPrintf(0, LOGFILE,
-		      "\nEnd of aimless job, total CPU time %8.2f seconds\n\n",
-		      overalltime.Stop());
+  output.logTab(0, LOGFILE,
+		"\nEnd of aimless job, total time: "+overalltime.format(true)+"\n\n");
 
   return 0;
 
