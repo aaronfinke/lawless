@@ -5788,27 +5788,48 @@ fi
 { echo "$as_me:$LINENO: result: $ax_cv_cxx_openmp" >&5
 echo "${ECHO_T}$ax_cv_cxx_openmp" >&6; }
 if test "x$ax_cv_cxx_openmp" = "xunknown"; then
-  :
+  { echo "$as_me:$LINENO: WARNING: OpenMP disabled
 else
-  if test "x$ax_cv_cxx_openmp" != "xnone"; then
+  if test \"x$ax_cv_cxx_openmp\" != \"xnone\"; then
     OPENMP_CXXFLAGS=$ax_cv_cxx_openmp
   fi
-   { echo "$as_me:$LINENO: WARNING: OpenMP enabled" >&5
-echo "$as_me: WARNING: OpenMP enabled" >&2;}
+   { echo \"$as_me:$LINENO: WARNING: OpenMP enabled\" >&5
+echo \"$as_me: WARNING: OpenMP enabled\" >&2;}
 
 cat >>confdefs.h <<\_ACEOF
 #define _OPENMP 1
 _ACEOF
 
-   ,
+
 fi
 
 
 
 #specifics for various machines
-test "${target_os:+set}" = set || target_os="$host_os"
-case "$target_os" in
-  *osf* | *64* )
+test \"${target_os:+set}\" = set || target_os=\"$host_os\"
+case \"$target_os\" in
+  *osf* | *64* " >&5
+echo "$as_me: WARNING: OpenMP disabled
+else
+  if test \"x$ax_cv_cxx_openmp\" != \"xnone\"; then
+    OPENMP_CXXFLAGS=$ax_cv_cxx_openmp
+  fi
+   { echo \"$as_me:$LINENO: WARNING: OpenMP enabled\" >&5
+echo \"$as_me: WARNING: OpenMP enabled\" >&2;}
+
+cat >>confdefs.h <<\_ACEOF
+#define _OPENMP 1
+_ACEOF
+
+
+fi
+
+
+
+#specifics for various machines
+test \"${target_os:+set}\" = set || target_os=\"$host_os\"
+case \"$target_os\" in
+  *osf* | *64* " >&2;}
     if test "`basename $CXX`" = cxx; then
       case "$CXXFLAGS" in
         *strict_ansi* ) ;;
