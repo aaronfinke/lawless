@@ -41,6 +41,7 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	install-sh missing mkinstalldirs
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/macros/aimless.m4 \
+	$(top_srcdir)/macros/ax_openmp.m4 \
 	$(top_srcdir)/macros/ax_pthread.m4 \
 	$(top_srcdir)/macros/ccp4.m4 $(top_srcdir)/macros/cctbx.m4 \
 	$(top_srcdir)/macros/clipper.m4 $(top_srcdir)/macros/fftw.m4 \

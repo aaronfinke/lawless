@@ -890,6 +890,7 @@ AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
 m4_include([macros/aimless.m4])
+m4_include([macros/ax_openmp.m4])
 m4_include([macros/ax_pthread.m4])
 m4_include([macros/ccp4.m4])
 m4_include([macros/cctbx.m4])

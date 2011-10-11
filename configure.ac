@@ -2,13 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 
 dnl package-name version-number bugs-to:
-AC_INIT(aimless, 0.1.0, pre@lmb-mrc.ac.uk) 
+AC_INIT(aimless, 0.1.2, pre@lmb-mrc.ac.uk) 
 
 AC_CANONICAL_TARGET
 
 dnl package-name version-number, the gzip'd tar file is named
 dnl package-version.tar.gz.  
-AM_INIT_AUTOMAKE(aimless, 0.1.0)
+AM_INIT_AUTOMAKE(aimless, 0.1.2)
 
 AC_CONFIG_SRCDIR([aimless.cpp])
 
@@ -28,6 +28,10 @@ AX_PTHREAD(,
    [ AC_MSG_ERROR([Failed to find threading library])
    ] )
 
+AX_OPENMP([ AC_MSG_WARN([OpenMP enabled])
+   AC_DEFINE([_OPENMP],[1],[Define for OPENMP compilation])
+   , ])
+   
 AC_AIMLESS_OPTIONS
 
 AC_ARG_ENABLE(debug,
