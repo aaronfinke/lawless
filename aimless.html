@@ -537,8 +537,11 @@ SCALES, which may be assigned on the command line.<br>
 (see DUMP).&nbsp;<br>
  </p>
 
-<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt; [&lt;E2max&gt;]]<br>
- </h3>
+<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt; [&lt;E2max&gt;]] <br>
+</h3>
+<h3>[PARALLEL [AUTO] | &lt;Nprocessors&gt; | &lt;Fractionprocessors&gt;]<br>
+</h3>
+
 <h3><span style="color: rgb(255, 102, 0);"></span><span style="font-weight: normal;">Define number of refinement cycles Ncycle and method for scale refinement.</span></h3>&nbsp;&nbsp;&nbsp; BFGS use BFGS optimisation (usual method)<br>
 &nbsp;&nbsp;&nbsp; FH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; use Fox-Holmes least-squares algorithm (not recommended)<br>
 <br>
@@ -550,7 +553,24 @@ SELECT&nbsp; define selection limits for the two rounds of scaling. If unset, su
 </li>
   <li>E2max &nbsp;&nbsp; maximum E<sup>2</sup> for selection of reflections for main scaling [default 5.0]</li>
 
+</ul>PARALLEL&nbsp; use multiple processors for the scale refinement
+steps, if available. This produces some speed-up for very large jobs.<br>
+<div style="margin-left: 40px;">For this option to be available, the
+program must be compiled and linked with the "-fopenmp" option, and the
+environment variable OMP_NUM_THREADS must be set to the maximum number
+of threads allowed by the system<br>
+<ul>
+  <li>&lt;Nprocessors&gt;&nbsp; number of processors to use (this will be forced to be &lt; OMP_NUM_THREADS)</li>
+  <li>&lt;Fprocessors&gt; (&lt; 1.0) fraction of OMP_NUM_THREADS to use</li>
+  <li>AUTO
+[default if no argument to PARALLEL] determine the number of
+processors to use from the number of observations in the file,
+currently 1 processor / 200 000 observations, up to the maximum allowed
+(the optimum settings for this have yet to be determined)<br>
+ </li>
 </ul>
+</div>
+
 
 <h3><a name="exclude"></a>EXCLUDE&nbsp;BATCH &lt;batch range&gt;|&lt;batch list&gt;]
 <br>
@@ -730,54 +750,65 @@ CRYSTAL keyword may be omitted.
 <span style="font-weight: normal;"></span><span style="font-weight: normal;">
 </span>
 <h3>Output</h3>
-<dl compact="compact">
-  <dt>HKLOUT</dt>
-  <dl>
-    <dt>(a) Option MERGED (AVERAGE) </dt>
-    <dd>The output file contains columns </dd>
+<h4>Reflection files output </h4>
+
+  
+    <br>
+In all cases, separate files
+are written for each dataset:&nbsp; files are named with the base
+HKLOUT name with the dataset name appended, as "_dataset"
+<dl>
+<span style="font-family: monospace;"><br>
+    </span>
+</dl>
+(a) HKLOUT: option OUTPUT [MTZ] MERGED
+    <br>
+<br>
+<div style="margin-left: 40px;">The output file contains columns </div>
+<dl style="margin-left: 40px;">
+
     <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)<br></pre>
     <p>Note that there are no M/ISYM or BATCH columns. I(+) &amp; I(-)
 are
 the means of the Bijvoet positive and negative reflections respectively
 and are always present even for the option ANOMALOUS OFF.<br>
     </p>
-    <p>If the "TOGETHER" option is selected, then all datasets will be
-written to the same file, with the column labels augmented by the
-dataset name<br>
-    </p>
-  </dl>
 </dl>
-<pre>	IMEAN_dataset SIGIMEAN_dataset  I(+)_dataset SIGI(+)_dataset  I(-)_dataset SIGI(-)_dataset<br></pre>
-<dl compact="compact">
-  <dl>
-    <dt>If the "SPLIT" option&nbsp; is specified then separate files
-are written for each dataset:&nbsp; files are named with the base
-HKLOUT name with the dataset name appended, as "_dataset"</dt>
-    <span style="font-family: monospace;"><br>
+<dl>
+
+    
+</dl>
+<dl>
+<span style="font-family: monospace;"><br>
     </span>
-    <dt>(b) Option UNMERGED </dt>
-    <dd>Unmerged data with scales applied, with no partials (<em>i.e.</em>
-partials
+    <dt>(b) HKLOUTUNMERGED: option OUTPUT [MTZ] UNMERGED </dt>
+    <dd>Unmerged data with scales applied, with no partials (<em>i.e.</em>partials
 have been summed or scaled, unmatched partials removed), &amp; outliers
-rejected. If a separate profile-fitted intensity column IPR, SIGIPR is
-present in the input file as well as columns I, SIGI, only one set will
-be chosen, as specified. Columns defining the diffraction geometry (<em>e.g.</em>
-XDET YDET ROT TIME LP FRACTIONCALC) will be preserved in the output
-file. If both MERGED &amp; UNMERGED are specified, then the filename
-for the unmerged file has "_unmerged" appended<br>
+rejected. Only a single scaled intensity value is written, chosen as
+summation, profile-fitted or combined as specified by the INTENSITIES
+command. Columns defining the diffraction geometry (<em>e.g.</em>
+FRACTIONCALC XDET YDET ROT TIME WIDTH LP)&nbsp; will be preserved in the output
+file. If HKLOUTUNMERGED is not specified, then the filename
+for the unmerged file has "_unmerged" appended to HKLOUT<br>
     </dd>
     <p>Output columns: </p>
-    <pre>        H,K,L     REDUCED or ORIGINAL indices (see OUTPUT options)<br>        M/ISYM    Symmetry number (REDUCED), = 1 for ORIGINAL indices<br>        BATCH     batch number as for input<br>        I, SIGI   scaled intensity &amp; sd(I)<br>        SCALEUSED scale factor applied<br>        SIGSCALEUSED  sd(SCALE applied)<br>        NPART     number of parts, = 1 for fulls, negated for scaled<br>                   partials, <em>i.e.</em> = -1 for scaled single part partial<br>        TIME      copied from input if present<br>        XDET,YDET copied from input if present<br>        ROT       copied from input if present (averaged for<br>                    multi-part partials)<br>        FRACTIONCALC total fraction (if present in input file)<br>        LP        copied from input if present<br>   If BEAM option is used:-<br>        S0X, S0Y, S0Z  direction cosines of incident beam in<br>                  orthogonalised crystal frame ( x,y,z axes along<br>                  a*, c x a*, c)<br>        S2X, S2Y, S2Z  direction cosines of diffracted beam in<br>                  orthogonalised crystal frame<br></pre>
-  </dl>
-  </dl>
-<dl style="margin-left: 40px;">
-  <dt>(c) SCALEPACK output</dt>
-  <dd>MERGED or UNMERGED format<br>
-  </dd>
+    <pre>        H,K,L     REDUCED or ORIGINAL indices (see OUTPUT options)<br>        M/ISYM    Symmetry number (REDUCED), = 1 for ORIGINAL indices<br>        BATCH     batch number as for input<br>        I, SIGI   scaled intensity &amp; sd(I)<br>        SCALEUSED scale factor applied<br>        SIGSCALEUSED  sd(SCALE applied)<br>        NPART     number of parts, = 1 for fulls, negated for scaled<br>                   partials, <em>i.e.</em> = -1 for scaled single part partial<br>        FRACTIONCALC total fraction (if present in input file)<br>        TIME      copied from input if present<br>        XDET,YDET copied from input if present<br>        ROT       copied from input if present (averaged for<br>                    multi-part partials)<br>        WIDTH     copied from input if present<br>        LP        copied from input if present<br></pre>
 </dl>
+(c) SCALEPACK: option OUTPUT SCALEPACK MERGED<br>
+<div style="margin-left: 40px;">If a SCALEPACK filename is not specified then the filename will be taken from HKLOUT with&nbsp; the extension ".sca"<br>
+</div>
+<dl>
+  </dl>(d) SCALEPACKUNMERGED: option OUTPUT SCALEPACK UNMERGED<br>
+
+<div style="margin-left: 40px;">If a SCALEPACKUNMERGED filename is not
+specified then the filename will be taken from SCALEPACK with&nbsp;
+"_unlermged" appended and the extension ".sca"<br>
+</div>
+
+<br>
+<h4>Other files</h4>
 <dl compact="compact">
-  <dt><br>
-  </dt>
+
   <dt>SCALES </dt>
 
   <dd>scale factors from DUMP, used by RESTORE option </dd>
@@ -809,6 +840,7 @@ the position of the principle ice rings shown <br>
 xmgr (aka grace) ***&nbsp;</dd><p><a name="references"></a></p>
   <h2>REFERENCES</h2>
 </dl>
+
 
 <dl compact="compact">
   <ol>
@@ -1109,7 +1141,12 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact">0.0.16  fixed small bug in INTENSITIES COMBINE optimisation<br>
+</dl><dl compact="compact">0.1.2 REFINE PARALLEL option (thanks to Ronan Keegan). Fixed bug in "resolution run" options<br>
+0.1.1 fixed bugs in writing ROGUES file;
+introduced HKLOUTUNMERGED etc filename specifiers;&nbsp; cleaned up
+Unmerged output; added Rfull to tables <br>
+0.1.0 &nbsp; fixed some bugs found by cppcheck and valgrind<br>
+0.0.16  fixed small bug in INTENSITIES COMBINE optimisation<br>
 0.0.15 if run definitions are given explicitly, then unspecified batches are excluded<br>
 0.0.14&nbsp; Added optimisation for INTENSITIES COMBINE, for Mosflm data. This is now the default<br>
   <h2>AUTHOR</h2>
