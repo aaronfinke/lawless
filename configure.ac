@@ -30,6 +30,7 @@ AX_PTHREAD(,
 
 AX_OPENMP([ AC_MSG_WARN([OpenMP enabled])
    AC_DEFINE([_OPENMP],[1],[Define for OPENMP compilation])]
+   CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
    ,[AC_MSG_WARN([OpenMP disabled])])
    
 AC_AIMLESS_OPTIONS

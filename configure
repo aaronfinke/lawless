@@ -5801,6 +5801,7 @@ cat >>confdefs.h <<\_ACEOF
 #define _OPENMP 1
 _ACEOF
 
+   CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
 
 fi
 
