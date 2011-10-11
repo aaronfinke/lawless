@@ -1,3 +1,6 @@
+0.1.2 
+ openmp parallelisation has been added in refinescale.cpp
+
 0.1.0 
  fixed some bugs found by cppcheck and valgrind
 
