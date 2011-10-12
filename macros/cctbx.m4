@@ -142,6 +142,7 @@ include
 build/cctbx/lib
 cctbx/include
 scitbx/include
+tntbx/include
 cctbx_project
 boost'
 for ac_dir in $ac_cctbx_dirs; do
@@ -158,6 +159,12 @@ for ac_dir in $ac_cctbx_dirs; do
   done
 for ac_dir in $ac_cctbx_dirs; do
   if test -r "$cctbx_prefix/$ac_dir/boost/type_traits.hpp"; then
+    ac_CCTBX_CXXFLAGS="$ac_CCTBX_CXXFLAGS -I$cctbx_prefix/$ac_dir"
+    break
+    fi
+  done
+for ac_dir in $ac_cctbx_dirs; do
+  if test -r "$cctbx_prefix/$ac_dir/tnt_array1d.h"; then
     ac_CCTBX_CXXFLAGS="$ac_CCTBX_CXXFLAGS -I$cctbx_prefix/$ac_dir"
     break
     fi
