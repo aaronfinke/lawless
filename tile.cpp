@@ -970,8 +970,8 @@ namespace scala {
     xmax = Xmax;
     ymax = Ymax;
     ngpxlX = ngpxlY = 64; // pixel binning
-    njx = int(xmax/ngpxlX);
-    njy = int(ymax/ngpxlY);
+    njx = xmax/ngpxlX;
+    njy = ymax/ngpxlY;
 
     nparams = njx * njy;
 
@@ -1029,8 +1029,8 @@ namespace scala {
 				 double& scale,
 				 std::vector<double>& dgdp) const
   {
-    int jx = Nint(Xt/ngpxlX);
-    int jy = Nint(Yt/ngpxlY);
+    int jx = Xt/ngpxlX;
+    int jy = Yt/ngpxlY;
     scale = scalexy(jx,jy);
 
     if (Deriv) {

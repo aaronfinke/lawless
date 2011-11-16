@@ -984,6 +984,7 @@ namespace scala {
     nscales = 1;
     spacing = 0.0;
     nbfac = 0;
+    bspacing = 0.0;
     sec_abs = SecondaryScale::NONE;
   }
   //--------------------------------------------------------------

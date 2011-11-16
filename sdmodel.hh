@@ -9,6 +9,7 @@
 #include "sdctypes.hh"
 #include "hkl_unmerge.hh"
 #include "selectedobservations.hh"
+#include "InputAll.hh"
 
 namespace scala
 {

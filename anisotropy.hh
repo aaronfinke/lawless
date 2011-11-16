@@ -67,6 +67,11 @@ private:
     void init(const hkl_symmetry& ssymmetry,
 	      const Scell& cscell);
 
+    //! initialise from intensity list
+    void init(const hkl_symmetry& ssymmetry,
+	      const Scell& cscell,
+	      clipper::HKL_data<clipper::data32::I_sigI>& isigi);
+
     //! set cone angle in degrees
     void SetConeAngle(const double& angledegrees);
     //! return cone angle in degrees

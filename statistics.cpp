@@ -588,8 +588,8 @@ namespace scala {
 	  // Detector analysis
 	  if (controls.analysis.DetectorAnalysis()) {
 	    // AvIothers   <I> of other observations
-	    int xd = Nint(this_obs.XYdet().first);
-	    int yd = Nint(this_obs.XYdet().second);
+	    float xd = this_obs.XYdet().first;
+	    float yd = this_obs.XYdet().second;
 	    detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
 				      this_obs.run(), xd, yd);
 	  }

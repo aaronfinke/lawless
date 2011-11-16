@@ -43,7 +43,7 @@ void Imagearray::init(const clipper::Array2d<double>& array)
   for (int i=0;i<size1;++i) { // loop x
     for (int j=0;j<size2;++j) { // loop y
       ASSERT (array(i,j) >= 0.0);
-      uint16_t d = uint16(scale*array(i,j));
+      uint16_t d = scale*array(i,j);
       size_t k = i*size2 + j;
       data[k] = d;
     }}
@@ -72,7 +72,7 @@ void Imagearray::init(const clipper::Array2d<scala::MeanSD>& array, const bool& 
       } else {
 	value = array(i,j).SD();
       }
-      uint16_t d = uint16_t(scale*value);
+      uint16_t d = scale*value;
       size_t k = i*size2 + j;
       data[k] = d;
     }}

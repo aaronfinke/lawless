@@ -193,6 +193,21 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
     }
   }
 //--------------------------------------------------------------------------
+//! initialise from intensity list
+void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
+			       const Scell& cscell,
+			       clipper::HKL_data<clipper::data32::I_sigI>& isigi)
+{
+  init(ssymmetry, cscell);  // initialise symmetry etc
+  if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
+    // Low symmetry, get principal axes from anisotropic U tensor
+    lowsymmetry = true;
+    // Get anisotropy
+    OrthogonalAnisotropy orthogonalanisotropy(isigi);
+    principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
+  }
+}
+//--------------------------------------------------------------------------
   void AnisotropicAnalysis::SetPrincipalDirectionsGeneral
   (const hkl_unmerge_list& hkl_list,
    const int& datasetindex,

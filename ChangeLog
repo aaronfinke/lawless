@@ -1,3 +1,6 @@
+ 0.1.7
+ fix for SCALES CONSTANT from XSCALE
+
  0.1.6
  anisotropy analysis against planes in trigonal, hexagonal and tetragonal systems 
 (inlcuding rhombohedral axes), principal anisotropic axes in monoclinic and triclinic, 

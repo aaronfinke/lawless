@@ -34,6 +34,8 @@
 #ifndef MATVEC_UTILS
 #define MATVEC_UTILS
 
+#include <iostream>
+#include <string>
 #include <cstring>
 
 // Clipper
