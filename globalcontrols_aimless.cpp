@@ -18,7 +18,8 @@ namespace scala
     // defaults
     mtzoutputtype = MERGED;    // write out merged mtz file
     scaoutputtype = NONE;      // no scalepack-format
-    split = true;             // true to split multiple dataset into separate files
+    splitmerged = true;    // true to split multiple datasets into separate merged files
+    splitunmerged = true;  // true to split multiple datasets into separate unmerged files
   }
   //------------------------------------------------------------
   void OutputControls::SetMTZoutputType(const OutputType& outputtype) // set

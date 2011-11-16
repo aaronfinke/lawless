@@ -223,7 +223,7 @@ namespace MtzIO {
 			      Xdet, Ydet, phi, time,
 			      fraction_calc, width, LP,
 			      Npart, Ipart, ObsFlag);
-	  InvResRange.update( hkl_index.invresolsq());  //smin, smax
+	  InvResRange.update(hkl_index.invresolsq());  //smin, smax
 	}
       }
     }

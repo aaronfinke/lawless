@@ -135,8 +135,11 @@ public:
   //! return true if unmerged files needed for MTZ or SCA
   bool UnMerged() const;
 
-  bool  Split() const {return split;}
-  bool& Split() {return split;}
+  bool  SplitMerged() const {return splitmerged;} //!< return SplitMerged flag
+  bool& SplitMerged() {return splitmerged;} //!< set SplitMerged flag
+
+  bool  SplitUnmerged() const {return splitunmerged;} //!< return SplitUnmerged flag
+  bool& SplitUnmerged() {return splitunmerged;} //!< set SplitUnmerged flag
 
   //! set filenames from here or from environment
   void SetFilenames(const std::string& hkloutname, const std::string& hkloutunmergedname,
@@ -165,9 +168,13 @@ private:
   std::string scamergedfilename;
   std::string scaunmergedfilename;
 
-  bool split;    // true to split multiple datasets into separate MTZ files
-  OutputType mtzoutputtype;  // MERGED (averaged), UNMERGED for mtz file
-  OutputType scaoutputtype;  // MERGED (averaged), UNMERGED for sca file
+  // true to split multiple datasets into separate merged MTZ files
+  bool splitmerged;
+  // true to split multiple datasets into separate unmerged MTZ files
+  bool splitunmerged;
+
+  OutputType mtzoutputtype;  // MERGED (averaged), UNMERGED for mtz file, or BOTH
+  OutputType scaoutputtype;  // MERGED (averaged), UNMERGED for sca file, or BOTH
 
   // return name is set, otherwise try to get the enviroment value of logname, else return logname
   std::string MakeName(const std::string& name, const std::string& logname) const;

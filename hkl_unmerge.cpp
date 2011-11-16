@@ -1373,6 +1373,13 @@ namespace scala {
     if (nbrej > 0) {
       PurgeRejectedBatches(); // flag observations for rejected batches
     }
+    // Remove any empty datasets
+    for (size_t id=0;id<datasets.size();id++) {
+      if (datasets[id].RunIndexList().size() == 0) {
+	datasets.erase(datasets.begin()+id);
+      }
+    }
+    ndatasets = datasets.size();
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::CheckAllRuns() {

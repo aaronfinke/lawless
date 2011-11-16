@@ -221,9 +221,10 @@ namespace scala
 #if _OPENMP
     //  Find out how many we are allowed
     maxprocs = 0;
-    if (getenv("OMP_NUM_THREADS") != NULL) {
-      std::stringstream(std::string(getenv("OMP_NUM_THREADS"))) >> maxprocs;
-    }
+    //if (getenv("OMP_NUM_THREADS") != NULL) {
+    //  std::stringstream(std::string(getenv("OMP_NUM_THREADS"))) >> maxprocs;
+    //}
+    maxprocs = omp_get_num_procs();
     if (fproc > 0.99) {
       // Explicitly set
       nprocs = Min(Nint(fproc), maxprocs); // reset to maximum if greater

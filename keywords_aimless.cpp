@@ -1417,9 +1417,14 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 // Read parameters for SD correction
 // Syntax:
 //  OUTPUT [MTZ] [NO]MERGED | UNMERGED [SPLIT | TOGETHER]
-//        [POLISH MERGED | UNMERGED]
+//        [SCALEPACK (aka POLISH) MERGED | UNMERGED]
+// Scalepack output is always split
 {
-  bool mtz = true;
+  bool mtz = true;  // reading keywords for MTZ
+  bool merged = true;  // reading keywords for MERGED
+  int isplitmtzmerged = 0;   // no default here, +1 split, -1 together
+  int isplitmtzunmerged = 0; // no default here
+  
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
       if (keyIs("MERGED") || keyIs("AVERAGE")) {
@@ -1427,7 +1432,8 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 	  outputcontrols.SetMTZoutputType(scala::OutputControls::MERGED);
 	} else {
 	  outputcontrols.SetSCAoutputType(scala::OutputControls::MERGED);
-	}
+	} 
+	merged = true;
       } else if (keyIs("NOMERGED")) {
 	if (mtz) {
 	  outputcontrols.SetMTZoutputType(scala::OutputControls::NONE);
@@ -1440,6 +1446,7 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 	} else {
 	  outputcontrols.SetSCAoutputType(scala::OutputControls::UNMERGED);
 	}
+	merged = false;
       } else if (keyIs("NONE")) {
 	if (mtz) {
 	  outputcontrols.SetMTZoutputType(scala::OutputControls::NONE);
@@ -1452,14 +1459,32 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 	mtz = false;
 	outputcontrols.SetSCAoutputType(scala::OutputControls::MERGED);
       } else if (keyIs("SPLIT")) {
-	outputcontrols.Split() = true;
+	if (merged) { // MTZ MERGED SPLIT
+	  isplitmtzmerged = +1;
+	} else { // MTZ UNMERGED SPLIT
+	  isplitmtzunmerged = +1;
+	}
       } else if (keyIs("TOGETHER")) {
-	outputcontrols.Split() = false;
+	if (merged) { // MTZ MERGED SPLIT
+	  isplitmtzmerged = -1;
+	} else { // MTZ UNMERGED SPLIT
+	  isplitmtzunmerged = -1;
+	}
       } else {
 	  throw SyntaxError
 	    (keywords, "OUTPUT: unrecognised keyword");
       }
     }
+  }
+  if (isplitmtzmerged != 0) {
+    outputcontrols.SplitMerged() = (isplitmtzmerged > 0);  // true if +1 SPLIT
+    if (isplitmtzmerged < 0) {
+      throw SyntaxError
+	    (keywords, "OUTPUT MERGED TOGETHER option not yet available");
+    }
+  }
+  if (isplitmtzunmerged != 0) {
+    outputcontrols.SplitUnmerged() = (isplitmtzunmerged > 0);  // true if +1 SPLIT
   }
   return skip_line(input_stream);
 }

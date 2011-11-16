@@ -530,9 +530,11 @@ namespace scala {
       } else {
 	output.logTab(0,LOGFILE, relative_bfactors.at(irun).format());
       }
-      if (sec_scale_index_run.at(irun) >= 0) {
-	output.logTab(0,LOGFILE,
-		      secondary_scales[sec_scale_index_run.at(irun)].format());
+      if (nsecscales > 0) {
+	if (sec_scale_index_run.at(irun) >= 0) {
+	  output.logTab(0,LOGFILE,
+			secondary_scales[sec_scale_index_run.at(irun)].format());
+	}
       }
       if (detector_scale_index_run.at(irun) >= 0) {
 	output.logTab(0,LOGFILE,
@@ -1413,22 +1415,24 @@ namespace scala {
 
     FR.ReadTag("Nsecscales");
     int nssc = FR.Int();
-    for (int i = 0;i<nssc;++i) { // loop secondary scales in file
-      secondary_scales[i].Restore(FR);
-    } // end loop secondary scales
-    FR.ReadTag("Sec_scale_index_run");
-    // Index for each run
     sec_scale_index_run.clear();
-    for (int ipr = 0;ipr<svnruns;++ipr) { // loop sec scale indices
-      int js = FR.Int();
-      // Do we want this one?
-      if (runsfromsavefile[ipr] >= 0) {
-	sec_scale_index_run.push_back(js);
+    if (nssc > 0) {
+      for (int i = 0;i<nssc;++i) { // loop secondary scales in file
+	secondary_scales[i].Restore(FR);
+      } // end loop secondary scales
+      FR.ReadTag("Sec_scale_index_run");
+      // Index for each run
+      for (int ipr = 0;ipr<svnruns;++ipr) { // loop sec scale indices
+	int js = FR.Int();
+	// Do we want this one?
+	if (runsfromsavefile[ipr] >= 0) {
+	  sec_scale_index_run.push_back(js);
+	}
       }
-    }
-    if (int(sec_scale_index_run.size()) != nruns) {
-      clipper::Message::message(Message_fatal
-				("RESTORE number of Sec_scale_index_runs != number of runs"));
+      if (int(sec_scale_index_run.size()) != nruns) {
+	clipper::Message::message(Message_fatal
+				  ("RESTORE number of Sec_scale_index_runs != number of runs"));
+      }
     }
     //t  tile
 

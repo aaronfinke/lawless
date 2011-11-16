@@ -3,6 +3,11 @@
 // Write output reflection files as specified by outputcontrols
 //
 
+// Clipper
+#include <clipper/clipper.h>
+using clipper::Message;
+using clipper::Message_fatal;
+
 #include "writeoutputfiles.hh"
 #include "mergedlist.hh"
 #include "scala_util.hh"
@@ -34,26 +39,40 @@ namespace scala {
 				phaser_io::Output& output)
   // Unmerged file output
   {
-    // MTZ output
     if (outputcontrols.MTZoutputUnmerged()) {
+      // Unmerged MTZ output
       bool summedpartials = true;  // observations not parts (ie summed partials)
-      int datasetindex = -1;  // all datasets
-      std::string filename = outputcontrols.Mtzunmergedfilename("");
-      if (datasetindex < 0) {
-	output.logTab(0, LOGFILE,
-		      "\n==== Writing unmerged data for all datasets to file "+
-		      filename);
-      } else {
-	PxdName pxdname = hkl_list.xdataset(datasetindex).pxdname();
-	output.logTab(0, LOGFILE,
-		      "\n==== Writing unmerged data for dataset "+pxdname.format()+
-		    " to file "+filename+"\n");
+      int noutfiles = 1;  // number of output files
+      if (outputcontrols.SplitUnmerged()) { // split into separate files
+	noutfiles = hkl_list.num_datasets();
       }
-      int nref =
-	MtzIO::WriteUnmergedMTZ(hkl_list, SDM, summedpartials, datasetindex,
-				filename, title);
-      output.logTabPrintf(0, LOGFILE,
-			  "\nNumber of observations written = %8d\n", nref);
+      for (int idts=0;idts<noutfiles;++idts) {  // loop datasets or just one file
+	int datasetindex = -1;  // all datasets
+	if (outputcontrols.SplitUnmerged()) { // split into separate files
+	  datasetindex = idts;  // one dataset
+	}
+	PxdName pxdname = hkl_list.xdataset(idts).pxdname();
+	std::string filedname = pxdname.dname(); // append to filename if > 1 dataset
+	if (!outputcontrols.SplitUnmerged() || hkl_list.num_datasets() <= 1) {
+	  filedname = "";  // no append
+	}
+	std::string filename = outputcontrols.Mtzunmergedfilename(filedname);
+
+	if (outputcontrols.SplitUnmerged()) {
+	  output.logTab(0, LOGFILE,
+			"\n==== Writing unmerged data for dataset "+pxdname.format()+
+			" to file "+filename+"\n");
+	} else { // write TOGETHER to single file
+	  output.logTab(0, LOGFILE,
+			"\n==== Writing unmerged data for all datasets to file "+
+			filename);
+	}
+	int nref =
+	  MtzIO::WriteUnmergedMTZ(hkl_list, SDM, summedpartials, datasetindex,
+				  filename, title);
+	output.logTabPrintf(0, LOGFILE,
+			    "\nNumber of observations written = %8d\n", nref);
+      } // end loop datasets
     }
 
     // SCA output
@@ -90,9 +109,12 @@ namespace scala {
   {
     ASSERT (outputformat >= +1 && outputformat <= +2);
     int nfiles = mergedlist.NumberDatasets();  // one file/dataset
-    // combine datasets together: only for MTZ:  NOT WRITTEN YET!
-    if (!outputcontrols.Split() && outputformat == +1) nfiles = 1;
-
+    if (!outputcontrols.SplitMerged() && outputformat == +1) {
+      // combine datasets together: only for MTZ:  NOT WRITTEN YET!
+      nfiles = 1;
+      Message::message(Message_fatal("Can't yet do OUTPUT MERGED TOGETHER"));
+    } 
+    
     // File name(s)
     std::vector<Xdataset> xdatasets = mergedlist.Datasets();
 
