@@ -167,6 +167,13 @@ namespace scala {
     anisoresolimitIsig = AnisoresolimitIsig;
   }
   // ------------------------------------------------------------  
+  // store anisotropic axis labels
+  void SummaryStatistics::StoreAnisoAxisLabels
+  (const std::vector<std::string>& Anisoaxislabels)
+  {
+    anisoaxislabels = Anisoaxislabels;
+  }
+  // ------------------------------------------------------------  
   std::string ResoLimitWarning(const ResolutionLimit& reslimit)
   {
     if (reslimit.Status() > 0) {
@@ -265,14 +272,10 @@ namespace scala {
 			ResoLimitWarning(overallresolimitIsig).c_str());
     // Anisotropy analysis
     output.logTab(0,OUTSTREAM,
-		  "\nEstimates of resolution limits along reciprocal lattice axes:");
-    std::vector<std::string> axisname(3);
-    axisname[0] = "a*";
-    axisname[1] = "b*";
-    axisname[2] = "c*";
+		  "\nEstimates of resolution limits in reciprocal lattice directions:");
     for (int jax=0;jax<3;++jax) {
       if (anisoresolimitCC[jax].Status() > -2) { // valid direction
-	output.logTab(0,OUTSTREAM, "  Along axis "+axisname[jax]);
+	output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
 	output.logTabPrintf(1,OUTSTREAM,
 	    "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
 			    anisoresolimitCC[jax].Limit(),
@@ -487,7 +490,7 @@ namespace scala {
 			    allsummarystatistics[idts].anommultiplicity[2]);
       }
       output.logTab(0,OUTSTREAM," ");
-      output.logTab(0,OUTSTREAM, "DelAnom correlation between half-sets ",false);
+      output.logTab(0,OUTSTREAM, "DAnom correlation between half-sets ",false);
       for (int idts=0;idts<ndts;++idts) {
 	output.logTabPrintf(0,OUTSTREAM,"  %9.3f%8.3f%8.3f",
 			    allsummarystatistics[idts].anomcorrelation[0],
@@ -495,7 +498,7 @@ namespace scala {
 			    allsummarystatistics[idts].anomcorrelation[2]);
       }
       output.logTab(0,OUTSTREAM," ");
-      output.logTab(0,OUTSTREAM, "Mid-Slope of Anom Normal Probability  ",false);
+      output.logTab(0,OUTSTREAM, "Mid-Slope of Anom Normal Probability",false);
       for (int idts=0;idts<ndts;++idts) {
 	output.logTabPrintf(0,OUTSTREAM,"  %9.3f     -       -  ",
 			    allsummarystatistics[idts].anomNPslope);

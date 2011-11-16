@@ -78,7 +78,7 @@ namespace scala {
     // bin at E^2 = 1 (Emidbin) is NintBin/2
     double Emidbin = 1.0;
     // rough number / bin
-    int nrefbin = (float(nvrefl)*(1.0 - exp(-Emidbin))/(0.5*float(NintBin)));
+    int nrefbin = Nint(float(nvrefl)*(1.0 - exp(-Emidbin))/(0.5*float(NintBin)));
     double p0 = 1.0 - exp(-E2min);  // p = 1 at E2min
     //^
     //    std::cout << "nvrefl, Nbintarget, nreflarge, nrefbin "

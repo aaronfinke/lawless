@@ -11,6 +11,7 @@
 #include "halfdataset.hh"
 #include "intensitybin.hh"
 #include "summarystatistics.hh"
+#include "anisotropy.hh"
 
 using namespace scala;
 
@@ -119,7 +120,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
 			     const ResoRange& ResRange,
 			     const HalfDataset& halfDatasetScores,
 			     const std::vector<std::vector<MeanSD> >& mnIsdResCone,
-			     const double& coneangledegrees,
+			     const AnisotropicAnalysis& anisoanal,
 			     const double& MinimumIoverSigma,
 			     SummaryStatistics& summarystatistics,
 			     phaser_io::Output& output);

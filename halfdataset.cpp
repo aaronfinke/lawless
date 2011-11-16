@@ -23,6 +23,10 @@ namespace scala {
     maxDelAnom = 5.0;
     ccaniso.resize(3);
     for (int i=0;i<3;++i) {ccaniso[i].resize(nresbin);}
+    // Storage for projections, divided into the same bins as resolution,
+    // but along the principle axes
+    ccanisoprj.resize(3);
+    for (int i=0;i<3;++i) {ccanisoprj[i].resize(nresbin);}
     anisoresolimit.resize(3);
   }
   // ------------------------------------------------------------
@@ -44,9 +48,9 @@ namespace scala {
       nAnomPairs += nAnomPairsRes[i];
     }
     rmsdelanomOverall = rmsOverall.SD();
-    correlplot = CorrelPlot("DelAnom/RMS scatter plot",
-			    dataset_pxd.format(), nresbin,
-			    rmsdelanomOverall, nAnomPairs);
+    correlplot.init("DelAnom/RMS scatter plot",
+		    dataset_pxd.format(), nresbin,
+		    rmsdelanomOverall, nAnomPairs);
   }
   // ------------------------------------------------------------
   void HalfDataset::AddMean(const int& mres, SelectedObservations& allobs)
@@ -177,20 +181,40 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAniso(const int& mres, const int& jaxis,
+			     const double& wt,
 			     SelectedObservations& allobs)
   // Add into sums, for anisotropy analysis along three directions
   {
     float I1, I2;
     if (jaxis >= 0) { // near axis
       if (allobs.HalfAverages(I1, I2)) {
-	ccaniso[jaxis][mres].add(I1,I2);  // analyis by axis and resolution
+	ccaniso[jaxis][mres].add(I1,I2,wt);  // analyis by axis and resolution
       }
     } else if (mres == 0) {
       // inner resolution bin, use all data for all directions
       if (allobs.HalfAverages(I1, I2)) {
 	for (int j=0;j<3;++j) {
-	  ccaniso[j][mres].add(I1,I2);  // analyis by axis and resolution
+	  ccaniso[j][mres].add(I1,I2,wt);  // analyis by axis and resolution
 	}
+      }
+    }
+  }
+  // ------------------------------------------------------------
+  void HalfDataset::AddAnisoProjection(const IVect3& anisores,
+				       SelectedObservations& allobs,
+				       const float& normscale)
+  // Add into sums, for anisotropy analysis by projection
+  // along three directions
+  // anisores are 3 projected resolution bins along the principle axes
+  // normscale is scale to multiply I to E^2
+  {
+    float I1, I2;
+    if (allobs.HalfAverages(I1, I2)) {
+      I1 *= normscale;
+      I2 *= normscale;
+      //^      std::cout << "I12 " << I1 <<"  " <<I2<<"\n"; //^
+      for (int i=0;i<3;++i) {
+	ccanisoprj[i][anisores[i]].add(I1,I2);  // analyis by axis and resolution
       }
     }
   }
@@ -206,6 +230,22 @@ namespace scala {
     correl_coeff CC;
     for (int i=0;i<nresbin;++i) {
       CC += ccaniso.at(jaxis)[i];
+    }
+    return CC;
+  }
+  // ------------------------------------------------------------
+  // for axis and resolution, projection
+  correl_coeff HalfDataset::CCanisoProjection(const int& jaxis, const int& mres) const
+  {
+    return ccanisoprj.at(jaxis).at(mres);
+  }
+  // ------------------------------------------------------------
+  // overall
+  correl_coeff HalfDataset::CCanisoProjection(const int& jaxis) const
+  {
+    correl_coeff CC;
+    for (int i=0;i<nresbin;++i) {
+      CC += ccanisoprj.at(jaxis)[i];
     }
     return CC;
   }

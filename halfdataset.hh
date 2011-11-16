@@ -58,11 +58,20 @@ namespace scala {
     void PlotCorrel() const;  // plot stuff
 
     // Add into sums, for anisotropy analysis along three directions
-    void AddAniso(const int& mres, const int& jaxis, SelectedObservations& allobs);
-
+    void AddAniso(const int& mres, const int& jaxis,
+    			     const double& wt, SelectedObservations& allobs);
+    // Add into sums, for anisotropy analysis by projection along three directions
+    // anisores are 3 projected resolution bins along the principle axes
+    // normscale is scale to multiply I to E^2
+    void AddAnisoProjection(const IVect3& anisores,
+			    SelectedObservations& allobs,
+			    const float& normscale);
+    
     // for axis and resolution
     correl_coeff CCaniso(const int& jaxis, const int& mres) const;
     correl_coeff CCaniso(const int& jaxis) const;  // overall
+    correl_coeff CCanisoProjection(const int& jaxis, const int& mres) const;
+    correl_coeff CCanisoProjection(const int& jaxis) const;  // overall
 
     //! Determine resolution "limits" from half-dataset CCs
     void Analyse(const ResoRange& ResRange,
@@ -100,8 +109,10 @@ namespace scala {
     CorrelPlot correlplot;
 
     // For anisotropy analysis
-    // outer: axis 0-2; inner, resolution bins
+    // outer: cone axis 0-2 ; inner, resolution bins
     std::vector<std::vector<correl_coeff> > ccaniso;
+    // outer: projection axis 0-2 ; inner, projected resolution bins
+    std::vector<std::vector<correl_coeff> > ccanisoprj;
 
     ResolutionLimit overallresolimit;
     std::vector<ResolutionLimit> anisoresolimit; // for axes 0-2

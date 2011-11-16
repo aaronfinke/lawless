@@ -310,16 +310,22 @@ namespace scala {
 
     allcc.assign(cc.size(), correl_coeff());  // totals
     for (int ir=0;ir<resrange.Nbins();++ir) {
-      table.StartLine();
-      table.AddToLine(ir+1);
-      table.AddToLine(resrange.middle(ir));
-      table.AddToLine(resrange.middleA(ir));
+      int nonzero = 0; // number of non-zero item
       for (size_t i=0;i<cc.size();++i) {
-	table.AddToLine(cc[i][ir].result().val);
-	table.AddToLine(cc[i][ir].result().count);
-	allcc[i] += cc[i][ir];
+	if (cc[i][ir].result().count > 0) {nonzero++;}
       }
-      outstring += table.GetLine();
+      if (nonzero > 0) {
+	table.StartLine();
+	table.AddToLine(ir+1);
+	table.AddToLine(resrange.middle(ir));
+	table.AddToLine(resrange.middleA(ir));
+	for (size_t i=0;i<cc.size();++i) {
+	  table.AddToLine(cc[i][ir].result().val);
+	  table.AddToLine(cc[i][ir].result().count);
+	  allcc[i] += cc[i][ir];
+	}
+	outstring += table.GetLine();
+      }
     }  // end loop res bins
     outstring += table.CloseTable()+"\n";
     std::string line = "Overall           ";

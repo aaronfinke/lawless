@@ -1639,6 +1639,8 @@ namespace scala {
     Rtype avI; // for each observation
     MeanSD meanI;
 
+    std::vector<Range> invresrangebydataset(ndatasets);
+
     for (size_t j = 0; j < refl_list.size(); j++) {  // loop all reflections
       obs_list.clear();   // clear temporary list
       int i = refl_list[j].first_index();
@@ -1741,6 +1743,7 @@ namespace scala {
 			 isym1, run1, datasetIndex, Nfound,
 			 &obs_part_pointer[i1],
 			 total_fraction, partial_status, obsflag));
+	  invresrangebydataset[datasetIndex].update(refl_list[j].invresolsq());
 	  obsOK = true;
 	  if (partial_status == FULL) {
 	    runlist[run1].Nfulls()++;
@@ -1750,7 +1753,9 @@ namespace scala {
 	  meanI.Add(avI);
 	}
       } // observation loop
-      refl_list[j].add_observation_list(obs_list);
+      if (obs_list.size() > 0) {
+	refl_list[j].add_observation_list(obs_list);
+      }
     } // reflection loop
 
     // Set flags into runs for only||few fulls||partials
@@ -1763,8 +1768,21 @@ namespace scala {
       if (meanI.Count() > 0) SelectI::SetAverageIntensity(meanI.Mean());
     }
     status = PREPARED;
-    ImposeResoByRunLimits();  // mark observations if outside run limits
 
+    ResoRange overallrange;
+    for (int id=0;id<ndatasets;++id) {
+      // Resolution range for each dataset
+      datasets[id].ResRange() = ResoRange(invresrangebydataset[id]);
+      // Overall
+      if (id == 0) {
+	overallrange = datasets[id].ResRange();
+      } else {
+	overallrange = overallrange.MaxRange(datasets[id].ResRange());
+      }
+    }
+    ResoLimRange = overallrange;
+
+    ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
   } // end partials
   //--------------------------------------------------------------
@@ -1813,13 +1831,7 @@ namespace scala {
       Message::message(Message_fatal
 		       ("hkl_unmerge_list::ImposeResoByRunLimits - not PREPARED or SUMMED") );
     }
-    if (!run_flags.IsResoByRun()) {
-      // Store resolution range for each dataset
-      for (int id=0;id<ndatasets;++id) {
-	datasets[id].ResRange() = ResoLimRange;  // overall limit
-      }
-      return;
-    }
+    if (!run_flags.IsResoByRun()) {return;}
 
     observation this_obs;
     ObservationStatus obs_status;

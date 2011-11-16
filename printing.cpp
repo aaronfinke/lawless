@@ -6,6 +6,7 @@
 #include "numbercomplete.hh"
 #include "halfdataset.hh"
 #include "string_util.hh"
+#include "anisotropy.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -901,7 +902,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   int c[] = {2,4,6,10};
   std::vector<int> cln(c,c+4);
   output.logTab(0,LOGFILE,
-		table.Graph(" Anom & Imean CCs v resolution - ",
+		table.Graph(" Anom & Imean CCs v resolution",
 		GraphAxesType(xrange,yranges[0],true),cln));
   int c2[] = {2,8,9};
   cln.assign(c2,c2+3);
@@ -977,7 +978,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
 			     const ResoRange& ResRange,
 			     const HalfDataset& halfDatasetScores,
 			     const std::vector<std::vector<MeanSD> >& mnIsdResCone,
-			     const double& coneangledegrees,
+			     const AnisotropicAnalysis& anisoanal,
 			     const double& MinimumIoverSigma,
 			     SummaryStatistics& summarystatistics,
 			     phaser_io::Output& output)
@@ -986,10 +987,35 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
 
   std::string s = std::string("\n\nAnalysis of anisotropy of data\n")+
     "==============================\n\n"+
-    "Mn(I/sd) and half-dataset correlation coefficients are analysed by resolution\n"+
-    "within cones around the three reciprocal lattice axes,"+
-    " cone half-angle = %5.1f degrees\n";
-  output.logTabPrintf(0,LOGFILE, s.c_str(), coneangledegrees);
+    "Mn(I/sd) and half-dataset correlation coefficients are analysed by resolution\n";
+  output.logTab(0,LOGFILE,s+anisoanal.formattype());
+
+  std::vector<std::string> axlabels(3);
+  std::vector<std::string> axesformat = anisoanal.Axesformat();
+  bool isplane = anisoanal.IsPlane();
+  if (anisoanal.AreGeneralAxes()) { // General directions
+    output.logTab(1,LOGFILE,
+		  "Principal axes:");
+    axlabels[0] = "d1";
+    axlabels[1] = "d2";
+    axlabels[2] = "d3";
+    for (int i=0;i<3;++i) {
+      output.logTab(2,LOGFILE,axlabels[i]+": "+axesformat[i]);
+    }
+  } else if (isplane) {
+    output.logTab(1,LOGFILE,"Directions for analysis:");
+    axlabels[0] = "d12";
+    axlabels[1] = "";
+    axlabels[2] = "d3";
+    output.logTab(2,LOGFILE,"Plane "+axlabels[0]+": "+axesformat[0]);
+    output.logTab(2,LOGFILE,axlabels[2]+": "+axesformat[2]);
+  } else {
+    output.logTab(1,LOGFILE,
+		  "Principal axes are along a*, b*, c*");
+    axlabels[0] = "a*";
+    axlabels[1] = "b*";
+    axlabels[2] = "c*";
+  }
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
@@ -1003,44 +1029,86 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   yranges[0].last() = 1.0; // CC
   TableGraph table(" Anisotropy analysis, "+dataset_pxd.dname());
   output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {2,4,5,6};
-  std::vector<int> cln(c,c+4);
+  std::vector<int> cln;
+  if (isplane) { // only two directions if plane
+    int c[] = {2,4,5};
+    cln.assign(c,c+3);
+  } else { // 3 directions
+    int c[] = {2,4,5,6};
+    cln.assign(c,c+4);
+  }
   output.logTab(0,LOGFILE,
-		table.Graph(" Imean CCs v resolution - ",GraphAxesType(xrange,yranges[0],true),cln));
-  int c2[] = {2,7,8,9};
-  cln.assign(c2,c2+4);
+		table.Graph(" Imean CCs v resolution",GraphAxesType(xrange,yranges[0],true),cln));
+  if (isplane) {
+    int c2[] = {2,6,7};
+    cln.assign(c2,c2+3);
+  } else {
+    int c2[] = {2,7,8,9};
+    cln.assign(c2,c2+4);
+  }
   output.logTab(0,LOGFILE,
-		table.Graph(" Mn(I/sd) v resolution - ",GraphAxesType(xrange,yranges[1],true),cln));
+		table.Graph(" Mn(I/sd) v resolution",GraphAxesType(xrange,yranges[1],true),cln));
+  if (isplane) {
+    int c3[] = {2,8,9};
+    cln.assign(c3,c3+3);
+  } else {
+    int c3[] = {2,10,11,12};
+    cln.assign(c3,c3+4);
+  }
+  output.logTab(0,LOGFILE,
+		table.Graph(" Projected Imean CCs v resolution",GraphAxesType(xrange,yranges[0],true),cln));
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
   collabels.push_back("Dmid");      // 3
-  collabels.push_back("CC_a*");     // 4
-  collabels.push_back("CC_b*");     // 5
-  collabels.push_back("CC_c*");     // 6
-  collabels.push_back("Mn(I/sd)a*");     // 7
-  collabels.push_back("Mn(I/sd)b*");     // 8
-  collabels.push_back("Mn(I/sd)c*");     // 9
-  bool z[] = {false, false, false, true, true, true, true, true, true};
-  std::vector<bool> Zero(z, z+9);
-  std::string fmt = " %8.3f%8.3f%8.3f %11.2f%11.2f%11.2f\n"; // excluding 1st 3 columns
+  collabels.push_back("CC_"+axlabels[0]);     // 4
+  if (!isplane) collabels.push_back("CC_"+axlabels[1]);     // 5
+  collabels.push_back("CC_"+axlabels[2]);     // 6
+  collabels.push_back("(I/sd)"+axlabels[0]);     // 7
+  if (!isplane) collabels.push_back("(I/sd)"+axlabels[1]);     // 8
+  collabels.push_back("(I/sd)"+axlabels[2]);     // 9
+  collabels.push_back("CCp1");     // 10
+  if (!isplane) collabels.push_back("CCp2");     // 11
+  collabels.push_back("CCp3");     // 12
+
+  int nc = collabels.size();
+
+  bool z[] = {false, false, false, true, true, true, true, true, true, true, true, true};
+  std::vector<bool> Zero(z, z+nc);
+  std::string fmt = " %8.3f%8.3f%8.3f %11.2f%11.2f%11.2f %8.3f%8.3f%8.3f\n"; // excluding 1st 3 columns
+  if (isplane) {
+    fmt = " %8.3f%8.3f %11.2f%11.2f %8.3f%8.3f\n"; // excluding 1st 3 columns
+  }
   output.logTab(0,LOGFILE,
 		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
-  int nc = collabels.size();
 
   std::vector<MeanSD> mnIsd(3);
   int n=1;
   for (int i=0;i<ResRange.Nbins();++i) {
-    //    output.logTab(0,LOGFILE,
-    //		  table.Line(nc, n++, ResRange.boundsS(i).second, ResRange.boundsA(i).second,
-    output.logTab(0,LOGFILE,
-		  table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-			     halfDatasetScores.CCaniso(0,i).result().val,
-			     halfDatasetScores.CCaniso(1,i).result().val,
-			     halfDatasetScores.CCaniso(2,i).result().val,
-			     mnIsdResCone[0][i].Mean(),
-			     mnIsdResCone[1][i].Mean(),
-			     mnIsdResCone[2][i].Mean()));
+    std::string s;
+    if (isplane) {
+      s = table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+		     halfDatasetScores.CCaniso(0,i).result().val,
+		     halfDatasetScores.CCaniso(2,i).result().val,
+		     mnIsdResCone[0][i].Mean(),
+		     mnIsdResCone[2][i].Mean(),
+		     halfDatasetScores.CCanisoProjection(0,i).result().val,
+		     halfDatasetScores.CCanisoProjection(2,i).result().val);
+    } else {
+      s = table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+		     halfDatasetScores.CCaniso(0,i).result().val,
+		     halfDatasetScores.CCaniso(1,i).result().val,
+		     halfDatasetScores.CCaniso(2,i).result().val,
+		     mnIsdResCone[0][i].Mean(),
+		     mnIsdResCone[1][i].Mean(),
+		     mnIsdResCone[2][i].Mean(),
+		     halfDatasetScores.CCanisoProjection(0,i).result().val,
+		     halfDatasetScores.CCanisoProjection(1,i).result().val,
+		     halfDatasetScores.CCanisoProjection(2,i).result().val);
+    }
+    output.logTab(0,LOGFILE,s);
+
     //^	
     //    std::cout 
     //      << "  " <<      halfDatasetScores.CCaniso(0,i).result().count
@@ -1059,13 +1127,26 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   // Totals
   std::string leader = "Overall:          ";
   fmt = leader+fmt;
-  output.logTabPrintf(0,LOGFILE,fmt.c_str(),
+  if (isplane) {
+    output.logTabPrintf(0,LOGFILE,fmt.c_str(),
 		      halfDatasetScores.CCaniso(0).result().val,
-		      halfDatasetScores.CCaniso(1).result().val,
 		      halfDatasetScores.CCaniso(2).result().val,
 		      mnIsd[0].Mean(),
-		      mnIsd[1].Mean(),
-		      mnIsd[2].Mean());
+			mnIsd[2].Mean(),
+			halfDatasetScores.CCanisoProjection(0).result().val,
+			halfDatasetScores.CCanisoProjection(2).result().val);
+  } else {
+    output.logTabPrintf(0,LOGFILE,fmt.c_str(),
+			halfDatasetScores.CCaniso(0).result().val,
+			halfDatasetScores.CCaniso(1).result().val,
+			halfDatasetScores.CCaniso(2).result().val,
+			mnIsd[0].Mean(),
+			mnIsd[1].Mean(),
+			mnIsd[2].Mean(),
+			halfDatasetScores.CCanisoProjection(0).result().val,
+			halfDatasetScores.CCanisoProjection(1).result().val,
+			halfDatasetScores.CCanisoProjection(2).result().val);
+  }
 
   int lab1 = leader.size(); // 1st character in column to use labels 
   leader.assign(lab1,' ');

@@ -20,8 +20,9 @@ using clipper::Message_fatal;
 #include "summarystatistics.hh"
 #include "cumulativecompleteness.hh"
 #include "sdanalysis.hh"
-#include "cone.hh"
 #include "tile.hh"
+#include "anisotropy.hh"
+#include "timer.hh"
 
 namespace scala {
   // ------------------------------------------------------------
@@ -335,9 +336,15 @@ namespace scala {
     output.logTab(0,LOGFILE,"* "+tt+" *");
     output.logTab(0,LOGFILE,marks+"\n");
 
-    // Resolution ranges
+    // Resolution ranges, overall, inner, outer
     int nresbin =  ResRange.Nbins();
-    summaryStatistics.StoreResRanges(ResRange, ResRange.BinRange(0),
+    // Reset low resolution limit to real one
+    //  overall
+    ResoRange resrangedataset = hkl_list.xdataset(datasetIndex).ResRange();
+    // inner
+    ResoRange resrange0 = ResRange;
+    resrange0.SetRange(resrangedataset.ResLow(), ResRange.BinRange(0).ResHigh());
+    summaryStatistics.StoreResRanges(resrangedataset, resrange0,
 				     ResRange.BinRange(nresbin-1)); 
 
     // Intensity bins etc
@@ -409,11 +416,21 @@ namespace scala {
     std::vector<MeanSD>  biasInt(NintBin);   // bias Mean (<I"full"> - Ihl(partial))
     std::vector<MeanSD>  biasIInt(NintBin);  // Mean <I> for fractional bias
 
-    // I/sd analysis in anisotropic cones, by resolution
-    std::vector<std::vector<MeanSD> > mnIsdResCone(3);  // Mean(<I>/sd(<I>))
-    for (int i=0;i<3;++i) {mnIsdResCone[i].resize(nresbin);}
-    Cone cone(controls.analysis.ConeAngle(),
-	      hkl_list.symmetry()); // angle set from input or default
+    // ---- Set up anisotropy directions (axes or planes)
+    // I/sd analysis in up to 3 anisotropic directions, by resolution
+    std::vector<std::vector<MeanSD> > mnIsdResAniso(3);  // Mean(<I>/sd(<I>))
+    for (int i=0;i<3;++i) {mnIsdResAniso[i].resize(nresbin);}
+
+    Timer anisotime;
+    // Get principal axes of anisotropy depending on symmetry and data
+    AnisotropicAnalysis anisoanal(hkl_list, datasetIndex, SDM);
+    anisoanal.SetConeAngle(controls.analysis.ConeAngle());  // store cone angle
+    if (anisoanal.AreGeneralAxes()) {
+      // Only for low symmetry
+        output.logTab(0, LOGFILE,
+      "\nTime for determination of anisotropic axes: "+anisotime.format(true));
+    }
+    // ----
 
     // Half dataset correlations etc, by resolution
     HalfDataset halfDatasetScores(nresbin, dataset_pxd);
@@ -499,12 +516,10 @@ namespace scala {
       // Intensity bins
       int mint = Irange.bin(AvIsig.I());
 
-      // Anisotropic analysis
-      int jconeaxis = cone.Axis(this_refl.hkl(), invresolsq, hkl_list.Cell());
-      //^ 
-      //      if (jconeaxis == 0) {
-      //	std::cout << "=0\n";
-      //      }//^-
+      // Anisotropic analysis, get index for direction (2 or 3 directions), = -1 if none
+      std::pair<int,double> axisw = anisoanal.Axis(this_refl.hkl(), invresolsq);
+      int jconeaxis = axisw.first;        // axis
+      double wtaniso = axisw.second;  // weight for CCs
 
       // Counts
       if (allobs.Number() > 0) {
@@ -513,7 +528,7 @@ namespace scala {
 	mnIsdInt[mint].Add(IovsigI);
 	// by cone
 	if (jconeaxis >= 0) {
-	  mnIsdResCone[jconeaxis][mres].Add(IovsigI);
+	  mnIsdResAniso[jconeaxis][mres].Add(IovsigI);
 	}
 
 	NumRef[mres]++;                    // Number unique
@@ -573,8 +588,8 @@ namespace scala {
 	  // Detector analysis
 	  if (controls.analysis.DetectorAnalysis()) {
 	    // AvIothers   <I> of other observations
-	    float xd = this_obs.XYdet().first;
-	    float yd = this_obs.XYdet().second;
+	    int xd = Nint(this_obs.XYdet().first);
+	    int yd = Nint(this_obs.XYdet().second);
 	    detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
 				      this_obs.run(), xd, yd);
 	  }
@@ -601,10 +616,27 @@ namespace scala {
       // Correlations on <I>
       halfDatasetScores.AddMean(mres, allobs);
       // Anisotropic analysis
-      // Halfdataset correlations by cone: for inner resolution bin, use all data
+      // Halfdataset correlations by cone etc: for inner resolution bin, use all data
       if (jconeaxis >= 0 || mres == 0) {
-	halfDatasetScores.AddAniso(mres, jconeaxis, allobs);
+	halfDatasetScores.AddAniso(mres, jconeaxis, wtaniso, allobs);
       }
+
+      // ---- For anisotropic analysis on projections, expand symmetry
+      int nsymp = hkl_list.symmetry().NsymP(); // number of primitive operations
+      float normscale = NormRes.CorrAvg(invresolsq); // Normalisation factor (multiplying)
+      normscale = 1.0; // testing
+
+      for (int isym=1;isym<=nsymp*2;isym+=2) { // loop odd ISYM, for I+
+	DVect3 projection =
+	  anisoanal.Projection(hkl_list.symmetry().get_from_asu(this_refl.hkl(), isym), true);
+	IVect3 anisores;
+	for (int i=0;i<3;++i) {
+	  projection[i] *= projection[i];  // square component
+	  anisores[i] = ResRange.bin(projection[i]);
+	}
+	halfDatasetScores.AddAnisoProjection(anisores, allobs, normscale);
+      }
+      // ----
 
       if (Centric) {
 	// Dummy anomalous as control
@@ -741,11 +773,6 @@ namespace scala {
     output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
 			outliercount.at(2));
 
-
-    output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
-			outliercount.at(2));
-
-
     PrintScalesByBatch(dataset_pxd, batches, runlist, datasetIndex,
 		       scale0batch, bfacbatch, scalebatch,
 		       output);
@@ -764,10 +791,9 @@ namespace scala {
 				 halfDatasetScores,
 				 summaryStatistics, output);
     
-    
     PrintAnisotropyAnalysis(dataset_pxd,
-			    ResRange, halfDatasetScores, mnIsdResCone,
-			    cone.ConeAngle(), controls.analysis.MinimumIoverSigma(),
+			    ResRange, halfDatasetScores, mnIsdResAniso,
+			    anisoanal, controls.analysis.MinimumIoverSigma(),
 			    summaryStatistics, output);
 
     PrintDeviationsByResolution(dataset_pxd, ResRange, rmergeRes, rmergeResFull, rmeasRes,
@@ -809,6 +835,7 @@ namespace scala {
 					    minsdcorrpartials, maxsdcorrpartials);
     summaryStatistics.StoreAnomNPslope(anomProbSlope);
     summaryStatistics.StoreAverageMosaicity(hkl_list.xdataset(datasetIndex).Mosaicity());
+    summaryStatistics.StoreAnisoAxisLabels(anisoanal.Axesformat());
     return summaryStatistics;
   }  // Statistics
   // ------------------------------------------------------------   

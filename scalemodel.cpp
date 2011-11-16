@@ -1373,7 +1373,7 @@ namespace scala {
 
     FR.ReadTag("Nsecscales");
     int nssc = FR.Int();
-    if (nssc != nsecondaryscale) {
+    if (nssc != nsecscales) {
 	clipper::Message::message(Message_fatal
 	  ("RESTORE incompatible secondary scale models"));
     }

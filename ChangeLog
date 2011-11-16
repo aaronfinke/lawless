@@ -1,3 +1,9 @@
+ 0.1.6
+ anisotropy analysis against planes in trigonal, hexagonal and tetragonal systems 
+(inlcuding rhombohedral axes), principal anisotropic axes in monoclinic and triclinic, 
+cone analyses weighted according to cos(AngleFromPrincipalDirection). 
+Fixed cases where multiple datasets have different resolution limits
+
 0.1.4,5
  more fixes for multiple datasets, dump/restore. OUTPUT UNMERGED SPLIT is default
 

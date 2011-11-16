@@ -102,6 +102,8 @@ namespace scala {
     // anisotropic limits from Mn(I/sd)
     void StoreMnIsigAnisoresolimit
       (const std::vector<ResolutionLimit>& AnisoresolimitIsig);
+    // store anisotropic axis labels
+    void StoreAnisoAxisLabels(const std::vector<std::string>& Anisoaxislabels);
 
     // print the final summary table as RESULT if Result true
     void PrintSummaryTable(const bool& Result, phaser_io::Output& output);
@@ -140,6 +142,7 @@ namespace scala {
     std::vector<ResolutionLimit> anisoresolimitCC;
     // anisotropic, from Mn(I/sd)
     std::vector<ResolutionLimit> anisoresolimitIsig;
+    std::vector<std::string> anisoaxislabels;
   };  //   class SummaryStatistics
   // ------------------------------------------------------------
   template<class T> std::vector<T> Store3val(const T& overall, const T& inner, const T& outer)

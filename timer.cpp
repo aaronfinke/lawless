@@ -5,6 +5,7 @@
 #include "timer.hh"
 #include <iostream>
 #include <sstream> 
+#include "string_util.hh"
 
 //--------------------------------------------------------------
 Timer::Timer()
@@ -39,9 +40,16 @@ double Timer::Etime() const
 std::string Timer::format(const bool& stop)
 {
   if (stop) Stop();
-  std::ostringstream oss;
-  oss << "cpu time: " << t << " secs, elapsed time: " << det1 << " secs";
-  return oss.str();
+  std::string s = "cpu time: ";
+  s += StringUtil::Strip(StringUtil::ftos(t,9,2));
+  s += " secs, elapsed time: ";
+  s += StringUtil::Strip(StringUtil::ftos(det1,8,1));
+  s += " secs";
+  return s;
+  //  std::ostringstream oss;
+  //  oss << std::setprecision(5)
+  //      << "cpu time: " << t << " secs, elapsed time: " << det1 << " secs";
+  //  return oss.str();
 }
 //--------------------------------------------------------------
 

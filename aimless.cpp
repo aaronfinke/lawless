@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/11/16 15:23:06 $";
+  std::string rcsdate = "$Date: 2011/11/16 15:31:59 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -609,8 +609,13 @@ int main(int argc, char* argv[])
     // Analyse distribution anomalous differences to get estimate of
     //  maximum likely values for final statistics
     //  hkl_list is const
+
+    ResoRange resrangeanom = ResRange;
+    // For statistics, reset range to go from same "infinite" resolution
+    float lowres = 10000.;
+    resrangeanom.SetRange(lowres, ResRange.ResHigh());
     AllAnomDistributions allAnomDistributions(hkl_list, SD_model, controls,
-    					      ResRange, NormRes);
+    					      resrangeanom, NormRes);
     allAnomDistributions.Print(output);
     AllSummaryStatistics allsummarystatistics;
 
@@ -621,6 +626,12 @@ int main(int argc, char* argv[])
       // Store summary statistics for this dataset
       // Resolution range for this dataset
       ResoRange resrangedataset = hkl_list.xdataset(idts).ResRange();
+      // For statistics, reset range to go from same "infinite" resolution
+      float lowres = 10000.;
+      resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
+      // Use same resolution bin width for all datasets
+      resrangedataset.SetWidth(ResRange.Width());
+
       allsummarystatistics.AddSummaryStatistics(
 	 Statistics(AllScales, hkl_list, SD_model, controls, idts,
 		    resrangedataset, NormRes,
@@ -679,7 +690,7 @@ int main(int argc, char* argv[])
     {
       output.logWarning(LOGFILE, "\nFATAL ERROR message: \n"
                         + message.text() + "\n");
-    }
+    } 
 
   catch (std::exception const& err) {
     output.logWarning(LOGFILE, "\nUNHANDLED EXCEPTION: " + std::string(err.what())+"\n");

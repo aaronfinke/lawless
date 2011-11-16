@@ -109,8 +109,10 @@ namespace scala
     void  SetNbins(const int& NumBin);
     int Nbins() const {return Nbin;}
 
-    // Force width irrespective of Nobservations
+    // Force bin width irrespective of Nobservations
     void SetWidth(const float& width);
+    // Return bin width
+    float Width() const {return delta_sSqr;}
 
     // Return limits
     float ResLow() const;   // in A
