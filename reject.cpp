@@ -260,15 +260,19 @@ namespace scala {
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list)
   {
     std::vector<int> rejectedbatch;
-    return CountOutliers(hkl_list, rejectedbatch);
+    std::vector<int> rejecteddataset;
+    return CountOutliers(hkl_list, rejectedbatch, rejecteddataset);
   }
   // ------------------------------------------------------------
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list,
-				   std::vector<int>& rejectedbatch)
+				 std::vector<int>& rejectedbatch,
+				 std::vector<int>& rejecteddataset)
   // Returns counts of flagged outliers within I+/- & between +/-
+  // return[0] number of rejects [1] number on I+- [2] number on Emax
   //
   // On exit:
-  //  rejectedbatch  count of rejected reflections for each batch
+  //  rejectedbatch   count of rejected reflections for each batch
+  //  rejecteddataset count of rejected reflections for each dataset
   {
     reflection this_refl;
     int n = 0;
@@ -276,8 +280,10 @@ namespace scala {
     int nemax = 0;
     int nbatches = hkl_list.num_batches();
     observation this_obs;
-
+    int ndatasets = hkl_list.num_datasets();
     rejectedbatch.assign(nbatches, 0);
+    rejecteddataset.assign(ndatasets, 0);
+
     hkl_list.rewind();
 
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
@@ -286,7 +292,7 @@ namespace scala {
       for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
 	this_obs = this_refl.get_observation(lobs);
 	int jbatch = hkl_list.batch_serial(this_obs.Batch()); // batch serial
-
+	int jdataset = this_obs.datasetIndex();
 	ObservationStatus status = this_obs.ObsStatus();
 	bool rej = false;
 	if (status.TestOutlier()) {
@@ -303,6 +309,7 @@ namespace scala {
 	}
 	if (rej) {
 	  rejectedbatch[jbatch]++;
+	  rejecteddataset[jdataset]++;
 	  rejref = true;
 	}
       }

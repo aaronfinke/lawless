@@ -363,8 +363,8 @@ Token_value RESO::parse(std::istringstream& input_stream)
   //  RESOlution [RUN <Irun>] LOW  <low>
   //
   // Resolution by run may override earlier run commands 
-  double high = input_resolution_range.min();
-  double  low = input_resolution_range.max();
+  double high = input_resolution_range.ResHigh();
+  double  low = input_resolution_range.ResLow();
   int found = 0;
   int irun = -1;
 

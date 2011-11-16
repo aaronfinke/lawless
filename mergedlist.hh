@@ -61,6 +61,14 @@ namespace scala {
     // max(1/d^2) for given dataset, = 0 if unset
     float InvResMax(const int& datasetIndex) const;
 
+    // Data access
+    //! return reference to reflection list 
+    clipper::HKL_info& HKLinfo() {return hkl_info_list;}
+    //! return reference to Imean data for given dataset
+    clipper::HKL_data<clipper::data32::I_sigI>&
+    ImeanForDataset(const int& datasetindex);
+   
+
   private:
     int ndatasets; // number of datasets
     std::vector<Xdataset> xdatasets;

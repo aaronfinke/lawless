@@ -33,7 +33,7 @@ namespace scala {
   {
     std::vector<MeanSD> RMSdelanom = anomDistribution.RMSdelAnom();
     std::vector<int> nAnomPairsRes = anomDistribution.NdelAnomHalf();
-    ASSERT (nresbin == int(RMSdelanom.size()) && nresbin == int(nAnomPairsRes.size()));
+    ASSERT (nresbin <= int(RMSdelanom.size()) && nresbin <= int(nAnomPairsRes.size()));
     rmsdelanom.resize(nresbin);
     nAnomPairs = 0;
 
@@ -44,7 +44,8 @@ namespace scala {
       nAnomPairs += nAnomPairsRes[i];
     }
     rmsdelanomOverall = rmsOverall.SD();
-    correlplot = CorrelPlot(dataset_pxd.format(), nresbin,
+    correlplot = CorrelPlot("DelAnom/RMS scatter plot",
+			    dataset_pxd.format(), nresbin,
 			    rmsdelanomOverall, nAnomPairs);
   }
   // ------------------------------------------------------------
@@ -167,7 +168,7 @@ namespace scala {
     return C.SD()/E.SD();
   }
   // ------------------------------------------------------------
-  void HalfDataset::PlotCorrel()
+  void HalfDataset::PlotCorrel() const
   // plot stuff
   {
     FILE* correlplotfile = OpenFile("CORRELPLOT", true);
@@ -181,13 +182,11 @@ namespace scala {
   {
     float I1, I2;
     if (jaxis >= 0) { // near axis
-      allobs.SetNpart(2);
       if (allobs.HalfAverages(I1, I2)) {
 	ccaniso[jaxis][mres].add(I1,I2);  // analyis by axis and resolution
       }
     } else if (mres == 0) {
       // inner resolution bin, use all data for all directions
-      allobs.SetNpart(2);
       if (allobs.HalfAverages(I1, I2)) {
 	for (int j=0;j<3;++j) {
 	  ccaniso[j][mres].add(I1,I2);  // analyis by axis and resolution

@@ -354,6 +354,7 @@ namespace scala {
     std::vector<Batch> batches = hkl_list.Batches();  // all batches
     BatchScales0(batches, datasetIndex, AllScales, scale0batch, bfacbatch);
     std::vector<int> rejectedbatch(nbatches);   // count of outliers
+    std::vector<int> rejecteddataset(hkl_list.num_datasets());   // count of outliers
     // NOT DONE //    std::vector<int> overloadsbatch(nbatches);  // count of overloads
     std::vector<std::vector<MeanSD> >  mnIsdResBatch(nbatches);  // Mean(<I>/sd(<I>))
     for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
@@ -454,7 +455,7 @@ namespace scala {
     RejectFlags rejflags(sdrej, sdrej2, Rej2policy);
 
     // Count outliers/batch
-    std::vector<int> outliercount = CountOutliers(hkl_list, rejectedbatch);
+    std::vector<int> outliercount = CountOutliers(hkl_list, rejectedbatch, rejecteddataset);
     float maxinvresolsq = 0.0; // actual maximum resolution
     // number of symmetry operators including lattice centering
     float NumSymm = hkl_list.symmetry().Nsym();  
@@ -729,8 +730,18 @@ namespace scala {
       output.logTabPrintf(0,LOGFILE,"Number of scaled partial observations         %9d\n",
 			  NumObsScaled);
     }
-    output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers                   %9d\n",
-			outliercount.at(0)+outliercount.at(1));
+    if (hkl_list.num_datasets() > 1) {
+      output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers (this dataset)    %9d\n",
+			  rejecteddataset.at(datasetIndex));
+    } else {
+      output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers                   %9d\n",
+			  outliercount.at(0)+outliercount.at(1));
+    }
+
+    output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
+			outliercount.at(2));
+
+
     output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
 			outliercount.at(2));
 

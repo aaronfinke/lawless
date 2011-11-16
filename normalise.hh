@@ -174,6 +174,8 @@ namespace scala
     // Total correction factor (multiplying factor)
     float Corr(const float& sSqr,
 		const int& irun, const float& time) const;
+    // Total average correction, multiplying scale
+    float CorrAvg(const float& sSqr) const;
 
     std::vector<BfactorModel> BfactorCorr() const {return Bfactors;}
 

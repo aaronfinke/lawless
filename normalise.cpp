@@ -310,13 +310,12 @@ namespace scala {
       Message::message(Message_fatal("Applying invalid B-Normalise"));
     // Dividing scale
     float c = AvgFactor.Factor(sSqr);
-    if (type == +1) 
+    if (type == +1) {
       return I / c;
-    if (type == +2)
-      {
-	float scorr = Max(bcmin, bincorr.Interpolate(sSqr));
-	return I / (c * scorr);
-      }
+    } else if (type == +2) {
+      float scorr = Max(bcmin, bincorr.Interpolate(sSqr));
+      return I / (c * scorr);
+    }
     return 0.0; // dummy
   }
   //--------------------------------------------------------------
@@ -342,6 +341,22 @@ namespace scala {
   {
     float c = apply(1.0, sSqr, irun, time);
     return c;
+  }
+  //--------------------------------------------------------------
+  float Normalise::CorrAvg(const float& sSqr) const
+  // Average correction, multiplying scale
+  {
+    if (!validAll)
+      Message::message(Message_fatal("Applying invalid B-Normalise"));
+    // Dividing scale
+    float c = AvgFactor.Factor(sSqr);
+    if (type == +1) {
+      return 1.0 / c;
+    } else if (type == +2) {
+      float scorr = Max(bcmin, bincorr.Interpolate(sSqr));
+      return 1.0 / (c * scorr);
+    }
+    return 0.0; // dummy
   }
   //--------------------------------------------------------------
   int normdumpnumber = 0;

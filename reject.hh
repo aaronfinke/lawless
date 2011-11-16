@@ -84,10 +84,13 @@ namespace scala {
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list);
   // ------------------------------------------------------------
   // Returns counts of flagged outliers within I+/-, between +/- and on Emax
+  // return[0] number of rejects [1] number on I+- [2] number on Emax
   // On exit:
   //  rejectedbatch  count of rejected reflections for each batch
+  //  rejecteddataset count of rejected reflections for each dataset
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list,
-				   std::vector<int>& rejectedbatch);
+				 std::vector<int>& rejectedbatch,
+				 std::vector<int>& rejecteddataset);
   // ------------------------------------------------------------
   // Return list of index numbers for each Emax outlier observation, if any
   std::vector<int> EmaxRejectIndexList

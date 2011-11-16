@@ -1,5 +1,8 @@
+0.1.3
+ More "resolution run"bug fixes
+
 0.1.2 
- openmp parallelisation has been added in refinescale.cpp
+ REFINE PARALLEL option (thanks to Ronan Keegan). Fixed bug in "resolution run" options
 
 0.1.0 
  fixed some bugs found by cppcheck and valgrind

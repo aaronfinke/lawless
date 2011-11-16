@@ -25,6 +25,7 @@ typedef clipper::Vec3<int> IVect3;
 #include "csymlib.h"    // CCP4 symmetry stuff
 #include "matvec_utils.hh"  // Matrix & vector utilities
 #include "util.hh"
+#include "range.hh"
 
 typedef float  Rtype;
 typedef double Dtype;
@@ -499,6 +500,9 @@ namespace scala
     //! return worst deviation (A), = 0 if only one
     double WorstDeviation() const;
 
+    ResoRange& ResRange() {return resorange;} //!< set resolution range
+    ResoRange ResRange() const {return resorange;} //!< return resolution range
+
     //! equality, just tests pxdname
     friend bool operator == (const Xdataset& a,const Xdataset& b);
     
@@ -516,6 +520,8 @@ namespace scala
     UnitCellSet allcells_;
     // List of wavelengths if multiple runs
     std::vector<float> allwavel_;
+    // resolution range for this dataset
+    ResoRange resorange;
   };
   //======================================================================
   class BatchNumber

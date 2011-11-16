@@ -127,7 +127,7 @@ namespace scala {
   int MergedList::WriteDatasetToMTZ(const std::string& outfilename,
 				    const int& datasetIndex) const
   // Write data for datasetIndex to MTZ file
-  // Return number of refelcetions written
+  // Return number of reflections written
   {
     ASSERT (datasetIndex < ndatasets);
     if (nrefdts.at(datasetIndex) <= 0) {
@@ -267,6 +267,13 @@ namespace scala {
     ASSERT (datasetIndex >= 0);
     ASSERT (datasetIndex < ndatasets);
     return resmaxdts.at(datasetIndex);
+  }
+  // ---------------------------------------------------------
+  //! return reference to Imean data for given dataset
+  clipper::HKL_data<clipper::data32::I_sigI>&
+  MergedList::ImeanForDataset(const int& datasetindex)
+  {
+    return datasetdata.at(datasetindex).Imean;
   }
   // ---------------------------------------------------------
 }

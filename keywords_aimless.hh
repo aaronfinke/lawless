@@ -45,7 +45,7 @@ namespace phaser_io {
     // [SECONDARY  [<Lmax>]]
     // [ABSORPTION [<Lmax>] [POLE [h|k|l]]]
     // [CONSTANT]
-    // [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]]
+    // [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]] DO NOT USE!
   {
   public:
     SCALES();

@@ -10,6 +10,8 @@
 #include <vector>
 #include "CCP4base.hh"
 
+#include "range.hh"
+
 //--------------------------------------------------------------
 class PlotSample
 // Class to optionally sample points in a scatter or normal probability plot,
@@ -133,30 +135,41 @@ class CorrelPlot {
 public:
   CorrelPlot(){}
   
+// title         graph title
 // Pxd_title     dataset title
-// NresBins      number of resolution bins (not used at present)
+// NresBins      number of resolution bins
 // UnitValue     RMS value, ie value to plot as 1.0
 // Npoints       total number of points to plot (including those
 //               omitted by sampling)
-  CorrelPlot(const std::string& Pxd_title, const int& NresBins,
+  CorrelPlot(const std::string& Title, const std::string& Pxd_title,
+	     const int& NresBins,
 	     const float& UnitValue,
 	     const int& Npoints);
+  void init(const std::string& Title, const std::string& Pxd_title,
+	    const int& NresBins,
+	    const float& UnitValue,
+	    const int& Npoints);
   
+  void SetEqualLimit(const bool& EqualLimit) {equallimit = EqualLimit;}
+
   void SetNbins(const int& NresBins);
   
   void AddPoint(const int& mres, const float& I1, const float& I2);
   
-  void Plot(FILE* plotfile);
+  void Plot(FILE* plotfile) const;
   
 private:
   int nresbin;   // number of resolution bins
+  std::string title;
   std::string pxd_title;
   std::vector<float> x;
   std::vector<float> y;
   std::vector<int> resbin;
+  scala::Range valrange;
   float scale;  // scale factor for plot x,y values
   float limit;  // ranges for plotting
-  PlotSample sample;  // smapling of points for plotting
+  PlotSample sample;  // sampling of points for plotting
+  bool equallimit;  // true for equal +/- limits
 };
 //--------------------------------------------------------------
 class RoguePlot {

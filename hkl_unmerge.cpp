@@ -1429,7 +1429,14 @@ namespace scala {
     if (run_flags.IsResoByRun()) {
       // run number, resorange pairs from input
       std::vector<std::pair<int,ResoRange> > resobyrun = run_flags.GetResoByRun();
+      // Accumulate maximum resolution range for all runs, within file range
+      ResoRange maxrange;
       for (size_t i=0;i<resobyrun.size();++i) { // loop runs with specified limits
+	if (i == 0) {
+	  maxrange = resobyrun[i].second.MinRange(ResolutionRange);  // 1st range
+	} else {
+	  maxrange = maxrange.MaxRange(resobyrun[i].second.MinRange(ResolutionRange));
+	}
 	int irun = FindRunIndex(resobyrun[i].first, runlist); // run index
 	if (irun < 0) { // specified run not found
 	  clipper::String s = "\n**** Run "+clipper::String(resobyrun[i].first)+
@@ -1439,6 +1446,10 @@ namespace scala {
 	// Store resolution range limit for this run, forced to be within file range
 	runlist[irun].StoreResoRange(resobyrun[i].second.MinRange(ResolutionRange));
       }  // end loop specified limits
+      // If resolution ranges are defined for all runs, then reset overall limit to maximum range
+      if (resobyrun.size() == num_runs()) {
+	ResoLimRange = maxrange;
+      }
     }
   }
   //--------------------------------------------------------------
@@ -1734,7 +1745,7 @@ namespace scala {
       refl_list[j].add_observation_list(obs_list);
     } // reflection loop
 
-    // Set flags into runs for ony||few fulls||partials
+    // Set flags into runs for only||few fulls||partials
     for (size_t irun=0;irun<runlist.size();++irun) {
       runlist[irun].SetFullsAndPartials();
     }
@@ -1788,15 +1799,24 @@ namespace scala {
   void hkl_unmerge_list::ImposeResoByRunLimits()
   // If there are any resolution limits set by run, go through the observation
   // list and flag observations which are outside these limits
+  // Also generate resolution ranges for each dataset
   {
     if (!((status == SUMMED) || (status == PREPARED))) {
       Message::message(Message_fatal
 		       ("hkl_unmerge_list::ImposeResoByRunLimits - not PREPARED or SUMMED") );
     }
-    if (!run_flags.IsResoByRun()) {return;}
+    if (!run_flags.IsResoByRun()) {
+      // Store resolution range for each dataset
+      for (int id=0;id<ndatasets;++id) {
+	datasets[id].ResRange() = ResoLimRange;  // overall limit
+      }
+      return;
+    }
 
     observation this_obs;
     ObservationStatus obs_status;
+
+    std::vector<Range> invresrangebydataset(ndatasets);
 
     // * * * * Loop reflections
     for (size_t j=0;j<refl_list.size();++j) {
@@ -1812,11 +1832,18 @@ namespace scala {
 	  obs_status.SetResolution(); // set resolution reject flag
 	} else {
 	  obs_status.UnSetResolution(); // unset resolution reject flag
+	  // inv resolution range by dataset
+	  invresrangebydataset[this_obs.datasetIndex()].update(refl_list[j].invresolsq());
 	}
 	this_obs.UpdateStatus(obs_status);
 	refl_list[j].replace_observation(this_obs);
       } // end loop observations
     } // end loop reflections
+
+    // Store resolution range for each dataset
+    for (int id=0;id<ndatasets;++id) {
+      datasets[id].ResRange() = ResoRange(invresrangebydataset[id]);
+    }
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::SetResoLimits(const float& LowReso,

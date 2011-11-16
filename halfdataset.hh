@@ -55,7 +55,7 @@ namespace scala {
     double RMScorrelRatioCen(const int& mres) const;
     double RMScorrelRatioCen() const;  // overall
 
-    void PlotCorrel();  // plot stuff
+    void PlotCorrel() const;  // plot stuff
 
     // Add into sums, for anisotropy analysis along three directions
     void AddAniso(const int& mres, const int& jaxis, SelectedObservations& allobs);

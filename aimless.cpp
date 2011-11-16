@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/10/11 14:58:30 $";
+  std::string rcsdate = "$Date: 2011/11/16 15:14:49 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -501,7 +501,6 @@ int main(int argc, char* argv[])
       nresbin =  ResRange.Nbins();
     }
 
-    timer.Start();
     // Overall Normalisation 
     double MinIsigRatio = -1.0;  // no resolution cutoff
     bool Overall = true;  // no run|time variation, just one curve
@@ -533,8 +532,6 @@ int main(int argc, char* argv[])
     anomOn = controls.Anomalous;  // from input
     std::vector<float> anomProbSlopes;
     anomProbSlopes = AnalyseAnom(hkl_list, SD_model, controls, true, output);
-    output.logTab(0,LOGFILE,
-		  "\nTime for SD analysis: "+timer.format(true));
     output.logFlush();
 
     output.logTab(0,LOGFILE,"\nOutlier analysis\n================\n");
@@ -555,8 +552,6 @@ int main(int argc, char* argv[])
     output.logTabPrintf(0,LOGFILE,
 	"Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
 			nrejs[0], nrejs[1], nrejs[2]);
-    output.logTab(0,LOGFILE,
-		  "\nTime for outlier analysis: "+timer.format(true));
     output.logFlush();
 
     output.logTab(0,LOGFILE,
@@ -598,9 +593,11 @@ int main(int argc, char* argv[])
       //  hkl_list is const
       // NormRes just used for intensity binning
       // Store summary statistics for this dataset
+      // Resolution range for this dataset
+      ResoRange resrangedataset = hkl_list.xdataset(idts).ResRange();
       allsummarystatistics.AddSummaryStatistics(
 	 Statistics(AllScales, hkl_list, SD_model, controls, idts,
-		    ResRange, NormRes,
+		    resrangedataset, NormRes,
 		    allAnomDistributions.Anomdistribution(idts),
 		    anomProbSlopes[idts], output));
       bool Result = true;
@@ -623,9 +620,6 @@ int main(int argc, char* argv[])
     output.WriteResult();
     output.logTab(0,LOGFILE,
      "==============================================================\n");
-    output.logTab(0,LOGFILE,
-		  "\nTime for final statistics: "+timer.format(true));
-
 
     MergedList mergedlist;
     if (outputcontrols.Merged()) {
@@ -640,8 +634,6 @@ int main(int argc, char* argv[])
       scala::WriteUnmergedOutputFiles(runTitle, hkl_list, SD_model,
 				      NormRes.Imax(), outputcontrols, output);
     }
-    output.logTab(0,LOGFILE,
-		  "\nTime for reflection file output: "+timer.format(true));
   }  // end try
 
   catch (phaser_io::PreprocessorError& capErr) {

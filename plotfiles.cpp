@@ -160,16 +160,33 @@ void NormalProbPlot::ClosePlot(const float& range)
 }
   // ------------------------------------------------------------
   // ------------------------------------------------------------
-CorrelPlot::CorrelPlot(const std::string& Pxd_title, const int& NresBins,
+CorrelPlot::CorrelPlot(const std::string& Title, const std::string& Pxd_title,
+		       const int& NresBins,
 		       const float& UnitValue,
 		       const int& Npoints)
+// title         graph title
 // Pxd_title     dataset title
 // NresBins      number of resolution bins
 // UnitValue     RMS value, ie value to plot as 1.0
 // Npoints       total number of points to plot (including those
 //               omitted by sampling)
-  : pxd_title(Pxd_title)
 {
+  init(Title, Pxd_title, NresBins, UnitValue, Npoints);
+}
+// ------------------------------------------------------------
+void CorrelPlot::init(const std::string& Title, const std::string& Pxd_title,
+		      const int& NresBins,
+		      const float& UnitValue,
+		      const int& Npoints)
+// title         graph title
+// Pxd_title     dataset title
+// NresBins      number of resolution bins
+// UnitValue     RMS value, ie value to plot as 1.0
+// Npoints       total number of points to plot (including those
+//               omitted by sampling)
+{
+  title = Title;
+  pxd_title = Pxd_title;
   SetNbins(NresBins);
   scale = 1.0;
   if (UnitValue != 0.0) {scale = 1.0/UnitValue;}
@@ -180,6 +197,7 @@ CorrelPlot::CorrelPlot(const std::string& Pxd_title, const int& NresBins,
   int numberBins = 10;
   float binWidth = maxSample/float(numberBins);
   sample = PlotSample(Npoints, maxPointDensity, numberBins, binWidth);
+  equallimit = true;  // equal +/- by default
 }
 // ------------------------------------------------------------
 void CorrelPlot::SetNbins(const int& NresBins)
@@ -189,23 +207,33 @@ void CorrelPlot::SetNbins(const int& NresBins)
 // ------------------------------------------------------------
 void CorrelPlot::AddPoint(const int& mres, const float& I1, const float& I2)
 {
+  const float cossin45 = 0.707106781;   // cos 45 = sin 45
   if (std::abs(I1) < limit/scale && std::abs(I2) < limit/scale) {
     float xx = I1*scale;
     float yy = I2*scale;
-    if (sample.Keep(Max(std::abs(xx), std::abs(yy)))) {
+    float samplevalue;
+    samplevalue = Max(std::abs(xx), std::abs(yy));
+    if (sample.Keep(samplevalue)) {
       x.push_back(xx);
       y.push_back(yy);
       resbin.push_back(mres);
+      valrange.update(xx);
+      valrange.update(yy);   // accumulate range of scaled values
     }
   }
 }
 // ------------------------------------------------------------
-void CorrelPlot::Plot(FILE* plotfile)
+void CorrelPlot::Plot(FILE* plotfile) const
 {
   if (x.size() <= 0) return;
   XMGRACE xmgr;
-  xmgr.Header(plotfile, "DelAnom/RMS scatter plot", pxd_title,
-	      -limit, limit, -limit, limit,
+  // Limits on axes
+  float lowlimit = valrange.min();
+  if (equallimit) {
+    lowlimit = -limit;
+  }
+  xmgr.Header(plotfile, title, pxd_title,
+	      lowlimit, limit, lowlimit, limit,
 	      0.6, 0.7,
 	      2.0, 2.0, true,
 	      "", "", 0.0, 0.0, false);
