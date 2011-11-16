@@ -6,6 +6,13 @@
 #include "sdmodel.hh"
 #include "selectedobservations.hh"
 #include "string_util.hh"
+#include "restore.hh"
+
+// Clipper
+#include <clipper/clipper.h>
+using clipper::Message;
+using clipper::Message_fatal;
+using clipper::Message_warn;
 
 namespace scala
 {
@@ -184,6 +191,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     tietype = Tietype;
     targets = Targets;
     sdtargets = SDtargets;
+    SetTies();
+  }
+  //-------------------------------------------------------------
+  //! Store ties for all SD corrections
+  // tietype = 0 no tie, = -1 defaults, = +1 set from parameters
+  void SDmodel::SetTies()
+  {
     for (int irun=0;irun<Nruns();++irun) {
       if (tietype == 0) { // no ties
 	sdc_full_run[irun].ClearRestraints();
@@ -812,6 +826,140 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       }
     }  // end loop runs
     return ss;
+  }
+//-------------------------------------------------------------
+  std::string SDmodel::FormatSave() const
+  {
+    const std::string SDMODELVERSION = "V1.1";
+    std::string ds = "SDModel "+SDMODELVERSION+" {\n";
+
+    int nruns = Nruns();
+    ASSERT (sdc_full_run.size() == nruns);
+    ASSERT (sdc_partial_run.size() == nruns);
+    ASSERT (runnumbers.size() == nruns);
+    //    ASSERT (idxfullparam.size() == nruns);
+    //    ASSERT (idxpartialparam.size() == nruns);
+    ASSERT (usetype.size() == nruns);
+
+    ds += "Nruns "+clipper::String(nruns)+"\n";
+    for (int i=0;i<nruns;++i) { // loop runs
+      ds += "SDC {\n";
+      ds += "RunNumber "+clipper::String(runnumbers[i])+"\n";
+      ds += "SDCfulls    " + sdc_full_run[i].FormatSave() + "\n";
+      ds += "SDCpartials " + sdc_partial_run[i].FormatSave() + "\n";
+      ds += "Usetype " + clipper::String(usetype[i]) + "\n";
+      ds += "}\n";
+    }
+    ds += "NoSDB " + clipper::String(nosdb)  +"\n";
+    ds += "Allrunssame " + clipper::String(allrunssame)  +"\n";
+    ds += "Refine " + clipper::String(refine)  +"\n";
+    ds += "Nsets " + clipper::String(nsets)  +"\n";
+    ds += "Damp " + clipper::String(damp)  +"\n";
+
+    ds += "Tietype " + clipper::String(tietype)  +"\n";
+    ds += "Ntargets " + clipper::String(int(targets.size()))  +"\n";
+    ds += "Targets " + StringUtil::FormatSaveVector(targets);
+    ds += "SDtargets " + StringUtil::FormatSaveVector(sdtargets);
+
+    ds += "}\n";
+    return ds;  // null for now
+  }
+//-------------------------------------------------------------
+  void SDmodel::Restore(const std::string& restorefilename,
+			const std::vector<Run>& runlist)
+  {
+    std::ifstream scalesin(restorefilename.c_str());
+    Fileread FR(scalesin, restorefilename, "RESTORE");
+
+    // Get run definitions from Scalemodel part of file
+    FR.ReadTag("ScaleModel"); // Note ReadTag fails if tag is wrong
+    if (FR.GetTag() != "V1.1") {  // version check
+      clipper::Message::message(Message_fatal
+		("RESTORE incompatible version in "+restorefilename));
+    }
+    FR.Skip(); // skip "{"
+
+    RunsFromSavefile savefileruns(FR, runlist);
+    if (savefileruns.NumberRunsFound() < int(runlist.size())) {
+      clipper::Message::message(Message_fatal
+			("RESTORE not all runs found in save file"));
+    }
+
+    int svnruns = savefileruns.NumberRunsInSaveFile();
+    std::vector<int> runsfromsavefile = savefileruns.Runsfromsavefile();
+    // runsfromsavefile now contains the index in runlist
+    // for each run in save file, or -1 if not wanted
+
+    FR.SkipToTag("SDModel"); // Skip to tag
+    if (FR.GetTag() != "V1.1") {  // version check
+      clipper::Message::message(Message_fatal
+	("RESTORE SDmodel incompatible version in "+restorefilename));
+    }
+    FR.Skip(); // skip "{"
+
+    FR.ReadTag("Nruns");
+    int nr = FR.Int();
+    if (nr != svnruns) {
+      clipper::Message::message(Message_fatal
+			("RESTORE SDmodel inconsisent Nruns"));
+    }
+
+    int jpr = 0; // index to accepted runs
+    for (int ipr = 0;ipr<svnruns;++ipr) { // loop runs in save file
+      FR.ReadTag("SDC");
+      // Do we want this one?
+      if (runsfromsavefile[ipr] < 0) {
+	FR.SkipSection(0);  // no, skip it
+      } else {
+	FR.Skip(); // skip "{"
+	FR.ReadTag("RunNumber");
+	int runnum = FR.Int();  // this should match run number in runlist
+	if (runnum != runlist[jpr].RunNumber()) {
+	  clipper::Message::message(Message_fatal
+		    ("RESTORE SDC: mismatch run number "+
+		     clipper::String(runnum)+" "+
+		     clipper::String(runlist[ipr].RunNumber())));
+	}
+	FR.ReadTag("SDCfulls");
+	sdc_full_run[jpr].Restore(FR);
+	FR.ReadTag("SDCpartials");
+	sdc_partial_run[jpr].Restore(FR);
+	FR.ReadTag("Usetype");
+	usetype[jpr] = FR.Int();
+	jpr++;
+	if (!FR.CheckEnd()) {
+	  clipper::Message::message(Message_warn
+				    ("SDmodel Restore unexpected tag "+FR.Tag()));
+	}
+      }  // end run
+    }  // end loop runs
+
+    FR.ReadTag("NoSDB");
+    nosdb = FR.Int();
+    FR.ReadTag("Allrunssame");
+    allrunssame = FR.Int();
+    FR.ReadTag("Refine");
+    refine = FR.Int();
+    FR.ReadTag("Nsets");
+    nsets = FR.Int();
+    FR.ReadTag("Damp");
+    damp = FR.Double();
+    FR.ReadTag("Tietype");
+    tietype = FR.Int();
+    FR.ReadTag("Ntargets");
+    int ntargets = FR.Int();
+    FR.ReadTag("Targets");
+    targets = FR.DoubleVec(ntargets);
+    FR.ReadTag("SDtargets");
+    sdtargets = FR.DoubleVec(ntargets);
+
+    scalesin.close();
+
+    nsets = Min(nsets, jpr); // number of accepted sets
+
+    SetIdxParam(); // set index list
+    SetTies();
+
   }
 //-------------------------------------------------------------
 }

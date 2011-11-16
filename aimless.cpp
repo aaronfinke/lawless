@@ -26,6 +26,7 @@
 #include "timer.hh"
 #include "string_util.hh"
 #include "optimisecombine.hh"
+#include "file_util.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/11/16 15:18:45 $";
+  std::string rcsdate = "$Date: 2011/11/16 15:23:06 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
   // Initialise output object, CCP4 mode, write header
   phaser_io::Output output;
   output.setPackageCCP4();
-  output.SetMaxLineWidth(120);
+  output.SetMaxLineWidth(600);
   output.openOutputStreams("DEBUG");
 
   GlobalControls GC;
@@ -265,6 +266,7 @@ int main(int argc, char* argv[])
     // Set up SD correction model for all runs, fulls & partials for each run
     // from input or by default
     SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList());
+    FC.sdoptimise = true;  // normally optimise SD correction unless onlymerge && restore 
 
     // Print outlier information
     PrintOutlierSettings(controls, output);
@@ -305,7 +307,8 @@ int main(int argc, char* argv[])
 #endif
 
     // Restoring scales from file?
-    if (input.Restore()) {
+    FC.restore = input.Restore();
+    if (FC.restore) {
       AllScales.init(input, hkl_list, output);
       AllScales.Restore(input.RestoreFileName(),
 			hkl_list.RunList());
@@ -313,6 +316,13 @@ int main(int argc, char* argv[])
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
       overallmeankI = ApplyScales(AllScales, hkl_list);
+
+      // Restore SD correction
+      SD_model.Restore(input.RestoreFileName(),
+		       hkl_list.RunList());
+      if (FC.OnlyMerge()) {
+	FC.sdoptimise = false;  // no sdoptimisation if restore and onlymerge
+      }
     } else {
       if (FC.OnlyMerge()) {
 	// Onlymerge, set scales CONSTANT
@@ -486,8 +496,6 @@ int main(int argc, char* argv[])
 
       AllScales.WriteImage("TILEIMAGE");
 
-      // Dump scale model
-      AllScales.Save(input.DumpFileName(), hkl_list.RunList());
       output.logFlush();
     }
 
@@ -513,15 +521,33 @@ int main(int argc, char* argv[])
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
 
-    // Clear all outlier & other status flags (except ObsFlags)
-    //  temporary outlier rejection is done in AnalyseSD
-    ClearObsStatus(hkl_list);
-    // SD analysis: assumes scales have been applied
-    // SD corrections are not applied, but SD_model is updated
-    //  hkl_list is const
-    // NormRes just used for intensity binning
-    AnalyseSD(SD_model, hkl_list, controls, NormRes, firstSDanalysis, output);
-    output.logFlush();
+    if (FC.sdoptimise) {
+      // Clear all outlier & other status flags (except ObsFlags)
+      //  temporary outlier rejection is done in AnalyseSD
+      ClearObsStatus(hkl_list);
+      // SD analysis: assumes scales have been applied
+      // SD corrections are not applied, but SD_model is updated
+      //  hkl_list is const
+      // NormRes just used for intensity binning
+      AnalyseSD(SD_model, hkl_list, controls, NormRes, firstSDanalysis, output);
+      output.logFlush();
+    } else {
+      // No optimisation
+      if (FC.restore) {
+	output.logTab(0,LOGFILE,
+      "\nSD correction parameters restored from SCALES file\n"+
+		      SD_model.format());
+      } else {
+	output.logTab(0,LOGFILE,
+	"\nSD correction parameters\n"+SD_model.format());
+      }
+    }
+
+    // if scaling done, dump scale model and SDmodel
+    if (FC.mainScale) {
+      WriteToFile(input.DumpFileName(),
+		  AllScales.FormatSave(hkl_list.RunList())+SD_model.FormatSave());
+    }
 
     firstSDanalysis = +2;
     // If Anom On:

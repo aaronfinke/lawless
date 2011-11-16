@@ -43,6 +43,8 @@ public:
   bool initialScale;   // true to do initial scaling
   bool roughScale;     // true to do first pass scaling followed by outlier rejection
   bool mainScale;      // true to do main scaling
+  bool restore;        // true to restore from dump file
+  bool sdoptimise;      // true to optimise SD correction
 };
   //=================================================================
 

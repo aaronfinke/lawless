@@ -31,6 +31,9 @@ public:
   //! skip to after next "{"
   void Skip() const;
   
+  //! skip to after next <tag>
+  void SkipToTag(const std::string& tag) const;
+
   //! True if next tag is "}", position after that
   bool CheckEnd() const;
 

@@ -43,6 +43,12 @@ void Fileread::Skip() const
   while (GetTag() != "{") {}  
 }
 //--------------------------------------------------------------
+void Fileread::SkipToTag(const std::string& tag) const
+//! skip to after next <tag>
+{
+  while (GetTag() != tag) {}  
+}
+//--------------------------------------------------------------
 bool Fileread::CheckEnd() const
 //! True if next tag is "}", position after that
 {
@@ -115,3 +121,4 @@ void Fileread::EOFerror(const std::string& tag) const
     ("FILEREAD error:"+label+" end of file when looking for "+tag));
 }
 //--------------------------------------------------------------
+

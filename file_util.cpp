@@ -26,3 +26,17 @@ FILE* OpenFile(const std::string& Filename, const bool& Write,
   return fp;
 }
 
+void WriteToFile(const std::string& filename,
+			  const std::string& text)
+// write text to filename
+{
+  FILE* dfile = OpenFile(filename, true);
+  if (dfile == NULL) {
+    clipper::Message::message(Message_fatal
+			      ("Failed to open file "+filename));
+  }
+  fprintf(dfile, "%s", text.c_str());
+  fclose(dfile);
+}
+
+

@@ -10,6 +10,7 @@
 #include <clipper/clipper.h>
 using clipper::Message;
 using clipper::Message_fatal;
+using clipper::Message_warn;
 
 
 namespace scala {
@@ -444,5 +445,44 @@ namespace scala {
     // All done
   }
   //--------------------------------------------------------------
+  std::string SDcorrection::FormatSave() const
+  {
+    std::string ds = "SDcorrection V1 { ";
+    if (fixsdb) {
+      ds += "FIXSDB  ";
+    } else {
+      ds += "FREESDB ";
+    }
+    ds += clipper::String(sdfac)+" "+clipper::String(sdb)+" "+clipper::String(sdadd);
+    ds += " }";
+    return ds;
+  }
+  //--------------------------------------------------------------
+  void SDcorrection::Restore(Fileread& FR)
+  {
+    FR.ReadTag("SDcorrection"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+	("SDcorrection::Restore incompatible version"));
+    }
+    FR.Skip();
+    std::string fsdb = FR.GetTag();
+    if (fsdb == "FREESDB") {
+      fixsdb = false;
+    } else if (fsdb == "FIXSDB") {
+      fixsdb = true;
+    }
+    sdfac = FR.Double();
+    sdb = FR.Double();
+    sdadd = FR.Double();
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+	("SDcorrection Restore unexpected tag "+FR.Tag()));
+    }
+
+    sdadd2 = sdadd*sdadd;
+    if (sdadd < 0.0) sdadd2 = -sdadd2; // store SdAdd^2, negated if necessary
+    ResetRange();
+  }
   //--------------------------------------------------------------
 }

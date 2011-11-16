@@ -4,6 +4,7 @@
 #define SDCTYPES_HEADER
 
 #include "hkl_datatypes.hh"
+#include "fileread.hh"
 
 namespace scala
 {
@@ -83,6 +84,11 @@ namespace scala
     std::vector<double> UpperBounds() const;
     //! Get vector of "large shifts"
     std::vector<double> LargeShifts() const;
+
+    std::string FormatSave() const;
+
+    void Restore(Fileread& FR);
+
 
     // - - Restraints
     //! clear all restraints

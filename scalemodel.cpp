@@ -10,6 +10,7 @@
 #include "file_util.hh"
 #include "fileread.hh"
 #include "scala_util.hh"
+#include "restore.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -1251,19 +1252,6 @@ namespace scala {
     return false;
   }
   //--------------------------------------------------------------
-  void ScaleModel::Save(const std::string& dumpfilename,
-			const std::vector<Run>& runlist) const
-  // Dump scale model to file
-  {
-    FILE* dumpfile = OpenFile(dumpfilename, true);
-    if (dumpfile == NULL) {
-      clipper::Message::message(Message_fatal
-				("Failed to open ScaleModelDumpFile "+dumpfilename));
-    }
-    fprintf(dumpfile, "%s", FormatSave(runlist).c_str());
-    fclose(dumpfile);
-  }
-  //--------------------------------------------------------------
   std::string ScaleModel::FormatSave(const std::vector<Run>& runlist) const
   // Format scalemodel for dump/restore
   //  runlist  runs to be saved
@@ -1336,51 +1324,21 @@ namespace scala {
     FR.ReadTag("ScaleModel"); // Note ReadTag fails if tag is wrong
     if (FR.GetTag() != "V1.1") {  // version check
       clipper::Message::message(Message_fatal
-				("RESTORE incompatible version in "+restorefilename));
+		("RESTORE incompatible version in "+restorefilename));
     }
     FR.Skip(); // skip "{"
-    FR.ReadTag("Nruns");
-    int svnruns = FR.Int();  // number of runs in save file
-    nruns = runlist.size();  // number of runs in runlist = number to be used
-    runnumbers.resize(nruns);
-    // list of runs from save file with corresponding run serials in runlist
-    std::vector<int> runsfromsavefile(svnruns, -1);
-    int nrfound = 0;
-    
 
-    // Loop runs in save file
-    for (int ir=0;ir<svnruns;++ir) {
-      FR.ReadTag("RunNumber");
-      int runnum = FR.Int();
-      runnum = runnum;
-      FR.ReadTag("Run");
-      if (FR.GetTag() != "V1") {  // version check
-	clipper::Message::message(Message_fatal
-				  ("RESTORE incompatible run version in "+restorefilename));
-      }
-      FR.Skip(); // skip "{"
-      FR.ReadTag("Batch_number_list");
-      int nbat = FR.Int();
-      std::vector<int> batchnumbers = FR.IntVec(nbat);
-      if (!FR.CheckEnd()) {
-	clipper::Message::message(Message_warn
-				  ("ScaleModel::Restore unexpected tag "+FR.Tag()));
-      }
-      // Does this run match any in runlist?
-      // return index in runlist, -1 if not found
-      int irun = RunNotFound(runlist, batchnumbers);
-      if (irun >= 0) {
-	// Build list of runs from save file which should be kept
-	runsfromsavefile[ir] = irun;
-	nrfound++;
-	runnumbers[irun] = runlist[irun].RunNumber();
-      }
-    } // end loop runs in save file
-      // runsfromsavefile now contains the index in runlist for each run in save file
-    if (nrfound < int(runlist.size())) {
+    RunsFromSavefile savefileruns(FR, runlist);
+    if (savefileruns.NumberRunsFound() < int(runlist.size())) {
       clipper::Message::message(Message_fatal
-				("RESTORE not all runs found in save file"));
+			("RESTORE not all runs found in save file"));
     }
+
+    int svnruns = savefileruns.NumberRunsInSaveFile();
+    std::vector<int> runsfromsavefile = savefileruns.Runsfromsavefile();
+    // runsfromsavefile now contains the index in runlist
+    // for each run in save file, or -1 if not wanted
+
     // number of primary scales == number of runs
     // number to use = nruns
     int jpr = 0; // index to accepted runs/primary scales
@@ -1415,6 +1373,11 @@ namespace scala {
 
     FR.ReadTag("Nsecscales");
     int nssc = FR.Int();
+    if (nssc != nsecondaryscale) {
+	clipper::Message::message(Message_fatal
+	  ("RESTORE incompatible secondary scale models"));
+    }
+
     sec_scale_index_run.clear();
     if (nssc > 0) {
       for (int i = 0;i<nssc;++i) { // loop secondary scales in file
@@ -1454,22 +1417,7 @@ namespace scala {
     FR.ReadTag("Bfacnormbatch"); bfacnormbatch = FR.Int();
 
     CountParameters(); // set parameter counts etc
-  }
-  //--------------------------------------------------------------
-  // Does this run match any in runlist?
-  // return index in runlist, -1 if not found
-  int ScaleModel::RunNotFound(const std::vector<Run>& runlist,
-			      const std::vector<int>& batchnumbers) const
-  {
-    int nbn = batchnumbers.size();
-    for (size_t ir=0;ir<runlist.size();++ir) { // loop runs
-      std::vector<int> bl = runlist[ir].BatchList();
-      if (int(bl.size()) == nbn) { // same size
-	if (bl == batchnumbers) { // all same
-	  return ir;
-	}}
-    }
-    return -1;
+    scalesin.close();
   }
   //--------------------------------------------------------------
   void ScaleModel::WriteImage(const std::string fname) const

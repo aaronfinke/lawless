@@ -87,7 +87,7 @@ static std::vector<std::string> split(const std::string& str,
   static std::string FormatSaveVector(const std::vector<int> ivec);
   //--------------------------------------------------------------
   //! format real vector for dump/save
-    static std::string FormatSaveVector(const std::vector<double> vec);
+  static std::string FormatSaveVector(const std::vector<double> vec);
 };
 //======================================================================
 //! Format output in a similar way to the phaser Output class, but just return as a string

@@ -29,6 +29,7 @@ aimless_SOURCES = \
         rotation.cpp runthings.cpp scala_util.cpp score_datatypes.cpp \
         spacegroupreindex.cpp spline.cpp string_util.cpp timer.cpp \
         zone.cpp tablegraph.cpp optimisecombine.cpp tile.cpp imagearray.cpp \
+        restore.cpp \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
@@ -56,7 +57,7 @@ aimless_SOURCES = \
         probfunctions.hh range.hh rotation.hh runthings.hh scala.hh \
         scala_util.hh score_datatypes.hh spacegroupreindex.hh spline.hh \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
-	optimisecombine.hh tile.hh imagearray.hh
+	optimisecombine.hh tile.hh imagearray.hh restore.hh
 
 
 bin_PROGRAMS = aimless

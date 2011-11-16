@@ -165,6 +165,12 @@ namespace scala
     //! return formatted values
     std::string format() const;
 
+    //! format for Dump
+    std::string FormatSave() const;
+
+    void Restore(const std::string& restorefilename,
+		 const std::vector<Run>& runlist);
+
     void dump() const;
 
   private:
@@ -189,6 +195,9 @@ namespace scala
     int tietype;     // = 0 no tie, = -1 defaults, = +1 set from input
     std::vector<double> targets;   // 3 targets
     std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
+
+    void SetTies();
+
 
   };
   //--------------------------------------------------------------

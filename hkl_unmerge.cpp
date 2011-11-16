@@ -1357,7 +1357,8 @@ namespace scala {
 	  ThisRun.BatchNumberOffset() = batch(ib0).BatchNumberOffset();
 	  ThisRun.FileNumber() = batch(ib0).FileNumber();
 	  ThisRun.SortList();
-	  ThisRun.RunNumber() = runlist.size()+1;
+	  ThisRun.RunNumber() = runnum;
+	  // No	  ThisRun.RunNumber() = runlist.size()+1;
 	  runlist.push_back(ThisRun);
 	}
       }
