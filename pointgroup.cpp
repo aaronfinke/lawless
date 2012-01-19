@@ -663,20 +663,28 @@ namespace CCtbxSym
   //  only, no change otherwise
   // Return true if accepted
   {
+    // compare = -1 
     int compare = -1;
     if (CrysSys == ORTHORHOMBIC && sameGroup) {
       compare = best_cell.compare_orthorhombic(test_cell);
     } else if (CrysSys == MONOCLINIC) {
       compare = best_cell.compare_monoclinic
 	(test_cell, UniqueAxis, angular_tolerance);
+      // Accept new one anyway if beta >= 90 and old best had beta < 90
+      if (compare < 1) {
+	if (best_cell.parameters()[UniqueAxis+3] < 90.0 && test_cell.parameters()[UniqueAxis+3] >= 90.0) {
+	  compare = +1;
+	}}
     }
 
     if (compare > 0) {
       //^
-      //	std::cout << "Updating cell: " << CrysSys << " "
-      //		  << sameGroup << " " << angular_tolerance << "\n"
-      //		  << "Old best cell: " << UcellFormat(best_cell) <<"\n"
-      //		  << "New best cell: " << UcellFormat(test_cell) <<"\n";
+      //      std::cout << "Updating cell: " << CrysSys << " "
+      //		<< sameGroup << " " << angular_tolerance << "\n"
+      //		<< "Old best cell: " << UcellFormat(best_cell) <<"\n"
+      //		<< "New best cell: " << UcellFormat(test_cell) <<"\n";
+      //      for (int i=0;i<6;++i) {std::cout <<" "<<best_cell.parameters()[i];}
+      //      std::cout <<"\n";
       //-!
       best_cb_op = cb_op;
       best_cell = test_cell;
@@ -912,7 +920,7 @@ namespace CCtbxSym
     if (ChBasisVec.size() > 0 && BestCell) ChBasisVec.resize(1);
 
     return ChBasisVec;
-  }
+  }  // GetAlterntiveBases
   //--------------------------------------------------------------
   std::vector<AlternativeBases>
   ChangeBasesList(const std::vector<AlternativeBases>& CBlist,
@@ -977,8 +985,8 @@ namespace CCtbxSym
       sgtbx::space_group(sgsymbol.hall()).build_derived_reflection_intensity_group(false);
     //^
     //    std::cout << "PGinitName " << Name << " " << CCTBX_SGsymbol_HorR(Name) << " "
-    //	      << sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
-    //	      << Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
+    //    	      << sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
+    //    	      << Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
     init(Pgroup, CentringSymbol(Pgroup));
   }
   //--------------------------------------------------------------
@@ -1139,7 +1147,7 @@ namespace CCtbxSym
     uctbx::unit_cell uccell_chb = ChBasis.apply(uccell);
     //^
     //    std::cout << "\n>>> SetCell " << RefLGname() << " <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-
+    //^-
     // Try to get "best" setting of cell and new reference
     //  cb_op_best transforms reference to "best"
     sgtbx::change_of_basis_op cb_op_best = GetBestCell(LaueGrp_ref, uccell_chb, AllowI2);
@@ -1147,14 +1155,14 @@ namespace CCtbxSym
 
     //^
     //    std::cout << "Reindex original->constructor ChBasis_cell): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
-    //	      << "Reindex original->reference ChBasis): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
-    //	      << "Reindex constructor->reference ChBasis_ref): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
-    //	      << "CellIn:  " << UcellFormat(uccell) << "\n"
-    //	      << "CellChB: " << UcellFormat(uccell_chb) << "\n"
-    //	      << "CellRef: " << UcellFormat(uccell_ref) << "\n";
+    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
+    //    	      << "Reindex original->reference ChBasis): "
+    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
+    //    	      << "Reindex constructor->reference ChBasis_ref): "
+    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
+    //    	      << "CellIn:  " << UcellFormat(uccell) << "\n"
+    //    	      << "CellChB: " << UcellFormat(uccell_chb) << "\n"
+    //    	      << "CellRef: " << UcellFormat(uccell_ref) << "\n";
     //-!
 
     // Test for change of symmetry, C2 to I2
@@ -1168,15 +1176,15 @@ namespace CCtbxSym
       LaueGrp_ref_type = sgtbx::space_group_type(LaueGrp_ref);
       LatType = CentringSymbol(LaueGrp_ref);
       //^
-      //                        std::cout << "\n==== SetCell: updated groups " << LatType << " "
-      //                  		<< LaueGrp_ref_type.hall_symbol() << "\n";
-      //                        std::cout << "Cell_ref: " << UcellFormat(uccell_ref) << "\n";
-      //                        std::cout << "ChBasis:\n";
-      //                        PrintChBOp(ChBasis);
-      //                        std::cout << "ChBasis_ref:\n";
-      //                        PrintChBOp(ChBasis_ref);
-      //                        std::cout << "cb_op_best:\n";
-      //                        PrintChBOp(cb_op_best);
+      //      std::cout << "\n==== SetCell: updated groups " << LatType << " "
+      //		<< LaueGrp_ref_type.hall_symbol() << "\n";
+      //      std::cout << "Cell_ref: " << UcellFormat(uccell_ref) << "\n";
+      //      std::cout << "ChBasis:\n";
+      //      PrintChBOp(ChBasis);
+      //      std::cout << "ChBasis_ref:\n";
+      //      PrintChBOp(ChBasis_ref);
+      //      std::cout << "cb_op_best:\n";
+      //      PrintChBOp(cb_op_best);
       //^-
     }
     // ChBasis is operator for Original(cell) -> reference
@@ -1197,8 +1205,8 @@ namespace CCtbxSym
     }
     //^
     //    std::cout << "End of SetCell:\n"
-    //	      << "  Reindex original->reference ChBasis): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
+    //    	      << "  Reindex original->reference ChBasis): "
+    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
     //^-
     // Maximum angular deviation of cell from that
     // required by rotation group

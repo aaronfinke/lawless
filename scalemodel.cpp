@@ -945,6 +945,7 @@ namespace scala {
     } else {
       ps = primary_scales[irun].Scale(obs.phi());
     }
+
     // B-factor scale
     double bs = 1.0;
 
@@ -973,6 +974,7 @@ namespace scala {
     }
     g = ps*bs*ss*ds;
     obs.SetGscale(g);
+
     return g;
   }
   //--------------------------------------------------------------

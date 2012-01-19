@@ -180,6 +180,9 @@ namespace scala
     // Clear all flags except ObsFlag & resolution flag
     void ResetStatus() {bitflags &= 3;}
 
+    // true is OK or outlier or > Emax or strong or weak (ie suitable for Rogues file)
+    bool IsOKforRogues() const;
+
     unsigned int Bitflags() const {return bitflags;}
 
     // ObsFlag acceptance

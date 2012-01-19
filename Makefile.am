@@ -3,8 +3,8 @@ SUBDIRS = MinLib
 aimless_SOURCES = \
         aimless.cpp \
         InputAll_aimless.cpp analyseanom.cpp analysesd.cpp \
-        anomdistribution.cpp applyscales.cpp cone.cpp \
-        cumulativecompleteness.cpp  file_util.cpp foxholmes.cpp \
+        anomdistribution.cpp applyscales.cpp \
+        cumulativecompletenes.cpp  file_util.cpp foxholmes.cpp \
         fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp \
         initialscales.cpp intensitybin.cpp keywords_aimless.cpp  \
         mergedlist.cpp normalprobanal.cpp normprobfunc.cpp optimisesdcorr.cpp \
@@ -33,7 +33,7 @@ aimless_SOURCES = \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
-        applyscales.hh cone.hh cumulativecompleteness.hh file_util.hh \
+        applyscales.hh cumulativecompleteness.hh file_util.hh \
         foxholmes.hh fracdevanal.hh globalcontrols.hh \
         globalcontrols_aimless.hh halfdataset.hh initialscales.hh \
         intensitybin.hh keywords_aimless.hh mergedlist.hh normalprobanal.hh \

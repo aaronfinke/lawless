@@ -6,7 +6,7 @@ using clipper::Message;
 using clipper::Message_fatal;
 using clipper::Message_warn;
 
-#include "csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
 #include "rotation.hh"
 #include "score_datatypes.hh"

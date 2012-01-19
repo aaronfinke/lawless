@@ -232,7 +232,7 @@ namespace scala {
 			"Mean((I)/sd(I))                       %10.1f%10.1f%10.1f\n",
 			MnIsd[0], MnIsd[1], MnIsd[2]);
     output.logTabPrintf(0,OUTSTREAM,
-			"Mn(I) correlation between half-sets   %10.3f%10.3f%10.3f\n",
+			"Mn(I) half-set correlation CC(1/2)    %10.3f%10.3f%10.3f\n",
 			Icorrelation[0], Icorrelation[1], Icorrelation[2]);
 
     output.logTabPrintf(0,OUTSTREAM,
@@ -260,33 +260,37 @@ namespace scala {
     output.logTab(0,OUTSTREAM,
 		  "\nEstimates of resolution limits: overall");
     output.logTabPrintf(1,OUTSTREAM,
-		"from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
+		"from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
 			overallresolimitCC.Limit(),
 			overallresolimitCC.HighResolution(),
 			ResoLimitWarning(overallresolimitCC).c_str());
 
     output.logTabPrintf(1,OUTSTREAM,
-		"from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
+		"from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
 			overallresolimitIsig.Limit(),
 			overallresolimitIsig.HighResolution(),
 			ResoLimitWarning(overallresolimitIsig).c_str());
     // Anisotropy analysis
-    output.logTab(0,OUTSTREAM,
-		  "\nEstimates of resolution limits in reciprocal lattice directions:");
-    for (int jax=0;jax<3;++jax) {
-      if (anisoresolimitCC[jax].Status() > -2) { // valid direction
-	output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
-	output.logTabPrintf(1,OUTSTREAM,
-	    "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
-			    anisoresolimitCC[jax].Limit(),
-			    anisoresolimitCC[jax].HighResolution(),
-			    ResoLimitWarning(anisoresolimitCC[jax]).c_str());
-	output.logTabPrintf(1,OUTSTREAM,
-	    "from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
-			    anisoresolimitIsig[jax].Limit(),
-			    anisoresolimitIsig[jax].HighResolution(),
-			    ResoLimitWarning(anisoresolimitIsig[jax]).c_str());
+    if (int(anisoresolimitCC.size()) > 0) {
+      output.logTab(0,OUTSTREAM,
+		    "\nEstimates of resolution limits in reciprocal lattice directions:");
+      for (int jax=0;jax<3;++jax) {
+	if (anisoresolimitCC[jax].Status() > -2) { // valid direction
+	  output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
+	  output.logTabPrintf(1,OUTSTREAM,
+			      "from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
+			      anisoresolimitCC[jax].Limit(),
+			      anisoresolimitCC[jax].HighResolution(),
+			      ResoLimitWarning(anisoresolimitCC[jax]).c_str());
+	  output.logTabPrintf(1,OUTSTREAM,
+			      "from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
+			      anisoresolimitIsig[jax].Limit(),
+			      anisoresolimitIsig[jax].HighResolution(),
+			      ResoLimitWarning(anisoresolimitIsig[jax]).c_str());
+	}
       }
+    } else {
+      output.logTab(0,OUTSTREAM, "\nNo anisotropy");
     }
 
     output.logTab(0,OUTSTREAM,
@@ -310,8 +314,12 @@ namespace scala {
   void AllSummaryStatistics::PrintOneSummaryTable(const int& idts,
 				     const bool& Result, phaser_io::Output& output)
   {
+    phaser_io::outStream OUTSTREAM = LOGFILE;
+    if (Result) {OUTSTREAM = RESULT;}
     if (idts >= 0 && idts < int(allsummarystatistics.size())) {
       allsummarystatistics[idts].PrintSummaryTable(Result, output);
+      output.logTab(0,OUTSTREAM,
+		    "\n"+AnomDistribution::formatStatus(anomstatus));
     }
   }
   // ------------------------------------------------------------  
@@ -528,30 +536,34 @@ namespace scala {
     // Anisotropy analysis
     output.logTab(0,OUTSTREAM,
 		  "\nEstimates of resolution limits along reciprocal lattice axes:");
-
+    
     std::vector<std::string> axisname(3);
     axisname[0] = "a*";
     axisname[1] = "b*";
     axisname[2] = "c*";
     for (int idts=0;idts<ndts;++idts) {
-      output.logTab(1,OUTSTREAM,
-		    "Dataset: "+allsummarystatistics[idts].pxdname.format());
-      for (int jax=0;jax<3;++jax) {
-	if (allsummarystatistics[idts].anisoresolimitCC[jax].Status() > -2) { // valid direction
-	  output.logTab(2,OUTSTREAM, "  Along axis "+axisname[jax]);
-	  output.logTabPrintf(2,OUTSTREAM,
-			      "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
-			      allsummarystatistics[idts].anisoresolimitCC[jax].Limit(),
-			      allsummarystatistics[idts].anisoresolimitCC[jax].HighResolution(),
-			      ResoLimitWarning(allsummarystatistics[idts].anisoresolimitCC[jax]).c_str());
-	  output.logTabPrintf(2,OUTSTREAM,
-			      "from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
-			      allsummarystatistics[idts].anisoresolimitIsig[jax].Limit(),
-			      allsummarystatistics[idts].anisoresolimitIsig[jax].HighResolution(),
-			      ResoLimitWarning(allsummarystatistics[idts].anisoresolimitIsig[jax]).c_str());
+      if (allsummarystatistics[idts].anisoresolimitCC.size() > 0) {
+	output.logTab(1,OUTSTREAM,
+		      "Dataset: "+allsummarystatistics[idts].pxdname.format());
+	for (int jax=0;jax<3;++jax) {
+	  if (allsummarystatistics[idts].anisoresolimitCC[jax].Status() > -2) { // valid direction
+	    output.logTab(2,OUTSTREAM, "  Along axis "+axisname[jax]);
+	    output.logTabPrintf(2,OUTSTREAM,
+				"from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
+				allsummarystatistics[idts].anisoresolimitCC[jax].Limit(),
+				allsummarystatistics[idts].anisoresolimitCC[jax].HighResolution(),
+				ResoLimitWarning(allsummarystatistics[idts].anisoresolimitCC[jax]).c_str());
+	    output.logTabPrintf(2,OUTSTREAM,
+				"from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
+				allsummarystatistics[idts].anisoresolimitIsig[jax].Limit(),
+				allsummarystatistics[idts].anisoresolimitIsig[jax].HighResolution(),
+				ResoLimitWarning(allsummarystatistics[idts].anisoresolimitIsig[jax]).c_str());
+	  }
 	}
+      } else {
+	output.logTab(0,OUTSTREAM, "\nNo anisotropy");
       }
-    }
+    }  // end loop datasets
     output.logTab(0,OUTSTREAM," ");
 
     for (int idts=0;idts<ndts;++idts) {
@@ -571,6 +583,8 @@ namespace scala {
 			  allsummarystatistics[idts].minSDcorrPartials,
 			  allsummarystatistics[idts].maxSDcorrPartials);
     }
+    output.logTab(0,OUTSTREAM,
+		  "\n"+AnomDistribution::formatStatus(anomstatus));
   }
   // ------------------------------------------------------------  
 } // namespace scala

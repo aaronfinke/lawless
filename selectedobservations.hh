@@ -71,7 +71,8 @@ namespace scala
     //! List of deviations delta2 (ie fac * delI/sigma(I) ) where delI
     //!  is difference from mean of all observations and
     //!  fac = sqrt(n/n-1)
-    std::vector<float> Delta2();
+    std::vector<float> Delta2();        // variance-weighted <I>
+    std::vector<float> Delta2scalewt(); // scale-weighted <I>
 
     // For each observation, return mean of other observations,
     //   scaled to each observation
@@ -81,7 +82,8 @@ namespace scala
 
     //! List of delI (scaled)
     //!  returns delI(Nobs), unused slots set = 0.0 ie not closed down
-    std::vector<float> DelI();
+    std::vector<float> DelI();        // variance-weighted <I>
+    std::vector<float> DelIscalewt(); // scale-weighted <I>
 
     //! List of sigma(I)
     //!   returns sigmaI(Nobs), unused slots set = 0.0 ie not closed down

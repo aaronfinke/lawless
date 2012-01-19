@@ -109,11 +109,18 @@ namespace scala
     //   cf AddSelobsDelta which uses delta1 definition
     void AddSelobsDelta2(SelectedObservations& selobs,
 			 const int& intBin);
+    // ... or with scale-weighted <I>
+    void AddSelobsDelta2scalewt(SelectedObservations& selobs,
+			 const int& intBin);
 
     // Add in to sums for derivatives
     //  ddeltadp[iobs][k] is d(delta(iobs))/dp(k) for the iobs'th observation in selobs
     //  p(k) is the k'th parameter of nparams
     void AddDerivatives(SelectedObservations& selobs,
+			const int& intBin,
+			const std::vector <std::vector<double> >& ddeltadp);
+    // ... or with scale-weighted <I>
+    void AddDerivativesscalewt(SelectedObservations& selobs,
 			const int& intBin,
 			const std::vector <std::vector<double> >& ddeltadp);
 

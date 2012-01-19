@@ -11,7 +11,7 @@ using namespace cctbx;
 
 #include "hkl_symmetry.hh"
 // CCP4
-#include "csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
 // Forward declarations
 namespace scala{

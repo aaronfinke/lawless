@@ -221,13 +221,20 @@ public:
   bool& Combine() {return combine;}       // Set
   bool Combine() const {return combine;}  // Get
 
-  bool Anom() const; // return true if rejection is set between I+ & I- for all datasets
+ // return true if rejection is set between I+ & I- for all datasets
+  bool Anom() const {return anomreject;}
 
-  void SetNdatasets(const int& Ndatasets);
+  void SetNdatasets(const int& Ndatasets); // copy outliercontrols from 1st dataset
 
   // rejection criteria, within I+, I-  or between I+ & I-
-  // Set
-  RejectFlags& Reject(const AnomalousClass& selclass, const int& dts_index=0);
+  // Set rejection flags:
+  // if selclass == BOTH, then either set a specific dataset,
+  //   or all if dts_index<0
+  // AnomalousClass = ALL   ignore differences between I+ & I-
+  //                = BOTH  for test between I+ & I-
+  //                = IPLUS, IMINUS  I+ or I-
+  void SetReject(const RejectFlags& flags,
+		 const AnomalousClass& selclass, const int& dts_index=-1);
   // Get
   RejectFlags Reject(const AnomalousClass& selclass, const int& dts_index=0) const;
 
@@ -239,6 +246,7 @@ private:
   RejectFlags reject;          // main rejection criteria, within I+, I- set
   // for each dataset
   std::vector<RejectFlags> rejectanom;      // between I+ & I-
+  bool anomreject;             // true if any rejection between I+ & I-
   EProb emaxtest;  
 }; // OutlierControl
 //=================================================================
@@ -321,12 +329,33 @@ private:
   double polarisationfactor; // = 0 for unpolarised, eg in-house source
 };
 //=================================================================
+// Controls for analysis and selection of anomalous
+class AnomalousControl {
+public:
+  AnomalousControl();
+
+  // All public
+  bool FlagInput;   // true if explicit "anomalous" command given
+  bool Anomalous;   // true if "anomalous on"
+  bool AnomalousSDcorr;   // true to separate I+ & I- for SD correction
+  
+  // At present, anomalous scattering is considered to be present if any one of
+  // the following is true (defaults in brackets):
+  //  1) Anomplot slope > anomslopethreshold (1.3)
+  //  2) CCanom > anomCCthreshold (0.3) in more than anomNbinthreshold bins (2)
+  //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2)
+  double anomslopethreshold;
+  double anomCCthreshold;
+  double anomRCRthreshold;
+  int anomNbinthreshold;
+};
+//=================================================================
 class all_controls
 // all controls to store in hkl list
 //  - run controls
 //  - partial controls
 //  - outlier controls
-//  - anomalous on flag
+//  - anomalous controls (on flag)
 //
 // Just a public data structure
 {
@@ -340,8 +369,7 @@ public:
   OutlierControl outlierScale;
   OutlierControl outlierMerge;
   RefineControl refinecontrol;	
-  bool Anomalous;   // true if "anomalous on"
-  bool AnomalousSDcorr;   // true to separate I+ & I- for SD correction
+  AnomalousControl anomalouscontrol;
   DatasetControl datasetcontrol;
   PolarisationControl polarisationcontrol;
 }; // all_controls

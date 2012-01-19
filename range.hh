@@ -136,6 +136,8 @@ namespace scala
     // Returns minimum range
     ResoRange MinRange(const ResoRange& other) const;
 
+    std::string format() const;
+
   private:
     static const float LowDef;  // Default low resolution
     static const float HiDef;   //         high

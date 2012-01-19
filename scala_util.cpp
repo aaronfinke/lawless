@@ -288,8 +288,9 @@ namespace scala
   //--------------------------------------------------------------
   double MeanSD::SD() const
   {
-    return (count > 1) ?
-      sqrt((sum_sc2 - sum_sc*sum_sc/double(count))/double(count-1)) : 0.0;
+    if (count <= 1) return 0.0;
+    double a = Max(0.0, sum_sc2 - sum_sc*sum_sc/double(count));
+    return sqrt(a/double(count-1));
   }
   //--------------------------------------------------------------
   double MeanSD::Var() const

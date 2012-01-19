@@ -46,7 +46,7 @@ using clipper::RTop;
 typedef clipper::Vec3<double> DVect3;
 typedef clipper::Mat33<double> DMat33;
 
-#include "csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
 #include <assert.h>
 #define ASSERT assert

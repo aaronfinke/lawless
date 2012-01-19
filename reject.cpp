@@ -105,8 +105,9 @@ namespace scala {
   //
   {
     SelectedObservations sel(*this_refl, dts_index, selclass);
+    RejectFlags rejflags = outliercontrol->Reject(selclass, dts_index);
     std::vector<int> outlierindexlist =
-      sel.OutlierIndexList(outliercontrol->Reject(selclass, dts_index));
+      sel.OutlierIndexList(rejflags);
     discrepant = discrepant || sel.Discrepant();
 
     if (rejected.size() == 0) {
@@ -250,7 +251,7 @@ namespace scala {
 	}
 	// Optional output to ROGUES file & ROGUEPLOT
 	if (RoguesList.Open()) {
-	  SDM.CorrectReflection(this_refl);
+	  SDM.CorrectAllReflection(this_refl);
 	  RoguesList.RogueReflection(this_refl, rejlist.Deviations(), NormRes);
 	}
       }

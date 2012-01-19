@@ -37,7 +37,11 @@ namespace scala {
     std::vector<float> BatchAnomCompleteness(const ResoRange& ResRange,
 					     const hkl_symmetry& symmetry,
 					     const Scell& cell);
-
+    // cumulative multiplicity
+    std::vector<float> BatchMultiplicity(const std::vector<int>& NumObsBatch,
+					 const ResoRange& ResRange,
+					 const hkl_symmetry& symmetry,
+					 const Scell& cell);
   private:
     int nbatches;  // in all datasets
     int multcy;

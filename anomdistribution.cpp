@@ -16,6 +16,7 @@ namespace scala {
   AllAnomDistributions::AllAnomDistributions(const hkl_unmerge_list& hkl_list,
 					     const SDmodel& SDM,
 					     const all_controls& controls,
+					     const AnalyseAnom& analysanom,
 					     const ResoRange& ResRange,
 					     const Normalise& NormRes)
   // Analyse distribution of anomalous differences to get estimate
@@ -34,8 +35,11 @@ namespace scala {
     // rms DelAnom by dataset & resolution
     anomdistributions.resize(ndatasets);
     // Set number of resolution bins
-    for (int id=0;id<ndatasets;++id)
-      {anomdistributions[id].SetNresbin(nresbin);}
+    for (int id=0;id<ndatasets;++id) {
+      anomdistributions[id].init(nresbin,
+				 hkl_list.xdataset(id).pxdname(),
+				 analysanom.RmsDelAnom().at(id));
+    }
     //  datasets
     std::vector<Xdataset> xdatasets = hkl_list.AllXdatasets();
     pxdnames.resize(ndatasets);
@@ -90,12 +94,12 @@ namespace scala {
 	}
 	ASSERT (k == ndispcc);
       }
-    }
+    }  // end ncorrel > 0
 
     float danom;
     std::vector<float> danomdts(ndatasets); // DelAnom for each dataset
     std::vector<float> Imeandts(ndatasets); // <I> for each dataset, for dispersive values
-    SelectedObservations Selobs;
+    SelectedObservations obsall, obsplus, obsminus;
     int nacc = 0;
 
     while (hkl_list.next_reflection(this_refl) >= 0)  {
@@ -111,25 +115,26 @@ namespace scala {
       nacc = 0;
       danomdts.assign(ndatasets,0.0);
       for (int id=0;id<ndatasets;id++) {
-	Selobs.init(this_refl, id, ALL);
-	if (Selobs.Number() > 0) {
-	  Imeandts[id] = Selobs.Average().I();
+	obsall.init(this_refl, id, ALL);
+	if (obsall.Number() > 0) {
+	  Imeandts[id] = obsall.Average().I();
 	  if (!Centric) {
-	    Selobs.init(this_refl, id, IPLUS);
-	    if (Selobs.Number() > 0) {
-	      IsigI Iplus = Selobs.Average();
-	      if (Selobs.Number() <= 1) {correlAnom = false;}
-	      Selobs.init(this_refl, id, IMINUS);
-	      if (Selobs.Number() > 0) {
-		IsigI Iminus = Selobs.Average();
-		if (Selobs.Number() <= 1) {correlAnom = false;}
+	    obsplus.init(this_refl, id, IPLUS);
+	    if (obsplus.Number() > 0) {
+	      IsigI Iplus = obsplus.Average();
+	      if (obsplus.Number() <= 1) {correlAnom = false;}
+	      obsminus.init(this_refl, id, IMINUS);
+	      if (obsminus.Number() > 0) {
+		IsigI Iminus = obsminus.Average();
+		if (obsminus.Number() <= 1) {correlAnom = false;}
 		// DelAnom
-		float sig = Iplus.sigI()*Iplus.sigI() + Iminus.sigI()*Iminus.sigI();
+		float sig = Iplus.sigI()*Iplus.sigI() +
+		  Iminus.sigI()*Iminus.sigI();
 		if (sig > 0.0) {
 		  // Store delAnom, & count reflections used for
 		  // half-dataset correlations (ie with n+ & n- > 1)
 		  danom = (Iplus.I()-Iminus.I());
-		  anomdistributions[id].Add(mres, danom, correlAnom);
+		  anomdistributions[id].Add(mres, danom, correlAnom, obsplus, obsminus);
 		  danomdts[id] = danom;
 		  nacc++;
 		}
@@ -139,29 +144,56 @@ namespace scala {
 	}
       } // end loop datasets
       if (nacc > 1) {
-	// correlations
+	// correlations across datasets
 	AddCorrelations(danomdts, Imeandts, mres);
       }
     } // end loop reflections
   }
   // ------------------------------------------------------------
-  void AnomDistribution::SetNresbin(const int& Nresbin)
-  // Store number of resolution bins & clear arrays
+  // Store slopes of normal probability anomplot for each dataset into Anomdistribution
+  void AllAnomDistributions::SetSlope(const std::vector<float>& slope)
   {
-    nresbin = Nresbin;
-    rmsDelAnom.assign(nresbin, MeanSD());
-    nDelAnom.assign(nresbin,0);
+    ASSERT (slope.size() == anomdistributions.size());
+    for (int id=0;id<slope.size();++id) {
+      anomdistributions[id].SetSlope(slope[id]);
+    }
   }
   // ------------------------------------------------------------
-  void AnomDistribution::Add(const int& mres,
-	   const float& delAnom, const bool& correlAnom)
-  // Store delAnom, & count reflections used for
-  // half-dataset correlations (ie with n+ & n- > 1, correlAnom true)
-  //  for resolution range mres
+  bool AllAnomDistributions::IsAnomalous(const all_controls& controls) const
+  // return true if it appears that any dataset has significant anomalous
+  // At present, anomalous scattering is considered to be present if any one of
+  // the following is true (defaults in brackets):
+  //  1) Anomplot slope > anomslopethreshold (1.3)
+  //  2) CCanom > anomCCthreshold (0.3) in more than anomNbinthreshold bins (2)
+  //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2)
+  //
+  // It should be possible to estimate probabilities, but this will do for now
   {
-    rmsDelAnom[mres].Add(delAnom);
-    // count reflections used for half-dataset correlations
-    if (correlAnom) nDelAnom[mres]++;
+    bool isanomalous = false;
+    for (int id=0;id<ndatasets;id++) { // loop datasets
+      if (anomdistributions[id].Slope() >
+	  controls.anomalouscontrol.anomslopethreshold) {
+	isanomalous = true;
+      }
+      // count resolution bins above threshold for ...
+      int nccanom  = 0; // ... CCanom
+      int nrcranom = 0; // ... RCRanom
+      int nbin = anomdistributions[id].Halfdataset().NresBin();
+      for (int mres=0;mres<nbin;++mres) {
+	if (anomdistributions[id].Halfdataset().CCanom(mres).result().val >
+	    controls.anomalouscontrol.anomCCthreshold) {
+	  nccanom++;
+	}
+	if (anomdistributions[id].Halfdataset().RMScorrelRatio(mres) >
+	    controls.anomalouscontrol.anomRCRthreshold) {
+	  nrcranom++;
+	}
+      }
+      if (nccanom > controls.anomalouscontrol.anomNbinthreshold) {
+	isanomalous = true;
+      }
+    } // end loop datasets
+    return isanomalous;
   }
   // ------------------------------------------------------------
   void AllAnomDistributions::AddCorrelations
@@ -384,5 +416,55 @@ namespace scala {
     return outstring+"\n";
   }
   // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  void AnomDistribution::init(const int& Nresbin,
+			      const PxdName& Dataset_pxd,
+			      std::vector<MeanSD>& RMSdelanom)
+  // Store number of resolution bins & clear arrays
+  {
+    nresbin = Nresbin;
+    rmsDelAnom.assign(nresbin, MeanSD());
+    nDelAnom.assign(nresbin,0);
+    halfdataset.init(Nresbin, Dataset_pxd);
+    halfdataset.StoreRMS(RMSdelanom);  // RMS values for this dataset, resolution bins
+  }
+  // ------------------------------------------------------------
+  void AnomDistribution::Add(const int& mres,
+			     const float& delAnom, const bool& correlAnom,
+			     SelectedObservations& obsplus,
+			     SelectedObservations& obsminus)
+  // Store delAnom, & count reflections used for
+  // half-dataset correlations (ie with n+ & n- > 1, correlAnom true),
+  // and the halfdataset correlations
+  //  for resolution range mres
+  {
+    rmsDelAnom[mres].Add(delAnom);
+    // count reflections used for half-dataset correlations
+    if (correlAnom) {
+      nDelAnom[mres]++;
+      halfdataset.AddAnom(mres, obsplus, obsminus);
+    }
+  }
+  // ------------------------------------------------------------
+  std::string AnomDistribution::formatStatus(const anomalousStatus& anomalousstatus)
+  // static
+  {
+    std::string s;
+    if (anomalousstatus == AnomDistribution::ANOMALOUS_ON_FOUND) {
+      s = "Anomalous flag switched ON in input, strong anomalous signal found";
+    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_ON_ABSENT) {
+      s = "Anomalous flag switched ON in input but the anomalous signal is weak";
+    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_OFF_FOUND) {
+      s = std::string("WARNING WARNING\n")+
+ "Anomalous flag swiched OFF in input but there appears to be a significant anomalous signal";
+    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_OFF_ABSENT) {
+      s = "Anomalous flag switched OFF in input, anomalous signal is weak";
+    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_FOUND) {
+      s = "There appears to be a significant anomalous signal so anomalous flag was switched ON";
+    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_ABSENT) {
+      s = "The anomalous signal appears to be weak so anomalous flag was left OFF";
+    }
+    return s;
+  }
   // ------------------------------------------------------------
 } // namespace scala

@@ -81,10 +81,11 @@ namespace scala {
   // ------------------------------------------------------------
   void AddDelStats(const float& delI, const float& AvI, const int& nmult,
 		   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
-		   const int& mres, const bool& isfull,
+		   const int& mres, const bool& isfull, const int& irun,
 		   std::vector<Rfactor>& rmergeRes,
 		   std::vector<Rfactor>& rmergeResFull,
 		   std::vector<Rfactor>& rmeasRes,
+		   std::vector<std::vector<Rfactor> >& rmeasRun,
 		   std::vector<Rfactor>& rpimRes,
 		   const int& mint,
 		   std::vector<Rfactor>& rmergeInt,
@@ -123,6 +124,7 @@ namespace scala {
       }
       double w = sqrt(an/(an-1.0));
       rmeasRes[mres].add(delI, AvI, w);  // Rmeas
+      rmeasRun[irun][mres].add(delI, AvI, w);  // Rmeas
       w = sqrt(1.0/(an-1.0));
       rpimRes[mres].add(delI, AvI, w);  // Rpim
     }
@@ -373,11 +375,19 @@ namespace scala {
     std::vector<Rfactor> rmergebatch(nbatches);  // Rmerge
     std::vector<MeanSD>  imeanbatch(nbatches);   // Imean (all I+, I-)
     std::vector<MeanSD>  rmsDbatch(nbatches);    // RMS scatter from mean (all I+,I-)
+    std::vector<int>     NumObsBatch(nbatches,0);      // Number of observations
+
     // by resolution
     // within I+/I- sets
     std::vector<Rfactor> rmergeRes(nresbin); // Rmerge
     std::vector<Rfactor> rmergeResFull(nresbin); // Rmerge for fulls
     std::vector<Rfactor> rmeasRes(nresbin);  // Rmeas
+    // Rmeas by run & resolution (not all runs may be in this dataset)
+    int nruns = hkl_list.num_runs();
+    std::vector<std::vector<Rfactor> > rmeasRun(nruns);
+    for (int i=0;i<nruns;++i) {
+      rmeasRun[i].assign(nresbin, Rfactor());
+    }
     std::vector<Rfactor> rpimRes(nresbin);   // Rpim
     // over all I+ & I- sets
     std::vector<Rfactor> rmergeResOv(nresbin); // Rmerge
@@ -453,7 +463,7 @@ namespace scala {
 
     CumulativeCompleteness cumulativecompleteness(nbatches);
 
-    bool Anom = controls.Anomalous;
+    bool Anom = controls.anomalouscontrol.Anomalous;
     summaryStatistics.SetAnom(Anom);
 
     SelectedObservations allobs;     // all I+ and I-
@@ -466,14 +476,16 @@ namespace scala {
     IsigI AvIsig, AvIsigplus, AvIsigminus;
     SDM.ResetRange();  // range of sd correction values
 
+    // For SD analysis
     float sdrej = 5.0;     // for now, FIXME
-    float sdrej2 = 5.0;
-    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
+    float sdrej2 = sdrej;
+    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::KEEP;
+    //    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
     RejectFlags rejflags(sdrej, sdrej2, Rej2policy);
 
     // Count outliers/batch
     std::vector<int> outliercount = CountOutliers(hkl_list, rejectedbatch, rejecteddataset);
-    float maxinvresolsq = 0.0; // actual maximum resolution
+    double maxinvresolsq = 0.0; // actual maximum resolution
     // number of symmetry operators including lattice centering
     float NumSymm = hkl_list.symmetry().Nsym();  
     hkl_list.rewind();
@@ -539,6 +551,7 @@ namespace scala {
 	// Counts for completeness & multiplicity
 	//  Total in sphere allowing for symmetry multiplicity
 	NumRefSphere[mres] += multcy;      // Total unique in sphere
+
 	if (Centric) {
 	  NumCentric[mres]++;
 	} else {
@@ -559,7 +572,8 @@ namespace scala {
       while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all valid observations
 	int batchn = this_obs.Batch();  // batch number
 	int jbatch = hkl_list.batch_serial(batchn); // batch serial
-	bool isfull = (this_obs.PartFlag() == FULL);  // true if fully recorded, false for partial
+	bool isfull = (this_obs.PartFlag() == FULL);  // true if fully recorded, false for partial	
+	NumObsBatch[jbatch] += multcy;              // Number observed (in sphere)
 
 	if (isfull) {
 	  NumObsFull++;
@@ -600,8 +614,8 @@ namespace scala {
 	    // Rmerge etc 
 	    AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull,
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+			mres, isfull, this_obs.run(),
+			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -674,8 +688,8 @@ namespace scala {
 	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull,
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+			mres, isfull, this_obs.run(),
+			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -690,8 +704,8 @@ namespace scala {
 	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull,
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+			mres, isfull, this_obs.run(),
+			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -702,7 +716,7 @@ namespace scala {
       // runs                  nruns
       // full/partial
       if (!Anom || Centric) {
-	// No anomalous, selectedobservations are in allobx1s
+	// No anomalous, selectedobservations are in allobs
 	sdanalysis.AddSelobsDelta2(allobs, mint);
 	allobs.Outliers(rejflags);
 	sdanalysiscore.AddSelobsDelta2(allobs, mint);
@@ -725,7 +739,13 @@ namespace scala {
     std::vector<float> batchanomcompleteness =
       cumulativecompleteness.BatchAnomCompleteness
       (ResRange, hkl_list.symmetry(), hkl_list.Cell());
+    std::vector<float> batchmultiplicity =
+      cumulativecompleteness.BatchMultiplicity
+      (NumObsBatch, ResRange, hkl_list.symmetry(), hkl_list.Cell());
 
+    // Actual maximum invresolsq
+    summaryStatistics.maxinvresolsq = maxinvresolsq;
+    
     // Estimates of "maximum resolution" for each batch, based on MinimumIoverSigma
     std::vector<double> maxresbatch(nbatches);
     double MinimumIoverSigmaBatch = controls.analysis.MinimumBatchIoverSigma();
@@ -778,7 +798,7 @@ namespace scala {
 		       output);
     PrintDeviationsByBatch(dataset_pxd, batches, datasetIndex,
 			   imeanbatch, rmsDbatch, rmergebatch, rmergebatchsmoothed, rejectedbatch,
-			   batchcompleteness, batchanomcompleteness,
+			   batchcompleteness, batchanomcompleteness, batchmultiplicity,
 			   maxresbatch, maxresbatchsmoothed,
 			   MinimumIoverSigmaBatch, controls.analysis.NbatchSmooth(),
 			   ResRange, output);
@@ -801,15 +821,18 @@ namespace scala {
     				biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
 				summaryStatistics, output);
     PrintDeviationsByResolutionOv(dataset_pxd, ResRange,
-				    rmergeRes, rmeasRes, rpimRes,
-				    rmergeResOv, rmeasResOv, rpimResOv,
-				    summaryStatistics, output);
+				  rmergeRes, rmeasRes, rpimRes,
+				  rmergeResOv, rmeasResOv, rpimResOv,
+				  summaryStatistics, output);
     PrintDeviationsByIntensity(dataset_pxd, Irange, rmergeInt, rmeasInt,
 			       rpimInt, imeanInt, rmsDInt, avSdInt, mnIsdInt,
 			       biasInt, biasIInt, output);
     summaryStatistics.StoreRtopI(rmergeInt[NintBin-1]);
+
+    PrintDeviationsByRun(dataset_pxd, ResRange, hkl_list.RunList(), rmeasRun, output);
     
-    PrintCompletenessMultiplicity(dataset_pxd, ResRange, hkl_list.symmetry(), hkl_list.Cell(),
+    PrintCompletenessMultiplicity(dataset_pxd, ResRange,
+				  hkl_list.symmetry(), hkl_list.Cell(),
 				  NumRef, NumObs, NumRefSphere, NumCentric, NumACentric,
 				  NumAnom, NumAnomSphere, SNumAnomPairs,
 				  summaryStatistics, output);

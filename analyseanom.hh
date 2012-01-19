@@ -11,18 +11,40 @@
 
 namespace scala
 {
+  class AnalyseAnom {
+
+  public:
+    AnalyseAnom(){}
+
   // Analyse anomalous differences & adjust anomalous rejection criterion (in controls)
   // Returns mid-slopes of DelAnom normal probability plot for each dataset
-  std::vector<float> AnalyseAnom(const hkl_unmerge_list& hkl_list,
-				 const SDmodel& SDM,
-				 all_controls& controls,
-				 const bool& plot,
-				 phaser_io::Output& output);
+    AnalyseAnom(const hkl_unmerge_list& hkl_list,
+		const SDmodel& SDM,
+		all_controls& controls,
+		const ResoRange& ResRange,
+		const bool& plot,
+		phaser_io::Output& output);
 
-  int AccumulateDelanomNormProb(const SDmodel& SDM,
-				const hkl_unmerge_list& hkl_list,
-				const OutlierControl& outliercontrol,
-				std::vector<NormalProbAnal>& normalprobanal);
+
+    // Returns mid-slopes of DelAnom normal probability plot for each dataset
+    std::vector<float> Slopes() const {return slopes;}
+
+    // for each dataset for each resolution bin
+    std::vector<std::vector<MeanSD> > RmsDelAnom() const {return rmsdelanom;}
+
+
+  private:
+    int ndatasets;
+    std::vector<float> slopes;      // for each dataset
+    int nresbin;                    // number of resolution bins
+    std::vector<std::vector<MeanSD> > rmsdelanom; // for each dataset for each resolution bin
+
+    int AccumulateDelanomNormProb(const SDmodel& SDM,
+				  const hkl_unmerge_list& hkl_list,
+				  const OutlierControl& outliercontrol,
+				  const ResoRange& ResRange,
+				  std::vector<NormalProbAnal>& normalprobanal);
+  };
 }
 
 #endif

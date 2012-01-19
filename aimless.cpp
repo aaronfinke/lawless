@@ -33,7 +33,7 @@
 #endif
 
 #include "version.hh"
-#include "ccp4_program.h"
+#include "ccp4/ccp4_program.h"
 
 using namespace scala;
 using phaser_io::LOGFILE;
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2011/11/16 15:49:18 $";
+  std::string rcsdate = "$Date: 2012/01/19 16:53:18 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -144,7 +144,9 @@ int main(int argc, char* argv[])
     controls.runs.StoreResoByRun(input.GetResoByRun());
 
     // ANOMALOUS ON|OFF
-    controls.Anomalous = input.getANOMALOUS();
+    controls.anomalouscontrol.Anomalous = input.getANOMALOUS();
+    // True if "Anomalous" command given 
+    controls.anomalouscontrol.FlagInput = input.AnomalousFlagInput();
     
     controls.partials = partial_controls(input.getFracLimMin(),
 					 input.getFracLimMax(),
@@ -161,6 +163,8 @@ int main(int argc, char* argv[])
 					 NbatchsmoothDefault,
 					 input.DetectorAnalysis());
 
+    // OutlierControl from input or defaults
+    // Set number of datasets later
     controls.outlierScale = input.GetOutlierControlsScale();
     controls.outlierMerge = input.GetOutlierControlsMerge();
 
@@ -222,6 +226,10 @@ int main(int argc, char* argv[])
 		       hkl_list.cell(),
 		       hkl_list.symmetry().symbol_xHM(),
 		       output);
+
+    // Set number of datasets for anomalous outliers 
+    controls.outlierScale.SetNdatasets(0);  // no anomalous rejections in scaling
+    controls.outlierMerge.SetNdatasets(hkl_list.num_datasets());
 
     bool optimiseCombine = true;
     if (column_selection.IcolFlag() > 0) {
@@ -318,10 +326,15 @@ int main(int argc, char* argv[])
       overallmeankI = ApplyScales(AllScales, hkl_list);
 
       // Restore SD correction
-      SD_model.Restore(input.RestoreFileName(),
-		       hkl_list.RunList());
+      if (!input.SDC_RefineSet()) {
+	SD_model.Restore(input.RestoreFileName(),
+			 hkl_list.RunList());
+      }
       if (FC.OnlyMerge()) {
-	FC.sdoptimise = false;  // no sdoptimisation if restore and onlymerge
+	if (!input.SDC_RefineSet()) {
+	  // no sdoptimisation if restore and onlymerge and SDCORR REFINE not set
+	  FC.sdoptimise = false;
+	}
       }
     } else {
       if (FC.OnlyMerge()) {
@@ -349,10 +362,12 @@ int main(int argc, char* argv[])
       firstSDanalysis = -1;
     }
   
-    controls.AnomalousSDcorr =  controls.Anomalous; // use input flag
+    // By default do SD correction optimisation only within I+/I- sets
+    // in case there is anomalous, unless multiplicity is low
+    controls.anomalouscontrol.AnomalousSDcorr = true;
 
-
-    if (controls.AnomalousSDcorr) {
+    bool lowmultiplicity = false;
+    if (controls.anomalouscontrol.AnomalousSDcorr) {
       // If multiplicity low, combine I+ & I- for SD correction
       // * tried this but didn't always work on bad data
       // Try again with lower threshold
@@ -367,7 +382,8 @@ int main(int argc, char* argv[])
 		      " (below threshold "+
 		      StringUtil::Strip(StringUtil::ftos(MINMULTFORSDCORR,8,1))+
 		      "), so combine I+ and I- for SD correction\n");
-	controls.AnomalousSDcorr = false;
+	controls.anomalouscontrol.AnomalousSDcorr = false;
+	lowmultiplicity = true;
       }
     }
     output.logFlush();
@@ -427,15 +443,16 @@ int main(int argc, char* argv[])
       Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
 				       ResRangeN, NoRings, 0);
 
+      // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
       RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
 		    controls.outlierScale, DummyRogues);
       std::vector<int> nrejs = CountOutliers(hkl_list);
       output.logTabPrintf(0,LOGFILE,
-       	  "Number of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+       	  "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
 			  nrejs[0], nrejs[1], nrejs[2]);
       output.logFlush();
-
+      // -- End 1st outlier rejection
       
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
       output.logTab(0,LOGFILE,
@@ -464,7 +481,19 @@ int main(int argc, char* argv[])
 	firstSDanalysis = +1;
 	output.logFlush();
       }
-    }
+
+      // -- 2nd outlier rejection
+      // Use outlier flags appropriate for scaling
+      RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
+		    controls.outlierScale, DummyRogues);
+      nrejs = CountOutliers(hkl_list);
+      output.logTabPrintf(0,LOGFILE,
+       	  "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+			  nrejs[0], nrejs[1], nrejs[2]);
+      output.logFlush();
+      // -- End 2nd outlier rejection
+
+    }   // end 1st scaling
 
     // ----- Main scaling
     if (FC.mainScale) {
@@ -524,11 +553,15 @@ int main(int argc, char* argv[])
     if (FC.sdoptimise) {
       // Clear all outlier & other status flags (except ObsFlags)
       //  temporary outlier rejection is done in AnalyseSD
+      //    (actually in SumsforSDcorrection in refinesdcorrection.cpp)
       ClearObsStatus(hkl_list);
       // SD analysis: assumes scales have been applied
       // SD corrections are not applied, but SD_model is updated
       //  hkl_list is const
       // NormRes just used for intensity binning
+      // firstSDanalysis = 0  two analyses expected, after rough scaling and main scaling
+      //                 = +1    same, after first analysis
+      //                 = -1 only one analysis expected (onlymerge) ie first & last
       AnalyseSD(SD_model, hkl_list, controls, NormRes, firstSDanalysis, output);
       output.logFlush();
     } else {
@@ -550,15 +583,66 @@ int main(int argc, char* argv[])
     }
 
     firstSDanalysis = +2;
-    // If Anom On:
+
+    AllSummaryStatistics allsummarystatistics;
+
     //   slopes of anomalous normal probability plots for each dataset
     //   Plot ANOMPLOT normal probability plot
     //   Inflate anomalous rejection criterion according to analysis on DelAnom (in controls)
     //  hkl_list is const
-    anomOn = controls.Anomalous;  // from input
-    std::vector<float> anomProbSlopes;
-    anomProbSlopes = AnalyseAnom(hkl_list, SD_model, controls, true, output);
+    anomOn = controls.anomalouscontrol.Anomalous;  // from input
+    ResoRange resrangeanom = ResRange;
+    // For statistics, reset range to go from same "infinite" resolution
+    float lowres = 10000.;
+    resrangeanom.SetRange(lowres, ResRange.ResHigh());
+    resrangeanom.SetNbins(nresbin);
+    AnalyseAnom analysanom(hkl_list, SD_model, controls, resrangeanom, true, output);
+    std::vector<float> anomProbSlopes = analysanom.Slopes();
     output.logFlush();
+
+    // Analyse distribution anomalous differences to get estimate of
+    //  maximum likely values for final statistics
+    //  hkl_list is const
+    AllAnomDistributions allAnomDistributions(hkl_list, SD_model, controls,
+					      analysanom,
+    					      resrangeanom, NormRes);
+    allAnomDistributions.SetSlope(anomProbSlopes);
+    allAnomDistributions.Print(output);
+
+    // Do we really have anomalous?
+    bool anomfound =
+      allAnomDistributions.IsAnomalous(controls); // true if anomalous
+    // Should we change the options?
+    if (input.AnomalousFlagInput()) {
+      // explicit anomalous on or off from input
+      if (controls.anomalouscontrol.Anomalous) { // On
+	if (anomfound) { 
+	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_FOUND);
+	} else {
+	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_ABSENT);
+	}
+      } else { // Off
+	if (anomfound) { 
+	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_FOUND);
+	} else {
+	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_ABSENT);
+	}
+      }
+    } else { // No explicit flag given, set appropriately
+      if (anomfound) { 
+	controls.anomalouscontrol.Anomalous = true;
+	controls.anomalouscontrol.AnomalousSDcorr = true;
+	if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
+	allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_FOUND);
+      } else {
+	controls.anomalouscontrol.Anomalous = false;
+	controls.anomalouscontrol.AnomalousSDcorr = false;
+	allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ABSENT);
+      }
+    }
+    output.logTab(0,LOGFILE,"\n"+
+		  AnomDistribution::formatStatus(allsummarystatistics.AnomStatus())+
+		  "\n");
 
     output.logTab(0,LOGFILE,"\nOutlier analysis\n================\n");
 
@@ -571,7 +655,7 @@ int main(int argc, char* argv[])
 			   runTitle, hkl_list.Srange().max(),
 			   controls.outlierMerge);
     //  hkl_list is updated for status, but SDs are not changed
-    RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
+    RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,
 		  controls.outlierMerge, RoguesList);
     RoguesList.End();
     std::vector<int> nrejs = CountOutliers(hkl_list);
@@ -606,19 +690,6 @@ int main(int argc, char* argv[])
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
 
-    // Analyse distribution anomalous differences to get estimate of
-    //  maximum likely values for final statistics
-    //  hkl_list is const
-
-    ResoRange resrangeanom = ResRange;
-    // For statistics, reset range to go from same "infinite" resolution
-    float lowres = 10000.;
-    resrangeanom.SetRange(lowres, ResRange.ResHigh());
-    AllAnomDistributions allAnomDistributions(hkl_list, SD_model, controls,
-    					      resrangeanom, NormRes);
-    allAnomDistributions.Print(output);
-    AllSummaryStatistics allsummarystatistics;
-
     // Gather & print all statistics
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
       //  hkl_list is const
@@ -632,11 +703,18 @@ int main(int argc, char* argv[])
       // Use same resolution bin width for all datasets
       resrangedataset.SetWidth(ResRange.Width());
 
-      allsummarystatistics.AddSummaryStatistics(
-	 Statistics(AllScales, hkl_list, SD_model, controls, idts,
-		    resrangedataset, NormRes,
-		    allAnomDistributions.Anomdistribution(idts),
-		    anomProbSlopes[idts], output));
+      AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
+      float aslope = anomProbSlopes[idts];
+      SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model, controls, idts,
+					     resrangedataset, NormRes, anomds, aslope, output);
+      allsummarystatistics.AddSummaryStatistics(sumstat);
+
+
+      //      allsummarystatistics.AddSummaryStatistics(
+      //	 Statistics(AllScales, hkl_list, SD_model, controls, idts,
+      //		    resrangedataset, NormRes,
+      //		    allAnomDistributions.Anomdistribution(idts),
+      //		    anomProbSlopes[idts], output));
       bool Result = true;
       if (hkl_list.num_datasets() != 1) {
 	output.logTab(0,LOGFILE,
@@ -650,7 +728,7 @@ int main(int argc, char* argv[])
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,
-					     controls.Anomalous, output);
+				     controls.anomalouscontrol.Anomalous, output);
     }
     output.logTab(0,LOGFILE,
      "\n==============================================================\n");

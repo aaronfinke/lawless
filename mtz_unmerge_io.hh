@@ -20,10 +20,10 @@ using clipper::Message_fatal;
 
 
 // CCP4
-#include "csymlib.h"    // CCP4 symmetry stuff
-#include "ccp4_parser.h"
-#include "ccp4_general.h"
-#include "cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/ccp4_parser.h"
+#include "ccp4/ccp4_general.h"
+#include "ccp4/cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
 
 #include "hkl_datatypes.hh"
 #include "controls.hh"

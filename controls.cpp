@@ -152,48 +152,67 @@ namespace scala
     reject = RejectFlags(6.0, 6.0, RejectFlags::KEEP);
     int ndatasets = 1;
     rejectanom.assign(ndatasets, RejectFlags(9.0, 9.0, RejectFlags::KEEP));
+    anomreject = true;
     emaxtest.init(10.0);
   }
   //------------------------------------------------------------
   OutlierControl::OutlierControl(const int& Ndatasets)
-  // Set defaults
+  // Set defaults, if Ndatasets <= 0 clear anomalous flags
   {
     combine = true;  // default combine
     reject = RejectFlags(6.0, 6.0, RejectFlags::KEEP);
-    int ndatasets = Ndatasets;
-    rejectanom.assign(ndatasets, RejectFlags(9.0, 9.0, RejectFlags::KEEP));
     emaxtest.init(10.0);
+    SetNdatasets(Ndatasets);
   }
   //------------------------------------------------------------
   void OutlierControl::SetNdatasets(const int& Ndatasets)
-  // Set defaults
+  // Copy rejectanom from 1st dataset or set if no first dataset
+  // if Ndatasets <= 0 clear anomalous flags
   {
-    rejectanom.assign(Ndatasets, RejectFlags(9.0, 9.0, RejectFlags::KEEP));
+    if (Ndatasets <= 0) {
+      anomreject = false;
+      rejectanom.clear();
+      return;
+    }
+    RejectFlags rejflags(9.0, 9.0, RejectFlags::KEEP);
+    if (rejectanom.size() > 0) {
+      rejflags = rejectanom.at(0);
+    }
+    rejectanom.assign(Ndatasets, rejflags);
+    anomreject = true;
   }
   //------------------------------------------------------------
   // rejection criteria, within I+, I-  or between I+ & I-
-  RejectFlags& OutlierControl::Reject(const AnomalousClass& selclass, const int& dts_index)
+  void OutlierControl::SetReject(const RejectFlags& flags,
+				 const AnomalousClass& selclass, const int& dts_index)
   // Set
-  // dts_index may be = -1 for all datasets, in which case use 0
+  // if selclass == BOTH, dts_index may be = -1 for all datasets, in which case set all
   {
-    if (selclass == BOTH) {return rejectanom.at(Max(0,dts_index));}
-    else {return reject;}
+    if (selclass == BOTH) {
+      if (dts_index >= 0) {
+	rejectanom.at(dts_index) = flags;
+      } else {
+	int ndts = rejectanom.size();
+	rejectanom.assign(ndts, flags); // set all datasets
+      }
+    } else {
+      reject = flags;
+    }
+    anomreject = false;
+    for (size_t id=0;id<rejectanom.size();++id) {
+      if (rejectanom[id].sdrej > 0.0) anomreject = true;
+    }
   }
   //------------------------------------------------------------
   RejectFlags OutlierControl::Reject(const AnomalousClass& selclass, const int& dts_index) const
   // Get
   {
-    if (selclass == BOTH) {return rejectanom.at(Max(0,dts_index));}
-    else {return reject;}
-  }
-  //------------------------------------------------------------
-  bool OutlierControl::Anom() const
-  // return true if rejection is set between I+ & I- for all datasets
-  {
-    for (size_t id=0;id<rejectanom.size();++id) {
-      if (rejectanom[id].sdrej <= 0.0) return false;
-    }
-    return true;
+    if (selclass == BOTH) {
+      if (dts_index > int(rejectanom.size())-1) {
+	std::cout << "OutlierControl::Reject " << dts_index <<" " << rejectanom.size() <<"\n"; //^
+      }
+      return rejectanom.at(Max(0,dts_index));
+    } else {return reject;}
   }
   //------------------------------------------------------------
   void OutlierControl::SetEmax(const float& Emax) //!< set Emax (acentric)
@@ -251,6 +270,23 @@ namespace scala
      "Number of processors for refinement stages will be determined from number of observations\n";
     }
     return s;
+  }
+  //------------------------------------------------------------
+  AnomalousControl::AnomalousControl()
+  // Set defaults FIXME allow user input
+  {
+    Anomalous = false;   // true if "anomalous on"
+    AnomalousSDcorr = false;   // true to separate I+ & I- for SD correction
+  
+    // At present, anomalous scattering is considered to be present if any one of
+    // the following is true (defaults in brackets):
+    //  1) Anomplot slope > anomslopethreshold (1.3)
+    //  2) CCanom > anomCCthreshold (0.3) in more than anomNbinthreshold bins (2)
+    //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2)
+    anomslopethreshold = 1.3;
+    anomCCthreshold = 0.3;
+    anomRCRthreshold = 1.3;
+    anomNbinthreshold = 2;
   }
   //------------------------------------------------------------
 }

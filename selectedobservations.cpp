@@ -1,4 +1,4 @@
- // selectedobservations.cpp
+// selectedobservations.cpp
 //
 //  Class to store and work with a subset of observations belonging to a reflection
 //  eg from one dataset, or I+, I-
@@ -47,7 +47,7 @@ namespace scala
     part.assign(nobs,0);
     Nused = 0;
 
-    Refl.reset();
+    Refl.reset(); // reset obs count
     // loop accepted observations
     while ((index = Refl.next_observation(this_obs)) >= 0) {
       if (datasetIndex < 0 ||
@@ -325,8 +325,13 @@ namespace scala
 	if (use[i]) {
 	  // <I>(others)  ie excluding this observation
 	  //  and its variance
-	  ASSERT ((sumwg2 - wg2[i]) != 0.0);
-	  varothers = 1./(sumwg2 - wg2[i]);
+	  ////	  ASSERT ((sumwg2 - wg2[i]) != 0.0);
+	  const double MINWG2 = 1.0e-6;
+	  if ((sumwg2 - wg2[i]) > MINWG2) {
+	    varothers = 1./(sumwg2 - wg2[i]);
+	  } else { // trap very small wg2 for rounding errors
+	    varothers = 1.0/MINWG2;
+	  }
 	  g = this_ref->get_observation(i).Gscale();
 	  mnothers[i].I() = g * (sumwgI - wgI[i]) * varothers;
 	  ASSERT (varothers >= 0.0);
@@ -360,6 +365,26 @@ namespace scala
     return delta2;
   }
   // ------------------------------------------------------------
+  std::vector<float> SelectedObservations::Delta2scalewt()
+  // List of deviations delta2 (ie delI/sigma(I) ) where delI
+  //  is difference from mean of all observations, scale-weighted
+  //   returns delta2(NobsRefl), unused slots set = 0.0 ie not closed down
+  //   delta2.size() = total number of observations in reflection
+  {
+    std::vector<float> delta2(nobs,0.0);
+    if (Nused <= 1) return delta2;
+    IsigI avIswt = AverageScaleWt();
+    float fac = sqrt(float(Nused)/(Nused-1));
+    for (int i=0;i<nobs;i++) {
+      if (use[i]) {
+	float delI = (this_ref->get_observation(i).kI() - avIswt.I());
+	float sigmai = this_ref->get_observation(i).ksigI();
+	delta2[i] = fac * delI/sigmai;
+      }
+    }
+    return delta2;
+  }
+  // ------------------------------------------------------------
   // List of delI (scaled)
   //   returns delI(nobs), unused slots set = 0.0 ie not closed down
   std::vector<float> SelectedObservations::DelI()
@@ -373,6 +398,22 @@ namespace scala
 	if (use[i]) {
 	  delI[i] = (this_ref->get_observation(i).kI() - avIsigI.I());
 	}
+      }
+    }
+    return delI;
+  }
+  // ------------------------------------------------------------
+  // List of delI (scaled), scale_weighted <I>
+  //   returns delI(nobs), unused slots set = 0.0 ie not closed down
+  std::vector<float> SelectedObservations::DelIscalewt()
+  {
+    std::vector<float> delI = std::vector<float>(nobs,0.0);
+    if (Nused <= 1) return delI;
+    IsigI avIswt = AverageScaleWt();
+    // we need at least 2 observations
+    for (int i=0;i<nobs;i++) {
+      if (use[i]) {
+	delI[i] = (this_ref->get_observation(i).kI() - avIswt.I());
       }
     }
     return delI;

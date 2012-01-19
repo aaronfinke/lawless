@@ -9,7 +9,7 @@ using clipper::Message;
 using clipper::Message_fatal;
 using clipper::Message_warn;
 
-#include "csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
 #include "rotation.hh"
 #include "hkl_datatypes.hh"
@@ -625,7 +625,9 @@ namespace scala
     std::vector<Dtype> sumcell(6,0.0);
     for (size_t k=0; k<cells.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
-	for (int i=0; i<6; i++) {sumcell[i] += cells[k].UnitCell()[i];}
+	for (int i=0; i<6; i++) {
+	  sumcell[i] += cells[k].UnitCell()[i];
+	}
       }
     }
     for (int i=0; i<6; i++) {sumcell[i] /= nc;}

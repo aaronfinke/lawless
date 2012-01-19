@@ -63,6 +63,8 @@ namespace scala {
     double HighProb() const {return High;}
     double LowProb() const {return Low;}
 
+    virtual void SetPower(const double& power) {} // dummy
+
   protected:
     // Returns v mapped on to range 0->1
     double nmap(const double& v) const

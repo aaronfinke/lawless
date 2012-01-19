@@ -34,7 +34,7 @@ namespace scala {
 				       const hkl_unmerge_list& hkl_list,
 				       const all_controls& controls,
 				       IntensityBin& Irange,
-				       const double& tolerance,
+				       const double& tolerance, const double& rtolerance,
 				       const int&  max_cycles,
 				       phaser_io::Output& output);
   //---------------------------------------------------------------

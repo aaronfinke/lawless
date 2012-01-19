@@ -67,7 +67,7 @@ private:
     void init(const hkl_symmetry& ssymmetry,
 	      const Scell& cscell);
 
-    //! initialise from intensity list
+    //! initialise from intensity list (NB returned scaled)
     void init(const hkl_symmetry& ssymmetry,
 	      const Scell& cscell,
 	      clipper::HKL_data<clipper::data32::I_sigI>& isigi);
@@ -95,6 +95,9 @@ private:
 
     //! return true if first direction is plane perpendicular to 3rd direction
     bool IsPlane() const {return abplane;}
+
+    //! return true if cubic
+    bool IsCubic() const {return cubic;}
 
     //! format types of analyses done
     std::string formattype() const;

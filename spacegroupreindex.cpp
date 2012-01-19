@@ -52,11 +52,11 @@ namespace scala {
     // We want the transformation from HKLIN to input
     ReindexOp reindex = CCtbxSym::SetReindexOp(ChB_ref_to.inverse() * ChB_ref_from);
     //^
-    ReindexOp reindex_from = CCtbxSym::SetReindexOp(ChB_ref_from);
-    ReindexOp reindex_to = CCtbxSym::SetReindexOp(ChB_ref_to);
-    //^    std::cout << "[H]from " << reindex_from.as_hkl() << "\n";
-    //^    std::cout << "[H]to   " << reindex_to.as_hkl() << "\n";
-
+    //    ReindexOp reindex_from = CCtbxSym::SetReindexOp(ChB_ref_from);
+    //    ReindexOp reindex_to = CCtbxSym::SetReindexOp(ChB_ref_to);
+    //    std::cout << "[H]from " << reindex_from.as_hkl() << "\n";
+    //    std::cout << "[H]to   " << reindex_to.as_hkl() << "\n";
+    //^
 
     return reindex;
   }
@@ -64,12 +64,14 @@ namespace scala {
   bool SpacegroupReindex(const GlobalControls& GC,
 			 const hkl_symmetry& HKLINsymm, const Scell& cell,
 			 ReindexOp& Reindex, phaser_io::Output& output)
-// If SPACEGROUP is specified but no REINDEX operator, generate appropriate reindexing
-// to convert from input HKLIN file HKLINsymm to desired spacegroup
-// Probably really only useful (or indeed valid) for C2 <-> I2 & H3<->R3
-//
-// Returns true if Reindex is set
-// fails if the symmetries do not belong to same lattice group
+  // If SPACEGROUP is specified but no REINDEX operator, generate appropriate reindexing
+  // to convert from input HKLIN file HKLINsymm to desired spacegroup
+  // Probably really only useful (or indeed valid) for C2 <-> I2 & H3<->R3, or P222 groups
+  //
+  // input cell corresponds to HKLINsymm
+  //
+  // Returns true if Reindex is set
+  // fails if the symmetries do not belong to same lattice group
 {
   if (GC.Spacegroup() == "" ||  GC.Spacegroup() == "HKLIN" || GC.IsReindexSet()) return false;
 
@@ -85,6 +87,7 @@ namespace scala {
   }
 
   try {
+    // Get reindex operator
     Reindex = SpacegroupReindexOp(HKLIN_SGname, Input_SGname);
   }
   catch (Message_warn& warn) {
@@ -95,12 +98,24 @@ namespace scala {
       Message::message(Message_fatal(message));
   }
 
-  CCtbxSym::PointGroup PG(Input_SGname);
-  PG.SetCell(cell.UnitCell(), Reindex, GC.AllowI2());
+  int AllowI2 =  GC.AllowI2();
+  if (NewSymm.lattice_type() != 'I') {
+    AllowI2 = 0;  // don't allow I lattice if we've asked for C2
+  }
 
-  ///  Reindex = PG.RefSGreindex();  /// No!
+  if (NewSymm.lattice_type() != 'R') {  // Don't reduce to reference group for R lattice
+    // Get reindex operator from required group Input_SGname to "reference" seting
+    CCtbxSym::PointGroup PG(Input_SGname);
+    Scell scell = cell.change_basis(Reindex);
+    PG.SetCell(scell.UnitCell(), ReindexOp(), AllowI2);
+    ReindexOp newreindex = PG.RefSGreindex(); // reindex cell -> best
+    //^     std::cout << "Reindex " << Reindex.as_hkl() <<"\n"; //^
+    //^     std::cout << "newreindex " << newreindex.as_hkl() <<"\n"; //^
+    Reindex = Reindex * newreindex;
+  }
+
   output.logTab(0,LOGFILE,
-		"Reindexing data with operator "+Reindex.as_hkl()+
+		"\nReindexing data with operator "+Reindex.as_hkl()+
 		" from space group "+HKLIN_SGname+" to "+Input_SGname);
 
   return true;

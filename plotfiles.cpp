@@ -129,12 +129,9 @@ void NormalProbPlot::NewLine(const std::string& legend)
   //  Colours: (maximum 15 in xmgr) 6 & 7 are not very good
   int lcol[] = {1,2,3,4,5,8,9,10,11,12,13,14,15,6,7};
   std::vector<int> lcolor(lcol, lcol+15);
-  int maxlin = 15;
-  if (Nlines >= maxlin) {
-    Message::message(Message_fatal
-		     ("NormalProbPlot::NewLine: too many lines"));
-  }
-  xmgrplot.Line(legend, lcolor[Nlines], +2, false);
+  int maxlin = lcolor.size();
+  int icol = Nlines%maxlin;  // wrap round after maxlin
+  xmgrplot.Line(legend, lcolor[icol], +2, false);
 }
 
 //--------------------------------------------------------------

@@ -296,6 +296,70 @@ std::string TableGraph::Line(const int nc, ...) const
 	sfld.assign(buf, fields[i].fieldwidth);
       }
     }
+    if (sfld[0] != ' ') {
+      sfld = ' ' + sfld;
+    }
+    line += sfld;
+  }
+  va_end(arglist);
+  line += "\n";
+  return line;
+}
+//--------------------------------------------------------------
+std::string TableGraph::Line(const int nc,
+			     const std::vector<double>& val, ...) const
+// Write nc numbers, then vector val
+// using predefined format, replacing zeroes by "-"
+// This will probably fail if the number of arguments doesn't match
+// the format
+{
+  va_list arglist;
+  va_start(arglist, val);
+  static const std::size_t buf_size = 8192;
+  char buf[buf_size];
+  buf[buf_size-1] = '\0';
+  int iv;
+  float fv;
+  std::string sfld;
+  line = "";
+  int nval = val.size();  // length of vector
+  int ntot = nc + nval;
+  ASSERT (ncolumns == ntot);
+  int k = 0;
+
+  for (int i=0;i<ntot;++i) {
+    sfld.assign(fields[i].fieldwidth,' ');
+    // What type?
+    if (fields[i].type == 0) {
+      // Integer
+      if (i >= nc) { // take from vector
+	iv = Nint(val[k++]);
+      } else {
+	iv = va_arg(arglist, int);
+      }
+      if (iv == 0 && fields[i].dashpos >= 0) {
+	sfld[fields[i].dashpos] = '-';
+      } else {
+	sprintf(buf, fields[i].fmt.c_str(), iv);
+	sfld.assign(buf, fields[i].fieldwidth);
+      }
+    } else {
+      // real
+      if (i >= nc) { // take from vector
+	fv = val[k++];
+      } else {
+	fv = va_arg(arglist, double);
+      }
+      if (fv == 0.0 && fields[i].dashpos >= 0) {
+	sfld[fields[i].dashpos] = '-';
+      } else {
+	sprintf(buf, fields[i].fmt.c_str(), fv);
+	sfld.assign(buf, fields[i].fieldwidth);
+      }
+    }
+    if (sfld[0] != ' ') {
+      sfld = ' ' + sfld;
+    }
     line += sfld;
   }
   va_end(arglist);
@@ -322,6 +386,9 @@ void TableGraph::AddToLine(const int& iv)
     sprintf(buf, fields[kfield].fmt.c_str(), iv);
     sfld.assign(buf, fields[kfield].fieldwidth);
   }
+  if (sfld[0] != ' ') {
+    sfld = ' ' + sfld;
+  }
   line += sfld;
   kfield++;
 }
@@ -340,6 +407,9 @@ void TableGraph::AddToLine(const float& v)
     char buf[256];
     sprintf(buf, fields[kfield].fmt.c_str(), v);
     sfld.assign(buf, fields[kfield].fieldwidth);
+  }
+  if (sfld[0] != ' ') {
+    sfld = ' ' + sfld;
   }
   line += sfld;
   kfield++;

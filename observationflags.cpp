@@ -241,6 +241,14 @@ namespace scala
 //--------------------------------------------------------------
   const unsigned int ObservationStatus::wordmask;  //  = 0xFFFF
 //--------------------------------------------------------------
+  // true is OK or outlier or > Emax (ie suitable for Rogues file)
+  bool ObservationStatus::IsOKforRogues() const {
+    if (bitflags == 0) return true;
+    const unsigned int ROGUES_FLAG =
+      OBSSTAT_OUTLIER & OBSSTAT_OUTLIERANOM & OBSSTAT_EMAX &
+      OBSSTAT_STRONG & OBSSTAT_WEAK;
+    return (bitflags & ROGUES_FLAG) == 0;
+  }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 }

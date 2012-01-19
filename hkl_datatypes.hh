@@ -21,8 +21,8 @@ typedef clipper::Vec3<float> FVect3;
 typedef clipper::Mat33<float> FMat33;
 typedef clipper::Vec3<int> IVect3;
 
-#include "cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
-#include "csymlib.h"    // CCP4 symmetry stuff
+#include "ccp4/cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
+#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 #include "matvec_utils.hh"  // Matrix & vector utilities
 #include "util.hh"
 #include "range.hh"

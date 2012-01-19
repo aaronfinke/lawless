@@ -28,14 +28,16 @@ namespace phaser_io {
     virtual ~ANOMALOUS() {}
     Token_value parse(std::istringstream&);
 
-
     void setANOMALOUS(const bool& OnOff=true) {anomalous = OnOff;}
     bool getANOMALOUS() const {return anomalous;}
+    // return true if the anomalous flag was explicitly given
+    bool AnomalousFlagInput() const {return given;}
+
     void analyse(){}
 
   private:
     bool anomalous;
-
+    bool given;      // true if ON or OFF were given
   };
   //--------------------------------------------------------------
   class SCALES: public InputBase, virtual public CCP4base
@@ -389,6 +391,8 @@ namespace phaser_io {
 
     //! return true if parameters should be refined
     bool SDC_Refine() const {return refine;}
+    //! return true if SDC REFINE is explicitly set
+    bool SDC_RefineSet() const {return refine_set;}
     //! return true if the same values should be used for all runs
     bool SDC_AllRunsSame() const {return allsame;}
     //! return true if fixed SdB = 0.0

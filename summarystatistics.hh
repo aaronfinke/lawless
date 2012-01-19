@@ -12,6 +12,7 @@
 #include "score_datatypes.hh"
 #include "Output.hh"
 #include "resolutionlimit.hh"
+#include "anomdistribution.hh"
 
 namespace scala {
   class SummaryStatistics
@@ -20,6 +21,7 @@ namespace scala {
   {
   public:
     SummaryStatistics():Anom(false){}
+
     void SetAnom(const bool& anom) {Anom = anom;}
 
     // store PXD name
@@ -138,6 +140,8 @@ namespace scala {
     // Resolution limit estimates
     ResolutionLimit overallresolimitCC;   // overall, from half-dataset CCs
     ResolutionLimit overallresolimitIsig; // overall, from Mn(I/sd)
+    // Actual maximum resolution
+    double maxinvresolsq;
     // anisotropic, from half-dataset CCs
     std::vector<ResolutionLimit> anisoresolimitCC;
     // anisotropic, from Mn(I/sd)
@@ -163,6 +167,12 @@ namespace scala {
     //! store statistics for one dataset
     void AddSummaryStatistics(const SummaryStatistics& summarystatistics);
 
+    //! store anomalous status
+    void SetAnomStatus(const AnomDistribution::anomalousStatus& Anomstatus) {anomstatus = Anomstatus;}
+    //! return anomalous status
+    AnomDistribution::anomalousStatus AnomStatus() const {return anomstatus;}
+
+
     //! print the final summary table for all datasets as RESULT if Result true
     void PrintSummaryTable(const bool& Result,
 			   const bool& Anom, phaser_io::Output& output);
@@ -172,6 +182,7 @@ namespace scala {
 
   private:
     std::vector<SummaryStatistics> allsummarystatistics;
+    AnomDistribution::anomalousStatus anomstatus;         // anomalous status
   };
 }  // namespace scala
 #endif

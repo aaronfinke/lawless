@@ -38,6 +38,8 @@ namespace scala
     double SDb() const {return sdb;} // get SDb
     double SDadd() const {return sdadd;} // get SDadd
 
+    void SetSDadd(const double& SDadd) {sdadd = SDadd;} // set SDadd
+
     // Correct sigma
     // sigma  uncorrected sigma(Ihl)
     // gscale inverse scale for Ihl

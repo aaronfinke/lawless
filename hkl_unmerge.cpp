@@ -1113,6 +1113,9 @@ namespace scala {
     Run ThisRun;
     int PreviousBatNum = -1;
     float PreviousPhi = 0.0;
+    clipper::Rotation PreviousUinv;
+    // Limit for monitoring large orientation change, 2 degrees
+    double rotlim = clipper::Util::d2rad(3.0);
     float phioffset;
     double tolerance = 0.01;
     int offset = 0;
@@ -1142,7 +1145,7 @@ namespace scala {
 	  // if time == phi offset
 	  batches[ib].OffsetTime(phioffset);
 	}
-       } else {
+      } else { // not 1st batch
 	// Compare this batch with last one
 	bool newgroup = false;
 	// Conditions for being in the same group (run):
@@ -1175,6 +1178,11 @@ namespace scala {
 	      }
 	    }
 	  }
+	}
+	// Check for large change in orientation
+	double rot = (clipper::Rotation(batch(ib).Umat()) * PreviousUinv).abs_angle();
+	if (rot > rotlim) {
+	  newgroup = true;
 	}
 	if (newgroup) {
 	  //^
@@ -1217,7 +1225,7 @@ namespace scala {
 	  ASSERT (offset == batch(ib).BatchNumberOffset());
 	  //^		ASSERT (filenum == batch(ib).FileNumber());
 	}
-      }
+      } // not 1st batch
       // Add batch to run even if not accepted
       ThisRun.AddBatch(batch(ib).num(), batch(ib).Accepted());
       if (batch(ib).Accepted()) {
@@ -1230,6 +1238,7 @@ namespace scala {
       }
       PreviousBatNum = batch(ib).num();
       PreviousPhi = batch(ib).Phi2();
+      PreviousUinv = clipper::Rotation(batch(ib).Umat().inverse());
       delPhi =  batch(ib).Phi2() - batch(ib).Phi1();
       // Store run index in batch: this = current size of runlist
       batches[ib].SetRunIndex(runlist.size());
@@ -1455,7 +1464,7 @@ namespace scala {
 	runlist[irun].StoreResoRange(resobyrun[i].second.MinRange(ResolutionRange));
       }  // end loop specified limits
       // If resolution ranges are defined for all runs, then reset overall limit to maximum range
-      if (resobyrun.size() == num_runs()) {
+      if (int(resobyrun.size()) == num_runs()) {
 	ResoLimRange = maxrange;
       }
     }
@@ -1516,6 +1525,8 @@ namespace scala {
 	      runlist[irun].SetValidOrientation(true);
 	    } else {
 	      // test for change of orientation
+	      // Note that this shouldn't happen after automatic run generation, as
+	      // change of orientation should change run
 	      double rot = (clipper::Rotation(batch.Umat()) * U0inv).abs_angle();
 	      if (rot > rotlim) {
 		Message::message(Message_warn

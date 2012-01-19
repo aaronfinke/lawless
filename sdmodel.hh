@@ -102,10 +102,16 @@ namespace scala
     void UpdateFactor(const int& RunIndex,const bool& copy,
 		      const float& UpdateFull, const float& UpdatePartial);
 
+    //! Reset SDadd for all runs
+    void SetSDadd(const double& SDadd);
+
     //! Apply appropriate SD correction to all valid observations in reflection
     //! Return vector of uncorrected sigmas, for all observations,
     //!  even unselected ones
     std::vector<float> CorrectReflection(reflection& Ref) const;
+
+    //! Apply appropriate SD correction to all observations in reflection, for ROGUES
+    void CorrectAllReflection(reflection& Ref) const;
 
     //! Return overall minimum & maximum values
     void GetSDcorrectionRanges(float& minSDcorrFulls, float& maxSDcorrFulls,
@@ -126,6 +132,10 @@ namespace scala
     // each element is vector of elements for each parameter
     //  elements for each parameter are d(delta(iobs))/dp(k)
     std::vector <std::vector<double> > GetDerivatives
+    (SelectedObservations& Selobs,
+     const std::vector<float>& sigmaI) const;
+    // scale-weighted <I>
+    std::vector <std::vector<double> > GetDerivativesscalewt
     (SelectedObservations& Selobs,
      const std::vector<float>& sigmaI) const;
 

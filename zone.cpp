@@ -363,10 +363,10 @@ namespace scala
     // Unit vector
     clipper::Vec3<double> v1 = v.unit();
     // Find smallest non-zero element
-    double small = 1.0;
+    double smallv = 1.0;
     for (int i=0;i<3;i++)
-      {if (std::abs(v1[i]) > 0.001) {small = Min(small, std::abs(v1[i]));}}
-    double sc = 1./small;
+      {if (std::abs(v1[i]) > 0.001) {smallv = Min(smallv, std::abs(v1[i]));}}
+    double sc = 1./smallv;
     for (int i=0;i<3;i++)  {v1[i] *= sc;}
     bool integral = true;
     for (int i=0;i<3;i++)  

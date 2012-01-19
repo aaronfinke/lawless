@@ -4,14 +4,21 @@
 #include "halfdataset.hh"
 #include "file_util.hh"
 #include "plotfiles.hh"
+#include "anomdistribution.hh"
 
 #define ASSERT assert
 
 namespace scala {
   // ------------------------------------------------------------
   HalfDataset::HalfDataset(const int& NresBins, const PxdName& Dataset_pxd)
-    : dataset_pxd(Dataset_pxd)
+    : iscorrelplot(false)
   {
+    init(NresBins, Dataset_pxd);
+  }
+  // ------------------------------------------------------------
+  void HalfDataset::init(const int& NresBins, const PxdName& Dataset_pxd)
+  {
+    dataset_pxd = Dataset_pxd;
     nresbin = NresBins;
     ccanomreso.resize(nresbin);
     ccanomresoCen.resize(nresbin);
@@ -51,6 +58,18 @@ namespace scala {
     correlplot.init("DelAnom/RMS scatter plot",
 		    dataset_pxd.format(), nresbin,
 		    rmsdelanomOverall, nAnomPairs);
+    iscorrelplot = true;
+  }
+  // ------------------------------------------------------------
+  void HalfDataset::StoreRMS(std::vector<MeanSD>& RMSdelanom)
+  {
+    ASSERT (int(RMSdelanom.size()) == nresbin);
+    rmsdelanom.resize(nresbin);
+    MeanSD rmsOverall;
+    for (int i=0;i<nresbin;++i) {
+      rmsdelanom[i] = RMSdelanom[i].SD();
+      rmsOverall += RMSdelanom[i];
+    }    
   }
   // ------------------------------------------------------------
   void HalfDataset::AddMean(const int& mres, SelectedObservations& allobs)
@@ -101,7 +120,9 @@ namespace scala {
 	rmsCorrel[mres].Add(cossin45*(del1+del2));
 	rmsError[mres].Add(cossin45*(del1-del2));
 	// Add point for correlation plot, with sampling if necessary
-	correlplot.AddPoint(mres, del1, del2);
+	if (iscorrelplot) {
+	  correlplot.AddPoint(mres, del1, del2);
+	}
       }
     }
   }
@@ -175,9 +196,11 @@ namespace scala {
   void HalfDataset::PlotCorrel() const
   // plot stuff
   {
-    FILE* correlplotfile = OpenFile("CORRELPLOT", true);
-    correlplot.Plot(correlplotfile);
-    fclose (correlplotfile);
+    if (iscorrelplot) {
+      FILE* correlplotfile = OpenFile("CORRELPLOT", true);
+      correlplot.Plot(correlplotfile);
+      fclose (correlplotfile);
+    }
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAniso(const int& mres, const int& jaxis,

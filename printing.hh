@@ -47,6 +47,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 			    const std::vector<int>& rejectedbatch,
 			    const std::vector<float>& batchcompleteness,
 			    const std::vector<float>& batchanomcompleteness,
+			    const std::vector<float>& batchmultiplicity,
 			    const std::vector<double>& maxresbatch,
 			    const std::vector<double>& maxresbatchsmoothed,
 			    const double& MinimumIoverSigma,
@@ -69,6 +70,12 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 const double& MinimumIoverSigma,
 				 SummaryStatistics& summarystatistics,
 				 phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintDeviationsByRun(const PxdName& dataset_pxd,
+			  const ResoRange& ResRange,
+			  const std::vector<Run>& runlist,
+			  std::vector<std::vector<Rfactor> >& rmeasRun,
+			  phaser_io::Output& output);
 //--------------------------------------------------------------
 // Statistics against overall mean I+- (only if ANOMALOUS ON)
 void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,

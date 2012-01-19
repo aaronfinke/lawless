@@ -8,22 +8,28 @@
 #include "selectedobservations.hh"
 #include "score_datatypes.hh"
 #include "plotfiles.hh"
-#include "anomdistribution.hh"
+///#include "anomdistribution.hh"
 #include "resolutionlimit.hh"
 
 namespace scala {
+
+  class AnomDistribution;
 
   // ------------------------------------------------------------
   class HalfDataset {
     // Half-datasets correlation scores etc
   public:
-    HalfDataset(){} 
+    HalfDataset() : iscorrelplot(false) {} 
     HalfDataset(const int& NresBins, const PxdName& Dataset_pxd);
+
+    void init(const int& NresBins, const PxdName& Dataset_pxd);
 
     // Store relevant anomalous statistics
     // Store RMS DelAnom for each resolution bin
     //  & and number of reflections with 2 delAnom
     void StoreAnomStats(const AnomDistribution& anomDistribution);
+
+    void StoreRMS(std::vector<MeanSD>& RMSdelanom);
 
     // Add into sums, for Imean
     void AddMean(const int& mres, SelectedObservations& allobs);
@@ -107,6 +113,7 @@ namespace scala {
     std::vector<MeanSD> rmsErrorCen;   // cos45 * (Del1 - Del2)
 
     CorrelPlot correlplot;
+    bool iscorrelplot;
 
     // For anisotropy analysis
     // outer: cone axis 0-2 ; inner, resolution bins

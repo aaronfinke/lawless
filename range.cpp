@@ -247,6 +247,7 @@ namespace scala
     Nbin = NumBin;
     Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
     set = true;
+    delta_sSqr = (sSqrmax-sSqrmin)/float(Nbin);
   }
   //--------------------------------------------------------------
   void  ResoRange::init()
@@ -262,6 +263,7 @@ namespace scala
   
     // Overall minimum & maximum
     Nbin = Min(Max(n, MinNbin), MaxNbin);
+    delta_sSqr = (sSqrmax-sSqrmin)/float(Nbin);
     Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
     set = true;
   }
@@ -363,6 +365,21 @@ namespace scala
       return other;  // if not set
     }
   }
+  //--------------------------------------------------------------
+  std::string ResoRange::format() const
+  {
+    std::string s = "Resorange\n";
+    s += Range::format();
+    s += "LowReso, HiReso "+clipper::String(LowReso)+" "+clipper::String(HiReso)+"\n";
+    s += "sSqrmin, sSqrmaxs "+clipper::String(sSqrmin)+" "+clipper::String(sSqrmax)+"\n";
+
+    s +=  "MinNbin, MaxNbin "+clipper::String(MinNbin)+" "+clipper::String(MaxNbin)+"\n";
+    s +=  "MinNrefBin, MaxNrefBin "+clipper::String(MinNrefBin)+" "+clipper::String(MaxNrefBin)+"\n";
+    s += "Nobservations "+clipper::String(Nobservations)+"\n";
+    s += "delta_sSqr "+clipper::String(delta_sSqr)+"\n";
+    return s;
+  }
+  //--------------------------------------------------------------
   //--------------------------------------------------------------
   IntRange::IntRange() {clear();}
   //--------------------------------------------------------------

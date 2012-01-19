@@ -92,7 +92,7 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     //  1) triclinic, monoclinic: directions come from the eigenvectors of
     //     the orthogonal anisotropic Uorth tensor. For monoclinc, the 2nd one
     //     is along b* (k)
-    //  2) orthorhombic: driections are along a*, b*, c*
+    //  2) orthorhombic: directions are along a*, b*, c*
     //  3) trigonal, hexagonal, tetragonal, rhombohedral (H setting):
     //     one direction is along c*, the other "direction" is the a* b* plane
     //  4) cubic: all directions are equivalent, no anisotropy

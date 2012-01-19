@@ -23,20 +23,20 @@
 namespace scala {
 // ---------------------------------------------------------
 // Refine SD correction model using LSQ minimiser for each "bin class" separately
-SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
-			       const hkl_unmerge_list& hkl_list,
-			       const all_controls& controls,
-			       IntensityBin& irange,
-			       const double& tolerance,
-			       const int&  max_cycles,
-			       phaser_io::Output& output)
+  SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
+				       const hkl_unmerge_list& hkl_list,
+				       const all_controls& controls,
+				       IntensityBin& irange,
+				       const double& tolerance, const double& rtolerance,
+				       const int&  max_cycles,
+				       phaser_io::Output& output)
 {
   //^  std::cout << "SDM start: " << SDM.format() <<"\n"; //^
 
-  int min_cycles = Min(max_cycles, 3); // at least 3 cycles unless < max
+  int min_cycles = Min(max_cycles, 4); // at least 4 cycles unless < max
   double lastR = -1.0;
-  const double DIFFTOLERANCE = 0.01; // tolerance on change of target residual 
-  std::vector<double> lastsdmparams = SDM.GetParameters();
+  double bestR = 10000.0;
+  std::vector<double> bestsdmparams = SDM.GetParameters();
 
   output.logTab(0,LOGFILE,"\n");
   SDanalysis sdanal;
@@ -46,13 +46,18 @@ SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
     damp = 0.05;
   }
   output.logTabPrintf(0,LOGFILE,"Damping factor: %5.3f\n", damp);
+  // print information about parameter restraints
+  output.logTab(0,LOGFILE, SDM.formatTie());
+ 
 
-  output.logTab(0,LOGFILE, SDM.formatTie()); // print information about parameter restraints
-
-  for (int cyc=0;cyc<Max(1,max_cycles);++cyc) {
+  for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
     // Accumulate all sums from data
-    bool anomalous = controls.AnomalousSDcorr;
+    bool anomalous = controls.anomalouscontrol.AnomalousSDcorr;
     sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
+    //^
+    //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
+    //		    SDM, -1, PxdName(), output);
+    //^-
     bool update = (max_cycles > 0); // don't update parameters if zero cycles
     TargetResiduals target = UpdateParameters(SDM, sdanal, tolerance, damp, update);
     double R = target.R;
@@ -65,30 +70,36 @@ SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
 	"Cycle %3d residual %10.5f\n",
 			  cyc+1, std::abs(R));
     }
+    //^
+    //    output.logTab(0,LOGFILE,
+    //		  "\nSD correction parameters after cycle\n"+SDM.format()); //^-
+
     if (max_cycles <= 0) break;
     if (R < 0.0) {
       output.logTab(0,LOGFILE,"Convergence reached");
       break;
     }
+    R = std::abs(R);
+    // Record the best so far
+    if (R < bestR) {
+      bestR = R;
+      bestsdmparams = SDM.GetParameters();
+    }
     if (cyc+1 > min_cycles && lastR > 0.0) {
       // beyond minimum cycles, should we stop anyway?
-      R = std::abs(R);
       double diffR = std::abs(R - lastR);
-      if (diffR < DIFFTOLERANCE) {
+      if (R > lastR) {
+	// residual gone up, reinstate best parameter set
+	SDM.SetParameters(bestsdmparams); // reset parameters
+	output.logTab(0,LOGFILE,"Residual increasing, revert to best cycle and exit");
+	break;
+      }
+      if (diffR < rtolerance) {
 	// change in residual less than tolerance
-	if (R > lastR) {
-	  // residual gone up, but by less than tolerance, reinstate last parameter set
-	  SDM.SetParameters(lastsdmparams); // reset parameters
-	  output.logTab(0,LOGFILE,"Residual increasing, revert to previous cycle and exit");
 	  break;
-	} else {
-	  // residual has gone down by less than tolerance, stop
-	  break;
-	}
       }
     }
     lastR = std::abs(R);
-    lastsdmparams = SDM.GetParameters();
   }  // loop cycles
   return sdanal;
 }
@@ -98,11 +109,8 @@ SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
 				 const bool& anomalous,
 				 IntensityBin& irange)
   // Accumulate sums for SD correction refinement into SDanalysis object returned
+  // anomalous   true to separate anomalous I+ & I- (usually true)
   {
-    float sdrej = 5.0;     // for now, FIXME
-    float sdrej2 = 5.0;
-    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
-    RejectFlags rejflags(sdrej, sdrej2, Rej2policy);
     int Ndatasets = hkl_list.num_datasets();
 
     SDanalysis sdanal(irange, SDM, SDM.AllRunsSame(), true);
@@ -127,43 +135,43 @@ SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
       float Iav = selobs.AverageScaleWt().I(); // average intensity for SD correction 
       int mint = irange.bin(Iav);
       nref++;
+      int nacc = 0; //^
       for (int id=0;id<Ndatasets;id++) {    // loop datasets
 	if (Centric || !anomalous) {
 	  // No anomalous, treat all observations together
 	  if (Ndatasets > 1) {selobs.init(this_refl, id, ALL);} // already done if 1 dataset
-	  // Reject outliers
-	  Nrej += selobs.Outliers(rejflags);
 	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
+	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
+	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
 	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    nacc++;
 	  }
 	} else {
 	  // Anomalous, treat I+ & I- separately
-	  // FIXME outlier rejection between I+ & I- not done yet
 	  selobs.init(this_refl, id, IPLUS);
-	  // Reject outliers
-	  Nrej += selobs.Outliers(rejflags);
 	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
+	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
+	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
 	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    nacc++;
 	  }
 	  selobs.init(this_refl, id, IMINUS);
-	  // Reject outliers
-	  Nrej += selobs.Outliers(rejflags);
 	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
+	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
+	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
 	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    nacc++;
 	  }
-	}
+	} // end acentric
       } // end loop datasets
     } // end loop reflections
 
-    //^    if (Nrej > 0) {
-    //      std::cout << "Outliers rejected in TGH " << Nrej <<"\n";
-    //^-    }
     return sdanal;
   }
   // ---------------------------------------------------------

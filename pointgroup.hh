@@ -286,6 +286,9 @@ namespace CCtbxSym
     // Constructor -> reference
     sgtbx::change_of_basis_op ChBasis_ref;
 
+    // Reference -> "best"
+    sgtbx::change_of_basis_op ChBasis_best;
+
     // Symmetry element list
     std::vector<int> ElementNums;
 

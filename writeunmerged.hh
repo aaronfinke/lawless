@@ -10,7 +10,7 @@
 #include "hkl_symmetry.hh"
 #include "sdmodel.hh"
 
-#include "cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
+#include "ccp4/cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
 
 namespace MtzIO
 {

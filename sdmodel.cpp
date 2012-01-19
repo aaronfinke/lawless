@@ -394,6 +394,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       }
     }
   }
+  //-------------------------------------------------------------
+  void SDmodel::SetSDadd(const double& SDadd)
+  // Reset SDadd for all runs
+  {
+    for (int ir=0;ir<Nruns();++ir) { // loop all runs
+      sdc_full_run[ir].SetSDadd(SDadd);
+      sdc_partial_run[ir].SetSDadd(SDadd);
+    }
+  }
 //-------------------------------------------------------------
   std::vector<float> SDmodel::CorrectReflection(reflection& Ref) const
   // Apply appropriate SD correction to all valid observations in reflection
@@ -421,6 +430,34 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       Ref.replace_observation(this_obs);
     }
     return sig0;
+  }
+//-------------------------------------------------------------
+  void SDmodel::CorrectAllReflection(reflection& Ref) const
+  // Apply appropriate SD correction to all observations in reflection, including outliers
+  // Use full/partial values irrespective of usetype, assuming that values
+  // have been duplicated if necessary
+  {
+    // number of observations in this including unselected ones
+    int nobs = Ref.num_observations();
+    SelectedObservations selobs(Ref, -1, ALL);
+    float Iav = selobs.Average().I();  // average intensity for SD correction (omitting rejects
+
+    observation this_obs;
+
+    for (int iobs=0;iobs<nobs;++iobs) {
+      this_obs = Ref.get_observation(iobs);
+      ObservationStatus obsstatus = this_obs.ObsStatus() ;
+      // OK is Accepted or Outlier
+      if (obsstatus.IsOKforRogues()) {
+	// correct sigI for observation, return uncorrected value
+	if (this_obs.IsFull())
+	  {sdc_full_run[this_obs.run()].Correct(this_obs, Iav);}
+	else
+	  {sdc_partial_run[this_obs.run()].Correct(this_obs, Iav);}
+	// store updated observation
+	Ref.replace_observation(this_obs);
+      } // accepted
+    }
   }
 //-------------------------------------------------------------
   // Return overall minimum & maximum values
@@ -545,6 +582,76 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::vector<float> sigmaprime = selobs.sigmaI();
     // delI for each observation (scaled by 1/g) = Ihl - <Ih>
     std::vector<float> delI = selobs.DelI();
+    // number of observations in selobs including unused slots
+    int nobs = delI.size();
+    ASSERT (nobs == int(sigmaprime.size()));
+    // d(delta(i))/d(p(j)) for all observations i
+    //  empty observation slots will contain empty vectors
+    std::vector <std::vector<double> >  ddeltadp(nobs);
+
+    std::vector<double> ddeltaidp; // d(delta(i))/dp for i'th observation
+    float Iav = selobs.AverageScaleWt().I();  // average intensity for SD correction 
+    std::vector<double> dp;  // for each param set
+    double an = selobs.Number();  // number used
+    double fac = -sqrt(an/(an-1.0));
+
+    for (int iobs=0;iobs<nobs;++iobs) { // loop observations in selobs
+      if (delI[iobs] != 0.0) {	// a valid delta
+	ddeltaidp.assign(Nparams(),0.0);
+	//--- calculate d(sigma')/dp vector for all parameters
+	int irun = selobs.Run(iobs);
+	int idx; // first parameter index
+	if (selobs.Full(iobs)) {
+	  // Full
+	  if (usetype[irun] >= 0) { // values for fulls
+	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+	    idx = idxfullparam[irun];
+	  } else if (usetype[irun] < 0) { // full as partial
+	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+	    idx = idxpartialparam[irun];
+	  }
+	} else {
+	  // Partial
+	  if (usetype[irun] > 0) { // partial as full
+	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+	    idx = idxfullparam[irun];
+	  } else if (usetype[irun] <= 0) { // partial
+	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+	    idx = idxpartialparam[irun];
+	  }
+	}
+	for (size_t i=0;i<dp.size();++i) {
+	  ddeltaidp[idx++] = dp[i];
+	}
+	// all parameters d(sigma')/dp done
+	// uncorrected sigma(I) for observation
+	//	float sigma = sigmaI[iobs];
+	// d(delta)/d(sigma') = -sqrt(n/n-1) delI / (sigma')^2
+	double dddsp = fac * delI[iobs] / (sigmaprime[iobs]*sigmaprime[iobs]);
+	  
+	for (size_t i=0;i<ddeltaidp.size();++i) {
+	  ddeltaidp[i] *= dddsp; // d(delta)/dp = d(delta)/d(sigma') d(sigma')/dp
+	}
+	ddeltadp[iobs] = ddeltaidp;  // store d(delta(i))/dp vector
+      } // end valid delta
+    } // end loop observations in selobs
+    return ddeltadp;
+  }
+  //-------------------------------------------------------------
+  std::vector <std::vector<double> >
+  SDmodel::GetDerivativesscalewt(SelectedObservations& selobs,
+				 const std::vector<float>& sigmaI) const
+  // uncorrected scaled sigma(I) for each observation (including unselected ones)
+  // return vector elements for each observation in selobs
+  // each element is vector of elements for each parameter
+  //  elements for each parameter are d(delta(iobs))/dp(k)
+  // Scale-weighted <I>
+  {
+    ASSERT (selobs.Nobs() == int(sigmaI.size()));
+    // corrected sigma' for each observation (scaled)
+    std::vector<float> sigmaprime = selobs.sigmaI();
+    // delI for each observation (scaled by 1/g) = Ihl - <Ih>
+    std::vector<float> delI = selobs.DelIscalewt();
     // number of observations in selobs including unused slots
     int nobs = delI.size();
     ASSERT (nobs == int(sigmaprime.size()));

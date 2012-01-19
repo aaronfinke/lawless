@@ -201,7 +201,8 @@ on rotation [default SPACING 5] </dd>
       <dd>Set "Batch" mode, no interpolation along rotation
 (primary) axis. This option is compulsory if a ROT column is not
 present in
-the input file, but otherwise the ROTATION option is preferred. </dd>
+the input file, but otherwise the ROTATION option is preferred. WARNING: this option is not optimised and may take a <span style="font-weight: bold;">very</span> long time if you have many batches <br>
+ </dd>
       <dt><a name="scales_bfactor"></a>BFACTOR ON | OFF&nbsp; </dt>
       <dd>Switch Bfactors on or off. The default is ON.<br>
  </dd>
@@ -697,7 +698,7 @@ be assumed if omitted, <em>e.g.</em> UNLINK TAILS [ALL] will use
 separate tails
 parameters for each run. </p>
 
-<h3><a name="bins"></a>BINS RESOLUTION &lt;Nsbins&gt; INTENSITY &lt;Nibins&gt;<br>
+<h3><a name="bins"></a>BINS [RESOLUTION] &lt;Nsbins&gt; INTENSITY &lt;Nibins&gt;<br>
  </h3>
 <p>Define number of resolution and intensity bins for analysis [default 10] </p><h3><a name="smoothing"></a>SMOOTHING &lt;subkeyword&gt; &lt;value&gt;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
 <p>Set smoothing factors ("variances" of weights). A larger
@@ -1094,7 +1095,13 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact">0.1.7 fix for SCALES CONSTANT from XSCALE<br>
+</dl><dl compact="compact">0.1.14,15 various bug fixes (including
+memory leaks), fixed autorun generation, improved SD correction for
+large anomalous, constrain cell to lattice group, etc<br>
+0.1.12 Half-dataset CC labelled as "CC(1/2)"<br>
+0.1.11 Small bug fixes<br>
+0.1.9 autodetect anomalous. Plot Rmeas for each run<br>
+0.1.7 fix for SCALES CONSTANT from XSCALE<br>
 0.1.6&nbsp; anisotropy analysis against
 planes in trigonal, hexagonal and tetragonal systems (inlcuding rhombohedral axes), principal
 anisotropic axes in monoclinic and triclinic, cone analyses weighted

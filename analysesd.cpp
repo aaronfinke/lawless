@@ -13,6 +13,7 @@
 #include "refinesdcorrection.hh"
 #include "file_util.hh"
 #include "timer.hh"
+#include "reject.hh"
 using phaser_io::LOGFILE;
 
 namespace scala
@@ -80,25 +81,6 @@ namespace scala
   //     = +1    same, after first analysis
   //     = -1 only one analysis expected ie first & last
   {
-    //  plot       true to write normal probability plots, for each run, and partials & fulls
-    //  NintensBinTarget  target number/intensity bin
-    //  FixSdB     true to fix SdB even if it is variable in SDM
-    //  tolerance  convergence
-    //  max_cycles maximum number of cycles
-    // Values for initial rough analysis
-    bool plot = false;
-    int NintensBinTarget = 100;
-    bool FixSdB = true; 
-    double tolerance = 0.001;
-    int  max_cycles = 3;
-    if (firstAnalysis != 0) { // values for finalanalysis
-      plot = true;
-      NintensBinTarget = 300;
-      FixSdB = false; 
-      tolerance = 0.0004;
-      max_cycles = 10;  // 5
-    }
-
     const bool REFINESD = true; // true to refine, false use Simplex
     if (firstAnalysis != 0) {
       output.logTab(0,LOGFILE,
@@ -110,7 +92,10 @@ namespace scala
 		                  "============================================================\n");
     }
 
-    if (controls.Anomalous && (controls.AnomalousSDcorr != controls.Anomalous)) {
+    if (controls.anomalouscontrol.AnomalousSDcorr) {
+      output.logTab(0,LOGFILE,
+		    "\nI+ and I- will be kept separate in SD optimisation");
+    } else {
       output.logTab(0,LOGFILE,
     "\nSeparation of anomalous I+ and I- suppressed in SD optimisation due to low multiplicity");
     }
@@ -124,8 +109,18 @@ namespace scala
     float Iav = NormRes.Imean();
     float Jmax = NormRes.Imax();
     IntensityBin Irange(NintBin, NintBin/2, Iav, Jmax);
+    bool plot = false;
+    int  max_cycles = 3;
+    double tolerance = 0.001;  // relative tolerance in parameter shift
+    double rtolerance = 0.005; // tolerance on change of residual
 
     if (SDM.Refine()) {
+      Timer timer;
+      int npass = 1; // normally one pass through refinement at each stage
+      if (firstAnalysis < 0) { // two passes if following restore; sdcorrection refine
+	npass = 2;
+      }
+
       if (firstAnalysis <= 0) {
 	// Initial correction from normal probability analysis
 	UpdateSDMfromNPlot(SDM, hkl_list, controls, false, output);
@@ -135,37 +130,97 @@ namespace scala
 	output.logTab(0,LOGFILE,
 		      "\nCurrent SD correction parameters\n"+SDM.format());
       }
-      // Select subset of reflections to speed up optimisation
-      int nacc = SelectSDcorrReflections(hkl_list, controls, NintensBinTarget);
-      ///      int nacc = hkl_list.num_reflections();
-      output.logTabPrintf(0,LOGFILE,
-	  "\n%7d reflections selected for SD optimisation out of %8d in file\n",
-	  nacc, hkl_list.num_reflections());
 
-      Timer timer;
+      for (int ipass=0;ipass<npass;++ipass) { // loop one or two passes
+	bool initialpass = (firstAnalysis == 0) || (npass > 1 && ipass == 0); // initial pass
+	// Set parameters for this pass
+	//   plot       true to write normal probability plots, for each run, and partials & fulls
+	//   NintensBinTarget  target number/intensity bin
+	//   FixSdB     true to fix SdB even if it is variable in SDM
+	//   tolerance  convergence
+	//   max_cycles maximum number of cycles
+	// Values for initial rough analysis
+	int NintensBinTarget = 100;
+	bool FixSdB = true; 
+	tolerance = 0.001;
+	rtolerance = 0.01;
+	max_cycles = 3;
+	if (!initialpass) { // values for finalanalysis
+	  plot = true;
+	  NintensBinTarget = 400;
+	  FixSdB = false; 
+	  tolerance = 0.0004;
+	  rtolerance = 0.001;
+	  max_cycles = 20;  // 5
+	}
 
-      bool saveSdBfix = SDM.NoSDb();
-      if (FixSdB) {
-	SDM.SetNoSDb(true);
-      }
+	// ==== Outlier rejection, no check between I+ & I- (outlier.ndatasets = 0)
+	// Use special SD model for outlier rejection, with inflated SDadd since
+	// we don't know this, and we don't want to reject all the strong reflections
+	SDmodel SDMoutlier = SDM;
+	const double SDADDOUTLIER = 0.05;
+	SDMoutlier.SetSDadd(SDADDOUTLIER);
+
+	OutlierControl outliercontrol(0);
+	outliercontrol.Combine() = false; // don't check between datasets
+	float sdrej = 30.0;
+	float sdrej2 = sdrej;
+	//./	  scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::KEEP;
+	scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
+	if (!initialpass) { // values for finalanalysis
+	  sdrej = 30.0;
+	  sdrej2 = sdrej;
+	  //./	    Rej2policy = scala::RejectFlags::KEEP;
+	  Rej2policy = scala::RejectFlags::REJECT;
+	}
+	RejectFlags rejflags(sdrej, sdrej2, Rej2policy);
+	outliercontrol.SetReject(rejflags, scala::ALL);
+	WriteRogues DummyRogues;
+	// Check for outliers & reject them
+	//  hkl_list is updated for status, but SDs are not changed
+	RejectOutlier(hkl_list, SDMoutlier,
+		      NormRes, controls.anomalouscontrol.AnomalousSDcorr,
+		      outliercontrol, DummyRogues);
+	std::vector<int> nrejs = CountOutliers(hkl_list);
+	output.logTabPrintf(0,LOGFILE,
+    "\nFor SD optimisation, number of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+			    nrejs[0], nrejs[1], nrejs[2]);
+	// Select subset of reflections to speed up optimisation
+	int nacc = SelectSDcorrReflections(hkl_list, controls, NintensBinTarget);
+	output.logTabPrintf(0,LOGFILE,
+			    "\n%7d reflections selected for SD optimisation out of %8d in file\n",
+			    nacc, hkl_list.num_reflections());
+	
+	
+	bool saveSdBfix = SDM.NoSDb();
+	if (FixSdB) {
+	  SDM.SetNoSDb(true);
+	}
 	      
-      // Optimise SD model
-      if (REFINESD) {
-	SDanalysis sdanal =
-	  RefineSDcorrectionFactors(SDM, hkl_list, controls, Irange,
-				    tolerance, max_cycles, output);
-      } else {
-	OptimiseSDcorr(SDM, hkl_list, controls, Irange,
-		       tolerance, max_cycles, output);
-      }
-      output.logTab(0,LOGFILE,
+	// Optimise SD model
+	if (REFINESD) {
+	  SDanalysis sdanal =
+	    RefineSDcorrectionFactors(SDM, hkl_list, controls, Irange,
+				      tolerance, rtolerance, max_cycles, output);
+	  //^
+	  //	  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), Irange, hkl_list.RunList(),
+	  //		       SDM, -1, PxdName(), output);
+	  //^-
+	} else {
+	  OptimiseSDcorr(SDM, hkl_list, controls, Irange,
+			 tolerance, max_cycles, output);
+	}
+	output.logTab(0,LOGFILE,
 	    "\nSD correction parameters after optimisation\n"+SDM.format());
 
-      if (FixSdB) {
-	SDM.SetNoSDb(saveSdBfix);  // restore saved fixSdB flag
-      }
-      
-      hkl_list.ResetReflAccept();  // set to accept everything
+	if (FixSdB) {
+	  SDM.SetNoSDb(saveSdBfix);  // restore saved fixSdB flag
+	}
+	
+	hkl_list.ResetReflAccept();  // set to accept (ie cancel SelectSDcorrReflections)
+      } // end loop one or two passes
+      // Clear all outlier & other status flags (except ObsFlags)
+      ClearObsStatus(hkl_list);
 
       // I did try to do a final normal probability correction, but this may make it worse
       //      if (firstAnalysis != 0) {
@@ -181,17 +236,17 @@ namespace scala
 	output.logTab(0,LOGFILE,
       "\nNo refinement of SD correction parameters\n"+SDM.format());      
 	//^
-	hkl_list.ResetReflAccept();  // set to accept everything
-	// Select subset of reflections to speed up optimisation
-	//	int nacc = SelectSDcorrReflections(hkl_list, controls, NintensBinTarget);
-	//	output.logTabPrintf(0,LOGFILE,
-	//			    "\n%7d reflections selected for SD residual out of %8d in file\n",
-	//			    nacc, hkl_list.num_reflections());
-	max_cycles = 0;
-	SDanalysis sdanal =
-	  RefineSDcorrectionFactors(SDM, hkl_list, controls, Irange,
-					   tolerance, max_cycles, output);
-	hkl_list.ResetReflAccept();  // set to accept everything
+	//	hkl_list.ResetReflAccept();  // set to accept everything
+	//	// Select subset of reflections to speed up optimisation
+	//	//	int nacc = SelectSDcorrReflections(hkl_list, controls, NintensBinTarget);
+	//	//	output.logTabPrintf(0,LOGFILE,
+	//	//			    "\n%7d reflections selected for SD residual out of %8d in file\n",
+	//	//			    nacc, hkl_list.num_reflections());
+	//	max_cycles = 0; // no refinement
+	//	SDanalysis sdanal =
+	//	  RefineSDcorrectionFactors(SDM, hkl_list, controls, Irange,
+	//				    tolerance, rtolerance, max_cycles, output);
+	//	hkl_list.ResetReflAccept();  // set to accept everything
 	//^-
     } // end refine/norefine
 
@@ -209,7 +264,7 @@ namespace scala
     }
 
     // Replot with corrections
-    AccumulateNormProb(SDM, hkl_list, controls.AnomalousSDcorr, normalprobanal);
+    AccumulateNormProb(SDM, hkl_list, controls.anomalouscontrol.AnomalousSDcorr, normalprobanal);
     if (plot) {
       for (int irun=0;irun<Nruns;irun++) {
 	// Dataset name
@@ -263,8 +318,8 @@ namespace scala
   // Returns number rejected
   {
     float sdrej = 5.0;     // for now, FIXME
-    float sdrej2 = 5.0;
-    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
+    float sdrej2 = sdrej;
+    scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::KEEP;
 
     int Ndatasets = hkl_list.num_datasets();
 
@@ -326,7 +381,7 @@ namespace scala
     std::vector<NormalProbAnal> normalprobanal(2*Nsets);
 
     // Get all data into normal probability plots
-    AccumulateNormProb(SDM, hkl_list, controls.AnomalousSDcorr, normalprobanal);
+    AccumulateNormProb(SDM, hkl_list, controls.anomalouscontrol.AnomalousSDcorr, normalprobanal);
 
     const int TOOFEW = 20;  // minimum number for NP plot
     // Loop sets for analyses
@@ -355,7 +410,7 @@ namespace scala
 	    slopep = 1.0;
 	  }
 	}
-      } else {
+      } else { // not fixup
 	// initial values
 	copyflag = true;
       }
@@ -400,7 +455,7 @@ namespace scala
       for (int ip=2*iset;ip<=2*iset+1;ip++) {
 	normalprobanal[ip].Clear();  // reset normal probability plot
       }	
-    }
+    } // end loop sets
   }
   //---------------------------------------------------------------
   void MakeSDplot(SDmodel& SDM,
@@ -418,7 +473,7 @@ namespace scala
     float JJmax = NormRes.Imax();
     IntensityBin IIrange(NNintBin, NNintBin/2, IIav, JJmax);
 
-    SDcorrResidual sdr(SDM, hkl_list, IIrange, controls.AnomalousSDcorr);
+    SDcorrResidual sdr(SDM, hkl_list, IIrange, controls.anomalouscontrol.AnomalousSDcorr);
     sdr(SDM.GetParameters());
     std::cout <<"\n****** All data SD plot ******\n\n";
     std::cout << "\n" << SDM.format() <<"\n";

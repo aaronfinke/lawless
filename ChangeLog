@@ -1,4 +1,17 @@
- 0.1.7
+0.1.14,15
+ various bug fixes (including > memory leaks), fixed autorun generation, improved SD correction for
+ large anomalous, constrain cell to lattice group, etc
+
+0.1.12
+ Half-dataset CC labelled as "CC(1/2)"
+
+0.1.11
+ Small bug fixes
+
+0.1.9
+ autodetect anomalous. Plot Rmeas for each run<br>
+
+0.1.7
  fix for SCALES CONSTANT from XSCALE
 
  0.1.6

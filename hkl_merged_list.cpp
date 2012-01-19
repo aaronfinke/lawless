@@ -125,9 +125,10 @@ namespace scala{
     if (status != MLIST::DATA)
       Message::message(Message_fatal
 		       ("hkl_merged_list: no data read"));
-    if (!at_start)
+    if (!at_start) {
       // increment index
       hkl_index.next();
+    }
     at_start = false;
     if (hkl_index.last()) return false;
     Is = IsigData[hkl_index];

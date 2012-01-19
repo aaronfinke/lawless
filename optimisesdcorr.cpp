@@ -235,7 +235,7 @@ namespace scala {
     Optimiser_simplex optimiserSimplex(tolerance, max_cycles, type);
     optimiserSimplex.debug(0);
     // Object to calculate residuals
-    SDcorrRefine SDCref(SDM, hkl_list, Irange, controls.Anomalous);
+    SDcorrRefine SDCref(SDM, hkl_list, Irange, controls.anomalouscontrol.Anomalous);
     // Set up vector of vectors of starting values
     std::vector<std::vector<double> > start = StartValues(SDM, 1.0);
     std::vector<double> newparams = optimiserSimplex(SDCref, start);

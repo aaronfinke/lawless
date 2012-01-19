@@ -128,5 +128,25 @@ namespace scala {
     }
     return complete;
   }
+  // ------------------------------------------------------------
+  std::vector<float> CumulativeCompleteness::BatchMultiplicity(const std::vector<int>& NumObsBatch,
+							       const ResoRange& ResRange,
+							       const hkl_symmetry& symmetry,
+							       const Scell& cell)
+  // return cumulative multiplicity for each batch serial
+  {
+    if (nref_sphere <= 0) CalcSphere(ResRange, symmetry, cell);
+    std::vector<float> multiplicity(nbatches, 0.0);
+    int sofar = 0;
+    for (int i=0;i<nbatches;++i) {
+      sofar += NumObsBatch[i];
+      if (nref_sphere == 0) {
+	multiplicity.at(i) = 0.0;
+      } else {
+	multiplicity.at(i) = float(sofar)/nref_sphere;
+      }
+    }
+    return multiplicity;
+  }
 
 }

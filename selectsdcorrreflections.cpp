@@ -80,11 +80,13 @@ namespace scala {
     // rough number / bin
     int nrefbin = (float(nvrefl)*(1.0 - exp(-Emidbin))/(0.5*float(NintBin)));
     double p0 = 1.0 - exp(-E2min);  // p = 1 at E2min
+    double frac = Min(1.0, float(Nbintarget)/float(nrefbin)); // average fraction to accept
     //^
     //    std::cout << "nvrefl, Nbintarget, nreflarge, nrefbin "
-    //	      << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
-    double frac = Min(1.0, float(Nbintarget)/float(nrefbin)); // average fraction to accept
-    //    std::cout << frac  << "\n"; //^-
+    //    	      << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
+    //    std::cout << "Iav, Jmax " << Iav <<" "<<Jmax <<"\n";
+    //    std::cout << "Frac "<< frac  << "\n"; 
+    //^-
 
 
     hkl_list.rewind();
@@ -118,7 +120,7 @@ namespace scala {
 	    raccept = +1;
 	    rejf++;
 	    //^
-	    //^	    std::cout << frac <<" "<<AvIsig.I()<<" "<<E2<<" "<< p<<" "<<acc<<"  **\n"; //^-
+	    //	    std::cout << frac <<" "<<AvIsig.I()<<" "<<E2<<" "<< p<<" "<<acc<<"  **\n"; //^-
 	  }
 	}
 	mint = Irange.bin(AvIsig.I());
@@ -137,15 +139,16 @@ namespace scala {
       }
     }  // end loop reflections
 
-    //^    std::cout << "\n *** Number rejected in ice rings " << inring <<"\n";
-
+    //^
+    //    std::cout << "\n *** Number rejected in ice rings " << inring <<"\n";
+    //
     //    std::cout << "\n *** Number rejected on frac " << rejf <<"\n";
-    //^
+    //    //^
     //    for (int i=0;i<countsa.size();++i) {
-    //      std::cout <<"Count acc rej Ibin " << i
-    //		<< " " << countsa[i]<< " " << countsr[i] <<"\n";
-    //    } //^-
-    //^
+    //      std::cout <<"Count  Ibin acc rej " << i
+    //    		<< " " << countsa[i]<< " " << countsr[i] <<"\n";
+    //    }
+    //^-
     return refAccepted;
   }
 }

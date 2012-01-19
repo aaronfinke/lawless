@@ -24,6 +24,7 @@ ANOMALOUS::ANOMALOUS() : CCP4base(), InputBase()
   possible_fns.push_back(iPtr);
 
   anomalous = false;
+  given = false;
 }
 //--------------------------------------------------------------
 Token_value ANOMALOUS::parse(std::istringstream& input_stream)
@@ -39,6 +40,7 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
       else
 	{throw SyntaxError
 	    (keywords, "key not ON or OFF");}
+      given = true;
     }
   }
   return ENDLINE;
@@ -578,12 +580,14 @@ BINS::BINS()  : nrbins(-1), nibins(10)
 Token_value BINS::parse(std::istringstream& input_stream)
 {
   // Syntax:
-  // BINS RESOLUTION <NresoBins> INTENSITY <NintensityBins>
+  // BINS [RESOLUTION] <NresoBins> INTENSITY <NintensityBins>
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
       if (keyIs("RESOLUTION")) nrbins = Nint(get1num(input_stream));
       else if (keyIs("INTENSITY")) nibins = Nint(get1num(input_stream));
+    } else if (tokenIs(1,NUMBER)) {
+      nrbins = Nint(number_value);
     }
   }
   return skip_line(input_stream);
@@ -603,8 +607,8 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   //
   //  [SCALE|MERGE]  use these values for scaling|merging steps
   //            if not specified, use for both
-  //  [COMBINE] compare observations across all datasets [default]
-  //  [SEPARATE]  outlier checks only within datasets
+  //  [COMBINE] compare observations across all datasets
+  //  [SEPARATE]  outlier checks only within datasets [default]
   //   sdrej    sd multiplier for maximum deviation from scale-weighted mean I
   //  [sdrej2]  special value for reflections measured twice
   //  [REJECT|KEEP|SMALLER|LARGER]] these flags control what to do in the 
@@ -628,7 +632,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   float sdrej2a = 0.0;
   float emax = -1.0;
   bool  emaxgiven = false;
-  bool combine = true;
+  bool combine = false;
 
   int merge = 0;  // expecting values for MERGE && SCALE, = +1 for MERGE, = -1 for SCALE
   // enum Reject2Policy {REJECT, KEEP, REJECTLARGER, REJECTSMALLER};

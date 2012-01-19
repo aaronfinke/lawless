@@ -37,7 +37,7 @@ using clipper::RTop;
 typedef clipper::Vec3<double> DVect3;
 typedef clipper::Mat33<double> DMat33;
 
-///#include "csymlib.h"    // CCP4 symmetry stuff
+///#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
 #include <cctbx/crystal/symmetry.h>
 #include <cctbx/sgtbx/lattice_symmetry.h>
