@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   CCP4::ccp4fyp(argc, argv);
 
   CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: 2012/01/19 16:53:18 $";
+  std::string rcsdate = "$Date: 2012/01/23 11:53:38 $";
   CCP4::ccp4RCSDate     (rcsdate.c_str());
   CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
   CCP4::ccp4_banner();
@@ -396,6 +396,12 @@ int main(int argc, char* argv[])
 		    "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
     }
+
+    // Set weighting for SD model
+    //   (doesn't make a huge difference at least in some tests)
+    SD_model.SetVarianceWeights();
+    //    SD_model.SetSqrtScaleWeights();
+    //    SD_model.SetUnitWeights();
 
     bool anomOn = false;  // no anomalous for scaling
     // ----- first rough scaling

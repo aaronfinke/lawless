@@ -33,7 +33,8 @@ namespace scala {
 {
   //^  std::cout << "SDM start: " << SDM.format() <<"\n"; //^
 
-  int min_cycles = Min(max_cycles, 4); // at least 4 cycles unless < max
+  //  int min_cycles = Min(max_cycles, 4); // at least 4 cycles unless < max
+  int min_cycles = Min(max_cycles, 10); // at least N cycles unless < max
   double lastR = -1.0;
   double bestR = 10000.0;
   std::vector<double> bestsdmparams = SDM.GetParameters();
@@ -56,7 +57,7 @@ namespace scala {
     sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
     //^
     //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
-    //		    SDM, -1, PxdName(), output);
+    //    		    SDM, -1, PxdName(), false, output);
     //^-
     bool update = (max_cycles > 0); // don't update parameters if zero cycles
     TargetResiduals target = UpdateParameters(SDM, sdanal, tolerance, damp, update);
@@ -101,6 +102,11 @@ namespace scala {
     }
     lastR = std::abs(R);
   }  // loop cycles
+  //^
+  //  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
+  //      		    SDM, -1, PxdName(), false, output);
+  //^-
+
   return sdanal;
 }
 // ---------------------------------------------------------
@@ -114,6 +120,8 @@ namespace scala {
     int Ndatasets = hkl_list.num_datasets();
 
     SDanalysis sdanal(irange, SDM, SDM.AllRunsSame(), true);
+    // Set weight type
+    SelectedObservations::AverageWeightType weighttype = SDM.Weight();
 
     reflection this_refl;
     int Nrej = 0;
@@ -127,45 +135,39 @@ namespace scala {
       // Correct sds in this_refl, return uncorrected scaled values
       std::vector<float> sig0 = SDM.CorrectReflection(this_refl);
       // Average I <I> over all observations
-      SelectedObservations selobs(this_refl, -1, ALL);
+      SelectedObservations selobs(this_refl, -1, ALL, weighttype);
       //^
       //      std::cout << "rsd " << this_refl.hkl().format()
       //		<< " N " << selobs.Number() << "\n";
       //^-
-      float Iav = selobs.AverageScaleWt().I(); // average intensity for SD correction 
+      float Iav = selobs.Average().I(); // average intensity for SD correction 
       int mint = irange.bin(Iav);
       nref++;
       int nacc = 0; //^
       for (int id=0;id<Ndatasets;id++) {    // loop datasets
 	if (Centric || !anomalous) {
 	  // No anomalous, treat all observations together
-	  if (Ndatasets > 1) {selobs.init(this_refl, id, ALL);} // already done if 1 dataset
+	  if (Ndatasets > 1) {selobs.init(this_refl, id, ALL, weighttype);} // already done if 1 dataset
 	  if (selobs.Number() > 1) {
-	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
-	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
+	    sdanal.AddSelobsDelta2(selobs, mint);
 	    // partial derivatives
-	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
 	    nacc++;
 	  }
 	} else {
 	  // Anomalous, treat I+ & I- separately
-	  selobs.init(this_refl, id, IPLUS);
+	  selobs.init(this_refl, id, IPLUS, weighttype);
 	  if (selobs.Number() > 1) {
-	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
-	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
+	    sdanal.AddSelobsDelta2(selobs, mint);
 	    // partial derivatives
-	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
 	    nacc++;
 	  }
-	  selobs.init(this_refl, id, IMINUS);
+	  selobs.init(this_refl, id, IMINUS, weighttype);
 	  if (selobs.Number() > 1) {
-	    //./	    sdanal.AddSelobsDelta2(selobs, mint);
-	    sdanal.AddSelobsDelta2scalewt(selobs, mint);
+	    sdanal.AddSelobsDelta2(selobs, mint);
 	    // partial derivatives
-	    //./	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    sdanal.AddDerivativesscalewt(selobs, mint, SDM.GetDerivativesscalewt(selobs, sig0));
+	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
 	    nacc++;
 	  }
 	} // end acentric
@@ -224,6 +226,8 @@ namespace scala {
       // weight for each intensity bin, equal (unit) weights
       double w1 = WTREL/(SDRESID*SDRESID*nintbins);
       std::vector<double> wib(nintbins, w1);
+      // Test! double weight on top bin
+      wib.back() *= 2;
       
       double R1 = 0.0; // main residual
       double sumw = 0.0;

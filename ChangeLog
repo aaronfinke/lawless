@@ -1,3 +1,6 @@
+0.1.16
+ made SDcorrection refinement more robust
+
 0.1.14,15
  various bug fixes (including > memory leaks), fixed autorun generation, improved SD correction for
  large anomalous, constrain cell to lattice group, etc

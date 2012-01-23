@@ -14,6 +14,14 @@
 namespace scala
 {
 //--------------------------------------------------------------
+  class SDties {
+  public:
+    // Ties, same for all runs
+    int tietype;     // = 0 no tie, = -1 defaults, = +1 set from input
+    std::vector<double> targets;   // 3 targets
+    std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
+  };
+//--------------------------------------------------------------
   class SDmodel
   // A set of SDcorrections for each run, and for partials & fulls separately
   // Optionally, the same values may be used for all runs, but separate
@@ -55,8 +63,17 @@ namespace scala
     void SetTies(const int& tietype,
 		 const std::vector<double>& targets,
 		 const std::vector<double>& sdtargets);
+    //! Store one tie for all SD corrections, for parameter ipar (0-2)
+    void ResetTie(const int& ipar,
+		  const double& Target,
+		  const double& SDtarget);
     //! format tie information
     std::string formatTie() const;
+
+    //! return tie settings
+    SDties Ties() const {return ties;}
+    //! reset tie settings
+    void ResetTies(const SDties& Ties) {ties = Ties;SetTies();}
 
     //! Number of runs (actual number)
     int Nruns() const {return sdc_full_run.size();}
@@ -117,6 +134,22 @@ namespace scala
     void GetSDcorrectionRanges(float& minSDcorrFulls, float& maxSDcorrFulls,
 			       float& minSDcorrPartials, float& maxSDcorrPartials) const;
 
+    // Weighting scheme for averaging observations in SD correction
+    //! Set weight
+    void SetWeight(const SelectedObservations::AverageWeightType& weightType)
+    {weighttype = weightType;}
+
+    //! Set variance weights
+    void SetVarianceWeights() {SetWeight(SelectedObservations::VARIANCE);}
+
+    //! Set SqrtScale weights
+    void SetSqrtScaleWeights() {SetWeight(SelectedObservations::SQRTSCALE);}
+
+    //! Set unitweights
+    void SetUnitWeights() {SetWeight(SelectedObservations::UNIT);}
+
+    SelectedObservations::AverageWeightType Weight() const {return weighttype;}
+
     // = = =  API for refinement
     //! Get vector of parameters
     std::vector<double> GetParameters() const;
@@ -176,6 +209,9 @@ namespace scala
     //! return formatted values
     std::string format() const;
 
+    //! return formatted weight information
+    std::string formatWeightType() const;
+
     //! format for Dump
     std::string FormatSave() const;
 
@@ -202,13 +238,17 @@ namespace scala
     int nsets;   // number of unique runs, = number of runs or 1 if allrunssame
 
     double damp;  // damp factor for refinement
+
     // Ties, same for all runs
-    int tietype;     // = 0 no tie, = -1 defaults, = +1 set from input
-    std::vector<double> targets;   // 3 targets
-    std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
+    SDties ties; // just a data structure for save and restore
+    //    int tietype;     // = 0 no tie, = -1 defaults, = +1 set from input
+    //    std::vector<double> targets;   // 3 targets
+    //    std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
+
+    // Weighting scheme for averaging observations in SD correction
+    SelectedObservations::AverageWeightType weighttype;   // type of weighting for average
 
     void SetTies();
-
 
   };
   //--------------------------------------------------------------

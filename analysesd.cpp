@@ -102,6 +102,8 @@ namespace scala
 
     output.logTab(0,LOGFILE,"\n"+SDM.formatFullPartialInfo());
 
+    output.logTab(0,LOGFILE,"\nWeighting scheme for averages: "+SDM.formatWeightType());
+
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();
     //   Number of bins, number of "reference" bin,
@@ -131,6 +133,9 @@ namespace scala
 		      "\nCurrent SD correction parameters\n"+SDM.format());
       }
 
+      // Save tie settings from SDM to restore later
+      SDties savedties = SDM.Ties();
+
       for (int ipass=0;ipass<npass;++ipass) { // loop one or two passes
 	bool initialpass = (firstAnalysis == 0) || (npass > 1 && ipass == 0); // initial pass
 	// Set parameters for this pass
@@ -144,8 +149,16 @@ namespace scala
 	bool FixSdB = true; 
 	tolerance = 0.001;
 	rtolerance = 0.01;
-	max_cycles = 3;
-	if (!initialpass) { // values for finalanalysis
+	max_cycles = 6;
+	if (initialpass) { // values for first analysis
+	  // Put a tie on SDadd if there isn't one already, to help stabilise refinement
+	  int ksdadd = savedties.targets.size()-1; // SDadd parameter is the last one
+	  if (std::abs(savedties.sdtargets.at(ksdadd)) < 0.000001) {
+	    double sdaddTarget = 0.02;    // target value for SDadd
+	    double sdaddSDTarget = 0.1;   // and its SD
+	    SDM.ResetTie(ksdadd, sdaddTarget, sdaddSDTarget);
+	  }
+	} else if (!initialpass) { // values for final analysis
 	  plot = true;
 	  NintensBinTarget = 400;
 	  FixSdB = false; 
@@ -204,7 +217,7 @@ namespace scala
 				      tolerance, rtolerance, max_cycles, output);
 	  //^
 	  //	  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), Irange, hkl_list.RunList(),
-	  //		       SDM, -1, PxdName(), output);
+	  //		       SDM, -1, PxdName(), false, output);
 	  //^-
 	} else {
 	  OptimiseSDcorr(SDM, hkl_list, controls, Irange,
@@ -218,6 +231,8 @@ namespace scala
 	}
 	
 	hkl_list.ResetReflAccept();  // set to accept (ie cancel SelectSDcorrReflections)
+	// Reset SDM ties
+	SDM.ResetTies(savedties);
       } // end loop one or two passes
       // Clear all outlier & other status flags (except ObsFlags)
       ClearObsStatus(hkl_list);

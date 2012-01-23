@@ -78,8 +78,7 @@ namespace scala {
       SDM->CorrectReflection(this_refl);
       // Average I <I> over all observations
       SelectedObservations Selobs(this_refl, -1, ALL);
-      float Iav = Selobs.AverageScaleWt().I();  // average intensity for SD correction 
-
+      float Iav = Selobs.Average().I();  // average intensity for SD correction 
       int mint = irange.bin(Iav);
       nref++;
       // loop datasets
@@ -184,7 +183,7 @@ namespace scala {
   void SDcorrResidual::PrintTable(phaser_io::Output& output)
   {
     PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(),
-	       irange, hkl_list->RunList(), *SDM, -1, PxdName(), output);
+		    irange, hkl_list->RunList(), *SDM, -1, PxdName(), true, output);
   }
   //---------------------------------------------------------------
   SDcorrRefine::SDcorrRefine(SDmodel& sdm,

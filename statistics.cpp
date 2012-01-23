@@ -839,7 +839,7 @@ namespace scala {
     
     
     PrintSDanalysis(sdanalysis, sdanalysiscore, rejflags, Irange, runlist,
-		    SDM, datasetIndex, dataset_pxd, output);
+		    SDM, datasetIndex, dataset_pxd, true, output);
 
     // Correlplot
     halfDatasetScores.PlotCorrel();

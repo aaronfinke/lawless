@@ -348,61 +348,6 @@ namespace scala
       }  // end loop observations
     }
   }
-  // ------------------------------------------------------------
-  void SDanalysis::AddSelobsDelta2scalewt(SelectedObservations& selobs,
-					  const int& mint)
-  // Add in delta2 contributions for intensity bin mint
-  //  delta2 = sqrt(n/n-1) (Ihl - <Ih>)/SD(Ihl)
-  //   where <Ih> is the average over all observations of reflection h,
-  //   including Ihl itself, scale-weighted
-  //   cf AddSelobsDelta which uses delta1 definition
-  {
-    if (selobs.Number() > 1) {
-      std::vector<float> delta2 = selobs.Delta2scalewt();
-
-      for (size_t i=0;i<delta2.size();++i) {
-	if (delta2[i] != 0.0) { // valid delta
-	  AddDelta(delta2[i],
-		   mint, selobs.Run(i), selobs.Full(i));
-	  //^
-	  //	  if (mint == numintensitybins-1) {
-	  //	    std::cout <<"AddSelobsDelta2 " << selobs.hkl().format()
-	  //		      <<" " << mint << " " << delta2[i]
-	  //		      <<" "<<selobs.Reflection().get_observation(i).I()
-	  //		      <<" "<<selobs.Reflection().get_observation(i).sigI()
-	  //		      <<"\n";
-	  //	  } //^-
-	}
-      }
-    }
-  }
-  // ------------------------------------------------------------
-  void SDanalysis::AddDerivativesscalewt(SelectedObservations& selobs,
-					 const int& mint,
-					 const std::vector <std::vector<double> >& ddeltadp)
-  // Add in to sums for derivatives, scale-weighted Imean
-  //  ddeltadp[iobs][k] is d(delta(iobs))/dp(k) for the iobs'th observation in selobs
-  //  p(k) is the k'th parameter of nparams (here k is global parameter index)
-  {
-    if (selobs.Number() > 1) {
-      std::vector<float> delta = selobs.Delta2scalewt();
-      for (size_t iobs=0;iobs<delta.size();++iobs) {  // loop observations
-	if (delta[iobs] != 0.0) { // valid delta
-	  int irun = selobs.Run(iobs);
-	  if (allsamerun) irun = 0;
-	  int jpc = ParameterGroup(irun, selobs.Full(iobs));
-	  ASSERT (int(ddeltadp[iobs].size()) == nparams);
-	  for (int k=0;k<nparams;++k) { // loop global parameters k
-	    if (ddeltadp[iobs][k] != 0.0) {
-	      int kpl = idxlocal[k]; // local parameter number within run/full/partial
-	      sdparametergroup[jpc].AddDerivative(mint, kpl,
-						     ddeltadp[iobs][k], delta[iobs]);
-	    }
-	  } // end loop global parameters k
-	}
-      }  // end loop observations
-    }
-  }
   //---------------------------------------------------------------
   //! SDs for each "bin class" jpc, 
   std::vector<double> SDanalysis::SDdelta() const
@@ -559,12 +504,15 @@ namespace scala
 		       const std::vector<Run>& runlist,
 		       const SDmodel& SDM,
 		       const int& datasetIndex, const PxdName& dataset_pxd,
+		       const bool& fullprint,
 		       phaser_io::Output& output)
   // Print table from one or two SDanalysis objects
   //   sdanal1 if both are present this is for the "core" data
   //   sdanal2 if both are present this is for the "core" data, else null
+  // fullprint == false for brief printing
   {
-    output.logTab(0,LOGFILE,
+    if (fullprint) {
+      output.logTab(0,LOGFILE,
 		  std::string("\nAnalysis of standard deviations\n")+
 		  "===============================\n"+
 		  "This analyses the distribution of the normalised deviations\n"+
@@ -575,6 +523,7 @@ namespace scala
 		  "The Mean is expected to increase with Imean since the latter\n"+
 		  "is a weighted mean and sd(Ihl) & Ihl are correlated\n"+
 		  "\nIf the Sigma increases with Imean, increase the value of SdAdd\n\n"); 	   
+    }
     if (sdanal1.Empty()) {
       // no data
       output.logTab(0,LOGFILE,"\n!!!! No data !!!!\n\n");
@@ -670,7 +619,7 @@ namespace scala
 	nsd = Max(nsd, int(msddata.size()));
       }
     }  // end loop runs
-    if (kr > 1) {
+    if (kr > 1 && fullprint) {
       // > 1 run in this dataset, print totals over all relevant runs
       std::vector<std::vector<MeanSD> > msddata(nsd);
       for (int i=0;i<nsd;++i) {

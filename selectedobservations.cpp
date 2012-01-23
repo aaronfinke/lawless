@@ -21,13 +21,31 @@ namespace scala
 					     const int& datasetIndex,
 					     const AnomalousClass& Anomclass)
   {
-    init(Refl, datasetIndex, Anomclass);
+    init(Refl, datasetIndex, Anomclass, VARIANCE);
+  }
+  // ------------------------------------------------------------
+  // constructor for selecting datasets & anomalous class, weight type
+  SelectedObservations::SelectedObservations(const reflection& Refl,
+					     const int& datasetIndex,
+					     const AnomalousClass& Anomclass,
+					     const AverageWeightType& weightType)
+  {
+    init(Refl, datasetIndex, Anomclass, weightType);
   }
   // ------------------------------------------------------------
   // Initialise, selecting datasets & anomalous class
   void SelectedObservations::init(const reflection& Refl,
 				  const int& datasetIndex,
 				  const AnomalousClass& Anomclass)
+  {
+    init(Refl, datasetIndex, Anomclass, VARIANCE);
+  }
+  // ------------------------------------------------------------
+  // Initialise, selecting datasets & anomalous class
+  void SelectedObservations::init(const reflection& Refl,
+				  const int& datasetIndex,
+				  const AnomalousClass& Anomclass,
+				  const AverageWeightType& weightType)
   // if datasetIndex < 0 select all data
   // Note that this will only select "accepted" observations
   // Npart is number of parts to split into, if required
@@ -63,6 +81,7 @@ namespace scala
     }
     npart = -1;
     State = 0;
+    weighttype = weightType;
     Average();  // calculate average
     nextobs = -1;
     discrepant = false;
@@ -153,7 +172,30 @@ namespace scala
     return gotall;
   }
   // ------------------------------------------------------------
+  //! Set weight
+  void SelectedObservations::SetWeight(const AverageWeightType& weightType)
+  {
+    weighttype = weightType;
+    Average();  // recalculate average with new weights
+  }
+  // ------------------------------------------------------------
+  Rtype SelectedObservations::Weight(const Rtype& val) const
+  // Return weight calculated from val accoding to weighttype
+  {
+    if (weighttype == VARIANCE) {
+      return 1.0f/(val*val);
+    } else if (weighttype == SQRTSCALE) {
+      return 1.0f/val;
+    }
+    return 1.0f;
+  }
+  // ------------------------------------------------------------
   IsigI SelectedObservations::Average()
+  // Weight depends on weighttype
+  //   UNIT        unit weights
+  //   VARIANCE    weight = 1/variance
+  //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
+  //  Note that a smaller scale = larger g = larger weight
   {
     //  <I> = Sum(w g I) / Sum (w g^2)
     if (Nused == 0) {return IsigI(0.0,0.0);}
@@ -170,9 +212,9 @@ namespace scala
       if (use[i]) {
 	Nused++;
 	g = this_ref->get_observation(i).Gscale();
-	ASSERT (this_ref->get_observation(i).sigI() > 0.0);
-	w = 1./(this_ref->get_observation(i).sigI()*
-		this_ref->get_observation(i).sigI());
+	Rtype sd = this_ref->get_observation(i).sigI();
+	ASSERT (sd > 0.0);
+	w = Weight(sd);   // weight according to weighttype
 	wgI[i] = w * g * this_ref->get_observation(i).I();
 	sumwgI += wgI[i];
 	wg2[i] = w * g * g;
@@ -187,40 +229,6 @@ namespace scala
       State = -1;
     }
     return avIsigI;
-  }
-  // ------------------------------------------------------------
-  IsigI SelectedObservations::AverageScaleWt() const
-  //  <I> = Sum(w g I) / Sum (w g^2)
-  // w = sqrt(1/g) weight
-  // Don't store average
-  //  Note that a smaller scale = larger g = larger weight
-  {
-    if (Nused == 0) {return IsigI(0.0,0.0);}
-
-    double sumswgI = 0.0;
-    double sumswg2 = 0.0;
-    
-    IsigI swavIs(0.0,0.0);
-    
-    Rtype w;
-    Rtype g;
-
-    int NNused = 0;
-
-    for (int i=0;i<nobs;i++)  {
-      if (use[i]) {
-	NNused++;
-	g = this_ref->get_observation(i).Gscale();
-	ASSERT (this_ref->get_observation(i).sigI() > 0.0);
-	w = 1./sqrt(g);
-	sumswgI += w * g * this_ref->get_observation(i).I();
-	sumswg2 += w * g * g;
-      }
-    }
-    if (NNused > 0) {
-      swavIs = IsigI(sumswgI/sumswg2, sqrt(1.0/sumswg2));
-    }
-    return swavIs;
   }
   // ------------------------------------------------------------
   IsigI SelectedObservations::AveragePart(const int& WhichPart)
@@ -243,8 +251,7 @@ namespace scala
 	if (WhichPart < 0 || part[i] == WhichPart) {
 	  Nu++;
 	  g = this_ref->get_observation(i).Gscale();
-	  w = 1./(this_ref->get_observation(i).sigI()*
-		  this_ref->get_observation(i).sigI());
+	  w = Weight(this_ref->get_observation(i).sigI());
 	  wgI[i] = w * g * this_ref->get_observation(i).I();
 	  sumwgI += wgI[i];
 	  wg2[i] = w * g * g;
@@ -365,26 +372,6 @@ namespace scala
     return delta2;
   }
   // ------------------------------------------------------------
-  std::vector<float> SelectedObservations::Delta2scalewt()
-  // List of deviations delta2 (ie delI/sigma(I) ) where delI
-  //  is difference from mean of all observations, scale-weighted
-  //   returns delta2(NobsRefl), unused slots set = 0.0 ie not closed down
-  //   delta2.size() = total number of observations in reflection
-  {
-    std::vector<float> delta2(nobs,0.0);
-    if (Nused <= 1) return delta2;
-    IsigI avIswt = AverageScaleWt();
-    float fac = sqrt(float(Nused)/(Nused-1));
-    for (int i=0;i<nobs;i++) {
-      if (use[i]) {
-	float delI = (this_ref->get_observation(i).kI() - avIswt.I());
-	float sigmai = this_ref->get_observation(i).ksigI();
-	delta2[i] = fac * delI/sigmai;
-      }
-    }
-    return delta2;
-  }
-  // ------------------------------------------------------------
   // List of delI (scaled)
   //   returns delI(nobs), unused slots set = 0.0 ie not closed down
   std::vector<float> SelectedObservations::DelI()
@@ -398,22 +385,6 @@ namespace scala
 	if (use[i]) {
 	  delI[i] = (this_ref->get_observation(i).kI() - avIsigI.I());
 	}
-      }
-    }
-    return delI;
-  }
-  // ------------------------------------------------------------
-  // List of delI (scaled), scale_weighted <I>
-  //   returns delI(nobs), unused slots set = 0.0 ie not closed down
-  std::vector<float> SelectedObservations::DelIscalewt()
-  {
-    std::vector<float> delI = std::vector<float>(nobs,0.0);
-    if (Nused <= 1) return delI;
-    IsigI avIswt = AverageScaleWt();
-    // we need at least 2 observations
-    for (int i=0;i<nobs;i++) {
-      if (use[i]) {
-	delI[i] = (this_ref->get_observation(i).kI() - avIswt.I());
       }
     }
     return delI;
@@ -649,6 +620,19 @@ namespace scala
       }
     }
     return idxlist;
+  }
+  // ------------------------------------------------------------
+  //! return formatted version of weight
+  std::string SelectedObservations::formatWeightType(const AverageWeightType& weighttype )
+  // Weight type for averaging
+  //   UNIT        unit weights
+  //   VARIANCE    weight = 1/variance
+  //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
+  {
+    if (weighttype == UNIT) {return "unit weights";}
+    if (weighttype == VARIANCE) {return "variance weights";}
+    if (weighttype == SQRTSCALE) {return "SquareRoot(scale) weights";}
+    return "";
   }
   // ------------------------------------------------------------
 

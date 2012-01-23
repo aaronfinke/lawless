@@ -152,9 +152,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     nosdb = false;
     allrunssame = false;
     nsets = 0;
-    tietype = 0; // no ties  
-    targets.assign(3,0.0);
-    sdtargets.assign(3,0.0);
+    ties.tietype = 0; // no ties  
+    ties.targets.assign(3,0.0);
+    ties.sdtargets.assign(3,0.0);
+    SetVarianceWeights();    // default weighting scheme
 }
 //-------------------------------------------------------------
   void SDmodel::ResetRange()
@@ -188,28 +189,40 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 			const std::vector<double>& Targets,
 			const std::vector<double>& SDtargets)
   {
-    tietype = Tietype;
-    targets = Targets;
-    sdtargets = SDtargets;
+    ties.tietype = Tietype;
+    ties.targets = Targets;
+    ties.sdtargets = SDtargets;
     SetTies();
   }
   //-------------------------------------------------------------
+  //! Store one tie for all SD corrections, for parameter ipar (0-2)
+  void SDmodel::ResetTie(const int& ipar,
+			const double& Target,
+			const double& SDtarget)
+  {
+    ties.tietype = +1;
+    ASSERT (ipar < int(ties.targets.size()));
+    ties.targets.at(ipar) = Target;
+    ties.sdtargets.at(ipar) = SDtarget;
+    SetTies();
+  }  
+//-------------------------------------------------------------
   //! Store ties for all SD corrections
   // tietype = 0 no tie, = -1 defaults, = +1 set from parameters
   void SDmodel::SetTies()
   {
     for (int irun=0;irun<Nruns();++irun) {
-      if (tietype == 0) { // no ties
+      if (ties.tietype == 0) { // no ties
 	sdc_full_run[irun].ClearRestraints();
 	sdc_partial_run[irun].ClearRestraints();
-      } else if (tietype < 0) { // use defaults
+      } else if (ties.tietype < 0) { // use defaults
 	sdc_full_run[irun].SetDefaultRestraints();
 	sdc_partial_run[irun].SetDefaultRestraints();
 	// Store default parameters for printing
-	sdc_full_run[irun].GetRestraints(targets, sdtargets);
+	sdc_full_run[irun].GetRestraints(ties.targets, ties.sdtargets);
       } else { // use input values
-	sdc_full_run[irun].SetRestraints(targets, sdtargets);
-	sdc_partial_run[irun].SetRestraints(targets, sdtargets);
+	sdc_full_run[irun].SetRestraints(ties.targets, ties.sdtargets);
+	sdc_partial_run[irun].SetRestraints(ties.targets, ties.sdtargets);
       }
     }
   }
@@ -220,15 +233,16 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     // NB all the same
     std::string s;
     bool restraints = false;  // true if we have some restraints
-    if (tietype != 0) {  // tietype = 0 for no restraints
+    if (ties.tietype != 0) {  // ties.tietype = 0 for no restraints
       // If we are not refining SdB and the only restraint is on SdB, then no restraints
       if (nosdb) {
 	// No SdB refinement
-	if ((sdtargets[0] != 0.0) || (sdtargets[2] != 0.0)) {
+	if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[2] != 0.0)) {
 	  restraints = true;
 	}
       } else { // SdB refinement
-	if ((sdtargets[0] != 0.0) || (sdtargets[1] != 0.0) || (sdtargets[2] != 0.0)) {
+	if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[1] != 0.0) ||
+	    (ties.sdtargets[2] != 0.0)) {
 	  restraints = true;
 	}
       }
@@ -236,17 +250,17 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
     if (restraints) {
       s = "Restraints on SD correction parameters (target (+-SD)):";
-      if (sdtargets[0] != 0.0) { // SdAdd
-	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(targets[0],5,1))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(sdtargets[0],5,1))+")";
+      if (ties.sdtargets[0] != 0.0) { // SdAdd
+	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[0],5,1))+
+	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[0],5,1))+")";
       }
-      if (!nosdb && sdtargets[1] != 0.0) { // SdB
-	s += " SdB "+StringUtil::Strip(StringUtil::ftos(targets[1],8,1))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(sdtargets[1],8,1))+")";
+      if (!nosdb && ties.sdtargets[1] != 0.0) { // SdB
+	s += " SdB "+StringUtil::Strip(StringUtil::ftos(ties.targets[1],8,1))+
+	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[1],8,1))+")";
       }
-      if (sdtargets[2] != 0.0) { // SdAdd
-	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(targets[2],8,3))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(sdtargets[2],8,3))+")";
+      if (ties.sdtargets[2] != 0.0) { // SdAdd
+	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[2],8,3))+
+	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[2],8,3))+")";
       }
     } else {
       s = "No restraints on SD correction parameters";
@@ -413,7 +427,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     // number of observations in this including unselected ones
     int nobs = Ref.num_observations();
     std::vector<float> sig0(nobs,0.0); // uncorrected sigma(I)
-    SelectedObservations selobs(Ref, -1, ALL);
+    SelectedObservations selobs(Ref, -1, ALL, weighttype);
     float Iav = selobs.Average().I();  // average intensity for SD correction 
 
     observation this_obs;
@@ -439,7 +453,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   {
     // number of observations in this including unselected ones
     int nobs = Ref.num_observations();
-    SelectedObservations selobs(Ref, -1, ALL);
+    SelectedObservations selobs(Ref, -1, ALL, weighttype);
     float Iav = selobs.Average().I();  // average intensity for SD correction (omitting rejects
 
     observation this_obs;
@@ -590,77 +604,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::vector <std::vector<double> >  ddeltadp(nobs);
 
     std::vector<double> ddeltaidp; // d(delta(i))/dp for i'th observation
-    float Iav = selobs.AverageScaleWt().I();  // average intensity for SD correction 
-    std::vector<double> dp;  // for each param set
-    double an = selobs.Number();  // number used
-    double fac = -sqrt(an/(an-1.0));
-
-    for (int iobs=0;iobs<nobs;++iobs) { // loop observations in selobs
-      if (delI[iobs] != 0.0) {	// a valid delta
-	ddeltaidp.assign(Nparams(),0.0);
-	//--- calculate d(sigma')/dp vector for all parameters
-	int irun = selobs.Run(iobs);
-	int idx; // first parameter index
-	if (selobs.Full(iobs)) {
-	  // Full
-	  if (usetype[irun] >= 0) { // values for fulls
-	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxfullparam[irun];
-	  } else if (usetype[irun] < 0) { // full as partial
-	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxpartialparam[irun];
-	  }
-	} else {
-	  // Partial
-	  if (usetype[irun] > 0) { // partial as full
-	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxfullparam[irun];
-	  } else if (usetype[irun] <= 0) { // partial
-	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxpartialparam[irun];
-	  }
-	}
-	for (size_t i=0;i<dp.size();++i) {
-	  ddeltaidp[idx++] = dp[i];
-	}
-	// all parameters d(sigma')/dp done
-	// uncorrected sigma(I) for observation
-	//	float sigma = sigmaI[iobs];
-	// d(delta)/d(sigma') = -sqrt(n/n-1) delI / (sigma')^2
-	double dddsp = fac * delI[iobs] / (sigmaprime[iobs]*sigmaprime[iobs]);
-	  
-	for (size_t i=0;i<ddeltaidp.size();++i) {
-	  ddeltaidp[i] *= dddsp; // d(delta)/dp = d(delta)/d(sigma') d(sigma')/dp
-	}
-	ddeltadp[iobs] = ddeltaidp;  // store d(delta(i))/dp vector
-      } // end valid delta
-    } // end loop observations in selobs
-    return ddeltadp;
-  }
-  //-------------------------------------------------------------
-  std::vector <std::vector<double> >
-  SDmodel::GetDerivativesscalewt(SelectedObservations& selobs,
-				 const std::vector<float>& sigmaI) const
-  // uncorrected scaled sigma(I) for each observation (including unselected ones)
-  // return vector elements for each observation in selobs
-  // each element is vector of elements for each parameter
-  //  elements for each parameter are d(delta(iobs))/dp(k)
-  // Scale-weighted <I>
-  {
-    ASSERT (selobs.Nobs() == int(sigmaI.size()));
-    // corrected sigma' for each observation (scaled)
-    std::vector<float> sigmaprime = selobs.sigmaI();
-    // delI for each observation (scaled by 1/g) = Ihl - <Ih>
-    std::vector<float> delI = selobs.DelIscalewt();
-    // number of observations in selobs including unused slots
-    int nobs = delI.size();
-    ASSERT (nobs == int(sigmaprime.size()));
-    // d(delta(i))/d(p(j)) for all observations i
-    //  empty observation slots will contain empty vectors
-    std::vector <std::vector<double> >  ddeltadp(nobs);
-
-    std::vector<double> ddeltaidp; // d(delta(i))/dp for i'th observation
-    float Iav = selobs.AverageScaleWt().I();  // average intensity for SD correction 
+    float Iav = selobs.Average().I();  // average intensity for SD correction 
     std::vector<double> dp;  // for each param set
     double an = selobs.Number();  // number used
     double fac = -sqrt(an/(an-1.0));
@@ -935,6 +879,12 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     return ss;
   }
 //-------------------------------------------------------------
+  //! return formatted weight information
+  std::string SDmodel::formatWeightType() const
+  {
+    return SelectedObservations::formatWeightType(weighttype);
+  }
+//-------------------------------------------------------------
   std::string SDmodel::FormatSave() const
   {
     const std::string SDMODELVERSION = "V1.1";
@@ -963,10 +913,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     ds += "Nsets " + clipper::String(nsets)  +"\n";
     ds += "Damp " + clipper::String(damp)  +"\n";
 
-    ds += "Tietype " + clipper::String(tietype)  +"\n";
-    ds += "Ntargets " + clipper::String(int(targets.size()))  +"\n";
-    ds += "Targets " + StringUtil::FormatSaveVector(targets);
-    ds += "SDtargets " + StringUtil::FormatSaveVector(sdtargets);
+    ds += "Tietype " + clipper::String(ties.tietype)  +"\n";
+    ds += "Ntargets " + clipper::String(int(ties.targets.size()))  +"\n";
+    ds += "Targets " + StringUtil::FormatSaveVector(ties.targets);
+    ds += "SDtargets " + StringUtil::FormatSaveVector(ties.sdtargets);
 
     ds += "}\n";
     return ds;  // null for now
@@ -1052,13 +1002,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     FR.ReadTag("Damp");
     damp = FR.Double();
     FR.ReadTag("Tietype");
-    tietype = FR.Int();
+    ties.tietype = FR.Int();
     FR.ReadTag("Ntargets");
     int ntargets = FR.Int();
     FR.ReadTag("Targets");
-    targets = FR.DoubleVec(ntargets);
+    ties.targets = FR.DoubleVec(ntargets);
     FR.ReadTag("SDtargets");
-    sdtargets = FR.DoubleVec(ntargets);
+    ties.sdtargets = FR.DoubleVec(ntargets);
 
     scalesin.close();
 
@@ -1066,7 +1016,6 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
     SetIdxParam(); // set index list
     SetTies();
-
   }
 //-------------------------------------------------------------
 }

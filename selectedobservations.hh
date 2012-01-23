@@ -18,17 +18,36 @@ namespace scala
   //!   (b) all I+ & I- (ALL); just I+ (IPLUS); or just I- (IMINUS)
   {
   public:
+
+    // Weight type for averaging
+    //   UNIT        unit weights
+    //   VARIANCE    weight = 1/variance
+    //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
+    enum AverageWeightType {UNIT, VARIANCE, SQRTSCALE};
+
     SelectedObservations(){}
     
     //! constructor for selecting datasets & anomalous class
     //! if datasetIndex < 0 select everything
     SelectedObservations(const reflection& Refl, const int& datasetIndex,
-			 const AnomalousClass& Anomclass=ALL);
+			 const AnomalousClass& Anomclass);
+
+    //! constructor for selecting datasets & anomalous class
+    //! if datasetIndex < 0 select everything, set weight type
+    SelectedObservations(const reflection& Refl, const int& datasetIndex,
+			 const AnomalousClass& Anomclass,
+			 const AverageWeightType& weightType);
 
     //! Initialise, selecting datasets & anomalous class
     void init(const reflection& Refl,
 	      const int& datasetIndex,
-	      const AnomalousClass& Anomclass=ALL);
+	      const AnomalousClass& Anomclass);
+
+    //! Initialise, selecting datasets & anomalous class, weight type
+    void init(const reflection& Refl,
+	      const int& datasetIndex,
+	      const AnomalousClass& Anomclass,
+	      const AverageWeightType& weightType);
 
     //! Divide into Npart parts
     void SetNpart(const int& Npart);
@@ -45,17 +64,25 @@ namespace scala
     //! return reflection
     reflection Reflection() const {return *this_ref;}
 
-    //! Average I, variance weight
+    //! Set weight
+    void SetWeight(const AverageWeightType& weightType);
+
+    //! Set variance weights
+    void SetVarianceWeights() {SetWeight(VARIANCE);}
+
+    //! Set SqrtScale weights
+    void SetSqrtScaleWeights() {SetWeight(SQRTSCALE);}
+
+    //! Set unitweights
+    void SetUnitWeights() {SetWeight(UNIT);}
+
+    //! Average I, weight as specified
     IsigI Average();
 
     //! Average I, variance weight for part of data
     // If WhichPart >= 0 (0 -> npart-1), use only selected random part
     //              < 0  use all accepted
     IsigI AveragePart(const int& WhichPart = -1);
-
-    //! Average I, sqrt(1/g) weight
-    // Don't store average
-    IsigI AverageScaleWt() const;
 
     //! Get average I for each random, return false unless both are present
     bool HalfAverages(float& I1, float& I2);
@@ -72,7 +99,6 @@ namespace scala
     //!  is difference from mean of all observations and
     //!  fac = sqrt(n/n-1)
     std::vector<float> Delta2();        // variance-weighted <I>
-    std::vector<float> Delta2scalewt(); // scale-weighted <I>
 
     // For each observation, return mean of other observations,
     //   scaled to each observation
@@ -83,7 +109,6 @@ namespace scala
     //! List of delI (scaled)
     //!  returns delI(Nobs), unused slots set = 0.0 ie not closed down
     std::vector<float> DelI();        // variance-weighted <I>
-    std::vector<float> DelIscalewt(); // scale-weighted <I>
 
     //! List of sigma(I)
     //!   returns sigmaI(Nobs), unused slots set = 0.0 ie not closed down
@@ -115,6 +140,8 @@ namespace scala
   //           = REJECTLARGER     reject larger
   //           = REJECTSMALLER    reject smaller
 
+    //! return formatted version of weight
+    static std::string formatWeightType(const AverageWeightType& weighttype );
 
   private:
     const reflection* this_ref;
@@ -132,6 +159,7 @@ namespace scala
     double sumwg2;  // Sum(w g^2)
     // Deviations delI/sigma  from "others"
     std::vector<float> delta;     // for current list
+    AverageWeightType weighttype;   // type of weighting for average
     IsigI avIsigI;
     // =  0  observations stored
     // = +1  average calculated
@@ -139,6 +167,9 @@ namespace scala
     // = +3  outliers calculated
     int State; 
     mutable int nextobs;  // index to next observation
+
+    Rtype Weight(const Rtype& val) const;
+
   };
 }
 #endif
