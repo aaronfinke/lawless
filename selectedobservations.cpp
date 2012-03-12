@@ -179,13 +179,14 @@ namespace scala
     Average();  // recalculate average with new weights
   }
   // ------------------------------------------------------------
-  Rtype SelectedObservations::Weight(const Rtype& val) const
+  Rtype SelectedObservations::Weight(const Rtype& sd, const Rtype& g) const
   // Return weight calculated from val accoding to weighttype
   {
     if (weighttype == VARIANCE) {
-      return 1.0f/(val*val);
+      return 1.0f/(sd*sd);
     } else if (weighttype == SQRTSCALE) {
-      return 1.0f/val;
+      if (g <= 0.0f) return 0.0f;
+      return 1.0f/sqrt(g);
     }
     return 1.0f;
   }
@@ -214,7 +215,7 @@ namespace scala
 	g = this_ref->get_observation(i).Gscale();
 	Rtype sd = this_ref->get_observation(i).sigI();
 	ASSERT (sd > 0.0);
-	w = Weight(sd);   // weight according to weighttype
+	w = Weight(sd, g);   // weight according to weighttype
 	wgI[i] = w * g * this_ref->get_observation(i).I();
 	sumwgI += wgI[i];
 	wg2[i] = w * g * g;
@@ -251,7 +252,7 @@ namespace scala
 	if (WhichPart < 0 || part[i] == WhichPart) {
 	  Nu++;
 	  g = this_ref->get_observation(i).Gscale();
-	  w = Weight(this_ref->get_observation(i).sigI());
+	  w = Weight(this_ref->get_observation(i).sigI(), g);
 	  wgI[i] = w * g * this_ref->get_observation(i).I();
 	  sumwgI += wgI[i];
 	  wg2[i] = w * g * g;
@@ -327,21 +328,17 @@ namespace scala
       float Iothers;
       float varothers;
       float g;
+      double wg2others;
       
       for (int i=0;i<nobs;i++) {
 	if (use[i]) {
 	  // <I>(others)  ie excluding this observation
 	  //  and its variance
-	  ////	  ASSERT ((sumwg2 - wg2[i]) != 0.0);
-	  const double MINWG2 = 1.0e-6;
-	  if ((sumwg2 - wg2[i]) > MINWG2) {
-	    varothers = 1./(sumwg2 - wg2[i]);
-	  } else { // trap very small wg2 for rounding errors
-	    varothers = 1.0/MINWG2;
-	  }
+	  const double MINWG2 = 1.0e-30;
+	  wg2others = Max(sumwg2 - wg2[i], MINWG2); // trap very small wg2 for rounding errors
+	  varothers = 1./wg2others;
 	  g = this_ref->get_observation(i).Gscale();
 	  mnothers[i].I() = g * (sumwgI - wgI[i]) * varothers;
-	  ASSERT (varothers >= 0.0);
 	  mnothers[i].sigI() = g * sqrt(varothers);
 	}
       }

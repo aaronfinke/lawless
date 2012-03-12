@@ -183,7 +183,7 @@ namespace scala {
   //  Bias calculation
   //  This compairs each "partial" observation  Ihl with the mean of
   //  the "fulls" <Ifull>. For this purpose, "fulls" are considered as
-  //  all observations with the minimum number of parts for this refecltion
+  //  all observations with the minimum number of parts for this reflection
   //  (=1 for true fulls), and "partials" are all observations with more parts
   //
   // On entry:

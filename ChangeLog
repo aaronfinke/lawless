@@ -1,3 +1,7 @@
+0.1.17 bug fix in outlier rejection, problem
+ with large variances leading to inconsistencies in Rogues file and some
+ over-rejection
+
 0.1.16
  made SDcorrection refinement more robust
 

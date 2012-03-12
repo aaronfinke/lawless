@@ -168,7 +168,7 @@ namespace scala
     int State; 
     mutable int nextobs;  // index to next observation
 
-    Rtype Weight(const Rtype& val) const;
+    Rtype Weight(const Rtype& sd, const Rtype& g) const;
 
   };
 }
