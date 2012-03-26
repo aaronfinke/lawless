@@ -647,7 +647,7 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
       }
     }
     output.logTab(0,LOGFILE,
-		  table.Line(3, Rfacs,
+		  table.Line(Rfacs, 3,
 			     n++, ResRange.middle(i), ResRange.middleA(i)));
   } // end loop resolution bins
   output.logTab(0,LOGFILE,

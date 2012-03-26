@@ -129,8 +129,7 @@ public:
   std::string Line(const int nc, ...) const;
 
   //!  Return formatted line, with zeroes by '-' if requested, vector first
-  std::string Line(const int nc,
-		   const std::vector<double>& val, ...) const;
+  std::string Line(const std::vector<double>& val, const int nc, ...) const;
 
   //! clear line
   void StartLine();

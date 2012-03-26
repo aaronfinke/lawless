@@ -306,15 +306,14 @@ std::string TableGraph::Line(const int nc, ...) const
   return line;
 }
 //--------------------------------------------------------------
-std::string TableGraph::Line(const int nc,
-			     const std::vector<double>& val, ...) const
+std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) const
 // Write nc numbers, then vector val
 // using predefined format, replacing zeroes by "-"
 // This will probably fail if the number of arguments doesn't match
 // the format
 {
   va_list arglist;
-  va_start(arglist, val);
+  va_start(arglist, nc);
   static const std::size_t buf_size = 8192;
   char buf[buf_size];
   buf[buf_size-1] = '\0';
