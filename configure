@@ -5583,12 +5583,9 @@ if test "x$ccp4_prefix" != x; then
 ac_ccp4_dirs='
 .
 include
-include/ccp4
-lib
-lib/src
-lib/ccif'
+lib'
 for ac_dir in $ac_ccp4_dirs; do
-  if test -r "$ccp4_prefix/$ac_dir/ccp4_errno.h"; then
+  if test -r "$ccp4_prefix/$ac_dir/ccp4/ccp4_errno.h"; then
     ac_CCP4_CXXFLAGS="-I$ccp4_prefix/$ac_dir"
     break
     fi
@@ -5637,7 +5634,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-#include "ccp4_errno.h"
+#include "ccp4/ccp4_errno.h"
 int
 main ()
 {
@@ -5691,8 +5688,8 @@ else
 $as_echo "$as_me: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&2;}
         have_ccp4=yes
       else
-        CCP4_CXXFLAGS="-I$ccp4_prefix/lib/src -I$ccp4_prefix/lib/libccp4/ccp4"
-        CCP4_LIBS="-L$ccp4_prefix/lib/src -L$ccp4_prefix/lib -lccp4f -lccp4c -lccif -lmmdb"
+        CCP4_CXXFLAGS="-I$ccp4_prefix/include"
+        CCP4_LIBS="-L$ccp4_prefix/lib -lccp4f -lccp4c -lccif -lmmdb"
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&5
 $as_echo "$as_me: WARNING: assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS" >&2;}
         have_ccp4=yes

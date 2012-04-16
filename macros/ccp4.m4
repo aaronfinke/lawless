@@ -29,12 +29,9 @@ if test "x$ccp4_prefix" != x; then
 ac_ccp4_dirs='
 .
 include
-include/ccp4
-lib
-lib/src
-lib/ccif'
+lib'
 for ac_dir in $ac_ccp4_dirs; do
-  if test -r "$ccp4_prefix/$ac_dir/ccp4_errno.h"; then
+  if test -r "$ccp4_prefix/$ac_dir/ccp4/ccp4_errno.h"; then
     ac_CCP4_CXXFLAGS="-I$ccp4_prefix/$ac_dir"
     break
     fi
@@ -76,7 +73,7 @@ CXXFLAGS="$ac_CCP4_CXXFLAGS $saved_CXXFLAGS"
 # temporarily reassign $CC to the c++ compiler.
 #
 AC_LANG_PUSH(C++)
-AC_TRY_LINK([#include "ccp4_errno.h"],
+AC_TRY_LINK([#include "ccp4/ccp4_errno.h"],
   [int a = ccp4_errno;  CCP4::ccp4_error("conftest"); ], have_ccp4=yes, have_ccp4=no)
 AC_LANG_POP(C++)  # the language we have just quit
 AC_MSG_RESULT($have_ccp4)
