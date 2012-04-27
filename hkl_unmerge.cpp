@@ -2272,15 +2272,27 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
-  void hkl_unmerge_list::CalcSecondaryBeams(const int& pole)
+  bool hkl_unmerge_list::CalcSecondaryBeams(const int& pole)
   // Calculate all secondary beam directions, in chosen frame, also
   // diffraction vectors d*vec
   // On entry:
   //  pole  =  0 SECONDARY  camera frame
   //       !=  0 ABSORPTION, crystal frame = 1,2,3 for h,k,l, 
   //        = -1 unspecified, use closest reciprocal axis for each run
+  //
+  // Returns true if OK, false if not OK eg some batch does not have valid Umat
   {
     SetPoles(pole);
+    // Check that all batches have valid orientation
+    bool OK = true;
+    for (int i = 0; i < nbatches; i++)  {
+      if (!batches[i].ValidOrientation()) {
+	OK = false;
+	break;
+      }
+    }
+    if (!OK) return OK;
+
     reflection this_refl;
     observation this_obs;
     DVect3 sPhi;
@@ -2300,6 +2312,7 @@ namespace scala {
 	refl_list[j].replace_observation(this_obs);
       }
     }
+    return true;
   }
   //--------------------------------------------------------------
   std::pair<float, float> hkl_unmerge_list::CalcSecondaryBeamPolar
@@ -2512,6 +2525,12 @@ namespace scala {
     //    std::cout << "Range of polarisation corrction factors "
     //	      << PFrange.min() <<" " << PFrange.max() <<"\n";
     return PFrange;
+  }
+  //--------------------------------------------------------------
+  //! Store Space group status (CMtz::SYMGRP.spg_confidence) into mtzsym
+  void hkl_unmerge_list::SetSpaceGroupStatus(const char& spg_status)
+  {
+    mtzsym.spg_confidence = spg_status;
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::dump_reflection(const Hkl& hkl) const

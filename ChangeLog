@@ -1,6 +1,11 @@
-0.1.18 changed tablegraph to fix compilation problem (va_start)
+0.1.19 
+ preliminary addition of spg_confience(|| status). Bug fix from valgrind (from Marcin)
 
-0.1.17 bug fix in outlier rejection, problem
+0.1.18 
+ changed tablegraph to fix compilation problem (va_start)
+
+0.1.17 
+ bug fix in outlier rejection, problem
  with large variances leading to inconsistencies in Rogues file and some
  over-rejection
 

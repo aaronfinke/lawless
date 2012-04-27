@@ -16,7 +16,13 @@ namespace MtzIO
   std::vector<clipper::Symop> ClipperSymopsFromMtzSYMGRP(const CMtz::SYMGRP& mtzsym);
   //--------------------------------------------------------------
   // Mtz symmetry from SpaceGroup
-  CMtz::SYMGRP  spg_to_mtz(const scala::SpaceGroup& cspgp, const char& HorR);
+  //  HorR   H or R for rhombohedral lattice
+  //  spg_status  spg_confidence   P => pointgroup correct
+  //                               E => spacegroup or enantiomorph
+  //                               S => spacegroup is correct
+  //                               X => flag not set
+  CMtz::SYMGRP  spg_to_mtz(const scala::SpaceGroup& cspgp, const char& HorR,
+			   const char& spg_status);
   //--------------------------------------------------------------
   //&&&  CSym::CCP4SPG * spg_mtz_to_csym(const CMtz::SYMGRP& mtzsym);
  //--------------------------------------------------------------

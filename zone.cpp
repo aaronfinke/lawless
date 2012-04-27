@@ -894,28 +894,41 @@ namespace scala
   //
   //  For M = 2 or 3, N = 1 and the vectors reduce to a single value.
   //
+  //  Given d, a probability distribution can be constructed to give
+  //  P(Aq | d). Here a Lorentzian distribution around 0 is used with a
+  //  "width" parameter = SD estimate from random reflections.
+  //
   // 6-folds are a bit more complicated
   //   M = 6
   //                      j    = 1          2         3
   //                      p(j) = 2          3         6
   //   q   M/q  Condition      0.5       0.333      0.1666      Fourier position
   //   6    1      1n         1/2(0)     1/3(0)     1/6(0)      M/q p(E(v))
-  //   3    2      2n         2/2(1)     2/3(=1/6)  2/6(=1/3)   point at 1/3 = point at 1/6
-  //   2    3      3n         3/2(=1/6)  3/3(1)     3/6(=1/2)   point at 1/2 = point at 1/6
+  //   3    2      2n         2/2(1)     2/3(=1/6)  2/6(=1/3)   point at 1/3 = point at 1/6 != 1
+  //   2    3      3n         3/2(=1/6)  3/3(1)     3/6(=1/2)   point at 1/2 = point at 1/6 != 1
   //   1    6      6n         6/2(1)     6/3(1)     6/6(1)
   //
   // ie for 6(2) and 6(3) we need to test for equality between 2 of the Fourier points
+  //  but also that they are not = 1.0
   //    q               e1  e2  e3   target values at 1/2, 1/3, 1/6
   //         p(j)        2   3   6
   //    6  6(0) l=1n     0   0   0
   //    3  6(3) l=2n     1  v3  v2   v2 is value at j=2 etc
   //    2  6(2) l=3n     v3  1  v1
   //    1  6(1) l=6n     1   1   1
-  // thus eg for q=3, 6(3),  d^2 = (v1-1)^2 + 2*(v2 - v3)^2  (factor of 2 to get v2-v3 & v3-v2)
   //
-  //  Given d, a probability distribution can be constructed to give
-  //  P(Aq | d). Here a Lorentzian distribution around 0 is used with a
-  //  "width" parameter = SD estimate from random reflections.
+  //    6  6(0) l=1n  P = P1 P2 P3; Pj = L(dj, 0), dj = abs(vj), j = 1,2,3
+  //    3  6(3) l=2n  P = P1 P2 P3; P1 = L(d1, 0), d1 = 1 - v1
+  //                                P2 = L(d2, 0), d2 = abs(v2 - v3)
+  //                                P3 = 1 - L(d3,0), d3 = Sqrt(v2^2 + v3^2)
+  //                                     ie V2 & v3 should != 1.0
+  //    2  6(2) l=3n  P = P1 P2 P3; P1 = L(d1, 0), d1 = 1 - v2
+  //                                P2 = L(d2, 0), d2 = abs(v1 - v3)
+  //                                P3 = 1 - L(d3,0), d3 = Sqrt(v1^2 + v3^2) 
+  //                                     ie V1 & v3 should != 1.0
+  //    1  6(1) l=6n  P = P1 P2 P3 P4; Pj(1,3) = L(dj, 0), dj = abs(1 - vj,) j = 1,2,3
+  //                                P4 = L(d123,0) d123 = 
+  //  
   //
   //  Try the following
   // *  P(!A | d) is calculated assuming the "ideal" value of the Fourier
@@ -946,27 +959,33 @@ namespace scala
     }
 
     bool DEBUG = false;
+    //    bool DEBUG = true;
     double average_controlsd = 0.0;
+
+    std::vector<double> controlsdv = controlsd;  // copy in case we want to change it
+
     if (valid) {
       int ninvalid = 0;
       for (int i=1;i<npoint;i++) {
-	if (controlsd[i] < -0.0001) {
+	if (controlsdv[i] < -0.0001) {
 	  clipper::Message::message(clipper::Message_fatal
 				    ("Zone: "+
 				     formatRefFrame()+": results requested with SD unset"));
 	}
+
 	// Check for strange values of the control mean, which probably indicate a systematic
 	// non-random sample of indices, eg all odd ones already eliminated
 	if (DEBUG) {
 	  std::cout << "ZoneCalc "
-		    << controlsd[i] << " " << controlmean[i]
+		    << controlsdv[i] << " " << controlmean[i]
 		    << "  V[i] = " << V[i] << "\n";
 	}
+
 	if (UnitControlMean[i]) {
 	  prunedData[i] = true;
 	  ninvalid++;
 	}
-	average_controlsd += controlsd[i];
+	average_controlsd += controlsdv[i];
       }
       // Zone is invalid if all points are invalid
       if (ninvalid == npoint) {valid = false;}
@@ -1003,52 +1022,106 @@ namespace scala
     // We have Nf = (npoint-1) non-independent points in Fourier space to consider
     // writing these values as v1, v2, ... v(Nf), and considering these as axes
     // running from 0 to 1, then for each possible screw value (it only matters
-    // for 4- & 6-fold screws), there is an optimum point {E(v1), E(v2), ...},
+    // for 4-fold screws), there is an optimum point {E(v1), E(v2), ...},
     // Get "distance" from optimum point for each possible screw (glide) value i
-    //
-    // Special for 6-folds:
-    //  for 6(3) E(v2) = E(v3) so use v2-v3 instead of v2-E(v2), etc
-    //  for 6(2) E(v1) = E(v3) so use v1-v3 instead of v1-E(v1), etc
+    //  6-folds are special
     //
     for (int i=0;i<npoint;i++) { // Loop M(q) screw or glide translation
       int q = order/ngrid[i];
       if (DEBUG) {std::cout << "\ni = " << i << " q = " << q <<"\n";}
       double d = 0.0;
-      int np = 0;
       if (order == 6) { // special for 6-fold   -------------------> 6
-	if (q == 1) { // q = 1, link v1, v2 and v3, ie j = 1,2,3
-	  double av = 0.0;
-	  for (int j=1;j<npoint;j++) {
-	    av += V[j];
-	    np++;
-	  }
-	  av /= double(np);
-	  // for 6(1) we have two sorts of targets
-	  //  (1) v1=v2=v3
-	  //  (2) v1=v2=v3=1
-	  // weight (1) higher, total weight = 1.0 so put on same scale as other 6-folds
-	  double w1 = 2./3.;
-	  double w2 = 1. - w1;
-	  for (int j=1;j<npoint;j++) {
-	    d += w1*(V[j] - av)*(V[j] - av);  // v1,2,3 should be equal
-	    d += w2*(1.- V[j])*(1.- V[j]);    //  ... and = 1
-	  }
-	} else if (q == 2) { // q = 2, link v1 and v3, ie j = 1 and 3
-	  d += 2.*(V[1] - V[3])*(V[1] - V[3]);
-	  d += (1.- V[2])*(1.- V[2]);  // v2 = 1
-	  np +=3;
-	} else if (q == 3) { // q = 3, link v2 and v3, ie j = 2 and 3
-	  d += 2.*(V[2] - V[3])*(V[2] - V[3]);
-	  d += (1.- V[1])*(1.- V[1]);  // v1 = 1
-	  np +=3;
-	} else {
-	  for (int j=1;j<npoint;j++) {
-	    d += V[j]*V[j];
-	    np++;
-	  }
+	// For 6(0,1,2,3) we have three sorts of targets
+	//  (1) values that should = 1 (or 0 for 6(0))  (characterized by d1)
+	//  (2) values that should be equal 
+	//  (3) values that should not be 1.0
+	//  Each of these gives a probability to be multiplied
+	std::vector<double> d123(4);
+	std::vector<double> p123(4);
+	double d1max = 1.0;
+	double d2max = 1.0;
+	
+	Pfor[i] = 1.0;
+	double pmax = 1.0;
+	double av = 0.0;
+	for (int j=1;j<npoint;j++) {
+	  av += V[j];
 	}
+	av /= double(npoint-1);
+	d = 0.0;
+	for (int j=1;j<npoint;j++) {
+	  d += (V[j] - av)*(V[j] - av);  // v1,2,3 equality test
+	}
+	d123[3] = d;
+	d2max = sqrt(3.0);
+	double pequal = Max(0.0, TruncatedLorentzianProb(d, 0.0, average_controlsd, 0.0, d2max));
+	double pmax1 = Max(0.0, TruncatedLorentzianProb(0.0, 0.0, average_controlsd, 0.0, d2max));
+	double pnotequal = pmax1 - pequal;			   
+
+	if (q == 1) { // q = 1, link v1, v2 and v3, ie j = 1,2,3
+	  // for 6(1) v1=v2=v3=1
+	  // Multiply probabilities for each point V1,2,3 = 1.0
+	  for (int j=0;j<npoint-1;++j) {
+	    d123[j] = Max(0.0, Min(1.0, 1.0 - V[j+1]));  // distance from 1.0
+	    p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
+	    Pfor[i] *= p123[j];
+	  }
+	  p123[3] = pequal;
+	  Pfor[i] *= p123[3];
+	} else if (q == 2) { // q = 2, 6(2), link v1 and v3, ie j = 1 and 3
+	  d123[0] = Max(0.0, Min(1.0, 1. - V[2]));  // V2 should be 1
+	  d123[1] = Min(d1max, std::abs(V[1] - V[3]));  // V1 should = V3
+	  // V1 & V3 should != 1.0
+	  d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[1]*V[1] + V[3]*V[3]));   // distance from 1.0
+	  double avcsd = 0.5 * (controlsdv[1] + controlsdv[3]);
+	  p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[2], 0.0, d1max));
+	  p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
+	  d2max = sqrt(2.0);
+	  pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
+	  // invert probability
+	  p123[2] = pmax - Max(0.0,
+			       TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
+	  // V2 should not equal V1 and V3
+	  p123[3] = pnotequal;
+	  for (int j=0;j<int(p123.size());++j) {
+	    Pfor[i] *= p123[j];
+	  }
+	} else if (q == 3) { // q = 3, 6(3), link v2 and v3, ie j = 2 and 3
+	  d123[0] = Max(0.0, Min(1.0, 1. - V[1]));  // V1 should be 1
+	  d123[1] = Min(d1max, std::abs(V[2] - V[3]));  // V2 should = V3
+	  d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[2]*V[2] + V[3]*V[3])); // V2 & V3 should != 1.0
+	  double avcsd = 0.5 * (controlsdv[2] + controlsdv[3]);
+	  p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[1], 0.0, d1max));
+	  p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
+	  d2max = sqrt(2.0);
+	  pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
+	  p123[2] = pmax - Max(0.0, TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
+	  // V1 should not equal V2 and V3
+	  p123[3] = pnotequal;
+	  for (int j=0;j<int(p123.size());++j) {
+	    Pfor[i] *= p123[j];
+	  }
+	} else {  // q = 6, ie 6(0)
+	  // for 6(0) v1=v2=v3=0
+	  // Multiply probabilities for each point V1,2,3 = 0.0
+	  for (int j=0;j<npoint-1;++j) {
+	    d123[j] = Max(0.0, Min(1.0, V[j+1]));  // distance from 0.0
+	    p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
+	    Pfor[i] *= p123[j];
+	  }
+	  p123[3] = pequal;
+	  Pfor[i] *= p123[3];
+	}
+	if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
+			      << " pequal " << pequal << " pnotequal " << pnotequal
+			      << " d123 ";
+	  for (int k=0;k<int(d123.size());++k) {std::cout <<" " << d123[k];}
+	  std::cout << "\n    p123 ";
+	  for (int k=0;k<int(p123.size());++k) {std::cout <<" " << p123[k];}
+	  std::cout << " pmax " << pmax << " Pfor " << Pfor[i] << "\n";}
 	//                                     -------------------> 6
-      } else {
+      } else {  // 2,3,4 (ie not 6)
+	int np = 0;
 	// Loop each non-origin Fourier point
 	for (int j=1;j<npoint;j++) {
 	  if (validpoint[j]) {	
@@ -1070,26 +1143,26 @@ namespace scala
 	    } // valid point
 	  }
 	}
-      }
-      if (np > 0) {
-	// Sqrt to get "distance"
-	d = Min(dmax,sqrt(d));
-	if (i == 0) {
-	  // First point q = 0, ie condition absent
-	  // Do something different for this one,
-	  //     to allow for possibility of pseudosymmetry
-	  //   Integrated Gaussian probability around possible values
-	  Pfor[i] = IP.LorentzProb(d, average_controlsd, 0, dmax);
-	  //		Pfor[i] = IP.Prob(d, controlsd[i], 0, 0);
-	  if (DEBUG) {std::cout << "Zone: qA " << i << " q = " << q
+	if (np > 0) {
+	  // Sqrt to get "distance"
+	  d = Min(dmax,sqrt(d));
+	  if (i == 0) {
+	    // First point q = 0, ie condition absent
+	    // Do something different for this one,
+	    //     to allow for possibility of pseudosymmetry
+	    //   Integrated Gaussian probability around possible values
+	    Pfor[i] = IP.LorentzProb(d, average_controlsd, 0, dmax);
+	    //		Pfor[i] = IP.Prob(d, controlsdv[i], 0, 0);
+	    if (DEBUG) {std::cout << "Zone: qA " << i << " q = " << q
 				<< " " << d << " " << average_controlsd << " " << Pfor[i] << "\n";}
-	} else {
-	  // Probability offset to make P(dmax) = 0
-	  Pfor[i] = Max(0.0, TruncatedLorentzianProb(d, 0.0, controlsd[i], 0.0, dmax) - Poffset);
-	  if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
-				<< " " << d << " " << controlsd[i] << " " << Pfor[i] << "\n";}
-	}
-      } else {Pfor[i] = 1.0;}
+	  } else {
+	    // Probability offset to make P(dmax) = 0
+	    Pfor[i] = Max(0.0, TruncatedLorentzianProb(d, 0.0, controlsdv[i], 0.0, dmax) - Poffset);
+	    if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
+				  << " " << d << " " << controlsdv[i] << " " << Pfor[i] << "\n";}
+	  }
+	} else {Pfor[i] = 1.0;}
+      } 
       if (validpoint[i]) {	
 	Ptot += Pfor[i];
       }
@@ -1108,6 +1181,7 @@ namespace scala
       }
     }
 
+    if (DEBUG) {std::cout << "\n\n";}
     results = true;
   }
   //--------------------------------------------------------------
@@ -1419,6 +1493,28 @@ namespace scala
 	  }
       }
     return same;
+  }
+  //--------------------------------------------------------------
+  std::string Zone::BestAxisType() const
+  // return label for best axis type eg 2(1)
+  {
+    std::vector<double> P = p();
+    double big = -1.0;
+    int best = -1; // index to best type
+    for (int i=0;i<int(P.size());++i) {
+      if (validpoint[i]) {
+	if (P[i] > big) {
+	  big = P[i];
+	  best = i;
+	}
+      }
+    }
+    ASSERT (best >= 0);
+    if (best == 0) {
+      return std::string("rotation axis "+clipper::String(order,1));
+    }
+    return std::string("screw axis "+clipper::String(order,1)+
+		       "("+clipper::String(order/ngrid[best],1)+")");
   }
   //--------------------------------------------------------------
   bool SysAbsScore::IsZoneInGroup(const int& iz) const

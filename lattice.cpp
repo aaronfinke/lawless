@@ -60,7 +60,8 @@ namespace scala
     if (type == 'R' || type == 'H') {
       if (!(RH == 'R' || RH == 'H')) {
 	// invalid rhombohedral lattice type
-	Message::message(Message_fatal("RhombohedralLatType must be R or H not "+RH) );
+	Message::message(Message_fatal("RhombohedralLatType must be R or H not "+
+				       std::string(1,RH)));
       }
       return RH;
     }

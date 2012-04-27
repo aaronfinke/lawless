@@ -68,11 +68,12 @@ namespace MtzIO {
 
     spacegroup.init(mtzin.spacegroup());
     spacegroupsymbol = spacegroup.Symbol_hm();
+    spg_status = mtzin.spacegroup_confidence();
 
     // Clipper seems to return spacegroup R3 as "R3" even on hexagonal axes
     //  so change "R" to "H" if cell is hexagonal
     ///    spacegroupsymbol = FixRhombohedralSymbolMess
-      ///      (mtzin.spacegroup().symbol_hm(), mcell);
+    ///      (mtzin.spacegroup().symbol_hm(), mcell);
 
     // Check for column label "M_ISYM" as marker for unmerged file
     merged = true;
@@ -182,6 +183,7 @@ namespace MtzIO {
 		  hkl_symmetry(spacegroup), all_controls(),
 		  ///		  hkl_symmetry(mtzin.spacegroup()), all_controls(),
 		  DataSets, Batches);
+    hkl_list.SetSpaceGroupStatus(spg_status); 
 
     int isym = 1;
     int batch = 1;
@@ -223,7 +225,7 @@ namespace MtzIO {
 			      Xdet, Ydet, phi, time,
 			      fraction_calc, width, LP,
 			      Npart, Ipart, ObsFlag);
-	  InvResRange.update(hkl_index.invresolsq());  //smin, smax
+	  InvResRange.update( hkl_index.invresolsq());  //smin, smax
 	}
       }
     }

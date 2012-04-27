@@ -184,10 +184,6 @@ namespace scala
     for (int k=0; k<nbatches; k++)  {
       int idx = batches[k].index(); // dataset index
       allcells[idx].push_back(batches[k].cell()); // add batch cell
-      //^
-      //      std::cout << "AverageBatchCell " << FormatCell(batches[k].cell(), 12, 8)
-      //		<<" batch "<< k+1 <<"\n";
-      //^-
       n[idx]++;
       averageMosaicity[idx] += batches[k].Mosaicity(); 
       averageWavelength[idx] += batches[k].Wavelength(); 

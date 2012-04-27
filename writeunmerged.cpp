@@ -78,7 +78,8 @@ namespace MtzIO
       if (RhombohedralAxes(hkl_list.Cell().UnitCell())) { // true if not H
 	HorR = 'R';
       }}
-    mtzout->mtzsymm = spg_to_mtz(NewSymm.GetSpaceGroup(), HorR);
+    char spg_status = hkl_list.MtzSym().spg_confidence;
+    mtzout->mtzsymm = spg_to_mtz(NewSymm.GetSpaceGroup(), HorR, spg_status);
     // for cell constraints
     CCtbxSym::CellGroup CG(NewSymm.GetSpaceGroup());
 

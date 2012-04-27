@@ -50,6 +50,7 @@ namespace scala {
 		       clipper::Resolution(hkl_list.ResRange().ResHigh()),
 		       false);  // no generation
     hkl_info_list.add_hkl_list(hkls);   // add hkl list
+    spg_status = hkl_list.MtzSym().spg_confidence; // status of space group
 
     xdatasets = hkl_list.AllXdatasets();
 

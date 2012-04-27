@@ -4,8 +4,9 @@
 #include "mtz_utils.hh"
 #include "hkl_symmetry.hh"
 
-// from CLIBS/cmtzlib.h
-//  typedef struct { int spcgrp;           /**< spacegroup number */
+// from CLIBS/mtzdata.h  extra item spg_confidence added from earlier versions
+/** MTZ symmetry struct. */
+// typedef struct { int spcgrp;           /**< spacegroup number */
 //		 char spcgrpname[MAXSPGNAMELENGTH+1];  /**< spacegroup name */
 //		 int nsym;             /**< number of symmetry operations */
 //		 float sym[192][4][4]; /**< symmetry operations 
@@ -13,6 +14,11 @@
 //		 int nsymp;            /**< number of primitive symmetry ops. */
 //		 char symtyp;          /**< lattice type (P,A,B,C,I,F,R) */
 //		 char pgname[11];      /**< pointgroup name */
+//                 char spg_confidence;  /**< L => Bravais lattice correct
+//                                            P => pointgroup correct
+//                                            E => spacegroup or enantiomorph
+//                                            S => spacegroup is correct
+//                                            X => flag not set */
 //               } SYMGRP;
 
 namespace MtzIO 
@@ -37,7 +43,8 @@ namespace MtzIO
   }
   //--------------------------------------------------------------
   // Mtz symmetry from SpaceGroup
-  CMtz::SYMGRP spg_to_mtz(const scala::SpaceGroup& cspgp, const char& HorR)
+  CMtz::SYMGRP spg_to_mtz(const scala::SpaceGroup& cspgp, const char& HorR,
+  			const char& spg_status)
   {
     CMtz::SYMGRP mtzsym;
     mtzsym.spcgrp = cspgp.spacegroup_number();
@@ -46,6 +53,7 @@ namespace MtzIO
     mtzsym.nsymp = cspgp.num_primops();
     strcpy(mtzsym.pgname, scala::SGnameHtoR(cspgp.symbol_laue(),HorR).c_str());
     mtzsym.symtyp = cspgp.LatType();
+    mtzsym.spg_confidence = spg_status;
 
     for (int i = 0; i < mtzsym.nsym; ++i) {
       for (int k = 0; k < 3; ++k) {

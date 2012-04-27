@@ -85,6 +85,7 @@ namespace MtzIO {
     // Cell
     Scell Cell() const {return mcell;}
     std::string Spacegroupsymbol() const {return spacegroupsymbol;}
+    char SpaceGroupStatus() const {return spg_status;}
 
   private:
     std::string filenamein; // input file name
@@ -98,6 +99,7 @@ namespace MtzIO {
     Scell mcell;
     std::string spacegroupsymbol;
     scala::SpaceGroup spacegroup;
+    char spg_status;  // space group confidence from MTZ file
 
     bool at_start;
 

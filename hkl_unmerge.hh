@@ -500,6 +500,8 @@ namespace scala {
     void SetMtzSym(const CMtz::SYMGRP& Mtzsym) {mtzsym = Mtzsym;}
     //! Return MTZ symmetry (for file output)
     CMtz::SYMGRP MtzSym() const {return mtzsym;}
+    //! Store Space group status (CMtz::SYMGRP.spg_confidence) into mtzsym
+    void SetSpaceGroupStatus(const char& spg_status);
 
     //! Total reindexing so far (cumulative)
     ReindexOp TotalReindex() const {return totalreindex;}
@@ -608,8 +610,9 @@ namespace scala {
     /*! On entry:
       \param pole  =  0 SECONDARY  camera frame
                   !=  0 ABSORPTION, crystal frame = 1,2,3 for h,k,l, 
- 		   = -1 unspecified, use closest reciprocal axis for each run */
-    void CalcSecondaryBeams(const int& pole);
+		   = -1 unspecified, use closest reciprocal axis for each run */
+    /*! Returns true if OK, false if not OK eg some batch does not have valid Umat */
+    bool CalcSecondaryBeams(const int& pole);
 
     //! Set up poles for Absorption
     void SetPoles(const int& pole);

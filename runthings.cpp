@@ -123,7 +123,7 @@ namespace scala {
       }
     }
     if (firstbatch >= 0) {
-      for (size_t i=batch_number_list.size()-1;i>=0;i--) {
+      for (int i=int(batch_number_list.size())-1;i>=0;i--) {
 	if (batch_accepted[i]) {
 	  lastbatch = batch_number_list[i];
 	  break;

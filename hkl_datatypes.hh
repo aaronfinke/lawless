@@ -735,7 +735,7 @@ namespace scala
     //  Cambridge frame has
     //    source vector s0 (anti-parallel to beam) approximately along -x
     //      ie x is along beam (if perpendicular to rotation axis)
-    //    principal rotation axis e0 exactly along z
+    //    principal rotation axis e0 exactly along z (e0 = e1 or e3)
     DMat33 Q;  // conversion matrix from input frame to Cambridge
     DVect3 s0;  // source vector
     DMat33 U;  // [U]     [Orientation]

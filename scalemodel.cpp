@@ -99,7 +99,14 @@ namespace scala {
     // Ties
     SetupTies(input, hkl_list);
     // Always calculate all secondary beams & diffraction vectors
-    hkl_list.CalcSecondaryBeams(pole);
+    bool secbeamsOK = hkl_list.CalcSecondaryBeams(pole);
+
+    if (nsecscales > 0 && !secbeamsOK) { 
+      // if we have secondary scales we must have secondary beams calculated
+      //  but we shouldn't get here anyway!
+      Message::message(Message_fatal
+	 ("ScaleModel: can't use Secondary Scale unless we have valid orientation information"));
+    }
   }
   //--------------------------------------------------------------
   void ScaleModel:: SetConstant(hkl_unmerge_list& hkl_list, phaser_io::Output& output)

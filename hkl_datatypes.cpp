@@ -46,7 +46,7 @@ namespace scala
       DVect3 axis(0.0,0.0,0.0);
       axis[i] = 1.0;  // a*, b*, c*
       angles[i] = clipper::Util::rad2d(acos
-	    (std::abs(clipper::Vec3<>::dot(spindle, (DUB * axis).unit()))));
+            (std::abs(clipper::Vec3<>::dot(spindle, (DUB * axis).unit()))));
     }
     return angles;
   }
@@ -59,7 +59,7 @@ namespace scala
     for (int i=0;i<3;++i) {
       if (v[i] < min) {
         ismall = i;
-	min = v[i];
+        min = v[i];
       }
     }
     return ismall;
@@ -92,17 +92,17 @@ namespace scala
     int Noper = CSym::symfr_driver(Operator.c_str(), rt44);
     if (Noper != 1)
       Message::message(Message_fatal
-		       ("ReindexOp: syntax error in operator; "+Operator));
+                       ("ReindexOp: syntax error in operator; "+Operator));
 
     Mat33<double> H;
     Vec3<double> v;
     for (int i=0;i<3;i++)
       {
-	for (int j=0;j<3;j++)
-	  // We want the transpose of the matrix since reindex operator H 
-	  // applies to index h such that h'T = hT H
-	  {H(j,i) = rt44[0][i][j];}
-	v[i] = rt44[0][i][3];
+        for (int j=0;j<3;j++)
+          // We want the transpose of the matrix since reindex operator H 
+          // applies to index h such that h'T = hT H
+          {H(j,i) = rt44[0][i][j];}
+        v[i] = rt44[0][i][3];
       }
     rot() = H;
     trn() = v;
@@ -126,12 +126,12 @@ namespace scala
     std::string fmat = "   h'   = ( h k l ) (";
     for (int i=0;i<3;i++)
       {
-	if (i > 0) fmat += "                    (";
-	for (int j=0;j<3;j++)
-	  {
-	    fmat += " "+String(rot()(i,j),7,4);
-	  }
-	fmat += " )\n";
+        if (i > 0) fmat += "                    (";
+        for (int j=0;j<3;j++)
+          {
+            fmat += " "+String(rot()(i,j),7,4);
+          }
+        fmat += " )\n";
       }
     return fmat;
   }
@@ -141,12 +141,12 @@ namespace scala
     std::string fmat = "<ReindexMatrix>";
     for (int i=0;i<3;i++)
       {
-	if (i > 0) fmat += "                  ";
-	for (int j=0;j<3;j++)
-	  {
-	    fmat += " "+String(rot()(i,j),6,4);
-	  }
-	fmat += "\n";
+        if (i > 0) fmat += "                  ";
+        for (int j=0;j<3;j++)
+          {
+            fmat += " "+String(rot()(i,j),6,4);
+          }
+        fmat += "\n";
       }
     fmat += "    </ReindexMatrix>\n";
     return fmat;
@@ -188,44 +188,44 @@ namespace scala
     for (int isym=0;isym<symm.num_primops();++isym) {
       Mat33<double> Ht = H * symm.symop(isym).rot().inverse();
       if (Ht.equals(Imat, TOL)) {
-	rot() = Imat;
-	//^
-	//	std::cout << "*** FindSimplest: identity with symop " << isym << "\n"
-	//		  << symm.symop(isym).rot().inverse().format() << "\n"; //^-
-	return;  // always accept identity operation if found
+        rot() = Imat;
+        //^
+        //      std::cout << "*** FindSimplest: identity with symop " << isym << "\n"
+        //                << symm.symop(isym).rot().inverse().format() << "\n"; //^-
+        return;  // always accept identity operation if found
       }
       double total = 0.0; // total
       int nneg = 0; // number of negatives
       for (int i=0;i<3;i++)
-	for (int j=0;j<3;j++) {
-	  total += std::abs(Ht(i,j));
-	  if (Ht(i,j) < 0.0) nneg += 1;
-	}
+        for (int j=0;j<3;j++) {
+          total += std::abs(Ht(i,j));
+          if (Ht(i,j) < 0.0) nneg += 1;
+        }
       if (total < besttot-TOL) {
-	besttot = total;
-	minneg = nneg;
-	Hbest = Ht;
-	kbest = isym;
+        besttot = total;
+        minneg = nneg;
+        Hbest = Ht;
+        kbest = isym;
       } else if (Close<float>(total, besttot, TOL)) {
-	if (nneg < minneg) {
-	  besttot = total;
-	  minneg = nneg;
-	  Hbest = Ht;
-	  kbest = isym;
-	}
+        if (nneg < minneg) {
+          besttot = total;
+          minneg = nneg;
+          Hbest = Ht;
+          kbest = isym;
+        }
       }
       //^
       //      std::cout << "\n\nFindSimplest: symop " << isym << "\n"
-      //		  << symm.symop(isym).rot().inverse().format()
-      //		<< "\n\nReindex:\n" << Ht.format()
-      //		<< " total " << total << " nneg " << nneg
-      //		<< "\n"; 
+      //                  << symm.symop(isym).rot().inverse().format()
+      //                << "\n\nReindex:\n" << Ht.format()
+      //                << " total " << total << " nneg " << nneg
+      //                << "\n"; 
       //^-
     }
     rot() = Hbest;
     //^
     //    std::cout << "\n***FindSimplest: best reindex " << as_hkl() << " with symop " << kbest << "\n"
-    //	      << symm.symop(kbest).rot().inverse().format() << "\n\n"; //^-
+    //        << symm.symop(kbest).rot().inverse().format() << "\n\n"; //^-
   }
   //--------------------------------------------------------------
   //! change basis of symmetry operator
@@ -343,8 +343,8 @@ namespace scala
   Mat33<Dtype> MetricTensor::matrix() const
   {
     return Mat33<Dtype>(m00,     0.5*m01, 0.5*m02,
-			0.5*m01, m11,     0.5*m12,
-			0.5*m02, 0.5*m12,  m22);
+                        0.5*m01, m11,     0.5*m12,
+                        0.5*m02, 0.5*m12,  m22);
   }
 
   //--------------------------------------------------------------
@@ -383,7 +383,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   Scell::Scell(const double& a,const double& b,const double& c,
-	       const double& alpha, const double& beta, const double& gamma)
+               const double& alpha, const double& beta, const double& gamma)
   // Construct Scell object from real cell
   {
     std::vector<Dtype> real_cell(6);
@@ -443,8 +443,8 @@ namespace scala
     double ca = cos(cell_[3]*degtorad);
 
     Bmat_ = Mat33<Dtype>(as, bs*cgs, cs*cbs,
-			 0., bs*sgs, -cs*sbs*ca,
-			 0.,     0., 1.0/cc);
+                         0., bs*sgs, -cs*sbs*ca,
+                         0.,     0., 1.0/cc);
   }
   //--------------------------------------------------------------
   std::string Scell::formatPrint(const bool& newline) const
@@ -468,12 +468,12 @@ namespace scala
     std::cout << std::endl;
 
     std::cout << "RealMetricTensor:\n"
-	      << metric_tensor_.format() << "\n";
+              << metric_tensor_.format() << "\n";
     std::cout << "RecipMetricTensor:\n"
-	      << recip_metric_tensor_.format() << "\n";
+              << recip_metric_tensor_.format() << "\n";
 
     std::cout << "Bmat:\n" 
-	      << Bmat_.format() << "\n";
+              << Bmat_.format() << "\n";
 
   }
   //--------------------------------------------------------------
@@ -517,22 +517,22 @@ namespace scala
     double gamma = cell_[5] * degtorad;
     double vol = a * b * c *
       sqrt( 2.0*cos(alpha)*cos(beta)*cos(gamma)
-	    - cos(alpha)*cos(alpha)
-	    - cos( beta)*cos( beta)
-	    - cos(gamma)*cos(gamma) + 1.0 );
+            - cos(alpha)*cos(alpha)
+            - cos( beta)*cos( beta)
+            - cos(gamma)*cos(gamma) + 1.0 );
     return vol;
   }
   //--------------------------------------------------------------
   // Return true if all angles are within Tol of given test values
   bool Scell::AngleTest(const double& AlphaTest,
-			const double& BetaTest,
-			const double& GammaTest,
-			const double Tol) const
+                        const double& BetaTest,
+                        const double& GammaTest,
+                        const double Tol) const
   {
     if (Close<double,double>(cell_[3], AlphaTest, Tol))
       if (Close<double,double>(cell_[4], BetaTest, Tol))
-	if (Close<double,double>(cell_[5], GammaTest, Tol))
-	  return true;
+        if (Close<double,double>(cell_[5], GammaTest, Tol))
+          return true;
     return false;
   }
   //--------------------------------------------------------------
@@ -552,7 +552,7 @@ namespace scala
   {
     // Very rough: convert angular tolerance to "length" using
     // average cell edge
-    //	double edge = Max(Max(test_cell[0], test_cell[1]), test_cell[2]);
+    //  double edge = Max(Max(test_cell[0], test_cell[1]), test_cell[2]);
     double edge = 0.333 * (cell_[0] + cell_[1] + cell_[2]);
     double max_diff = clipper::Util::d2rad(AngularTolerance) * edge;
     return equals(other, max_diff, AngularTolerance);
@@ -580,13 +580,13 @@ namespace scala
     double s = 0.0;
     for (int j=0;j<3;++j) {
       for (int i=0;i<3;++i) {
-	s += (Bmat_(i,j) - other.Bmat_(i,j))*(Bmat_(i,j) - other.Bmat_(i,j));
+        s += (Bmat_(i,j) - other.Bmat_(i,j))*(Bmat_(i,j) - other.Bmat_(i,j));
       }}  // sum of squares of orthogonalisation matrix differences
     // Average cell volume
     double vav = (Volume() + other.Volume())*0.5;
     double v43 = pow(vav, 1.333333); // V^4/3
     //    std::cout << "\nScell::Difference " << s
-    //	      << " " << Volume()<< " " << other.Volume() << "\n"; //^
+    //        << " " << Volume()<< " " << other.Volume() << "\n"; //^
     return sqrt(v43 * s);
   }
   //--------------------------------------------------------------
@@ -625,9 +625,9 @@ namespace scala
     std::vector<Dtype> sumcell(6,0.0);
     for (size_t k=0; k<cells.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
-	for (int i=0; i<6; i++) {
-	  sumcell[i] += cells[k].UnitCell()[i];
-	}
+        for (int i=0; i<6; i++) {
+          sumcell[i] += cells[k].UnitCell()[i];
+        }
       }
     }
     for (int i=0; i<6; i++) {sumcell[i] /= nc;}
@@ -667,7 +667,7 @@ namespace scala
     for (int i=0;i<Number();++i) {
       std::vector<Dtype> cv =  cells[i].UnitCell();
       for (int j=0;j<6;++j) {
-	rms[j].Add(cv[j]);
+        rms[j].Add(cv[j]);
       }
     }
     for (int j=0;j<6;++j) {
@@ -751,9 +751,9 @@ namespace scala
     int lxn = Max(lm, int(xname_.size()+1));
     int ldn = Max(lm, int(dname_.size()+1));
     return FormatOutput::logTab(2,
-				StringUtil::PadString("Project: "+pname_, lpn)+
-				StringUtil::PadString(" Crystal: "+xname_, lxn)+
-				StringUtil::PadString(" Dataset: "+dname_, ldn));
+                                StringUtil::PadString("Project: "+pname_, lpn)+
+                                StringUtil::PadString(" Crystal: "+xname_, lxn)+
+                                StringUtil::PadString(" Dataset: "+dname_, ldn));
   }
   //--------------------------------------------------------------
   std::string PxdName::format() const
@@ -762,7 +762,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   Xdataset::Xdataset(const PxdName& pxdname, const Scell& cell,
-		     const float& wavel, const int& setid)
+                     const float& wavel, const int& setid)
     : pxdname_(pxdname), setid_(setid), cell_(cell), wavel_(wavel)
   {
     allcells_.AddCell(cell);
@@ -794,7 +794,7 @@ namespace scala
     s += FormatOutput::logTabPrintf(1,"Unit cell:  ");
     s += cell_.formatPrint();
     s += FormatOutput::logTabPrintf(1,
-				    "Wavelength: %8.5f\n", wavel_);
+                                    "Wavelength: %8.5f\n", wavel_);
     s += FormatOutput::logTabPrintf(1,"Runs: ");
     for (size_t i=0;i<run_index_list.size();i++)
       {s += FormatOutput::logTabPrintf(1," %3d", run_index_list[i]+1);}
@@ -832,8 +832,8 @@ namespace scala
     const double TOL = 0.001;
     if (devmax < TOL) {
       s += "         Files for dataset contain "+clipper::String(allcells_.Number(), 3)+
-	" near identical cells, "+
-	" maximum deviation "+StringUtil::ftos(devmax, 6,4)+"\n";
+        " near identical cells, "+
+        " maximum deviation "+StringUtil::ftos(devmax, 6,4)+"\n";
       return s;
     }
     s += "\n"+std::string(10,' ')+
@@ -852,9 +852,9 @@ namespace scala
     for (int i=0;i<allcells_.Number();++i) {
       s += blank;
       s += cells[i].formatPrint(false)+
-	StringUtil::ftos(dv[i], 7,2)+
-	StringUtil::ftos(allwavel_[i],9,4)+
-	"\n";
+        StringUtil::ftos(dv[i], 7,2)+
+        StringUtil::ftos(allwavel_[i],9,4)+
+        "\n";
     }
     s += std::string(7,' ')+"RMS deviation: ";
     dv = allcells_.RmsD();
@@ -893,8 +893,8 @@ namespace scala
     xq = DVect3::cross(yq, zq).unit();
 
     return DMat33(xq[0], yq[0], zq[0],
-		  xq[1], yq[1], zq[1],
-		  xq[2], yq[2], zq[2]);
+                  xq[1], yq[1], zq[1],
+                  xq[2], yq[2], zq[2]);
   }
   //--------------------------------------------------------------
   Batch::Batch()
@@ -926,16 +926,16 @@ namespace scala
     int status = CMtz::MtzArrayToBatch(intbuf, fltbuf, &batchinfo);
     if (!status) {
       Message::message(Message_fatal
-		       ("Batch::initBatchInfo fail"));
+                       ("Batch::initBatchInfo fail"));
     }
-    strcpy(batchinfo.title, "");                /**< batch title */	      
+    strcpy(batchinfo.title, "");                /**< batch title */           
     strcpy(batchinfo.gonlab[0], "        ");    /**< names of the three axes */
     strcpy(batchinfo.gonlab[1], "        ");    // 8-characters only! 
     strcpy(batchinfo.gonlab[2], "        ");
   }
   //--------------------------------------------------------------
   Batch::Batch(const CMtz::MTZBAT& batch,
-	       const bool& accept, const int& idataset)
+               const bool& accept, const int& idataset)
     :   batchinfo(batch), Xdataset_index(idataset), accepted(accept)
   {
     offset = 0;
@@ -952,7 +952,11 @@ namespace scala
     // Check validity of cell & orientation matrix
     if (batchinfo.cell[0]*batchinfo.cell[1]*batchinfo.cell[2] == 0.0)
       {valid_cell = false;}
-    if (valid_cell) {bcell = Scell(batchinfo.cell);}
+    if (valid_cell) {
+      bcell = Scell(batchinfo.cell);
+    } else {
+      bcell = Scell(); // null cell
+    }
 
     U = MVutil::SetCMat33(batchinfo.umat); // [U]
     valid_Umat = true;
@@ -991,58 +995,66 @@ namespace scala
       if (batchinfo.ngonax < 3)  {dtm[2] = 0.0;}
       // Datum matrix rotation
       if (batchinfo.ngonax == 2) {
-	// Two axes, construct e3 orthogonal to e1 & e2
-	e3 = clipper::Vec3<>::cross(e1, e2).unit();
+        // Two axes, construct e3 orthogonal to e1 & e2
+        e3 = clipper::Vec3<>::cross(e1, e2).unit();
       }
       spindle = e1;  // phi/omega scan
       scala::Rotation D;
       if (batchinfo.ngonax == 1) {
-	// Single axis, e1
-	D = scala::Rotation(e1, dtm[0]);
+        // Single axis, e1
+        D = scala::Rotation(e1, dtm[0]);
       } else {
-	if (batchinfo.jsaxs == 1) {
-	  // Omega scan
-	  D = scala::Rotation(scala::Euler_explicit
-				(e1, clipper::Util::d2rad(dtm[0]),
-				 e2, clipper::Util::d2rad(dtm[1]),
-				 e3, clipper::Util::d2rad(dtm[2])));
-	  phiscan = false;
-	} else if (batchinfo.jsaxs == 3) {
-	  // Phi scan
-	  // datum [D] = [Phi0]
-	  D = scala::Rotation(scala::Euler_explicit
-				(e1, 0.0,
-				 e2, 0.0,
-				 e3, clipper::Util::d2rad(dtm[2])));
-	  phiscan = true;
-	  spindle = e3;  // phi/omega scan
-	  // E1E2 = [Omega][Chi/Kappa]
-	  E1E2 = scala::Rotation(scala::Euler_explicit
-				   (e1, clipper::Util::d2rad(dtm[0]),
-				    e2, clipper::Util::d2rad(dtm[1]),
-				    e3, 0.0)).matrix();
-	}
+        if (batchinfo.jsaxs == 1) {
+          // Omega scan
+          D = scala::Rotation(scala::Euler_explicit
+                                (e1, clipper::Util::d2rad(dtm[0]),
+                                 e2, clipper::Util::d2rad(dtm[1]),
+                                 e3, clipper::Util::d2rad(dtm[2])));
+          phiscan = false;
+        } else if (batchinfo.jsaxs == 3) {
+          // Phi scan
+          // datum [D] = [Phi0]
+          D = scala::Rotation(scala::Euler_explicit
+                                (e1, 0.0,
+                                 e2, 0.0,
+                                 e3, clipper::Util::d2rad(dtm[2])));
+          phiscan = true;
+          spindle = e3;  // phi/omega scan
+          // E1E2 = [Omega][Chi/Kappa]
+          E1E2 = scala::Rotation(scala::Euler_explicit
+                                   (e1, clipper::Util::d2rad(dtm[0]),
+                                    e2, clipper::Util::d2rad(dtm[1]),
+                                    e3, 0.0)).matrix();
+        }
       }
       // "Missetting" angles [A] = [PhiXYZ][U]
       DMat33 A = U;
-      if (batchinfo.misflg > 0)	{
-	DVect3 x(1.0,0.0,0.0);
-	DVect3 y(0.0,1.0,0.0);
-	DVect3 z(0.0,0.0,1.0);
-	scala::Rotation PhiXYZ(scala::Euler_explicit
-				 (x, clipper::Util::d2rad(batchinfo.phixyz[0][0]),
-				  y, clipper::Util::d2rad(batchinfo.phixyz[0][1]),
-				  z, clipper::Util::d2rad(batchinfo.phixyz[0][2])));
-	A = PhiXYZ.matrix() * U;
-	U = A;
+      if (batchinfo.misflg > 0) {
+        DVect3 x(1.0,0.0,0.0);
+        DVect3 y(0.0,1.0,0.0);
+        DVect3 z(0.0,0.0,1.0);
+        scala::Rotation PhiXYZ(scala::Euler_explicit
+                                 (x, clipper::Util::d2rad(batchinfo.phixyz[0][0]),
+                                  y, clipper::Util::d2rad(batchinfo.phixyz[0][1]),
+                                  z, clipper::Util::d2rad(batchinfo.phixyz[0][2])));
+        A = PhiXYZ.matrix() * U;
+        U = A;
       }
       A = Q * A;  // transform to frame
       // Store [D][PhiXYZ][U]
       DU = D.matrix() * A;
       // [D][U][B] ([B] in is A^-1)
       DUB = DU * bcell.Bmat();
-    } // end if valid_Umat
-    
+      // end if valid_Umat
+    } else { // not valid_Umat
+      // fill in dummy values
+      spindle = DVect3(0.0,0.0,1.0);
+      Q = DMat33::identity();
+      s0 = DVect3(-1.0,0.0,0.0);
+      U = DMat33::identity();
+      DU =  scala::Rotation(spindle, 0.0).matrix() * U;
+      DUB = DU * bcell.Bmat();
+    }    
     float phirange = batchinfo.phiend  - batchinfo.phistt;
     valid_phi = true;
     if (std::abs(phirange) < tolerance) valid_phi = false;
@@ -1053,27 +1065,27 @@ namespace scala
       valid_time = 0;
       // Substitute phi
       if (valid_phi) {
-	timerange = phirange;
-	batchinfo.time1 =  batchinfo.phistt;
-	batchinfo.time2 =  batchinfo.phiend;
-	valid_time = -1;
+        timerange = phirange;
+        batchinfo.time1 =  batchinfo.phistt;
+        batchinfo.time2 =  batchinfo.phiend;
+        valid_time = -1;
       }
     }
 
     if (batchinfo.phirange > tolerance) {
       // phirange is explicitly in file, check phi2 modulo 360
       if (std::abs(phirange - batchinfo.phirange) > tolerance) {
-	double dif = batchinfo.phistt+batchinfo.phirange-batchinfo.phiend;
-	if (std::abs(fmod(dif,360.0)) > tolerance) {
-	  Message::message(Message_warn(
-		"Inconsistent rotation information in header for batch "+
-					clipper::String(batchinfo.num)+
-		"\n  Phi1: "+clipper::String(batchinfo.phistt)+
-		" Phi2: "+clipper::String(batchinfo.phiend)+
-		" DelPhi: "+clipper::String(batchinfo.phirange)));
-	} else
-	  // Fix up phi end if off by multiple of 360
-	  {batchinfo.phiend = batchinfo.phistt + batchinfo.phirange;}
+        double dif = batchinfo.phistt+batchinfo.phirange-batchinfo.phiend;
+        if (std::abs(fmod(dif,360.0)) > tolerance) {
+          Message::message(Message_warn(
+                "Inconsistent rotation information in header for batch "+
+                                        clipper::String(batchinfo.num)+
+                "\n  Phi1: "+clipper::String(batchinfo.phistt)+
+                " Phi2: "+clipper::String(batchinfo.phiend)+
+                " DelPhi: "+clipper::String(batchinfo.phirange)));
+        } else
+          // Fix up phi end if off by multiple of 360
+          {batchinfo.phiend = batchinfo.phistt + batchinfo.phirange;}
       }
     }
 
@@ -1090,18 +1102,18 @@ namespace scala
       for (int i=0;i<6;i++) batchinfo.cell[i] = newcell[i];
       // Check for valid orientation
       if (valid_Umat) {
-	// Rotate crystal orientation
-	DMat33 U = MVutil::SetCMat33(batchinfo.umat);
-	// U' = U * B * H(T)^-1 * B'^-1
-	DMat33 RU = U *
-	  bcell.Bmat() * reindex_op.transpose().inverse() * newcell.Bmat().inverse();
-	for (int i=0;i<3;i++) {
-	  for(int j=0;j<3;j++) {
-	    batchinfo.umat[j*3+i] = RU(i,j);}}
-	// Update DU' = DU * U^-1 * U'
-	DU = DU * U.inverse() * RU;
-	// [D][U][B]
-	DUB = DU * bcell.Bmat();
+        // Rotate crystal orientation
+        DMat33 U = MVutil::SetCMat33(batchinfo.umat);
+        // U' = U * B * H(T)^-1 * B'^-1
+        DMat33 RU = U *
+          bcell.Bmat() * reindex_op.transpose().inverse() * newcell.Bmat().inverse();
+        for (int i=0;i<3;i++) {
+          for(int j=0;j<3;j++) {
+            batchinfo.umat[j*3+i] = RU(i,j);}}
+        // Update DU' = DU * U^-1 * U'
+        DU = DU * U.inverse() * RU;
+        // [D][U][B]
+        DUB = DU * bcell.Bmat();
       }
     }
   }
@@ -1239,7 +1251,7 @@ namespace scala
       //  Unspecified ABSORPTION pole, choose closest reciprocal axis
       //    numbered 1,2,3
       pole =
-	SmallestComponent(SpindleToPrincipleAxes(DUB)) + 1;
+        SmallestComponent(SpindleToPrincipleAxes(DUB)) + 1;
     }
     // Generate permutation matrix P for this batch to put pole along z
     // polar orthogonal crystal frame  x(polar) = [P] [B] h
@@ -1302,7 +1314,7 @@ namespace scala
       s2 = "\n                                     ";
     }
     for (int i=0;i<3;++i) {for (int j=0;j<3;++j) {
-	s += FormatOutput::logTabPrintf(0,"%10.4f",U(i,j));
+        s += FormatOutput::logTabPrintf(0,"%10.4f",U(i,j));
       }
       if (i<2) {s += s2;}
       s2 = "\n                                     ";
@@ -1310,7 +1322,7 @@ namespace scala
     s += "\n";
     if (batchinfo.misflg == 1) {
       s += FormatOutput::logTabPrintf(0,"   %s %6.2f %6.2f %6.2f\n",
-	 "Missetting angles PhiX PhiY PhiZ..",
+         "Missetting angles PhiX PhiY PhiZ..",
          batchinfo.phixyz[0][0],batchinfo.phixyz[0][1],batchinfo.phixyz[0][2]);
     } else if (batchinfo.misflg > 1) {
       s += FormatOutput::logTabPrintf(0,"   %s %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
@@ -1323,13 +1335,13 @@ namespace scala
     if (batchinfo.jumpax == 2) axis = "b*";
     if (batchinfo.jumpax == 3) axis = "c*";
     s += FormatOutput::logTabPrintf(0,"   %s%s%s   %s\n",
-	    "Reciprocal axis nearest ",batchinfo.gonlab[0],"..",axis.c_str());
+            "Reciprocal axis nearest ",batchinfo.gonlab[0],"..",axis.c_str());
     if (!batchinfo.lcrflg) {
     s += FormatOutput::logTabPrintf(0,"   %s %6.3f \n",
-	   "Mosaicity ........................",batchinfo.crydat[0]);
+           "Mosaicity ........................",batchinfo.crydat[0]);
     } else {
       s += FormatOutput::logTabPrintf(0,"   %s %6.3f %6.3f \n",
-	   "Mosaicity (horizontal, vertical)..",batchinfo.crydat[0],batchinfo.crydat[1]);
+           "Mosaicity (horizontal, vertical)..",batchinfo.crydat[0],batchinfo.crydat[1]);
     }
     s += FormatOutput::logTabPrintf(0,"   Datum goniostat angles (degrees)..");
     for (int i = 0; i < batchinfo.ngonax; ++i) 
@@ -1340,9 +1352,9 @@ namespace scala
       s += FormatOutput::logTabPrintf(0,"   %s  %s \n",
       "Scan axis ........................",batchinfo.gonlab[batchinfo.jsaxs-1]);
     s += FormatOutput::logTabPrintf(0,"   %s %8.3f %8.3f \n   %s %8.3f \n   %s %8.2f %8.2f \n",
-	 "Start & stop Phi angles (degrees).",
-	   batchinfo.phistt,batchinfo.phiend,
-	 "Range of Phi angles (degrees).....",batchinfo.phirange,
+         "Start & stop Phi angles (degrees).",
+           batchinfo.phistt,batchinfo.phiend,
+         "Range of Phi angles (degrees).....",batchinfo.phirange,
          "Start & stop time (minutes).......",batchinfo.time1,batchinfo.time2);
 
     if (batchinfo.nbscal == 4) {
@@ -1353,19 +1365,19 @@ namespace scala
 
     s += FormatOutput::logTabPrintf(0,"   %s  \n   %s %7d \n   %s %s %s %9.4f %9.4f %9.4f \n   %s %s %s %9.4f %9.4f %9.4f \n   %s %s %s %9.4f %9.4f %9.4f \n",
          " Crystal goniostat information :-",
-	 "   Number of goniostat axes..........",batchinfo.ngonax,
-	 "   Goniostat vectors.....",
-	    batchinfo.gonlab[0],"....",batchinfo.e1[0],batchinfo.e1[1],batchinfo.e1[2],
-	 "                    .....",batchinfo.gonlab[1],"....",batchinfo.e2[0],batchinfo.e2[1],batchinfo.e2[2],
-	 "                    .....",batchinfo.gonlab[2],"....",batchinfo.e3[0],batchinfo.e3[1],batchinfo.e3[2]);
+         "   Number of goniostat axes..........",batchinfo.ngonax,
+         "   Goniostat vectors.....",
+            batchinfo.gonlab[0],"....",batchinfo.e1[0],batchinfo.e1[1],batchinfo.e1[2],
+         "                    .....",batchinfo.gonlab[1],"....",batchinfo.e2[0],batchinfo.e2[1],batchinfo.e2[2],
+         "                    .....",batchinfo.gonlab[2],"....",batchinfo.e3[0],batchinfo.e3[1],batchinfo.e3[2]);
 
     s += FormatOutput::logTabPrintf(0,
       "   %s \n   %s%9.4f %9.4f %9.4f \n   %s%9.4f %9.4f %9.4f \n",
-	 " Beam information :-",
-	 "   Idealized X-ray beam vector.......",
-	 batchinfo.source[0],batchinfo.source[1],batchinfo.source[2],
-	 "   X-ray beam vector with tilts......",
-	 batchinfo.so[0],batchinfo.so[1],batchinfo.so[2]);
+         " Beam information :-",
+         "   Idealized X-ray beam vector.......",
+         batchinfo.source[0],batchinfo.source[1],batchinfo.source[2],
+         "   X-ray beam vector with tilts......",
+         batchinfo.so[0],batchinfo.so[1],batchinfo.so[2]);
 
     if (batchinfo.lbmflg == 0) {
       s += FormatOutput::logTabPrintf(0,"   %s %9.5f %9.5f \n",
@@ -1392,20 +1404,20 @@ namespace scala
   }
   //--------------------------------------------------------------
   bool in_datasets(const int& setid,
-		   const std::vector<Xdataset>& datasets,
-		   int& idataset)
+                   const std::vector<Xdataset>& datasets,
+                   int& idataset)
   // Return true if dataset setid is in datasets list
   //  & return dataset index idataset (-1 if not)
   // If setid == 0, assign to first dataset 
   {
     if (setid <= 0) {
-	idataset = 0;
-	return true;
+        idataset = 0;
+        return true;
     }
     for (size_t k = 0; k < datasets.size(); ++k) {
       if (setid == datasets[k].setid()) {
-	idataset = k;
-	return true;
+        idataset = k;
+        return true;
       }
     }
     idataset = -1;
@@ -1432,8 +1444,8 @@ namespace scala
   }
   //--------------------------------------------------------------
   void BatchSelection::AddRange(const int& batch1, const int& batch2,
-				const int& fileSeriesList,
-				const int& flag)
+                                const int& fileSeriesList,
+                                const int& flag)
   // Add in batch range to selection
   {
     batchranges.push_back(IntRange(batch1,batch2));
@@ -1442,13 +1454,13 @@ namespace scala
   }
   //--------------------------------------------------------------
   bool BatchSelection::InSelection(const int& batch,
-				   const int& fileSeriesTest) const
+                                   const int& fileSeriesTest) const
   {
     return (FindInSelection(batch, fileSeriesTest) >= 0);
   }
   //--------------------------------------------------------------
   int BatchSelection::FindInSelection(const int& batch,
-				      const int& fileSeriesTest) const
+                                      const int& fileSeriesTest) const
   // Return index in list if in selection, for given file series, else -1
   // Two possibilities for selection:
   //  1) Specified selection on final numbering, ie from sole file or
@@ -1461,20 +1473,20 @@ namespace scala
   {
     for (size_t i=0;i<batchlist.size();i++) {
       if (fileseries_list[i] == 0 && fileSeriesTest == 0) {
-	// final numbering
-	if (batch == batchlist[i]) return int(i);
+        // final numbering
+        if (batch == batchlist[i]) return int(i);
       } else if (fileseries_list[i] > 0 && fileseries_list[i] == fileSeriesTest) {
-	// original numbering
-	if (batch == batchlist[i]) return int(i);
+        // original numbering
+        if (batch == batchlist[i]) return int(i);
       }
     }
     for (size_t i=0;i<batchranges.size();i++) {
       if (fileseries_range[i] == 0 && fileSeriesTest == 0) {
-	// final numbering
-	if (batchranges[i].InRange(batch)) return int(i);
+        // final numbering
+        if (batchranges[i].InRange(batch)) return int(i);
       } else if (fileseries_range[i] > 0 && fileseries_range[i] == fileSeriesTest) {
-	// original numbering
-	if (batchranges[i].InRange(batch)) return int(i);
+        // original numbering
+        if (batchranges[i].InRange(batch)) return int(i);
       }
     }
     // not in range or not tested
@@ -1502,8 +1514,8 @@ namespace scala
     std::vector<int> uniqueflags;
     for (size_t i=0;i<flaglist.size();++i) {
       if (uniqueflags.size() > 0) {
-	if (std::find(uniqueflags.begin(), uniqueflags.end(), flaglist[i])
-	    != uniqueflags.end()) {continue;} // skip if already in unique list
+        if (std::find(uniqueflags.begin(), uniqueflags.end(), flaglist[i])
+            != uniqueflags.end()) {continue;} // skip if already in unique list
       }
       uniqueflags.push_back(flaglist[i]);
     }
@@ -1518,7 +1530,7 @@ namespace scala
     std::vector<IntRange> bsel;
     for (size_t i=0;i<batchranges.size();++i) {
       if (flaglist[i] == flag) {
-	bsel.push_back(batchranges[i]);
+        bsel.push_back(batchranges[i]);
       }
     }
     return bsel;
@@ -1530,18 +1542,18 @@ namespace scala
   {
     for (size_t i=0;i<batchlist.size();i++) {
       if (fileseries_list[i] > NumFileSeries) {
-	Message::message(Message_fatal
-			 ("Batch selection specifies file[series] "+
-			  clipper::String(fileseries_list[i],3)+
-			  " which does not exist"));
+        Message::message(Message_fatal
+                         ("Batch selection specifies file[series] "+
+                          clipper::String(fileseries_list[i],3)+
+                          " which does not exist"));
       }
     }
     for (size_t i=0;i<batchranges.size();i++) {
       if (fileseries_range[i] > NumFileSeries) {
-	Message::message(Message_fatal
-			 ("Batch selection specifies file[series] "+
-			  clipper::String(fileseries_range[i],3)+
-			  " which does not exist"));
+        Message::message(Message_fatal
+                         ("Batch selection specifies file[series] "+
+                          clipper::String(fileseries_range[i],3)+
+                          " which does not exist"));
       }
     }
   }

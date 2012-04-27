@@ -94,6 +94,9 @@ namespace scala
     // Axis direction in reference frame
     std::string Direction() const;
 
+    // return label for best axis type eg 2(1)
+    std::string BestAxisType() const;
+
     // Return true if two zones apply to the same hkl zone
     // Glides only, eg b(a), c(a), n(a) all apply to 0kl
     bool SameZone(const Zone& other) const;

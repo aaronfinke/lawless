@@ -80,6 +80,8 @@ namespace scala {
     std::string title;
     double maxintensity;
 
+    char spg_status; // aka spg_confidence in MTZ
+
     // returns false if I or sigI are Nan or sig = 0
     bool CheckNullImean(const clipper::data32::I_sigI& MIsig) const;
     // returns 0 if OK, -1 if both missing, +1 if I+ missing +2 if I- missing

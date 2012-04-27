@@ -460,7 +460,7 @@ namespace scala {
     
     // Ice rings
     Icerings.ClearSums();
-    float IceTolerance = 4.0;
+    float IceTolerance = 3.0;  // changed from 4 in 1.6.14
     
     // Binning by resolution and "time" (often rotation relative to start of run)
     // for each run
@@ -614,6 +614,10 @@ namespace scala {
 	float expectedI = 1./NormRes.applyAvg(1.0, sSqr);
 	if ((Imean-expectedI)/sigImean > IceTolerance) {
 	  IceReject = true;}
+	//^
+	//	std::cout << "Ring " << Iring <<" "<<1./sqrt(sSqr)<<" "<<Imean<<" "<<expectedI
+	//		  <<" "<<sigImean<<" "<<(Imean-expectedI)/sigImean<<"\n";
+	//^-
       }
       Icerings.SetReject(Iring, IceReject);
     }
