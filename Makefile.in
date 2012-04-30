@@ -58,7 +58,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_aimless_OBJECTS = aimless.$(OBJEXT) InputAll_aimless.$(OBJEXT) \
 	analyseanom.$(OBJEXT) analysesd.$(OBJEXT) \
 	anomdistribution.$(OBJEXT) applyscales.$(OBJEXT) \
-	cone.$(OBJEXT) cumulativecompleteness.$(OBJEXT) \
+	cumulativecompleteness.$(OBJEXT) \
 	file_util.$(OBJEXT) foxholmes.$(OBJEXT) fracdevanal.$(OBJEXT) \
 	globalcontrols_aimless.$(OBJEXT) halfdataset.$(OBJEXT) \
 	initialscales.$(OBJEXT) intensitybin.$(OBJEXT) \
@@ -270,7 +270,7 @@ SUBDIRS = MinLib
 aimless_SOURCES = \
         aimless.cpp \
         InputAll_aimless.cpp analyseanom.cpp analysesd.cpp \
-        anomdistribution.cpp applyscales.cpp cone.cpp \
+        anomdistribution.cpp applyscales.cpp \
         cumulativecompleteness.cpp  file_util.cpp foxholmes.cpp \
         fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp \
         initialscales.cpp intensitybin.cpp keywords_aimless.cpp  \
@@ -300,7 +300,7 @@ aimless_SOURCES = \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
-        applyscales.hh cone.hh cumulativecompleteness.hh file_util.hh \
+        applyscales.hh cumulativecompleteness.hh file_util.hh \
         foxholmes.hh fracdevanal.hh globalcontrols.hh \
         globalcontrols_aimless.hh halfdataset.hh initialscales.hh \
         intensitybin.hh keywords_aimless.hh mergedlist.hh normalprobanal.hh \
@@ -415,7 +415,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cellgroup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/checkcompatiblesymmetry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/columnlabels.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cone.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controls.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cumulativecompleteness.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eprob.Po@am__quote@
