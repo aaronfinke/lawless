@@ -56,7 +56,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 			    phaser_io::Output& output);
 //--------------------------------------------------------------
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
-				 const ResoRange& ResRange,
+				 const ResoRange& ResRange, const bool& Anom,
 				 const std::vector<Rfactor>& rmergeRes,
 				 const std::vector<Rfactor>& rmergeResFull,
 				 const std::vector<Rfactor>& rmeasRes,
@@ -90,7 +90,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
 				   phaser_io::Output& output);
 //--------------------------------------------------------------
 void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
-				 const IntensityBin& Irange,
+				 const IntensityBin& Irange, const bool& Anom,
 				 const std::vector<Rfactor>& rmergeInt,
 				 const std::vector<Rfactor>& rmeasInt,
 				 const std::vector<Rfactor>& rpimInt,

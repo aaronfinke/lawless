@@ -1,3 +1,8 @@
+0.1.20 
+made sdcorrection refinement more robust to low multiplicity. If anomalous off (or no anomalous
+detected), statistics are now printed over all I+ I- together. Reject large negative observations 
+(default E < -5) 
+
 0.1.19 
  preliminary addition of spg_confience(|| status). Bug fix from valgrind (from Marcin)
 

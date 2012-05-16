@@ -66,23 +66,29 @@ namespace scala {
   //
   // Cases:
   //  1) Ns = 0  single value
-  //  2) Ns = 1  2 values at z = 0, 1
+  //  2) Ns = 1 or 2,  2 values at z = 0, 1
+  //  2) Ns = 3, 3 values at z = 0, 1.0, 2.0
   //  3) Ns > 1, Ns+2 values at -0.5, 0.5, 1.5 ...
   {
     xmin = Xrange.first();
     xmax = Xrange.last();
     // Ok for negative range! xmin may be > xmax, spacing negative
     x0 = xmin;  // coordinate of z = 0
-    nsample = Ns;
+    nsample = Ns;  // number of intervals
     if (nsample == 0) {
       // Special for Ns = 0, single scale, no interpolation
       nvalues = 1;
       spacing = 0.0;
     } else {
-      // Ns > 0, smoothing
+      if (nsample == 1) { // one interval
+	nvalues = 2;  // if Ns = 1, use 2 values
+      } else if (nsample == 2) {
+	nvalues = nsample + 1;  // Ns = 2 or 3, use 2 or 3 values
+      } else {
+	nvalues = nsample + 2;
+      }
+      //  smoothing spacing
       spacing = (xmax - xmin)/double(nsample);
-      nvalues = nsample + 2;
-      if (nsample == 1) nvalues = 2;  // Ns = 1, 2 values
     }
 
     values.resize(nvalues);
@@ -92,8 +98,10 @@ namespace scala {
       values[i] = 0.0;    // just in case
       if (nvalues <= 2) {
 	positions[i] = i; // nvalues 1 or 2
+      } else if (nvalues == 3) {
+	positions[i] = double(i);  // 0.0, 1.0, 2.0
       } else {
-      positions[i] = double(i)-0.5;
+	positions[i] = double(i)-0.5; // -0.5, 0.5, 1.5, ...
       }
     }
 

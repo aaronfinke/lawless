@@ -2,8 +2,8 @@
 // 
 // residual Sum(j) [ wj (1 - sigma(delta(j)))^2 ]
 // delta(hl) = (Ihl - <Ih>!l)/[sqrt(nh/nh-1) * sigma'(hl)]
-// sigma'(hl) = SdFac *sqrt[sigma(hl) + SdB <Ih> + (SdAdd * <Ih>)^2]
-//            = p * sigma(hl)  + q * <Ih> + r * <Ih>^2
+// sigma'(hl) = SdFac *sqrt[sigma(hl)^2 + SdB <Ih> + (SdAdd * <Ih>)^2]
+//            = p * sigma(hl)^2  + q * <Ih> + r * <Ih>^2
 // p = SdFac^2 ; q = SdFac^2 SdB; r = SdFac^2 SdAdd^2
 //
 //  Note that parameters for each "class" (run+full/partial) can be optimised

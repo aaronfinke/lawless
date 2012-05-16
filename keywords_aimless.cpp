@@ -55,21 +55,9 @@ SCALES::SCALES() : CCP4base(), InputBase()
 
   nspecs = 1;
   specs.clear();
-  // Set up default SCALES parameters
+  // Set up default SCALES parameters, see scaletypes.hh
   scala::ScaleSpecification spec_default;
-  spec_default.run = -1;        // all runs
-  spec_default.batch = false;   // smooth
-  spec_default.nscales = -1;
-  spec_default.spacing = 5.0;   // rotation spacing 5
-  spec_default.nbfac = -1;
-  spec_default.bspacing = 20.;  // brotation spacing 20
-  ////  spec_default.sec_abs = scala::NONE;  // for now
-  spec_default.sec_abs = scala::SecondaryScale::SECONDARY;
-  spec_default.lmax = 4;        // lmax for spherical harmonics
-  spec_default.pole = -1;       // unspecified pole
-  spec_default.ntilex = -1;
-  spec_default.detectorscaletype = scala::DetectorScale::NONE;
-  specs.push_back(spec_default);
+  specs.push_back(spec_default);  // and store it
 }
 //--------------------------------------------------------------
 Token_value SCALES::parse(std::istringstream& input_stream)
@@ -84,7 +72,6 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   // Read one SCALES specification
   int irun = -1;
   scala::ScaleSpecification spec;
-  //**  if (nspecs > 0) spec = specs[0];
   int expectingNumber = 0; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
   int batch_spec = 0;
@@ -241,6 +228,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
     spec.sec_abs = scala::SecondaryScale::NONE;
   }
 
+  spec.isdefault = false;  // explicit spec, not default
   if (irun >= 0) {
     // Run specified, increment specification count
     specs.push_back(spec);
@@ -306,7 +294,9 @@ Token_value RUNSET::parse(std::istringstream& input_stream)
 	} else {
 	  throw SyntaxError(keywords,"unrecognised keyword");
 	}
-      }
+      } else { // number, unexpected
+	throw SyntaxError(keywords,"unexpected number");
+      }	
     } else if (Select == +1) {
       // Batch selection
       if (tokenIs(1,NAME)) {

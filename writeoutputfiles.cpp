@@ -97,7 +97,7 @@ namespace scala {
 // ---------------------------------------------------------
   void WriteMergedOutput(const int& outputformat,
 			 const std::string& title,
-			 const MergedList & mergedlist,
+			 const MergedList& mergedlist,
 			 const OutputControls& outputcontrols,
 			 phaser_io::Output& output)
   // Create file containing columns

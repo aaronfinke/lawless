@@ -4,7 +4,7 @@
 // (Scala replacement)
 //
 // Phil Evans, MRC Laboratory of Molecular Biology
-//             Hills Road, Cambridge CB2 2QH
+//             Hills Road, Cambridge CB2 0QH
 // 2006-?
 //
 

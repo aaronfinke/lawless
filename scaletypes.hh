@@ -433,7 +433,8 @@ namespace scala {
   // The specification from one SCALES command (in case of multiple runs)
   {
   public:
-    ScaleSpecification() : run(-1), batch(false), nscales(-1), spacing(5.0),
+    ScaleSpecification() : run(-1), isdefault(true),
+			   batch(false), nscales(-1), spacing(5.0),
 			   nbfac(-1), bspacing(20.0),
 			   sec_abs(scala::SecondaryScale::NONE),
 			   lmax(4), lmaxodd(3), pole(-1),
@@ -444,11 +445,15 @@ namespace scala {
     void SetConstant(const int& irun=-1); // SCALES CONSTANT
 
     int run;     // Run number for this specification, = -1 for all runs
+    bool isdefault; // true if this is the default, ie not explicit  
+
     bool batch;  // true for batch mode
     int nscales; // Number of scales, = -1 for spacing specified
     float spacing; // ROTATION SPACING
+
     int nbfac;   // number of Bfactors, = 0 OFF, = -1 spacing specified
     float bspacing; // BROTATION SPACING
+
     SecondaryScale::SecondaryScaleType sec_abs; // NONE, SECONDARY, ABSORPTION
     int lmax;    // Order for secondary|absorption correction (must be even)
     int lmaxodd; //   maximum order for odd terms, < lmax

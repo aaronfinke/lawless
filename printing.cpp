@@ -379,7 +379,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 } 
 //--------------------------------------------------------------
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
-				 const ResoRange& ResRange,
+				 const ResoRange& ResRange,const bool& Anom,
 				 const std::vector<Rfactor>& rmergeRes,
 				 const std::vector<Rfactor>& rmergeResFull,
 				 const std::vector<Rfactor>& rmeasRes,
@@ -410,6 +410,13 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 		" Frcbias :- partial bias = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
 		"             for mixed sets only (If is a full if present, else the\n"+
 		"             partial with the smallest number of parts)\n\n");
+  if (Anom) {
+    output.logTab(0,LOGFILE,
+	  "All statistics in this table are with I+ or I- sets (anomalous on)");
+  } else {
+    output.logTab(0,LOGFILE,
+	  "All statistics in this table are relative to the overall mean I+/- (anomalous off)");
+  }
 
   output.logTab(0,LOGFILE,
 		std::string("\n\nBy 4sinTheta/Lambda^2 bins (all statistics use Mn(I+),Mn(I-)etc)\n")+
@@ -530,15 +537,12 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   fmt = "Overall:          "+fmt;
   // //  fmt = "Overall:          "+fmt+"\n";
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
-		      Rcum.R(), Rcum.R(), Rfull.R(),
+		      Rcum.R(), Rfull.R(), Rcum.R(),
 		      Rmeas.R(), Rpim.R(), Rcum.result().count,
 		   Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
 		   Imean.Mean()/sqrt(rmsD.Mean()), mnIsd.Mean(), frcbias);
   output.logTab(0,LOGFILE,table.RawLabels());
   // Store things in summary object
-  summarystatistics.StoreRmergeReso(Rcum, rmergeRes[0], rmergeRes[ResRange.Nbins()-1]);
-  summarystatistics.StoreRmeasReso(Rmeas, rmeasRes[0], rmeasRes[ResRange.Nbins()-1]);
-  summarystatistics.StoreRpimReso(Rpim, rpimRes[0], rpimRes[ResRange.Nbins()-1]);
   summarystatistics.StoreMnIsd(mnIsd.Mean(), mnIsdRes[0].Mean(),
 			       mnIsdRes[ResRange.Nbins()-1].Mean());
   // Resolution "limit" from Mn(I/sd)
@@ -754,13 +758,16 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
 		      Rcum.result().count);
   output.logTab(0,LOGFILE,table.RawLabels());
   // Store things in summary object
+  summarystatistics.StoreRmergeReso(Rcum, rmergeRes[0], rmergeRes[ResRange.Nbins()-1]);
+  summarystatistics.StoreRmeasReso(Rmeas, rmeasRes[0], rmeasRes[ResRange.Nbins()-1]);
+  summarystatistics.StoreRpimReso(Rpim, rpimRes[0], rpimRes[ResRange.Nbins()-1]);
   summarystatistics.StoreRmergeResoOv(RcumOv, rmergeResOv[0], rmergeResOv[ResRange.Nbins()-1]);
   summarystatistics.StoreRmeasResoOv(RmeasOv, rmeasResOv[0], rmeasResOv[ResRange.Nbins()-1]);
   summarystatistics.StoreRpimResoOv(RpimOv, rpimResOv[0], rpimResOv[ResRange.Nbins()-1]);
 }
 //--------------------------------------------------------------
 void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
-				const IntensityBin& Irange,
+				const IntensityBin& Irange, const bool& Anom,
 				const std::vector<Rfactor>& rmergeInt,
 				const std::vector<Rfactor>& rmeasInt,
 				const std::vector<Rfactor>& rpimInt,
@@ -775,6 +782,14 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
 		std::string("\n\nBy intensity bins\n")+
 		"-----------------\n");
+  if (Anom) {
+    output.logTab(0,LOGFILE,
+	  "All statistics in this table are with I+ or I- sets (anomalous on)");
+  } else {
+    output.logTab(0,LOGFILE,
+	  "All statistics in this table are relative to the overall mean I+/- (anomalous off)");
+  }
+
   TableGraph table(" Analysis against intensity, "+dataset_pxd.dname());
   output.logTab(0,LOGFILE,table.formatTitle());
   int c[] = {1,2,4,5};

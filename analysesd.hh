@@ -25,14 +25,32 @@ namespace scala
   //     = +1    same, after first analysis
   //     = -1 only one analysis expected ie first & last
   void AnalyseSD(SDmodel& SDM, hkl_unmerge_list& hkl_list,
-		 const all_controls& controls,
+		 all_controls& controls,
 		 const Normalise& NormRes,
 		 const int& firstAnalysis,
 		 phaser_io::Output& output);
   // ------------------------------------------------------------
-  void UpdateSDMfromNPlot(SDmodel& SDM, const hkl_unmerge_list& hkl_list,
-			  const all_controls& controls, const bool& fixup,
-			  phaser_io::Output& output);
+  class SDMdataNumbers {  // mostly just a struct to return data
+  public:
+    SDMdataNumbers(){}
+    SDMdataNumbers(const int& Nsets) : nsets(Nsets) {
+      enoughdata = true;
+      nfnp.resize(nsets);
+    }
+
+    int Number(const int& iset) const {  // total number for this set
+      return nfnp.at(iset).first + nfnp.at(iset).second;
+    }
+
+    bool enoughdata;
+    int nsets;
+    std::vector<std::pair<int,int> > nfnp;  // number of fulls/partials for each set
+
+  };
+  // ------------------------------------------------------------
+  SDMdataNumbers UpdateSDMfromNPlot(SDmodel& SDM, const hkl_unmerge_list& hkl_list,
+				    const all_controls& controls, const bool& fixup,
+				    phaser_io::Output& output);
   // ------------------------------------------------------------
   int AccumulateNormProb(const SDmodel& SDM, const hkl_unmerge_list& hkl_list,
 			  const bool& Anomalous,

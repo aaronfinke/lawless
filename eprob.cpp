@@ -17,6 +17,9 @@
 const float EProb::MAXIMUM_EMAX = 15.0;
 const float EProb::MAXIMUM_EMAX_CENTRIC = 22.0;
 const float EProb::DEFAULT_EMAX = 10.0;
+// for large negative E, Min(E) = -NEGATIVE_EMAX_RATIO * Emax
+const float NEGATIVE_EMAX_RATIO = 0.5;
+const float NEGATIVE_EMAX2_RATIO = NEGATIVE_EMAX_RATIO * NEGATIVE_EMAX_RATIO;
 // ------------------------------------------------------------
 EProb::EProb()
 {
@@ -81,10 +84,18 @@ float EProb::CentricEmax(const float& emaxacen) const
 //! return true if E > limits
 bool EProb::TooBig(const float& E2, const bool& Centric) const
 {
-  if (Centric) {
-    return (E2 > emaxcentric2);
-  } else {
-    return (E2 > emaxacen2);
+  if (E2 > 0.0) { // normal positive E^2
+    if (Centric) {
+      return (E2 > emaxcentric2);
+    } else {
+      return (E2 > emaxacen2);
+    }
+  } else { // test for very negative E^2
+    if (Centric) {
+      return (E2 < -NEGATIVE_EMAX2_RATIO*emaxcentric2);
+    } else {
+      return (E2 < -NEGATIVE_EMAX2_RATIO*emaxacen2);
+    }
   }
 }
 // ------------------------------------------------------------
@@ -92,10 +103,12 @@ std::string EProb::format() const
 {
   if (emaxacen > 0.0) {
     std::string s ="Reflections judged implausibly large will be rejected\n";
-    s += "     Maximum normalised F (ie E) for acentric reflection"+
-      StringUtil::ftos(emaxacen,10,2)+"\n";
-    s += "     Maximum normalised F (ie E) for centric reflection "+
-      StringUtil::ftos(emaxcentric,10,2)+"\n";
+    s += "     Maximum and minimum normalised F (ie E) for acentric reflection"+
+      StringUtil::ftos(emaxacen,10,2)+", "+
+      StringUtil::ftos(-NEGATIVE_EMAX_RATIO*emaxacen,10,2)+"\n";
+    s += "     Maximum and minimum normalised F (ie E) for centric reflection "+
+      StringUtil::ftos(emaxcentric,10,2)+", "+
+      StringUtil::ftos(-NEGATIVE_EMAX_RATIO*emaxcentric,10,2)+"\n";
     float p = exp(-emaxacen*emaxacen);
     s += "     Minimum probability before reflection is rejected  "+
       StringUtil::etos(p,10,3)+"\n";

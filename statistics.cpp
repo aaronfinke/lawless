@@ -81,11 +81,10 @@ namespace scala {
   // ------------------------------------------------------------
   void AddDelStats(const float& delI, const float& AvI, const int& nmult,
 		   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
-		   const int& mres, const bool& isfull, const int& irun,
+		   const int& mres, const bool& isfull,
 		   std::vector<Rfactor>& rmergeRes,
 		   std::vector<Rfactor>& rmergeResFull,
 		   std::vector<Rfactor>& rmeasRes,
-		   std::vector<std::vector<Rfactor> >& rmeasRun,
 		   std::vector<Rfactor>& rpimRes,
 		   const int& mint,
 		   std::vector<Rfactor>& rmergeInt,
@@ -124,7 +123,6 @@ namespace scala {
       }
       double w = sqrt(an/(an-1.0));
       rmeasRes[mres].add(delI, AvI, w);  // Rmeas
-      rmeasRun[irun][mres].add(delI, AvI, w);  // Rmeas
       w = sqrt(1.0/(an-1.0));
       rpimRes[mres].add(delI, AvI, w);  // Rpim
     }
@@ -138,10 +136,17 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AddDelStatsOv(const float& delI, const float& AvI, const int& nmult,
-		     const int& mres,
+		     const int& jbatch,  std::vector<Rfactor>& rmergebatchOv,
+		     const int& mres, const bool& isfull, const int& irun,
 		     std::vector<Rfactor>& rmergeResOv,
+		     std::vector<Rfactor>& rmergeResFullOv,
 		     std::vector<Rfactor>& rmeasResOv,
-		     std::vector<Rfactor>& rpimResOv)
+		     std::vector<Rfactor>& rpimResOv,
+		     std::vector<std::vector<Rfactor> >& rmeasRun,
+		     const int& mint,
+		     std::vector<Rfactor>& rmergeIntOv,
+		     std::vector<Rfactor>& rmeasIntOv,
+		     std::vector<Rfactor>& rpimIntOv)
   // Add in deviations to Rmerge statistics etc
   // by resolution, over all I+ & I- observations together
   //
@@ -150,22 +155,42 @@ namespace scala {
   //  delI      Ihl - <I>
   //  AvI       <I>
   //  nmult     multiplicity for this observation
+  //  jbatch    batch serial number, < 0 don't use
   //  mres      resolution bin, < 0 don't use
+  //  isfull    true if fully recorded
+  //  mint      intensity bin, < 0 don't use
   //
   // On exit:
-  //  rmergeRes    updated Rmerge by resolution
-  //  rmeasRes     updated Rmeas by resolution
-  //  rpimRes      updated Rpim by resolution
+  //  rmergebatchOv    updated Rmerge by batch
+  //  rmergeResOv      updated Rmerge by resolution
+  //  rmergeResFullOv  updated Rmerge by resolution
+  //  rmeasResOv       updated Rmeas by resolution
+  //  rpimResOv        updated Rpim by resolution
+  //  rmergeIntOv      updated Rmerge by intensity
+  //  rmeasIntOv       updated Rmeas by intensity
+  //  rpimIntOv        updated Rpim by intensity
   //  
   {
     double unitw = 1.0;
+    if (jbatch >= 0) rmergebatchOv[jbatch].add(delI, AvI, unitw);
     double an = nmult;
     if (mres >= 0) {
       rmergeResOv[mres].add(delI, AvI, unitw); // Rmerge
+      if (isfull) {
+	rmergeResFullOv[mres].add(delI, AvI, unitw); // Rmerge fulls
+      }
       double w = sqrt(an/(an-1.0));
       rmeasResOv[mres].add(delI, AvI, w);  // Rmeas
+      rmeasRun[irun][mres].add(delI, AvI, w);  // Rmeas
       w = sqrt(1.0/(an-1.0));
       rpimResOv[mres].add(delI, AvI, w);  // Rpim
+    }
+    if (mint >= 0) {
+      rmergeIntOv[mint].add(delI, AvI, unitw); // Rmerge
+      double w = sqrt(an/(an-1.0));
+      rmeasIntOv[mint].add(delI, AvI, w);  // Rmeas
+      w = sqrt(1.0/(an-1.0));
+      rpimIntOv[mint].add(delI, AvI, w);  // Rpim
     }
   }
   // ------------------------------------------------------------
@@ -372,7 +397,8 @@ namespace scala {
 
     // Accumulated over all data
     std::vector<MeanSD>  scalebatch(nbatches);   // mean scale overall
-    std::vector<Rfactor> rmergebatch(nbatches);  // Rmerge
+    std::vector<Rfactor> rmergebatch(nbatches);    // Rmerge within I+/I-
+    std::vector<Rfactor> rmergebatchOv(nbatches);  // Rmerge (all I+, I-)
     std::vector<MeanSD>  imeanbatch(nbatches);   // Imean (all I+, I-)
     std::vector<MeanSD>  rmsDbatch(nbatches);    // RMS scatter from mean (all I+,I-)
     std::vector<int>     NumObsBatch(nbatches,0);      // Number of observations
@@ -393,6 +419,7 @@ namespace scala {
     std::vector<Rfactor> rmergeResOv(nresbin); // Rmerge
     std::vector<Rfactor> rmeasResOv(nresbin);  // Rmeas
     std::vector<Rfactor> rpimResOv(nresbin);   // Rpim
+    std::vector<Rfactor> rmergeResFullOv(nresbin); // Rmerge for fulls
 
     std::vector<MeanSD>  imeanRes(nresbin);  // <I>
     std::vector<MeanSD>  rmsDRes(nresbin);   // RMS scatter from mean (all I+,I-)
@@ -415,10 +442,14 @@ namespace scala {
     std::vector<int> NumAnomSphere(nresbin,0); // number unique in sphere
     std::vector<double> SNumAnomPairs(nresbin,0.0); // anomalous pairs
     // by intensity
-    // over all I+ & I- sets
+    //  within I+/I- sets
     std::vector<Rfactor> rmergeInt(NintBin); // Rmerge
     std::vector<Rfactor> rmeasInt(NintBin);  // Rmeas
     std::vector<Rfactor> rpimInt(NintBin);   // Rpim
+    // over all I+ & I- sets
+    std::vector<Rfactor> rmergeIntOv(NintBin); // Rmerge
+    std::vector<Rfactor> rmeasIntOv(NintBin);  // Rmeas
+    std::vector<Rfactor> rpimIntOv(NintBin);   // Rpim
     std::vector<MeanSD>  imeanInt(NintBin);  // <I>
     std::vector<MeanSD>  rmsDInt(NintBin);   // RMS scatter from mean (all I+,I-)
     std::vector<MeanSD>  avSdInt(NintBin);   // Average corrected SD
@@ -614,15 +645,18 @@ namespace scala {
 	    // Rmerge etc 
 	    AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull, this_obs.run(),
-			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
+			mres, isfull, 
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
 	if (allobs.Number() > 1) {
 	  // over all I+ & I- sets
 	  AddDelStatsOv(delI[idx], AvIsig.I(), allobs.Number(),
-			mres, rmergeResOv, rmeasResOv, rpimResOv);
+			jbatch, rmergebatchOv, 
+			mres, isfull, this_obs.run(),
+			rmergeResOv, rmergeResFullOv, rmeasResOv, rpimResOv, rmeasRun,
+			mint, rmergeIntOv, rmeasIntOv, rpimIntOv);
 	}
       }  // end loop observations
 
@@ -688,8 +722,8 @@ namespace scala {
 	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull, this_obs.run(),
-			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
+			mres, isfull,
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -704,8 +738,8 @@ namespace scala {
 	    bool isfull = (this_obs.PartFlag() == FULL);
 	    AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
 			jbatch, rmergebatch, 
-			mres, isfull, this_obs.run(),
-			rmergeRes, rmergeResFull, rmeasRes, rmeasRun, rpimRes,
+			mres, isfull,
+			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
 			mint, rmergeInt, rmeasInt, rpimInt);
 	  }
 	}
@@ -816,18 +850,42 @@ namespace scala {
 			    anisoanal, controls.analysis.MinimumIoverSigma(),
 			    summaryStatistics, output);
 
-    PrintDeviationsByResolution(dataset_pxd, ResRange, rmergeRes, rmergeResFull, rmeasRes,
-    				rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
-    				biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
-				summaryStatistics, output);
+    // Statistics within I+/I- sets
+    //  rmergeRes, rmeasRes, rpimRes, rmergeResFull
+    // or overall I+-
+    //  rmergeResOv, rmeasResOv, rpimResOv, rmergeResFullOv
+    if (Anom) { // anomalous on, print statistics with I+/I- sets
+      PrintDeviationsByResolution(dataset_pxd, ResRange, Anom,
+				  rmergeRes, rmergeResFull, rmeasRes,
+				  rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
+				  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
+				  summaryStatistics, output);
+    } else { // no anomalous, use overall statistics
+      PrintDeviationsByResolution(dataset_pxd, ResRange, Anom,
+				  rmergeResOv, rmergeResFullOv, rmeasResOv,
+				  rpimResOv, imeanRes, rmsDRes, avSdRes, mnIsdRes,
+				  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
+				  summaryStatistics, output);
+    }
+
     PrintDeviationsByResolutionOv(dataset_pxd, ResRange,
 				  rmergeRes, rmeasRes, rpimRes,
 				  rmergeResOv, rmeasResOv, rpimResOv,
 				  summaryStatistics, output);
-    PrintDeviationsByIntensity(dataset_pxd, Irange, rmergeInt, rmeasInt,
+
+    // Within I+/I- sets      rmergeInt, rmeasInt, rpimInt
+    // overall I+/I-          rmergeIntOv, rmeasIntOv, rpimIntOv
+    if (Anom) { // anomalous on, print statistics with I+/I- sets
+      PrintDeviationsByIntensity(dataset_pxd, Irange, Anom, rmergeInt, rmeasInt,
 			       rpimInt, imeanInt, rmsDInt, avSdInt, mnIsdInt,
 			       biasInt, biasIInt, output);
-    summaryStatistics.StoreRtopI(rmergeInt[NintBin-1]);
+      summaryStatistics.StoreRtopI(rmergeInt[NintBin-1]);
+    } else { // no anomalous
+      PrintDeviationsByIntensity(dataset_pxd, Irange, Anom, rmergeIntOv, rmeasIntOv,
+			       rpimIntOv, imeanInt, rmsDInt, avSdInt, mnIsdInt,
+			       biasInt, biasIInt, output);
+      summaryStatistics.StoreRtopI(rmergeIntOv[NintBin-1]);
+    }
 
     PrintDeviationsByRun(dataset_pxd, ResRange, hkl_list.RunList(), rmeasRun, output);
     
