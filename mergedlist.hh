@@ -11,7 +11,7 @@
 
 // Clipper
 #include <clipper/clipper.h>
-#include "ccp4_mtz_io.h"
+#include "clipper/ccp4/ccp4_mtz_io.h"
 #include "clipper/clipper-ccp4.h"
 
 #include "hkl_unmerge.hh"
