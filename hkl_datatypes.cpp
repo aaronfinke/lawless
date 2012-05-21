@@ -1192,8 +1192,8 @@ namespace scala
   //                = [P][DU]^-1 s(r0)
   //       [P] is a cyclic permutation matrix (so [P]^-1 = [P]transpose)
   //
-  // NB in the following FtoF rountines, all vectors (apart from hkl) are
-  // in dimensionless reciprocal lattice units (ir s(r), s(r0), s(pole)
+  // NB in the following FtoF routines, all vectors (apart from hkl) are
+  // in dimensionless reciprocal lattice units (ie s(r), s(r0), s(pole)
   //--------------------------------------------------------------
   DVect3 Batch::HtoSr(const Hkl& hkl, const float& phi) const
   // reciprocal lattice index h -> s(r) = [R][D][U][B]h camera frame

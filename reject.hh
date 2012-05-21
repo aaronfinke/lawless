@@ -36,7 +36,7 @@ namespace scala {
     // title & maximum resolution d* = lambda/d
     //  outliercontrol   parameters for rejection
     WriteRogues(const bool& Start, const bool& Plot,
-		const std::string& title, const float& dstarMax,
+		const std::string& title, const float& dstarMax, const float& wavelength,
 		const OutlierControl& outliercontrol);
     
     bool Open() const {return (rogues != NULL);}

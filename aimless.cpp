@@ -657,8 +657,13 @@ int main(int argc, char* argv[])
     hkl_list.ResetObsAccept(controls.observationflagcontrol);
     // Check for outliers & reject them
     // Start rogues output, ROGUES file & ROGUEPLOT
+    //  for plotting ice rings, use shortest wavelength all datasets
+    float wavelength = 100000000.;
+    for (int i=0;i<hkl_list.num_datasets();++i) {
+      wavelength = Min(wavelength, hkl_list.xdataset(i).wavelength());
+    }
     WriteRogues RoguesList(true, true,
-			   runTitle, hkl_list.Srange().max(),
+			   runTitle, hkl_list.Srange().max(), wavelength,
 			   controls.outlierMerge);
     //  hkl_list is updated for status, but SDs are not changed
     RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,

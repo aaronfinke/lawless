@@ -265,7 +265,7 @@ namespace scala {
     {Thetap=thetap; Phip=phip;}
     //! Store diffraction vector
     void StoreS(const FVect3& dStarvec) {s_dif = dStarvec;}
-    //! Return diffraction vector at this phi, diffractometer frame
+    //! Return diffraction vector at this phi, diffractometer frame, rlu
     FVect3 GetS() const {return s_dif;}
     //! Reset status flag from ObservationFlag according to control settings
     /*!  ObservationFlag obs_flag   is the set of bit flags read from the input file
@@ -301,7 +301,7 @@ namespace scala {
     Rtype LP_;
     ObservationStatus obs_status;
     Rtype thetap, phip;   // secondary beam direction polar angles
-    FVect3 s_dif;             // diffraction vector at Phi setting, 1/A units
+    FVect3 s_dif;         // diffraction vector at Phi setting, rlu
   }; // class observation
 
   //===================================================================

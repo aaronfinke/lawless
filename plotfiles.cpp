@@ -268,21 +268,23 @@ void CorrelPlot::Plot(FILE* plotfile) const
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 double RingRadius(const double& dstar)
+// dstar in rlu
 // Radius of ring = tan(2theta) = d* cos(theta)/cos(2theta)
-// d* = 1/d
+// d* = lambda/d
 {
   double theta = asin(0.5*dstar);
   return dstar * cos(theta)/cos(2.*theta);
 }
 // ------------------------------------------------------------
 RoguePlot::RoguePlot(const std::string& FileName,
-		     const std::string& Title, const float& Smax)
+		     const std::string& Title, const float& Smax,
+		      const float& wavelength)
 // Smax  maximum 4(sin theta/lambda)**2
 //                      = (d*max)**2 = 1/dmin**2
 {
   file = OpenFile(FileName, true);  // open write file
   
-  double dstar = sqrt(Smax);
+  double dstar = wavelength*sqrt(Smax);   // rlu
   float radius = RingRadius(dstar);
   float legx = radius*0.5;
   float legy = -radius*0.9;
@@ -303,7 +305,7 @@ RoguePlot::RoguePlot(const std::string& FileName,
   lcol = 2;     // probably red
   bool first = true;
   for (int ir=0;ir<icerings.Nrings();++ir) {
-    float rad = RingRadius(icerings.Dstar(ir));
+    float rad = RingRadius(wavelength * icerings.Dstar(ir));
     if (rad < radius) {
       std::string label = "";
       if (first) {
@@ -313,6 +315,16 @@ RoguePlot::RoguePlot(const std::string& FileName,
       DrawCircle(xmgrplot, lcol, label, rad, npoint);
     }
   }
+  // Axis lines
+  lcol = 1;     // black
+  xmgrplot.Line("", lcol, 0, true); // X axis
+  xmgrplot.Point("%8.4f %8.4f\n", -radius, 0.0);
+  xmgrplot.Point("%8.4f %8.4f\n", +radius, 0.0);
+  xmgrplot.EndLine();
+  xmgrplot.Line("", lcol, 0, true); // Y axis
+  xmgrplot.Point("%8.4f %8.4f\n", 0.0, -radius);
+  xmgrplot.Point("%8.4f %8.4f\n", 0.0, +radius);
+  xmgrplot.EndLine();
 }
 // ------------------------------------------------------------
 void RoguePlot::Start()
@@ -328,14 +340,16 @@ void RoguePlot::End()
   xmgrplot.ClosePlot(0.0, false);
 }
 // ------------------------------------------------------------
-void RoguePlot::PlotOutlier(const float& d, const FVect3& s)
+void RoguePlot::PlotOutlier(const FVect3& s)
 // Plot outlier point
-//  d    d spacing
-//  s    diffraction vector in diffratometer frame, 1/A units
+//  s    diffraction vector in diffractometer frame, rlu
 {
-  float c2theta = cos(2.*asin(0.5/d));
-  float ydn = s[1]/c2theta;  // y/cos(2theta)
-  float zdn = s[2]/c2theta;  // z/cos(2theta)
+  double dstar = sqrt(s*s);
+  double theta = asin(0.5*dstar);
+  float sc = 1.0/cos(2.*theta);
+
+  float ydn = sc * s[1];  // y
+  float zdn = sc * s[2];  // z
   xmgrplot.Point("%10.4f %10.4f\n", zdn, ydn);
 }
 //--------------------------------------------------------------

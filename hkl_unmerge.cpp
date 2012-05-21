@@ -2308,7 +2308,7 @@ namespace scala {
 				 this_obs.phi(), sPhi);
 	this_obs.StoreS2(thphi.first, thphi.second);
 	for (int i=0;i<3;++i) {fsPhi[i] = sPhi[i];}  // float not double for storage
-	this_obs.StoreS(fsPhi);
+	this_obs.StoreS(fsPhi);   // rlu
 	refl_list[j].replace_observation(this_obs);
       }
     }
@@ -2326,7 +2326,7 @@ namespace scala {
   //  phi            incident beam rotation, degrees
   //
   // Returns
-  //  sPhi      diffraction vector at actual phi position 
+  //  sPhi      diffraction vector at actual phi position (rlu)
   //  pair(thetap, phip)   secondary beam directions, radians
   {
     DVect3 s2 = CalcSecondaryBeam(batchNum, hkl_original, phi, sPhi);
@@ -2368,7 +2368,7 @@ namespace scala {
   //  phi            incident beam rotation, degrees
   //
   // Returns
-  //  sPhi      diffraction vector at actual phi position (camera frame)
+  //  sPhi      diffraction vector at actual phi position (camera frame) (rlu)
   //  DVect3    secondary beam directions, direction cosines
   {
     int ib = batch_lookup.lookup(batchNum);  // batch serial
@@ -2385,7 +2385,7 @@ namespace scala {
       //   s2' = [P][DU]^-1 s2  
       s2 = batches[ib].Sr0toP(s2);
     }
-    // s(r) = [R][D][U][B]h  camera frame
+    // s(r) = [R][D][U][B]h  camera frame  (rlu)
     sPhi =  batches[ib].HtoSr(hkl_original, phi);
     //^ sanity check
     //    float wvl = batches[ib].Wavelength();

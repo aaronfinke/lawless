@@ -1,3 +1,6 @@
+0.1.21 
+corrections to ROGUEPLOT, ice rings were in wrong place (by a factor of wavelength)
+
 0.1.20 
 made sdcorrection refinement more robust to low multiplicity. If anomalous off (or no anomalous
 detected), statistics are now printed over all I+ I- together. Reject large negative observations 

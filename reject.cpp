@@ -347,6 +347,7 @@ namespace scala {
   // ------------------------------------------------------------
   WriteRogues::WriteRogues(const bool& Start, const bool& Plot,
 			   const std::string& title, const float& dstarMax,
+			   const float& wavelength,
 			   const OutlierControl& outliercontrol)
   // Open ROGUES file & write header if Start true
   // Open ROGUESPLOT file & write header if Plot true
@@ -382,7 +383,7 @@ namespace scala {
       rogues = NULL;
     }
     if (Plot) {
-      rogueplot = RoguePlot("ROGUEPLOT", title, dstarMax);
+      rogueplot = RoguePlot("ROGUEPLOT", title, dstarMax, wavelength);
       rogueplot.Start();
     }
   }
@@ -449,7 +450,7 @@ namespace scala {
 		d, XY.first, XY.second, obs.phi(), reject, flagtype.c_str());
 	// ROGUEPLOT?
 	if (rogueplot.IsPlot() && outlier) {
-	  rogueplot.PlotOutlier(d, obs.GetS());  // resolution d, diffraction vector
+	  rogueplot.PlotOutlier(obs.GetS());  // diffraction vector (rlu)
 	}
       }
     }  // end loop observations

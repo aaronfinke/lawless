@@ -179,8 +179,9 @@ public:
 
   // Smax  maximum 4(sin theta/lambda)**2
   //                      = (d*max)**2 = 1/dmin**2
+  // wavelength  
   RoguePlot(const std::string& FileName,
-	    const std::string& Title, const float& Smax);
+	    const std::string& Title, const float& Smax, const float& wavelength);
 
   // Return true if plotting is turned on
   bool IsPlot() const {return xmgrplot.IsPlot();}
@@ -191,9 +192,8 @@ public:
   void End();
 
   // Plot outlier point
-  //  d    d spacing
   //  s    diffraction vector in diffratometer frame, 1/A units
-  void PlotOutlier(const float& d, const FVect3& s);
+  void PlotOutlier(const FVect3& s);
 
 private:
   FILE* file;
