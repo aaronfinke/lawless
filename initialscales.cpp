@@ -27,10 +27,13 @@ namespace scala {
   // Return false if end of data
   {
     ASSERT (int(obs.size()) >= avi->rows());
-    double sd = 1.0;  // dummy sigma
+    double sd1 = 1.0;  // dummy sigma
+    double I, sd;
     while (++next < avi->cols()) {
       for (int i=0;i<avi->rows();++i) {
-	obs[i] = DPair((*avi)(i,next), sd);
+	I = (*avi)(i,next);
+	sd = (I>0.0) ? sd1  : 0.0;  // sd = 0 if I = 0
+	obs[i] = DPair(I, sd);
       }
       return true;
     }

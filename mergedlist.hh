@@ -43,8 +43,10 @@ namespace scala {
   public:
     MergedList(){}
     //! Fill from unmerged list & SD_model
-    MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM);
-    void init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM);
+    MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
+	       const std::string& Title);
+    void init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
+	      const std::string& Title);
 
     // Write data for datasetIndex to MTZ file
     // Return number of reflections written

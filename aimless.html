@@ -152,8 +152,7 @@ keywords are:</p>
 <p><b><a href="#analysis">ANALYSIS</a>, <a href="#anomalous">ANOMALOUS</a></b>,
 <a href="#bins"><b>BINS</b></a>,
 <a href="#dump"><b>DUMP</b></a>,
-<a href="#exclude"><b>EXCLUDE</b></a>,
-<a href="#intensities"><b>INTENSITIES</b></a>,
+<a href="#exclude"><b>EXCLUDE</b></a>, <a style="font-weight: bold;" href="#initial">INITIAL</a>, <a href="#intensities"><b>INTENSITIES</b></a>,
 <a href="#name"><b>NAME</b></a>,
 <a href="#onlymerge"><b>ONLYMERGE</b></a>,
 <a href="#output"><b>OUTPUT</b></a>,
@@ -330,12 +329,16 @@ fraction is checked to lie between lower_limit &amp; upper_limit
     <p>if this fails, then the incomplete partial is scaled up by the
 total fraction if&nbsp; it is &gt; minimum_fraction [default 0.95] (NB Pointless has different default for a different purpose)</p></li>
   <li>a reflection has a gap in the middle may be accepted if GAP is
-set, maxgap is maximum number of missing slots [not recommended: default 1 if GAP is set]<br>
-  </li>
+set, maxgap is maximum number of missing slots [not recommended: default 1 if GAP is set]</li>
 </ol>
+<h3><a name="initial"></a>INITIAL UNITY | MEAN</h3>
+Set initial scale factors either based on mean intensities (MEAN, default) or all set to 1.0 (UNITY)<br>
+<br>
+
 <h3><a name="intensities"></a>INTENSITIES [SUMMATION | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
 &lt;Ipower&gt;] <br>
  </h3>
+
 <p>Set which intensity to use, of the integrated intensity (column I)
 or
 profile-fitted (column IPR), if both are present. This applies to
@@ -1095,7 +1098,10 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-</dl><dl compact="compact">0.1.21 corrections to ROGUEPLOT, ice rings were in wrong place (by a factor of wavelength) <br>
+</dl><dl compact="compact">0.1.22,23 INITIAL UNITY option. In tables,
+print batches with no observations but not rejected batches. Put title
+into output file. Fix initial scale bug with 3 scales<br>
+0.1.21 corrections to ROGUEPLOT, ice rings were in wrong place (by a factor of wavelength) <br>
 0.1.20 made sdcorrection refinement more
 robust to low multiplicity. If anomalous off (or no anomalous
 detected), statistics are now printed over all I+ I- together. Reject large negative observations (default E &lt; -5) <br>

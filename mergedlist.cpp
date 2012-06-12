@@ -19,12 +19,14 @@ namespace scala {
     Ipm.init(hkl_info_list, ccell);
   }
 // ---------------------------------------------------------
-  MergedList::MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM)
+  MergedList::MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
+			 const std::string& Title)
   {
-    init(hkl_list, SDM);
+    init(hkl_list, SDM, Title);
   }
   // ---------------------------------------------------------
-  void MergedList::init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM)
+  void MergedList::init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
+			const std::string& Title)
   // extract merged (averaged) data from hkl_list (with SDs corrected by SDM)
   // and store by dataset
   {
@@ -32,6 +34,7 @@ namespace scala {
     clipper::CCP4MTZ_type_registry::add_group( "J_sigJ_ano", "IANO" );
     ndatasets = hkl_list.num_datasets();
     maxintensity = -1000.;
+    title = Title;
     // First construct the hkl list for all unique reflections
     reflection this_refl;
     std::vector<clipper::HKL> hkls;

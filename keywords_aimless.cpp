@@ -1567,4 +1567,29 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
+INITIAL::INITIAL()  : unity(false)
+{
+  Add_Key("INITIAL");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value INITIAL::parse(std::istringstream& input_stream)
+{
+  // Syntax:
+  //  INITIAL UNITY  set all initial scales to unity
+
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("UNITY")) {
+	unity = true;
+      } else if (keyIs("MEAN")) {
+	unity = false;
+      }
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 } // phaser_io

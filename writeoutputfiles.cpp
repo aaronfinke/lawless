@@ -15,19 +15,18 @@ using clipper::Message_fatal;
 
 namespace scala {
 // ---------------------------------------------------------
-  void WriteMergedOutputFiles(const std::string& title,
-			const MergedList& mergedlist, 
-			const OutputControls& outputcontrols,
-			phaser_io::Output& output)
+  void WriteMergedOutputFiles(const MergedList& mergedlist, 
+			      const OutputControls& outputcontrols,
+			      phaser_io::Output& output)
   // Merged file output
   {
     // MTZ output
     if (outputcontrols.MTZoutputMerged()) {
-      WriteMergedOutput(+1, title, mergedlist, outputcontrols, output);
+      WriteMergedOutput(+1, mergedlist, outputcontrols, output);
     }
     // SCA output
     if (outputcontrols.SCAoutputMerged()) {
-      WriteMergedOutput(+2, title, mergedlist, outputcontrols, output);
+      WriteMergedOutput(+2, mergedlist, outputcontrols, output);
     }
   }
 // ---------------------------------------------------------
@@ -96,7 +95,6 @@ namespace scala {
   }
 // ---------------------------------------------------------
   void WriteMergedOutput(const int& outputformat,
-			 const std::string& title,
 			 const MergedList& mergedlist,
 			 const OutputControls& outputcontrols,
 			 phaser_io::Output& output)

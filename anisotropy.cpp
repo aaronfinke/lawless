@@ -215,7 +215,7 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
   // set principalaxes from data
   {
     // merged list for given dataset
-    MergedList mergedlist(hkl_list, SDM);
+    MergedList mergedlist(hkl_list, SDM, "");
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
       mergedlist.ImeanForDataset(datasetindex);
     // Get anisotropy

@@ -27,7 +27,8 @@ namespace phaser_io {
     public OUTPUT,
     public DUMP,
     public RESTORE,
-    public ANALYSIS
+    public ANALYSIS,
+    public INITIAL
 
   {
   public:

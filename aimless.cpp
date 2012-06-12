@@ -118,6 +118,9 @@ int main(int argc, char* argv[])
     if (controls.refinecontrol.Ncycles() <= 0) FC.SetMainScale(false);
     if (input.Onlymerge()) FC.SetOnlyMerge();  // No scaling option ONLYMERGE
 
+    if (input.InitialUnity()) {
+      FC.SetInitialScale(false);  // INITIAL UNITY, no initial scaling
+    }
     // Output settings
     //  Merge/unmerge options
     OutputControls outputcontrols = input.Outputcontrols();
@@ -395,6 +398,11 @@ int main(int argc, char* argv[])
       output.logTab(0,LOGFILE,
 		    "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
+    } else {
+      if (input.InitialUnity()) {
+	output.logTab(0,LOGFILE,
+	      "\n========= Initial scales all set to 1.0 =========\n");
+      }
     }
 
     // Set weighting for SD model
@@ -750,9 +758,9 @@ int main(int argc, char* argv[])
     MergedList mergedlist;
     if (outputcontrols.Merged()) {
       // Put all data into clipper classes
-      mergedlist.init(hkl_list, SD_model);
+      mergedlist.init(hkl_list, SD_model, runTitle);
       // Output merged reflections file(s)
-      scala::WriteMergedOutputFiles(runTitle, mergedlist,
+      scala::WriteMergedOutputFiles(mergedlist,
 				    outputcontrols, output);
     }
     if (outputcontrols.UnMerged()) {

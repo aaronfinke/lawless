@@ -116,8 +116,9 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
   std::vector<double> dmnIdp(npar);
 
   std::vector<DPair> y(npar);
+  std::vector<double> dmnIgldgi(npar);
 
-  while (data->ObsArray(y)) {
+  while (data->ObsArray(y)) {  // Loop observations
     // y(npar) is array of I,sigma pairs
     int n = MeanI(y, mnI, sumwg2);  // Mean I with current scales
     if (n > 0) {
@@ -141,8 +142,8 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 	for (int l=0;l<npar;l++) { // loop l observations
 	  sd = y[l].second;
 	  if (sd > 0.00001) {
-	    std::vector<double> dmnIgldgi(npar);
 	    for (int i=0;i<npar;i++) { // loop parameters
+	      // observation l, parameter i
 	      //  d(gl<I>)/dgi = gl d<I>/dgi [+ <I> if l=i]
 	      dmnIgldgi[i] = scales[l] * dmnIdp[i];
 	      if (i == l) dmnIgldgi[i] += mnI;
@@ -151,6 +152,8 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 		gradient[i] += - w * (y[l].first - scales[l] * mnI) * dmnIgldgi[i];
 			    
 		if (DoHessian) {
+		  /// Approximation, diagonal matrix
+		  ///		  H(i+1,i+1) += w * dmnIgldgi[i] * dmnIgldgi[i];
 		  for (int j=0;j<=i;j++) { // loop parameters again
 		    H(i+1,j+1) += w * dmnIgldgi[i] * dmnIgldgi[j];
 		  }

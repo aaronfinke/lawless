@@ -893,6 +893,7 @@ namespace scala {
     //  1) for batch scales, number = number of scales
     //  2) for smooth scales, Nintervals = Nscales - 2 
     //  3) ... unless Nscales = 1 or 2, in which case Nintervals = 1
+    //  4) ... or Nscales = 3, in which case Nintervals = 2
     int niscl = 0;  // count number expected
     for (int ir=0;ir<nruns;++ir) {
       niscl += primary_scales[ir].Nintervals();
@@ -905,29 +906,52 @@ namespace scala {
     for (int ir=0;ir<nruns;++ir) { // loop runs
       std::vector<double> gsclrun(primary_scales[ir].Number()); // scale parameters for this run
       std::vector<int>    nobsrun(primary_scales[ir].Number()); // number of observations for this run
-      for (int i=0;i<primary_scales[ir].Nintervals();++i) {
-	if (primary_scales[ir].IsBatchScale() || primary_scales[ir].Nintervals() == 1) {
-	  // No leading scale
-	  j = i;
-	} else {
-	  j = i+1;
-	  // extra scale at start, duplicate of 1st interval
-	  if (i == 0) {
+
+      if (primary_scales[ir].IsBatchScale()) {  // Batch scale  -------
+	ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals());
+	for (int i=0;i<primary_scales[ir].Nintervals();++i) {
+	  gsclrun[i] = gscales[jsr];
+	  nobsrun[i] = numobsrotrange[jsr];
+	  jsr++;
+	}
+      } else { // Smooth scale  -------
+	if (primary_scales[ir].Number() <= 2) { // 1 or 2 scales, 1 interval
+	  ASSERT (primary_scales[ir].Nintervals() == 1);
+	  for (int i=0;i<primary_scales[ir].Number();++i) {
 	    gsclrun[i] = gscales[jsr];
 	    nobsrun[i] = numobsrotrange[jsr];
 	  }
+	  jsr++;
+	} else if (primary_scales[ir].Number() == 3) { // 3 scales, 2 intervals
+	  ASSERT (primary_scales[ir].Nintervals() == 2);
+	  // Scales at 0,1,2 average for middle one
+	  gsclrun[0] = gscales[jsr];
+	  nobsrun[0] = numobsrotrange[jsr];
+	  gsclrun[2] = gscales.at(jsr+1);
+	  nobsrun[2] = numobsrotrange.at(jsr+1);
+	  gsclrun[1] = 0.5*(gscales[jsr] + gscales.at(jsr+1)); // average scale
+	  nobsrun[1] = (numobsrotrange[jsr] + numobsrotrange.at(jsr+1))/2; // average number
+	  jsr += 2;
+	} else { // >3 scales n-2 intervals
+	  ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals()+2);
+	  for (int i=0;i<primary_scales[ir].Nintervals();++i) {
+	    j = i+1;  
+	    // extra scale at start, duplicate of 1st interval
+	    if (i == 0) {
+	      gsclrun[i] = gscales[jsr];
+	      nobsrun[i] = numobsrotrange[jsr];
+	    }
+	    gsclrun[j] = gscales[jsr];
+	    nobsrun[j] = numobsrotrange[jsr];
+	    jsr++;
+	  } // end loop scales intervals
+	  // extra scale at end: j is one beyond intitial scales array
+	  gsclrun[j+1] = gsclrun[j];
+	  nobsrun[j+1] = numobsrotrange[j-1];
+	  j++;
+	  ASSERT (j+1 == primary_scales[ir].Number());
 	}
-	gsclrun[j] = gscales[jsr];
-	nobsrun[j] = numobsrotrange[jsr];
-	jsr++;
-      } // end loop scales intervals
-      if (!primary_scales[ir].IsBatchScale() && primary_scales[ir].Number() >= 2) {
-	// extra scale at end: j is one beyond intitial scales array
-	gsclrun[j+1] = gsclrun[j];
-	nobsrun[j+1] = numobsrotrange[j-1];
-	j++;
       }
-      ASSERT (j+1 == primary_scales[ir].Number());
       primary_scales[ir].StoreScales(gsclrun);
       primary_scales[ir].StoreNobservations(nobsrun);
     } // end loop runs

@@ -146,6 +146,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   collabels.push_back("0k");        // 7
   collabels.push_back("Number");    // 8
   std::vector<bool> Zero(8, false);
+  Zero[5] = true;
   output.logTab(0,LOGFILE,
   		table.ColumnFields(collabels, Zero,
    				   "%5d%5d%8.2f%8d%10.2f%10.4f%10.4f%10d\n")); 
@@ -153,11 +154,10 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   int nc = collabels.size();
 
   int n=1;
-  for (size_t i=0;i<batches.size();++i) {
-    if (scalebatch[i].Count() > 0) {
-      //      std::cout << n<< " " << batches[i].MidPhi()<< " " << batches[i].num()<< " " <<
-      //	bfacbatch[i]<< " " << scalebatch[i].Mean()<< " " << scale0batch[i]<< " " << scalebatch[i].Count() << "\n";;
-
+  for (size_t i=0;i<batches.size();++i) {  // print even batches that have no reflections
+    //      std::cout << n<< " " << batches[i].MidPhi()<< " " << batches[i].num()<< " " <<
+    //	bfacbatch[i]<< " " << scalebatch[i].Mean()<< " " << scale0batch[i]<< " " << scalebatch[i].Count() << "\n";;
+    if (batches[i].Accepted()) { // ... but not rejected batches
       output.logTab(0,LOGFILE,
 		    table.Line(nc, n,
 			       RunList[batches[i].RunIndex()].RunNumber(),
@@ -240,7 +240,10 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   //	    <<" " << maxresbatch.size()<<"\n"; //^
   int nb = 0;
   for (size_t i=0;i<batches.size();++i) {
-    if (imeanbatch[i].Count() > 0) {nb++;} // count actual batches
+    if (batches[i].Accepted()) { // ... but not rejected batches
+      nb++;
+    } // count actual batches
+    ///    if (imeanbatch[i].Count() > 0) {nb++;} // count actual batches
   }
   scala::Range xrange(1,nb);
   scala::Range yrange(res1, res2);
@@ -324,8 +327,8 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 		table.ColumnFields(collabels, Zero, lineformat));
 
   int n=1;
-  for (size_t i=0;i<batches.size();++i) {
-    if (imeanbatch[i].Count() > 0) {
+  for (size_t i=0;i<batches.size();++i) { // print all batches even if they have no observations
+    if (batches[i].Accepted()) { // ... but not rejected batches
       float r = 0.0;
       if (rmsDbatch[i].Count() > 0) {
 	r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
@@ -341,7 +344,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 				 100.*batchcompleteness[i],
 				 100.*batchanomcompleteness[i],
 				 maxresbatch[i]),
-				 batchmultiplicity[i]);
+		      batchmultiplicity[i]);
       } else if (smoothMaxRes) {
 	output.logTab(0,LOGFILE,
 		      table.Line(nc, n, batches[i].num(),
@@ -371,8 +374,8 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 				 rmergebatchsmoothed[i].R()));
       }
       n++;
-    }
-  }
+    }  // rejected batches
+  } // batch loop
   output.logTab(0,LOGFILE,
 		table.CloseTable());
   output.logTab(0,LOGFILE,table.RawLabels());

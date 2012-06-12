@@ -16,8 +16,7 @@
 
 namespace scala {
 // ---------------------------------------------------------
-  void WriteMergedOutputFiles(const std::string& title,
-			      const MergedList & mergedlist,
+  void WriteMergedOutputFiles(const MergedList & mergedlist,
 			      const OutputControls& outputcontrols,
 			      phaser_io::Output& output);
 // ---------------------------------------------------------
@@ -35,7 +34,6 @@ namespace scala {
   //
   //  outputformat  = +1  MTZ, +2 Scalepack
   void WriteMergedOutput(const int& outputformat,
-			 const std::string& title,
 			 const MergedList & mergedlist,
 			 const OutputControls& outputcontrols,
 			 phaser_io::Output& output);

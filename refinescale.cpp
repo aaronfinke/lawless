@@ -239,7 +239,7 @@ namespace scala {
     double sumwgI, sumwg2, g, di, d;
     Rtype invresolsq;
     ////////////////////////
-  
+
     ////////////////////////////////////////
     int jcount=0;
     std::vector<int> jref_array(Nref, 0);
@@ -292,7 +292,7 @@ namespace scala {
 	nused = 0;
 	sumwgI = 0.0;
 	sumwg2 = 0.0;
-    
+
 	while ((index = this_refl.next_observation(this_obs)) >= 0) {
 	  // Loop accepted observations
 	  //  Get scale for observation & derivative vector
@@ -353,6 +353,7 @@ namespace scala {
 	    w = 1./(sd*sd);
 	    di = (obs_used[l].I() - ghl[l] * mnI);   // deviation
 	    //	if (DEBUG) {std::cout << "\nObs " << l <<"|";}
+
 	    for (ip=0;ip!=npar;++ip) {   // Loop parameters
 	      // d(ghl<Ih>)/dp = ghl (dIh/dp)   +   Ih (dghl/dp)
 	      dmnIgldp[ip] = ghl[l] * dmnIdp[ip];
@@ -392,7 +393,7 @@ namespace scala {
 	}  // end, at least 2 observations
       }
     } // end loop reflections
-  
+
     // Add ties (restraints) into target etc. Return target
 
     //printf("3 >>>>>>>>>>>> target=%.3lf nobs=%d\n",target, nobs);

@@ -581,6 +581,26 @@ namespace phaser_io {
     bool detector;
   };
   //--------------------------------------------------------------
+  class INITIAL : public InputBase, virtual public CCP4base
+    //
+    //  Controls for INITIAL scale
+    // Syntax:
+    //  INITIAL MEAN   set all initial scales from mean intensities [default]
+    //  INITIAL UNITY  set all initial scales to unity
+  {
+  public:
+    INITIAL();
+    virtual ~INITIAL() {}
+    Token_value parse(std::istringstream&);
+
+    bool InitialUnity() const {return unity;}
+
+    void analyse(){}
+
+  private:
+    bool unity;
+  };
+  //--------------------------------------------------------------
 } // phaser_io
 
 #endif
