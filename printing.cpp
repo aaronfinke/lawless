@@ -157,7 +157,8 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   for (size_t i=0;i<batches.size();++i) {  // print even batches that have no reflections
     //      std::cout << n<< " " << batches[i].MidPhi()<< " " << batches[i].num()<< " " <<
     //	bfacbatch[i]<< " " << scalebatch[i].Mean()<< " " << scale0batch[i]<< " " << scalebatch[i].Count() << "\n";;
-    if (batches[i].Accepted()) { // ... but not rejected batches
+    //  batch in this dataset
+    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
       output.logTab(0,LOGFILE,
 		    table.Line(nc, n,
 			       RunList[batches[i].RunIndex()].RunNumber(),
@@ -240,10 +241,10 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   //	    <<" " << maxresbatch.size()<<"\n"; //^
   int nb = 0;
   for (size_t i=0;i<batches.size();++i) {
-    if (batches[i].Accepted()) { // ... but not rejected batches
+    //  batch in this dataset
+    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
       nb++;
     } // count actual batches
-    ///    if (imeanbatch[i].Count() > 0) {nb++;} // count actual batches
   }
   scala::Range xrange(1,nb);
   scala::Range yrange(res1, res2);
@@ -328,7 +329,8 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 
   int n=1;
   for (size_t i=0;i<batches.size();++i) { // print all batches even if they have no observations
-    if (batches[i].Accepted()) { // ... but not rejected batches
+    //  batch in this dataset
+    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
       float r = 0.0;
       if (rmsDbatch[i].Count() > 0) {
 	r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
