@@ -469,7 +469,8 @@ namespace scala {
     if (anisoanal.AreGeneralAxes()) {
       // Only for low symmetry
         output.logTab(0, LOGFILE,
-      "\nTime for determination of anisotropic axes: "+anisotime.format(true));
+      "\nTime for determination of anisotropic axes: "+anisotime.format(true)+
+      "\n number of reflections used "+clipper::String(anisoanal.NreflUsed()));
     }
     // ----
 

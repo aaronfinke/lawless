@@ -42,11 +42,12 @@ namespace scala {
  
   public:
     MergedList(){}
-    //! Fill from unmerged list & SD_model
+    //! Fill from unmerged list & SD_model, for given dataset if index >=0
+    //  default all datasets
     MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
-	       const std::string& Title);
+	       const std::string& Title, const int& Datasetindex=-1);
     void init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
-	      const std::string& Title);
+	      const std::string& Title, const int& Datasetindex=-1);
 
     // Write data for datasetIndex to MTZ file
     // Return number of reflections written
@@ -74,6 +75,7 @@ namespace scala {
 
   private:
     int ndatasets; // number of datasets
+    int dataset_index;  // dataset index, = -1 if all datasets stored
     std::vector<Xdataset> xdatasets;
     clipper::HKL_info hkl_info_list;  // hkl list
     // Merged intensities for each dataset
@@ -90,7 +92,10 @@ namespace scala {
     // returns 0 if OK, -1 if both missing, +1 if I+ missing +2 if I- missing
     int CheckNullIano(const clipper::data32::J_sigJ_ano& MIsig) const;
 
-
+    // return internal index to dataset datasetIndex
+    // If dataset_index >=0, then only this dataset has been stored, so return 0
+    // If dataset_index <0, then all datasets have been stored, so return datasetIndex
+    int InternalDTSindex(const int& datasetIndex) const;
   }; // MergedList
 
 } // namespace scala 

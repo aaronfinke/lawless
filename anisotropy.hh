@@ -51,7 +51,7 @@ private:
 //----------------------------------------------------------------------------
   class AnisotropicAnalysis {
   public:
-    AnisotropicAnalysis(){}
+    AnisotropicAnalysis() {}
 
     //! construct from unmerged list
     AnisotropicAnalysis(const hkl_unmerge_list& hkl_list,
@@ -93,6 +93,9 @@ private:
     //! return true if principal axes are general (triclinic, monoclinic)
     bool AreGeneralAxes() const {return lowsymmetry;}
 
+    //! return number of reflections used in fit, for lowsymmetry (else = 0)
+    int NreflUsed() const {return nreflused;}
+
     //! return true if first direction is plane perpendicular to 3rd direction
     bool IsPlane() const {return abplane;}
 
@@ -113,6 +116,7 @@ private:
 
     CrystalSystem cryssys;
     bool lowsymmetry;  // true if monoclinic or triclinic, get axes from fit
+    int nreflused;     // number of reflections used to fit axes, if lowsymmetry
     bool cubic;   // true if cubic, no analysis
     // true if analysis is relative to ab plane and c* (trigonal, hexagonal, tetragonal)
     bool abplane;

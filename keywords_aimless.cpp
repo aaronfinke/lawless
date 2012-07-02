@@ -691,14 +691,14 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   outliercontrolsmerge.Combine() = combine;
   //  SCALE or both
   if (merge <= 0) {
-    outliercontrolsscale.Reject(scala::ALL) = scala::RejectFlags(sdrej, sdrej2, rej2policy);
-    outliercontrolsscale.Reject(scala::BOTH) = scala::RejectFlags(sdreja, sdrej2a, rej2policy);
+    outliercontrolsscale.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy), scala::ALL);
+    outliercontrolsscale.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy), scala::BOTH);
     if (emax > 0.0) outliercontrolsscale.SetEmax(emax);
   }
   //  MERGE or both
   if (merge >= 0) {
-    outliercontrolsmerge.Reject(scala::ALL) = scala::RejectFlags(sdrej, sdrej2, rej2policy);
-    outliercontrolsmerge.Reject(scala::BOTH) = scala::RejectFlags(sdreja, sdrej2a, rej2policy);
+    outliercontrolsmerge.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy), scala::ALL);
+    outliercontrolsmerge.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy), scala::BOTH);
     if (emax > 0.0) outliercontrolsmerge.SetEmax(emax);
   }
   

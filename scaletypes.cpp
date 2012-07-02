@@ -32,19 +32,19 @@ namespace scala {
     if (batch) {
       std::cout << "BATCH mode\n";
       std::cout
-	<< "nscales " << nscales << "\n"
-	<< "nbfac " << nbfac << "\n";
+        << "nscales " << nscales << "\n"
+        << "nbfac " << nbfac << "\n";
     } else {
       std::cout << "ROTATION mode\n";
       if (nscales >= 0) {
-	std::cout  << "nscales " << nscales << "\n";
+        std::cout  << "nscales " << nscales << "\n";
       } else {
-	std::cout << "spacing " << spacing << "\n";
+        std::cout << "spacing " << spacing << "\n";
       }
       if (nbfac >= 0) {
-	std::cout << "nbfac " << nbfac << "\n";
+        std::cout << "nbfac " << nbfac << "\n";
       } else {
-	std::cout << "bspacing " << bspacing << "\n";
+        std::cout << "bspacing " << bspacing << "\n";
       }
     }
     if (sec_abs == SecondaryScale::NONE)
@@ -55,7 +55,7 @@ namespace scala {
     } else if (sec_abs == SecondaryScale::ABSORPTION) {
       std::cout << "sec_abs ABSORPTION\n";
       std::cout    << "lmax " << lmax << " " << lmaxodd << "\n"
-		   << "pole " << pole << "\n";
+                   << "pole " << pole << "\n";
     }
   }
   //--------------------------------------------------------------
@@ -81,11 +81,11 @@ namespace scala {
       spacing = 0.0;
     } else {
       if (nsample == 1) { // one interval
-	nvalues = 2;  // if Ns = 1, use 2 values
+        nvalues = 2;  // if Ns = 1, use 2 values
       } else if (nsample == 2) {
-	nvalues = nsample + 1;  // Ns = 2 or 3, use 2 or 3 values
+        nvalues = nsample + 1;  // Ns = 2 or 3, use 2 or 3 values
       } else {
-	nvalues = nsample + 2;
+        nvalues = nsample + 2;
       }
       //  smoothing spacing
       spacing = (xmax - xmin)/double(nsample);
@@ -97,11 +97,11 @@ namespace scala {
     for (int i=0;i<nvalues;++i) {
       values[i] = 0.0;    // just in case
       if (nvalues <= 2) {
-	positions[i] = i; // nvalues 1 or 2
+        positions[i] = i; // nvalues 1 or 2
       } else if (nvalues == 3) {
-	positions[i] = double(i);  // 0.0, 1.0, 2.0
+        positions[i] = double(i);  // 0.0, 1.0, 2.0
       } else {
-	positions[i] = double(i)-0.5; // -0.5, 0.5, 1.5, ...
+        positions[i] = double(i)-0.5; // -0.5, 0.5, 1.5, ...
       }
     }
 
@@ -126,12 +126,12 @@ namespace scala {
     }
     if (naverage < 1 || naverage > 5) {
       Message::message(Message_fatal
-		       ("SmoothedValue:: Naverage must be between 1 & 5"));
+                       ("SmoothedValue:: Naverage must be between 1 & 5"));
     }
     half_nav = double(naverage)/2.0;
     if (sigma < 0.0) {
       //  Default values 0.65, 0.7, 0.75, 0.8 for nav = 2,3,4,5
-	sigma = 0.65 + 0.05 * (naverage-2);
+        sigma = 0.65 + 0.05 * (naverage-2);
     }
     //^
     //^    std::cout << "Nav, sigma " << naverage << " " << sigma << "\n";
@@ -170,7 +170,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double SmoothedValue::ValueWeight(const double& x,
-				   std::vector<double>& weight, double& sumweight) const
+                                   std::vector<double>& weight, double& sumweight) const
   // Return interpolated value at point, plus weights at each point,
   // for original unnormalised coordinate
   {
@@ -189,37 +189,43 @@ namespace scala {
       double sumwv = 0.0;
       sumweight = 0.0;
 
-      // 1st point in array (index 0) is at position -0.5
-      // Reduce number of points at ends, but not less than 2
-      int i1 = Nint(z - half_nav)+1;
-      int i2 = i1 + naverage;
-      if (i1 < 0) {
-	// beginning of range
-	i1 = 0;
-	i2 = Max(2,i2);
-      }
-      if (i2 > nvalues) {
-	i2 = nvalues;
-	i1 = Min(i1, nvalues-2);
+      int i1, i2;
+      if (nvalues <= 3) { // 2 or 3 points, positions are at ends
+        i1 = 0;
+        i2 = nvalues;
+      } else { // > 3 points
+        // 1st point in array (index 0) is at position -0.5
+        // Reduce number of points at ends, but not less than 2
+        i1 = Nint(z - half_nav)+1;
+        i2 = i1 + naverage;
+        if (i1 < 0) {
+          // beginning of range
+          i1 = 0;
+          i2 = Max(2,i2);
+        }
+        if (i2 > nvalues) {
+          i2 = nvalues;
+          i1 = Min(i1, nvalues-2);
+        }
       }
       //^
-      //      std::cout << "z, i1, i2 sigma " << z << " " << i1 << " " << i2
-      //      		<< " " << sigma << "\n";
+      //^      std::cout << "z, i1, i2 sigma " << z << " " << i1 << " " << i2
+      //^               << " " << sigma << "\n";
       for (int i=i1;i<i2;++i) {
-	double ds = (z - positions[i])/sigma;
-	weight[i] = exp(-ds*ds);
-	sumwv += weight[i] * values[i];
-	sumweight  += weight[i];
-	//^
-	//	std::cout << "    i, ds, weight, values[i] "
-	//		  << i << " " << ds << " " << weight[i] << " " << values[i] << "\n";
+        double ds = (z - positions[i])/sigma;
+        weight[i] = exp(-ds*ds);
+        sumwv += weight[i] * values[i];
+        sumweight  += weight[i];
+        //^
+        //^     std::cout << "    i, ds, weight, values[i] "
+        //^               << i << " " << ds << " " << weight[i] << " " << values[i] << "\n";
       }
       if (sumweight > 0.0) {
-	value = sumwv/sumweight;
+        value = sumwv/sumweight;
       } else {
-	value = 0.0;
+        value = 0.0;
       }
-      //      std::cout << "  Value " << value << "\n";
+      //^      std::cout << "  Value " << value << "\n";
     }
     return value;
   }  
@@ -249,7 +255,7 @@ namespace scala {
     FR.ReadTag("SmoothedValue"); // fails if tag does not match
     if (FR.GetTag() != "V1") {  // version check
       clipper::Message::message(Message_fatal
-	("SmoothedValue::Restore incompatible version in "+FR.Filename()));
+        ("SmoothedValue::Restore incompatible version in "+FR.Filename()));
     }
     FR.Skip();
     FR.ReadTag("Nvalues"); nvalues = FR.Int();
@@ -265,13 +271,13 @@ namespace scala {
     half_nav = double(naverage)/2.0;
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
-	("SmoothedValue::Restore unexpected tag "+FR.Tag()));
+        ("SmoothedValue::Restore unexpected tag "+FR.Tag()));
     }
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   PrimaryScale::PrimaryScale(const int& NscaleIntervals,
-			     const Range& phirange)
+                             const Range& phirange)
   // Construct smooth scaling from number of scale intervals
   // Note that actual number nscales will be NscalesIntervals+2
   //   unless NscalesIntervals = 0, in which nscales = 1
@@ -332,9 +338,9 @@ namespace scala {
       // parameters are tied together in pairs
       // loop from 2nd scale values, batch or smoothed
       if (nscales > 1) {
-	for (int i=1;i<nscales;++i) {
-	  ties.push_back(Tie(idx0+i-1 ,idx0+i, weight));
-	}
+        for (int i=1;i<nscales;++i) {
+          ties.push_back(Tie(idx0+i-1 ,idx0+i, weight));
+        }
       }
     }
     return ties;
@@ -350,13 +356,13 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void PrimaryScale::ScaleDeriv(const double& phi,
-			       double& scale, std::vector<double>& dgdp) const
+                               double& scale, std::vector<double>& dgdp) const
   {
     ScaleDeriv(true, phi, scale, dgdp);
   }
   //--------------------------------------------------------------
   double PrimaryScale::ScaleDeriv(const double& phi,
-				 std::vector<double>& dgdp) const
+                                 std::vector<double>& dgdp) const
   {
     double scale;
     ScaleDeriv(true, phi, scale, dgdp);
@@ -364,7 +370,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void PrimaryScale::ScaleDeriv(const bool& Deriv, const double& phi,
-			       double& scale, std::vector<double>& dgdp) const
+                               double& scale, std::vector<double>& dgdp) const
   // Return scale and derivative vector at position phi, smooth scaling
   {
     if (Deriv) {
@@ -374,7 +380,7 @@ namespace scala {
       double sumw;
       scale = smoothscale.ValueWeight(phi, w, sumw);
       for (int i=0;i<nscales;i++) {
-	dgdp[i] = w[i]/sumw;
+        dgdp[i] = w[i]/sumw;
       }
     } else {
       // No derivative, just the scale
@@ -392,13 +398,13 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void PrimaryScale::ScaleDeriv(const int& batch,
-			       double& scale, std::vector<double>& dgdp) const
+                               double& scale, std::vector<double>& dgdp) const
   {
     ScaleDeriv(true, batch, scale, dgdp);
   }
   //--------------------------------------------------------------
   double PrimaryScale::ScaleDeriv(const int& batch,
-				 std::vector<double>& dgdp) const
+                                 std::vector<double>& dgdp) const
   {
     double scale;
     ScaleDeriv(true, batch, scale, dgdp);
@@ -406,7 +412,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void PrimaryScale::ScaleDeriv(const bool& Deriv, const int& batch,
-			       double& scale, std::vector<double>& dgdp) const
+                               double& scale, std::vector<double>& dgdp) const
   // Return scale and derivative vector for batch number batch
   {
     // Batch serial number
@@ -453,17 +459,17 @@ namespace scala {
     if (batchscale) {
       // Batch scaling
       text = "Batch scaling for batches   "+
-	clipper::String(batch_lookup.number(0), 8)+
-	" to "+clipper::String(batch_lookup.number(nscales-1), 8);
+        clipper::String(batch_lookup.number(0), 8)+
+        " to "+clipper::String(batch_lookup.number(nscales-1), 8);
     } else {
       if (nscales == 1) {
-	text = "Single scale factor";
+        text = "Single scale factor";
       } else {
-	text = "Smooth scaling:   "+clipper::String(nscales,3)+
-	" scales at intervals of "+clipper::String(scalespacing,6,4)+
-	" over range "+clipper::String(phi0,7,5)+" to "+
-	clipper::String(phi0+nscaleintervals*scalespacing, 7,5)+
-	  " in "+clipper::String(nscaleintervals,3)+" parts";
+        text = "Smooth scaling:   "+clipper::String(nscales,3)+
+        " scales at intervals of "+clipper::String(scalespacing,6,4)+
+        " over range "+clipper::String(phi0,7,5)+" to "+
+        clipper::String(phi0+nscaleintervals*scalespacing, 7,5)+
+          " in "+clipper::String(nscaleintervals,3)+" parts";
       }
     }
     return text;
@@ -473,7 +479,7 @@ namespace scala {
   {
     if (NavgScale < 2 || NavgScale > 5) {
       Message::message(Message_fatal
-		       ("PrimaryScale:: NavgScale must be 2 to 5"));
+                       ("PrimaryScale:: NavgScale must be 2 to 5"));
     }
     navgscale = NavgScale;
   }
@@ -505,7 +511,7 @@ namespace scala {
     FR.ReadTag("PrimaryScale"); // fails if tag does not match
     if (FR.GetTag() != "V1") {  // version check
       clipper::Message::message(Message_fatal
-	("PrimaryScale::Restore incompatible version in "+FR.Filename()));
+        ("PrimaryScale::Restore incompatible version in "+FR.Filename()));
     }
     FR.Skip();
     FR.ReadTag("NscaleIntervals"); nscaleintervals = FR.Int();
@@ -523,12 +529,12 @@ namespace scala {
       FR.ReadTag("Scales"); smoothscale.Restore(FR);
     } else {
       Message::message(Message_fatal
-	("PrimaryScale::Restore unrecognised tag "+tag+
-	 " in "+FR.Filename()));
+        ("PrimaryScale::Restore unrecognised tag "+tag+
+         " in "+FR.Filename()));
     }
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
-	("PrimaryScale::Restore unexpected tag "+FR.Tag()));
+        ("PrimaryScale::Restore unexpected tag "+FR.Tag()));
     }  
   }
   //--------------------------------------------------------------
@@ -544,7 +550,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   RelativeBfactor::RelativeBfactor(const int& NbfacIntervals,
-				   const Range& timerange)
+                                   const Range& timerange)
   // Construct smooth B-factors from number of Bfactor intervals
   // Note that actual number nbfac will be NbfacIntervals+2
   //   unless NbfacIntervals = 0, in which nbfac = 1
@@ -554,7 +560,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   RelativeBfactor::RelativeBfactor(const double& bfacSpacing,
-				   const Range& timerange)
+                                   const Range& timerange)
   // Construct smooth B-factors from spacing 
   //  spacing will be adjusted to give an integral number of intervals
   // Always at least 2 B-factors
@@ -603,9 +609,9 @@ namespace scala {
       // parameters are tied togther in pairs
       // loop from 2nd value, batch or smoothed
       if (nbfac > 1) {
-	for (int i=1;i<nbfac;++i) {
-	  ties.push_back(Tie(idx0+i-1 ,idx0+i, weight));
-	}
+        for (int i=1;i<nbfac;++i) {
+          ties.push_back(Tie(idx0+i-1 ,idx0+i, weight));
+        }
       }
     }
     return ties;
@@ -622,7 +628,7 @@ namespace scala {
       double weight = 1./(sdtie*sdtie);
       // parameters are tied to zero
       for (int i=0;i<nbfac;++i) {
-	ties.push_back(Tie(idx0+i, TARGET, weight));
+        ties.push_back(Tie(idx0+i, TARGET, weight));
       }
     }
     return ties;
@@ -638,13 +644,13 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RelativeBfactor::BfactorScaleDeriv(const double& time, const double& invresolsq,
-				     double& gbfac, std::vector<double>& dgdp) const
+                                     double& gbfac, std::vector<double>& dgdp) const
   {
     BfactorScaleDeriv(true, time, invresolsq, gbfac, dgdp);
   }
   //--------------------------------------------------------------
   double RelativeBfactor::BfactorScaleDeriv(const double& time, const double& invresolsq,
-				     std::vector<double>& dgdp) const
+                                     std::vector<double>& dgdp) const
   {
     double gbfac;
     BfactorScaleDeriv(true, time, invresolsq, gbfac, dgdp);
@@ -652,19 +658,19 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RelativeBfactor::BfactorScaleDeriv(const bool& Deriv, const double& time,
-				     const double& invresolsq,
-				     double& gbfac, std::vector<double>& dgdp) const
+                                     const double& invresolsq,
+                                     double& gbfac, std::vector<double>& dgdp) const
   // Return B-factor scale and derivative vector at position time &
   // 4(sin theta/lambda)^2 = invresolsq
   {
     if (Deriv) {
       // get B-factor & weight vector
-      dgdp.assign(nbfac,0.0);	
+      dgdp.assign(nbfac,0.0);   
       std::vector<double> w(nbfac);
       double sumw;
       gbfac = exp(0.5 * invresolsq * smoothB.ValueWeight(time, w, sumw));
       for (int i=0;i<nbfac;i++) {
-	dgdp[i] = 0.5 * invresolsq * gbfac * w[i]/sumw;
+        dgdp[i] = 0.5 * invresolsq * gbfac * w[i]/sumw;
       }
     } else {
       // No derivative, just the B-factor scale
@@ -680,7 +686,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double RelativeBfactor::BfactorScale(const int& batch,
-				 const double& invresolsq) const
+                                 const double& invresolsq) const
   // B-Factor scale at batch number batch
   {
     std::vector<double> dgdp;
@@ -690,13 +696,13 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RelativeBfactor::BfactorScaleDeriv(const int& batch, const double& invresolsq,
-			       double& gbfac, std::vector<double>& dgdp) const
+                               double& gbfac, std::vector<double>& dgdp) const
   {
     BfactorScaleDeriv(true, batch, invresolsq, gbfac, dgdp);
   }
   //--------------------------------------------------------------
   double RelativeBfactor::BfactorScaleDeriv(const int& batch, const double& invresolsq,
-					   std::vector<double>& dgdp) const
+                                           std::vector<double>& dgdp) const
   {
     double gbfac;
     BfactorScaleDeriv(true, batch, invresolsq, gbfac, dgdp);
@@ -704,8 +710,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RelativeBfactor::BfactorScaleDeriv(const bool& Deriv, const int& batch,
-				     const double& invresolsq,
-				     double& gbfac, std::vector<double>& dgdp) const
+                                     const double& invresolsq,
+                                     double& gbfac, std::vector<double>& dgdp) const
   // Return B-factor and derivative vector for batch number batch
   {
     // Batch serial number
@@ -762,19 +768,19 @@ namespace scala {
     if (batchbfac) {
       // Batch scaling
       text = "Batch B-factors for batches "+
-	clipper::String(batch_lookup.number(0), 8)+
-	" to "+clipper::String(batch_lookup.number(nbfac-1), 8);
+        clipper::String(batch_lookup.number(0), 8)+
+        " to "+clipper::String(batch_lookup.number(nbfac-1), 8);
     } else {
       if (nbfac == 0) {
-	text = "No B-factors";
+        text = "No B-factors";
       } else if (nbfac == 1) {
-	text = "Single relative B-factor";
+        text = "Single relative B-factor";
       } else {
-	text = "Smooth B-factors: "+clipper::String(nbfac,3)+
-	  " scales at intervals of "+clipper::String(bfacspacing,6,4)+
-	  " over range "+clipper::String(time0,7,5)+" to "+
-	  clipper::String(time0+nbfacintervals*bfacspacing,7,5)+
-	  " in "+clipper::String(nbfacintervals,3)+" parts";
+        text = "Smooth B-factors: "+clipper::String(nbfac,3)+
+          " scales at intervals of "+clipper::String(bfacspacing,6,4)+
+          " over range "+clipper::String(time0,7,5)+" to "+
+          clipper::String(time0+nbfacintervals*bfacspacing,7,5)+
+          " in "+clipper::String(nbfacintervals,3)+" parts";
       }
     }
     return text;
@@ -807,7 +813,7 @@ namespace scala {
     FR.ReadTag("RelativeBfactor"); // fails if tag does not match
     if (FR.GetTag() != "V1") {  // version check
       clipper::Message::message(Message_fatal
-	("RelativeBfactor::Restore incompatible version in "+FR.Filename()));
+        ("RelativeBfactor::Restore incompatible version in "+FR.Filename()));
     }
     FR.Skip();
     FR.ReadTag("NbfacIntervals"); nbfacintervals = FR.Int();
@@ -825,12 +831,12 @@ namespace scala {
       FR.ReadTag("Bfactors"); smoothB.Restore(FR);
     } else {
      clipper::Message::message(Message_fatal
-	("RelativeBfactor::Restore unrecognised tag "+tag+
-	 " in "+FR.Filename()));
+        ("RelativeBfactor::Restore unrecognised tag "+tag+
+         " in "+FR.Filename()));
     }
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
-	("RelativeBfactor::Restore unexpected tag "+FR.Tag()));
+        ("RelativeBfactor::Restore unexpected tag "+FR.Tag()));
     }
   }
   //--------------------------------------------------------------
@@ -841,8 +847,8 @@ namespace scala {
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   SecondaryScale::SecondaryScale(const SecondaryScaleType& secSclType,
-				 const int& lMax, const int& lMaxOdd,
-				 const int& Pole)
+                                 const int& lMax, const int& lMaxOdd,
+                                 const int& Pole)
     : secscltype(secSclType), lmax(lMax), lmaxodd(lMaxOdd), pole(Pole)
   {
     sphHarmonic = SphericalHarmonic(lMax, lMaxOdd);
@@ -861,9 +867,9 @@ namespace scala {
       // parameters are tied to target value of 0.0
       // loop all values
       if (ncoeffs > 0) {
-	for (int i=0;i<ncoeffs;++i) {
-	  ties.push_back(Tie(idx0+i, target, weight));
-	}
+        for (int i=0;i<ncoeffs;++i) {
+          ties.push_back(Tie(idx0+i, target, weight));
+        }
       }
     }
     return ties;
@@ -892,7 +898,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void SecondaryScale::ScaleDeriv(const double& thetap, const double& phip,
-				  double& scale, std::vector<double>& dgdp) const
+                                  double& scale, std::vector<double>& dgdp) const
   // Return scale & derivatives for secondary beam directions
   // polar angles thetap, phip
   {
@@ -907,7 +913,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double SecondaryScale::ScaleDeriv(const double & thetap, const double& phip,
-				   std::vector<double>& dgdp) const
+                                   std::vector<double>& dgdp) const
   // Return scale & derivatives for secondary beam directions
   //polar angles thetap, phip
   {
@@ -923,12 +929,12 @@ namespace scala {
       text += "No secondary beam correction";
     } else {
       if (secscltype == SECONDARY) {
-	text+= "Secondary beam correction in camera frame, lmax = "+
-	  clipper::String(lmax)+", "+clipper::String(lmaxodd);
+        text+= "Secondary beam correction in camera frame, lmax = "+
+          clipper::String(lmax)+", "+clipper::String(lmaxodd);
       } else if (secscltype == ABSORPTION) {
-	text+= "Secondary beam correction in crystal frame, lmax = "+
-	  clipper::String(lmax)+", "+clipper::String(lmaxodd);
-	text += ", pole = "+formatPole(pole);
+        text+= "Secondary beam correction in crystal frame, lmax = "+
+          clipper::String(lmax)+", "+clipper::String(lmaxodd);
+        text += ", pole = "+formatPole(pole);
       }
     }
     return text;
@@ -963,7 +969,7 @@ namespace scala {
     FR.ReadTag("SecondaryScale"); // fails if tag does not match
     if (FR.GetTag() != "V1") {  // version check
       clipper::Message::message(Message_fatal
-	("SecondaryScale::Restore incompatible version in "+FR.Filename()));
+        ("SecondaryScale::Restore incompatible version in "+FR.Filename()));
     }
     FR.Skip();
     FR.ReadTag("Lmax"); lmax = FR.Int();
@@ -979,7 +985,7 @@ namespace scala {
     }
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
-	("SecondaryScale::Restore unexpected tag "+FR.Tag()));
+        ("SecondaryScale::Restore unexpected tag "+FR.Tag()));
     }
   }
   //--------------------------------------------------------------

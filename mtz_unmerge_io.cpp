@@ -720,6 +720,10 @@ namespace MtzIO
 	Message::message(
 			 Message_fatal( "get_refs: MNF in compulsory column near hkl "+hkl.format() ) );
       
+      if (sigI <= 0.0) { // reject negative or zero sigma
+	continue;
+      }
+
       // >>> Rejection tests
       // Rejected batch (or dataset)
       if (!batches[batch_lookup.lookup(batch)].Accepted()) {

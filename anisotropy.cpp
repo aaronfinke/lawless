@@ -3,6 +3,7 @@
 #include "anisotropy.hh"
 #include "mergedlist.hh"
 #include "string_util.hh"
+#include "timer.hh"
 
 using clipper::Message;
 using clipper::Message_fatal;
@@ -21,10 +22,17 @@ namespace scala {
 void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isigi)
   //! initialise from intensity list
 {
+  Timer t1;
   sfscl = clipper::Iscale_aniso<float>(3.0);
+  std::cout
+    << "DEBUG OrthogonalAnisotropy, create Iscale_aniso, time "
+    << t1.format(true) <<"\n"; //^
   sfscl(isigi);
-
+  std::cout
+    << "DEBUG OrthogonalAnisotropy, determine axes, time "
+    << t1.format(true) <<"\n"; //^
   uanorth = sfscl.u_aniso_orth();
+
   clipper::Matrix<double> Uorth(3,3); 
   for (int j=0;j<3;++j) {
     for (int i=0;i<3;++i) {
@@ -103,6 +111,7 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
 
     // Defaults
     lowsymmetry = false;
+    nreflused = 0;
     cubic = false;
     abplane = false;
     rlattice = false;
@@ -214,10 +223,16 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
    const SDmodel& SDM)
   // set principalaxes from data
   {
+    Timer t1;    
     // merged list for given dataset
-    MergedList mergedlist(hkl_list, SDM, "");
+    MergedList mergedlist(hkl_list, SDM, "", datasetindex);
+    std::cout
+      << "DEBUG SetPrincipalDirectionsGeneral: time to make merged list "
+      << t1.format(true) <<"\n"; //^
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
       mergedlist.ImeanForDataset(datasetindex);
+    // Store number of reflections used
+    nreflused = isigi.num_obs();
     // Get anisotropy
     OrthogonalAnisotropy orthogonalanisotropy(isigi);
     principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions

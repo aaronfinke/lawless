@@ -902,7 +902,6 @@ namespace scala {
     sigmamin = 0.0;
     IsPhiOffset = false;
     N_part_list = 0;
-    Nref = 0;
     Nref_valid = 0;
     Nobservations = 0;
     Nobs_full = 0;
