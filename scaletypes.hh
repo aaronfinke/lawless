@@ -77,6 +77,8 @@ namespace scala {
     double Sigma() const {return sigma;}
     // Return spacing
     double Spacing() const {return spacing;}
+    // Return positions
+    std::vector<double> Positions() const {return positions;}
 
     // format for save/restore
     std::string FormatSave() const;
@@ -436,7 +438,7 @@ namespace scala {
     ScaleSpecification() : run(-1), isdefault(true),
 			   batch(false), nscales(-1), spacing(5.0),
 			   nbfac(-1), bspacing(20.0),
-			   sec_abs(scala::SecondaryScale::NONE),
+			   sec_abs(scala::SecondaryScale::SECONDARY),
 			   lmax(4), lmaxodd(3), pole(-1),
 			   ntilex(-1), ntiley(-1),
 			   detectorscaletype(DetectorScale::NONE) {}
