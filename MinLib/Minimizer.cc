@@ -145,7 +145,7 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
       const floatType ZERO(0.0);
       for (int i=0; i < target.numRefinePars(); i++)
         if ((xafter[i]-xbefore[i]) != ZERO) zero_shift = false;
-
+      
       if ( zero_shift || tooSmallShift || (oldLogLike-f < requiredGain) )
       {
         if (hitBound)
@@ -348,8 +348,12 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
         if (ntry > 1) // First attempt did not minimize.  Perturb Hessian and try again.
         {
           min_to_filter = filtered_last + std::max(1,target.numRefinePars()/10);
-          if (min_to_filter >= target.numRefinePars())
+          if (min_to_filter >= target.numRefinePars()) {
             min_to_filter = filtered_last + 1;
+	  }
+          if (min_to_filter >= target.numRefinePars()) {
+	    min_to_filter = target.numRefinePars() - 1; // force less than number of parameters
+	  }
         }
         int filtered(0);
         h_old = SymmetricPseudoinverse<floatType>(h,filtered,false,min_to_filter).getInv();
