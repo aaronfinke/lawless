@@ -96,7 +96,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     bool anyFewFull = false;
     bool anyFewPartial = false;
       
-    for (int irun=0;irun<Nruns;irun++) { // loop runs from 2nd
+    for (int irun=0;irun<Nruns;irun++) { // loop runs
       if (irun == 0) {
 	FP1 = FandP[irun];
       }
@@ -105,18 +105,21 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       if (FandP[irun] == Run::FEWFULLS) anyFewFull = true;
       if (FandP[irun] == Run::FEWPARTIALS) anyFewPartial = true;
     } // end loop runs
-    if (sameflag) {
-      // all same flags, use that one
-      SetSdmFullPartialFlags(FP1, SDM, 0);
-    } else if (anyboth) {
-      // any have both fulls & partials (not few), leave as that default
-    } else if (anyFewFull && !anyFewPartial) {
-      // use FEWFULLS unless FEWPARTIALS is also set
-      SetSdmFullPartialFlags(Run::FEWFULLS, SDM, 0);
-    } else if (!anyFewFull && anyFewPartial) {
-      // use FEWPARTIALS unless FEWFULLS is also set
-      SetSdmFullPartialFlags(Run::FEWPARTIALS, SDM, 0);
-    }
+    // Set flags for all runs, not just the first, even though this is allrunssame
+    for (int irun=0;irun<Nruns;irun++) { // loop runs
+      if (sameflag) {
+	// all same flags, use that one
+	SetSdmFullPartialFlags(FP1, SDM, irun);
+      } else if (anyboth) {
+	// any have both fulls & partials (not few), leave as that default
+      } else if (anyFewFull && !anyFewPartial) {
+	// use FEWFULLS unless FEWPARTIALS is also set
+	SetSdmFullPartialFlags(Run::FEWFULLS, SDM, irun);
+      } else if (!anyFewFull && anyFewPartial) {
+	// use FEWPARTIALS unless FEWFULLS is also set
+	SetSdmFullPartialFlags(Run::FEWPARTIALS, SDM, irun);
+      }
+    }  // end loop runs
   } // allrunssame
 
   std::vector<double> targets(3);    // 3 targets
@@ -641,6 +644,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 	// uncorrected sigma(I) for observation
 	//	float sigma = sigmaI[iobs];
 	// d(delta)/d(sigma') = -sqrt(n/n-1) delI / (sigma')^2
+
 	double dddsp = fac * delI[iobs] / (sigmaprime[iobs]*sigmaprime[iobs]);
 	  
 	for (size_t i=0;i<ddeltaidp.size();++i) {
@@ -767,15 +771,22 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   std::string SDmodel::formatFullPartialInfo() const
   {
     std::string ss;
-    for (int irun=0;irun<Nruns();++irun) {
+    int nr = Nruns();
+    if (allrunssame) {nr = 1;}
+
+    for (int irun=0;irun<nr;++irun) {
       std::string label = "fulls & partials";
       if (usetype[irun] > 0) {
 	label = (usetype[irun] == +1) ? "only fulls" : "relatively few partials";
       } else if (usetype[irun] < 0){
 	label = (usetype[irun] == -1) ? "only partials" : "relatively few fulls";
       }
-      ss += FormatOutput::logTabPrintf(0,"Run %4d has %s\n",
-				       irun+1, label.c_str());
+      if (allrunssame) {
+      ss += FormatOutput::logTabPrintf(0,"All runs have %s\n", label.c_str());
+      } else {
+	ss += FormatOutput::logTabPrintf(0,"Run %4d has %s\n",
+					 irun+1, label.c_str());
+      }
     }
     return ss;
   }

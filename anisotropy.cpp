@@ -24,13 +24,7 @@ void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isig
 {
   Timer t1;
   sfscl = clipper::Iscale_aniso<float>(3.0);
-  std::cout
-    << "DEBUG OrthogonalAnisotropy, create Iscale_aniso, time "
-    << t1.format(true) <<"\n"; //^
   sfscl(isigi);
-  std::cout
-    << "DEBUG OrthogonalAnisotropy, determine axes, time "
-    << t1.format(true) <<"\n"; //^
   uanorth = sfscl.u_aniso_orth();
 
   clipper::Matrix<double> Uorth(3,3); 
@@ -226,9 +220,6 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
     Timer t1;    
     // merged list for given dataset
     MergedList mergedlist(hkl_list, SDM, "", datasetindex);
-    std::cout
-      << "DEBUG SetPrincipalDirectionsGeneral: time to make merged list "
-      << t1.format(true) <<"\n"; //^
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
       mergedlist.ImeanForDataset(datasetindex);
     // Store number of reflections used

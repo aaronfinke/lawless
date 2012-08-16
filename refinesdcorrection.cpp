@@ -252,7 +252,7 @@ namespace scala {
       
       //^
       //      std::cout <<"Target contribution from group " << jpc<< " " << R1
-      //		<< " number " << number <<"\n"; //^-
+      //      		<< " number " << number <<"\n"; //^-
 
       std::vector<double> gradient(npar, 0.0); // gradient vector dR/dp
       clipper::Matrix<double> H(npar,npar,0.0);  // Hessian ~= d2R/dp2
@@ -296,7 +296,7 @@ namespace scala {
 
       //^
       //      std::cout << "Main residual: " << R1 << " Restraint Residual " << R2
-      //		<< " Total " << R <<"\n"; //^-
+      //      		<< " Total " << R <<"\n"; //^-
 
       // Symmetrise Hessian
       for (int k=0;k<npar-1;k++) {
@@ -304,15 +304,17 @@ namespace scala {
 	  {H(k,l) = H(l,k);} // other half
       }
       //^
-      //            std::cout <<"Total Hessian:\n";
-      //            for (int k=0;k<npar;k++) {
-      //            	for (int l=0;l<npar;l++) 
-      //            	  {std::cout <<" "<<H(l,k);}
-      //            	std::cout <<"\n";
-      //            }
+      //      std::cout <<"Total Hessian:\n";
+      //      for (int k=0;k<npar;k++) {
+      //	for (int l=0;l<npar;l++) 
+      //	  {std::cout <<" "<<H(l,k);}
+      //	std::cout <<"\n";
+      //      }
       //      // for npar = 2
-      //      double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
-      //      std::cout << "Det [2x2]" << det <<"\n";
+      //      if (npar == 2) {
+      //	double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
+      //	std::cout << "Det [2x2]" << det <<"\n";
+      //      }
       //^-
        
       // Variance/covariance matrix = (R/(m-n)) H^-1
@@ -322,7 +324,7 @@ namespace scala {
       std::vector<double> U(npar);    // diagonal of scaling matrix
       std::vector<double> Uinv(npar); // diagonal of inverse scaling matrix
       for (int i=0;i<npar;++i) {
-	ASSERT (H(i,i) > 0.0);  // positive definite
+       	ASSERT (H(i,i) > 0.0);  // positive definite
 	U[i] = sqrt(H(i,i));
 	Uinv[i] = 1.0/U[i];
       }

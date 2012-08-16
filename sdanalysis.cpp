@@ -342,6 +342,12 @@ namespace scala
 	      int kpl = idxlocal[k]; // local parameter number within run/full/partial
 	      sdparametergroup[jpc].AddDerivative(mint, kpl,
 						     ddeltadp[iobs][k], delta[iobs]);
+	      //^
+	      //	      std::cout << "SDanalysis::AddDerivatives "
+	      //			<< "jpc,kpl,iobs,k,ddeltadp[iobs][k] "
+	      //			<< jpc<<" "<<kpl<<" "<<iobs<<" "<<k<<" "<<ddeltadp[iobs][k]
+	      //			<<"\n";
+	      //^-
 	    }
 	  } // end loop global parameters k
 	}
