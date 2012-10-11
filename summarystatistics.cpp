@@ -296,9 +296,9 @@ namespace scala {
     output.logTab(0,OUTSTREAM,
 		  "\nAverage unit cell: "+averageCell.format());
     output.logTab(0,OUTSTREAM,
-		  "\nSpace group: "+spacegroupname);
+		  "Space group: "+spacegroupname);
     output.logTabPrintf(0,OUTSTREAM,
-			"\nAverage mosaicity: %6.2f\n", averageMosaicity);
+			"Average mosaicity: %6.2f\n", averageMosaicity);
     output.logTabPrintf(0,OUTSTREAM,
      "\nMinimum and maximum SD correction factors: Fulls %6.2f %6.2f Partials %6.2f %6.2f\n",  
 			minSDcorrFulls, maxSDcorrFulls, minSDcorrPartials, maxSDcorrPartials);
@@ -319,7 +319,7 @@ namespace scala {
     if (idts >= 0 && idts < int(allsummarystatistics.size())) {
       allsummarystatistics[idts].PrintSummaryTable(Result, output);
       output.logTab(0,OUTSTREAM,
-		    "\n"+AnomDistribution::formatStatus(anomstatus));
+		    AnomDistribution::formatStatus(anomstatus));
     }
   }
   // ------------------------------------------------------------  
