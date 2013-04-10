@@ -320,7 +320,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   bool z[] =
     {false, false, true, true, true, true, false, false, true, true, false, false, true, true};
   std::vector<bool> Zero(z, z+nc);
-  std::string lineformat = "%5d %7d %8.1f %8.1f %6.2f %7.3f %9d %5d %7.1f %7.1f %6.1f %6.2f";
+  std::string lineformat = "%5d %7d %8.1f %8.1f %6.2f %7.3f %9d %5d %7.1f %7.1f %6.2f %6.2f";
   if  (smoothR) {lineformat += " %8.3f";}
   if  (smoothMaxRes) {lineformat += " %8.2f";}
   lineformat += "\n";
@@ -1068,7 +1068,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   collabels.push_back("Nanom");     // 5
   collabels.push_back("RCRanom");   // 6
   collabels.push_back("CC1/2");     // 7
-  collabels.push_back("NImean");    // 8
+  collabels.push_back("NCC1/2");    // 8
   bool z[] = {false, false, false, true, false, true, true, false};
   std::vector<bool> Zero(z, z+8);
   std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d\n"; // excluding 1st 3 columns

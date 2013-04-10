@@ -943,7 +943,7 @@ namespace scala {
   std::string SecondaryScale::formatPole(const int& pole) const
   // Return h, k, l for pole = 1,2,3, else "none" 
   {
-    std::string s = "none";
+    std::string s = "automatic";
     if (pole == 1) {s = "h";}
     else if (pole == 2) {s = "k";}
     else if (pole == 3) {s = "l";}
@@ -978,7 +978,7 @@ namespace scala {
     FR.ReadTag("Ncoeffs"); ncoeffs = FR.Int();
     FR.ReadTag("NobsPar"); nobsPar = FR.IntVec(ncoeffs);
     FR.ReadTag("SphCoefficients"); sphcoefficients = FR.DoubleVec(ncoeffs);
-    if (pole <= 0) {
+    if (pole == 0) {
       secscltype = SECONDARY;
     } else {
       secscltype = ABSORPTION;

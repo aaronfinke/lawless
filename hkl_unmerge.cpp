@@ -2266,8 +2266,14 @@ namespace scala {
   // Set up poles for Absorption
   // maybe should be done by run?
   {
+    int pole0 = pole; 
+    if (pole < 0) {
+      // pole unspecified, use value from 1st batch for consistency
+      batches[0].SetPole(pole);
+      pole0 = batches[0].Pole();
+    }
     for (int ib=0; ib<nbatches; ib++) {
-      batches[ib].SetPole(pole);
+      batches[ib].SetPole(pole0);
     }
   }
   //--------------------------------------------------------------
@@ -2277,7 +2283,8 @@ namespace scala {
   // On entry:
   //  pole  =  0 SECONDARY  camera frame
   //       !=  0 ABSORPTION, crystal frame = 1,2,3 for h,k,l, 
-  //        = -1 unspecified, use closest reciprocal axis for each run
+  //        = -1 unspecified, use closest reciprocal axis from 1st batch, use for all
+  // not yet!        = -1 unspecified, use closest reciprocal axis for each run
   //
   // Returns true if OK, false if not OK eg some batch does not have valid Umat
   {

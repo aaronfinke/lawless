@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   phaser_io::Output output;
   output.setPackageCCP4();
   output.SetMaxLineWidth(600);
-  output.openOutputStreams("DEBUG");
+  //  output.openOutputStreams("DEBUG");
 
   GlobalControls GC;
   std::string hklin_filename = "";
@@ -720,7 +720,7 @@ int main(int argc, char* argv[])
       float lowres = 10000.;
       resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
       // Use same resolution bin width for all datasets
-      resrangedataset.SetWidth(ResRange.Width());
+      resrangedataset.SetWidth(resrangeanom.Width());
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
       float aslope = anomProbSlopes[idts];

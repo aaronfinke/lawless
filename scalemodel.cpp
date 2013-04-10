@@ -150,7 +150,7 @@ namespace scala {
     int kscidx = -1;
     int j0 = -1;  // secondary
     std::vector<int> runDset(nruns,-1);
-    int pole = 0; // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
+    pole = 0; // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     // Tile stuff
     int ktlidx = -1;
     int k0 = -1;  // tile

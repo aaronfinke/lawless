@@ -1,6 +1,6 @@
 // mtz_utils.cpp
 
-#include <pthread.h>
+//why?// #include <pthread.h>
 #include "mtz_utils.hh"
 #include "hkl_symmetry.hh"
 

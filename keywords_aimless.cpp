@@ -754,21 +754,16 @@ Token_value TIE::parse(std::istringstream& input_stream)
   //              = BFACTOR    for B-factors
   //              = ZEROB      for B-factors tied to B = 0
   //              = TILE       for tile correction parameters (4 sds)
-  bool invalid = false;
   while (get_token(input_stream) != ENDLINE)  {
     if (tokenIs(1,NAME)) {
       if (keyIs("SURFACE") || keyIs("SECONDARY") || keyIs("ABSORPTION")) {
 	tiesd_surface = get1num(input_stream);
-	if (tiesd_surface < 0.0) invalid = true;
       } else if (keyIs("ROTATION") || keyIs("SCALE")) {
 	tiesd_rotation = get1num(input_stream);
-	if (tiesd_rotation < 0.0) invalid = true;
       } else if (keyIs("BFACTOR")) {
 	tiesd_bfactor = get1num(input_stream);
-	if (tiesd_bfactor < 0.0) invalid = true;
       } else if (keyIs("ZEROB")) {
 	tiesd_zerob = get1num(input_stream);
-	if (tiesd_zerob < 0.0) invalid = true;
       } else if (keyIs("TILE")) {
 	// Expect 4 numbers
 	tiesd_tile.clear();
@@ -778,14 +773,9 @@ Token_value TIE::parse(std::istringstream& input_stream)
 	tiesd_tile.push_back(get1num(input_stream));
 	ASSERT (tiesd_tile.size() == 4);
 	for (size_t i=0;i<tiesd_tile.size();++i) {
-	  if (tiesd_tile[i] < 0.0) invalid = true;
 	}
       }
     }
-  }
-  if (invalid) {
-    throw SyntaxError
-      (keywords, "TIE: sd must be > 0");
   }
   return skip_line(input_stream);
 }

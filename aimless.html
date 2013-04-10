@@ -677,18 +677,15 @@ bg_gradient_max [default in Mosflm 0.03].</dd>
 detector</dd>
     </dl>
   </dd>
-</dl><h3><a name="link"></a>LINK [SURFACE|TAILS] ALL | &lt;run_2&gt; TO
+</dl><h3><a name="link"></a>LINK [SURFACE] ALL | &lt;run_2&gt; TO
 &lt;run_1&gt;&nbsp;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
-<p>run_2 will use the same SURFACE (or SECONDARY) or TAILS parameters
+<p>run_2 will use the same SURFACE (or SECONDARY) parameters
 as run_1. This can be useful when different runs come from the same
-crystal, and may stabilize the parameters. LINK TAILS ALL will use the
-same tails parameters for all runs for which TAILS parameters are
-refined. The keyword ALL will be assumed if omitted.
+crystal, and may stabilize the parameters. The keyword ALL will be assumed if omitted.
 </p>
 
 <ul>
-  <li> For TAILS parameters, the default is LINK TAILS ALL,
-but any LINK or UNLINK command will override this.</li>
+  
   <li> For SECONDARY or SURFACE parameters, the default is to link runs
 which come from the same dataset. They should be UNLINKed if they are
 different.</li>
@@ -697,9 +694,7 @@ different.</li>
 &lt;run_1&gt;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
 <p>Remove links set by LINK command (or by default). The keyword ALL
 will
-be assumed if omitted, <em>e.g.</em> UNLINK TAILS [ALL] will use
-separate tails
-parameters for each run. </p>
+be assumed if omitted </p>
 
 <h3><a name="bins"></a>BINS [RESOLUTION] &lt;Nsbins&gt; INTENSITY &lt;Nibins&gt;<br>
  </h3>
@@ -1097,9 +1092,10 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.1.29 small change to Result table to work with Baubles arcane (and undocumented) rules for Magic Tables<br>
+  <h2>RELEASE NOTES</h2>0.1.30 allow TIE with negative sd to turn off tie, as documented. Also fixed bug in ABSORPTION<br>
+0.1.29 small change to Result table to work with Baubles arcane (and undocumented) rules for Magic Tables<br>
 0.1.28 bug fix in "sdcorrection same"<br>
-0.1.27 Bug fix in minimizer which sometimes affected the case with just 2 parameters<br>
+0.1.27 bug fix in minimizer which sometimes affected the case with just 2 parameters<br>
 0.1.26 Default to "scales secondary"<br>
 0.1.25 omit sigI&lt;=0, process REJECT command properly, small bug fix in smoothed Bfactors <br>
 0.1.24 small bug fix in printing batch tables with multiple datasets <br>
