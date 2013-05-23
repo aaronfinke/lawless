@@ -12,13 +12,15 @@ namespace scala
   //--------------------------------------------------------------
   Range::Range()
     : first_(+1000000), last_(-1000000), Nbin_(0),
-      width(0.0), tolerance(0.001), ascending(true)  {}
+      width(0.0), tolerance(0.001), ascending(true),
+      valid(false) {}
   //--------------------------------------------------------------
     // Rfirst & Rlast will be swapped if necessary so that Rfirst < Rlast
     //  unless ascending == false
   Range::Range(const double& Rfirst, const double& Rlast,
 	       const bool& Ascending, const int& Nbin)
-    : first_(Rfirst), last_(Rlast), Nbin_(Nbin), ascending(Ascending)
+    : first_(Rfirst), last_(Rlast), Nbin_(Nbin), ascending(Ascending),
+      valid(true)
   {
     init();
   }
@@ -30,6 +32,7 @@ namespace scala
     last_ = Rlast;
     Nbin_ = Nbin;
     ascending = Ascending;
+    valid = true;
     init();
   }
   //--------------------------------------------------------------
@@ -62,12 +65,14 @@ namespace scala
   {
     first_ = +1.0e+10;
     last_ = -first_;
+    valid = false;
   }
   //--------------------------------------------------------------
   void Range::update(const double& value)
   {
     first_ = Min(first_, value);
     last_ = Max(last_, value);
+    valid = true;
   }
   //--------------------------------------------------------------
   void Range::CheckWidth() const
@@ -136,8 +141,8 @@ namespace scala
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-  const float ResoRange::LowDef = 10000.;  // Default low resolution
-  const float ResoRange::HiDef = 0.001;   //         high
+  const double ResoRange::LowDef = 10000.;  // Default low resolution
+  const double ResoRange::HiDef = 0.001;   //         high
 
   //--------------------------------------------------------------
   ResoRange::ResoRange()
@@ -150,7 +155,7 @@ namespace scala
     set = false;
   }
   //--------------------------------------------------------------
-  ResoRange::ResoRange(const float& lowreso, const float& hireso,
+  ResoRange::ResoRange(const double& lowreso, const double& hireso,
 		       const int& Nobs)
     : Range(), LowReso(lowreso), HiReso(hireso), Nobservations(Nobs)
   {
@@ -188,7 +193,7 @@ namespace scala
     init_range(*this);
   }
   //--------------------------------------------------------------
-  void ResoRange::SetRange(const float& lowreso, const float& hireso)
+  void ResoRange::SetRange(const double& lowreso, const double& hireso)
   {
     LowReso = lowreso;
     HiReso = hireso;
@@ -196,7 +201,7 @@ namespace scala
     init();
   }
   //--------------------------------------------------------------
-  void ResoRange::SetRange(const float& lowreso, const float& hireso,
+  void ResoRange::SetRange(const double& lowreso, const double& hireso,
 			   const int& Nobs)
   {
     Nobservations = Nobs;
@@ -209,7 +214,7 @@ namespace scala
     init();
   }
   //--------------------------------------------------------------
-  void ResoRange::SetWidth(const float& width)
+  void ResoRange::SetWidth(const double& width)
   {
     // Force width irrespective of Nobservations
     delta_sSqr = width;
@@ -247,7 +252,7 @@ namespace scala
     Nbin = NumBin;
     Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
     set = true;
-    delta_sSqr = (sSqrmax-sSqrmin)/float(Nbin);
+    delta_sSqr = (sSqrmax-sSqrmin)/double(Nbin);
   }
   //--------------------------------------------------------------
   void  ResoRange::init()
@@ -263,28 +268,28 @@ namespace scala
   
     // Overall minimum & maximum
     Nbin = Min(Max(n, MinNbin), MaxNbin);
-    delta_sSqr = (sSqrmax-sSqrmin)/float(Nbin);
+    delta_sSqr = (sSqrmax-sSqrmin)/double(Nbin);
     Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
     set = true;
   }
   //--------------------------------------------------------------
-  float  ResoRange::ResLow() const
+  double  ResoRange::ResLow() const
   {
     return 1./sqrt(Range::min());
   }
   //--------------------------------------------------------------
-  float  ResoRange::ResHigh() const
+  double  ResoRange::ResHigh() const
   {
     return 1./sqrt(Range::max());
   }
 
   //--------------------------------------------------------------
-  float  ResoRange::SResLow() const
+  double  ResoRange::SResLow() const
   {
     return Range::min();
   }
   //--------------------------------------------------------------
-  float  ResoRange::SResHigh() const
+  double  ResoRange::SResHigh() const
   {
     return Range::max();
   }
@@ -300,7 +305,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   // Middle of bin (in A)
-  float ResoRange::middleA(const int& bin) const
+  double ResoRange::middleA(const int& bin) const
   {
     return 1./sqrt(Range::middle(bin));
   }
@@ -344,6 +349,13 @@ namespace scala
       // this not set
       return other;  // if not set
     }
+  }
+  //--------------------------------------------------------------
+  // Extend range by small tolerance
+  void ResoRange::ExtendRange()
+  {
+    const double TOL = 0.00000001;
+    init_range(Range(Range::min()-TOL, Range::max()+TOL));
   }
   //--------------------------------------------------------------
   // Returns minumum range
@@ -419,6 +431,12 @@ namespace scala
     max_ = Max(max_, value);
   }
   //--------------------------------------------------------------
+  void IntRange::update(const IntRange& range)
+  {
+    min_ = Min(min_, range.min());
+    max_ = Max(max_, range.max());
+  }
+  //--------------------------------------------------------------
   int IntRange::min() const
   {
     return min_;
@@ -439,5 +457,20 @@ namespace scala
     return false;      
   }
   //--------------------------------------------------------------
+  // Returns maximum range
+  IntRange IntRange::MaxRange(const IntRange& other) const
+  {
+    return IntRange(Min(min(), other.min()), Max(max(), other.max()));
+  }
+  //--------------------------------------------------------------
+  // true if ranges overlap
+  bool IntRange::Overlap(const IntRange& other) const
+  {
+    // no overlap if smaller maximum is less than larger minimum
+    if (Min(max_, other.max_) < Max(min_, other.min_)) {
+      return false;
+    }
+    return true;
+  }
   //--------------------------------------------------------------
 }

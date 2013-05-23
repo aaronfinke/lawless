@@ -48,6 +48,14 @@ namespace MtzIO {
       //! Destructor: close any file that was left open
       ~MtzUnmrgFile();
       
+      //! reinitilise to empty
+      void clear();
+
+      //! Copy constructor throws exception unless object is EMPTY
+      MtzUnmrgFile(const MtzUnmrgFile& MUfile);
+      //! Copy operator throws exception unless object is EMPTY
+      MtzUnmrgFile& operator= (const MtzUnmrgFile& MUfile);
+
       //! Open a file for read access, returns true if OK
       bool open_read( const std::string filename_in );
       //! Close a file after reading
@@ -75,7 +83,7 @@ namespace MtzIO {
 			  const std::string& mtzname,
 			  file_select& file_sel, 
 			  col_controls& column_selection,
-			  MtzIO::column_labels& column_list,
+			  const MtzIO::column_labels& column_label_list,
 			  const all_controls& controls,
 			  const scala::PxdName& InputPxdName,
 			  const scala::Scell& cell,
@@ -94,7 +102,7 @@ namespace MtzIO {
       //!<                       - detector coordinate rejection ranges
       //!< \param column_selection   flags for column selection
       //!<                       - PROFILE or INTEGRATED
-      //!< \param column_list   list of column names wanted by the program
+      //!< \param column_label_list   list of column names wanted by the program
       //!< \param controls      run controls, partial controls
       //!< \param InputPxdName  PXD name to override dataset information from
       //!<                          MTZ file (forces one dataset)
@@ -118,8 +126,6 @@ namespace MtzIO {
       bool Merged() const {return merged;}
       //! return spacegroup
       scala::SpaceGroup Spacegroup() const {return spacegroup_;}
-      //! return batch list for all batches in file
-      std::vector<Batch> BatchList();
       //! return cell
       scala::Scell Cell() const {return averagecell;}
 
@@ -138,7 +144,7 @@ namespace MtzIO {
 
       /*! Get kdataset'th dataset in crystal/dataset list
 	Returns false if non-existent */
-      bool get_dataset(const int& kdataset, Xdataset& this_dataset) const;
+      bool get_dataset(const int& kdataset, Dataset& this_dataset) const;
       /*! Get kbatch'th batch in batch list
 	Returns false if non-existent */
       bool get_batch(const int& kbatch,  CMtz::MTZBAT& this_batch) const;
@@ -149,7 +155,15 @@ namespace MtzIO {
       //! Return column numbers and flags
       column_select ColumnSelect() const {return col_select;}
 
-      column_labels ColumnLabels()const {return column_list;}
+      column_labels ColumnLabels()const {return column_label_list;}
+
+      //! return number of lattices
+      int Nlattices() const {return nlattices;}
+      //! return count of entries for each lattice number, including lattice 0
+      //    (ie from non-multilattice crystal)
+      std::vector<int> NumberinLattice() const {return numberinlattice;}
+      //! return lattice number, = 0 for single lattice, = -1 for mixed lattices
+      int LatticeNumber() const;
 
     private:
       enum MTZmode { NONE, READ, WRITE, APPEND };
@@ -161,10 +175,10 @@ namespace MtzIO {
       CMtz::SYMGRP mtzsym;  // symmetry from MTZ file
       std::string title;
 
-      std::vector<Xdataset> xdatasets;  // list of crystal/datasets in file
+      std::vector<Dataset> fdatasets;  // list of datasets in file
       std::vector<CMtz::MTZBAT*> mtzbatches;       // list of batches in file
 
-      std::vector<Xdataset> datasets;  // Selected list
+      std::vector<Dataset> datasets;  // Selected list
       std::vector<Batch> batches;      // List of batches with acceptances
       std::vector<Run> runs;
       std::vector<int> offsets;        // batch offsets for each run
@@ -172,6 +186,14 @@ namespace MtzIO {
       Scell averagecell;
       bool sorted;
       bool merged;
+
+      // Multiple lattice stuff
+      int multilatscheme;   // == 1 or 2 for scheme 1 or 2
+      int nlatticecolumns;  // number of lattice columns, = 0 if no multiple lattices
+      // number of entries in file for each lattice number,
+      // including lattice zero (ie from non-multilattice crystal)
+      std::vector<int> numberinlattice;
+      int nlattices;  // number of lattices
 
       int IrefCnt;
       int Ncolumns;
@@ -182,11 +204,14 @@ namespace MtzIO {
       int Nrej_batch;  // Number of observation parts rejected by batch
 
       column_select col_select; // column selection flags
-      MtzIO::column_labels column_list; // column list
+      MtzIO::column_labels column_label_list; // column list
+
+      std::vector<std::string> columnlabels;
+      std::vector<std::string> columntypes;
+      std::vector<std::string> extracolumnlabels; // Hn, Kn, Ln etc
 
       // Private member functions
-      int read_datasets(const CMtz::MTZ* mtzin,
-			 std::vector<Xdataset>& Xdatasets);
+      int read_datasets();  // sets fdatasets
       bool read_batches(const CMtz::MTZ* mtzin, 
 			std::vector<CMtz::MTZBAT*>& mtzbatches);
 
@@ -216,10 +241,21 @@ namespace MtzIO {
 
       // Get file column numbers for labels in column list
       // On exit:
-      //   ColumnLabels  contains actual column numbers for labels found
+      //   column_label_list  contains actual column numbers for labels found
       // Fails if compulsory column not found
       void get_col_lookup(column_labels& ColumnLabels);
 
+      // Do we have any multi-lattice entries in this file?
+      void CheckMultipleLattices();
+
+      std::pair<int, int> 
+      CheckColumnlabelHKL(const std::string& label) const;
+
+      int CheckColumnlabelN(const std::string& label,
+			    const std::string& basestring) const;
+
+      // add extra lattice columns to column_label_list if required
+      void  add_extra_columns();
 
   }; //   class MtzUnmrgFile;
 

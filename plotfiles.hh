@@ -39,6 +39,87 @@ private:
   std::vector<float> sampleBins;
 };
 //--------------------------------------------------------------
+class XMLplot
+// XML plot for Pimple/Qloggraph
+{
+public:
+  XMLplot(){}
+
+  // Return true if plotting is turned on
+  bool IsPlot() const {return (headerstring != "");}
+
+  // title           title
+  // xmin, xmax      range of coordinates
+  // ymin, ymax      range of coordinates
+  // xtick, ytick    tick intervals  (ignored)
+  // ticklabel       true to label ticks  (ignored)
+  // xlabel, ylabel  axis labels
+  // xlegend, ylegend position of legends
+  // WriteLegend     true to write legend
+  void Header(const std::string& title,
+	      const float& xmin, const float& xmax,
+	      const float& ymin, const float& ymax,
+	      const float& xtick, const float& ytick, const bool& ticklabel,
+	      const std::string& xlabel, const std::string& ylabel,
+	      const float& xlegend, const float& ylegend, 
+	      const bool& WriteLegend);
+
+  // start new line
+  // legend    also used as ID for associated dataset
+  // linestyle = 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+  // linesize  line width, default = 1
+  // lcolour    <= 0 use default, else colour number
+  // Symbol    !=0 draw symbols, if < 0 use default symbol,
+  //            >0 use specified symbol
+  void StartLine(const std::string& legend,
+		 const int& linestyle,
+		 const int& linesize=1,
+		 const int& lcolour=-1,
+		 const int& Symbol=-1 );
+
+  // write point x,y
+  // fw = field width, fd = #decimal
+  void Point(const float& x, const float& y, const int& fw, const int& fd);
+  void EndLine();
+
+  // Draw a line
+  // linestyle = 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+  // lcolour    <= 0 use default, else colour number
+  void DrawLine(const float& xmin, const float& xmax,
+		const float& ymin, const float& ymax,
+		const int& fw, const int& fd,
+		const int& linestyle=1,
+		const int& linesize=1,
+		const int& lcolour=-1);
+  
+  // Draw a circle
+  void DrawCircle(const float& xcen, const float& ycen,
+		  const float& radius,
+		  const int& fw, const int& fd,
+		  const int& linestyle=1,
+		  const int& linesize=1,
+		  const int& lcolour=-1,
+		  const int& fillcolour=-1);
+
+  void ClosePlot();
+
+  // Return formatted XML
+  std::string format() const;
+
+private:
+  std::string headerstring;  // for header stuff (<plot> etc)
+  std::string datastring;    // for the data tables (<data>)
+  std::vector<std::string> dataIDs; // ID string for each set of data/plotline
+  int symbolSize;
+  
+  // return colour string
+  std::string Colour(const int& lcolour) const;
+  // return linestyle string
+  std::string LineStyle(const int& linestyle) const;
+
+
+};
+//--------------------------------------------------------------
 class XMGRACE
 {
 public:
@@ -71,7 +152,7 @@ public:
   // Symbol    !=0 draw symbols, if < 0 fill symbol
   // Join = true to draw line as well as points
   void Line(const std::string& legend,
-	    const int& lcolor, const int& Symbol, const bool& Join);
+	    const int& lcolour, const int& Symbol, const bool& Join);
 
   
   void Point(const std::string& fmt,
@@ -119,14 +200,17 @@ public:
   // Write end plot marker & increment line number
   void EndLine();
   // Write diagonal line & close
-  void ClosePlot(const float& range=4.0);
+  void ClosePlot();
 
+  std::string formatXML() const {return xmlplot.format();}
 
 private:
   FILE* file;
   int Nlines;
+  float xmax, ymax;
   XMGRACE xmgrplot;
-  PlotSample sample;  // smapling of points for plotting
+  XMLplot xmlplot;
+  PlotSample sample;  // sampling of points for plotting
   float limit;
 };
 // ------------------------------------------------------------
@@ -156,7 +240,7 @@ public:
   
   void AddPoint(const int& mres, const float& I1, const float& I2);
   
-  void Plot(FILE* plotfile) const;
+  std::string Plot(FILE* plotfile) const;  // returns XML
   
 private:
   int nresbin;   // number of resolution bins
@@ -195,9 +279,12 @@ public:
   //  s    diffraction vector in diffratometer frame, 1/A units
   void PlotOutlier(const FVect3& s);
 
+  std::string formatXML() const {return xmlplot.format();}
+
 private:
   FILE* file;
   XMGRACE xmgrplot;
+  XMLplot xmlplot;
 };
 //--------------------------------------------------------------
 #endif

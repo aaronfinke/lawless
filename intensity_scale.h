@@ -100,14 +100,14 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
   // start with unscaled data and iterate
   BasisFn_log_aniso_gaussian bfn;
   std::vector<ftype> param( 7, 0.0 ), params( 12, 1.0 );
-  for ( int c = 0; c < 3; c++ ) {
+  for ( int c = 0; c < 3; c++ ) {  // loop 3 times
     // create artificial I's from mean I with resolution
     TargetFn_meanInth<datatypes::I_sigI<T> > tfns( is1, 1.0 );  //check powers (NDS)  was 2.0
     BasisFn_spline bfns( is1, 12 );
     ResolutionFn rfns( hkl1, bfns, tfns, params );
     for ( HRI ih = hkl1.first(); !ih.last(); ih.next() )
       //ic1[ih] = datatypes::I_sigI<T>( sqrt(rfns.f(ih)), 1.0 );  
-	  ic1[ih] = datatypes::I_sigI<T>( rfns.f(ih), 1.0 );  
+      ic1[ih] = datatypes::I_sigI<T>( rfns.f(ih), 1.0 );  // I, sigI
 
 
     // do the aniso scaling
@@ -115,6 +115,27 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
       tfn( io1, ic1 );     // check this exists (NDS)
     ResolutionFn rfn( hkl1, bfn, tfn, param );
     param = rfn.params();
+
+    //%/
+    //^^
+    //    U_aniso_orth u0 = bfn.u_aniso_orth( param );
+    //    std::cout << "u0\n" <<u0.format() <<"\n";
+    //    clipper::Matrix<double> Uorth(3,3); 
+    //    for (int j=0;j<3;++j) {
+    //      for (int i=0;i<3;++i) {
+    //	Uorth(i,j) = u0(i,j);
+    //      }}
+    //    std::vector<double> eo = Uorth.eigen();
+    //    std::cout << "Eigenvalues: ";
+    //    for (int i=0;i<3;++i) {std::cout <<" "<<eo[i];}
+    //    std::cout <<"\n";
+    //    double minB = clipper::Util::eightpi2() *
+    //      std::min(std::min(eo[0], eo[1]), eo[2]); 
+    //    double maxB =  clipper::Util::eightpi2() *
+    //      std::max(std::max(eo[0], eo[1]), eo[2]); 
+    //    double db = maxB - minB;
+    //    std::cout << "DeltaB " << db <<"\n";
+    //^-
 
     // set trace to zero (i.e. no isotropic correction)
     ftype dp = (param[1]+param[2]+param[3])/3.0;
@@ -127,7 +148,20 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
       if ( !is1[ih].missing() )
 	is1[ih].scale( exp( 0.5*bfn.f(ih.hkl(),hkl1.cell(),param) ) );  //was 0.5 NDS
     u = bfn.u_aniso_orth( param );
-    //std::cout << c << " | " << param[1] << " " << param[2] << " " << param[3] << " " << param[4] << " " << param[5] << " " << param[6] << "\n";
+
+    //^^
+    //    std::cout << "u\n" <<u.format() <<"\n";
+    //    std::cout << c << " | " << param[1] << " " << param[2] << " " << param[3] << " " << param[4] << " " << param[5] << " " << param[6] << "\n";
+    //    for (int j=0;j<3;++j) {
+    //      for (int i=0;i<3;++i) {
+    //	Uorth(i,j) = u(i,j);
+    //      }}
+    //    eo = Uorth.eigen();
+    //    std::cout << "Eigenvalues: ";
+    //    for (int i=0;i<3;++i) {std::cout <<" "<<eo[i];}
+    //    std::cout <<"\n";
+    //^-
+
   }
 
   // store the results

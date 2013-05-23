@@ -50,8 +50,7 @@ namespace scala {
 	if (outputcontrols.SplitUnmerged()) { // split into separate files
 	  datasetindex = idts;  // one dataset
 	}
-	PxdName pxdname = hkl_list.xdataset(idts).pxdname();
-	std::string filedname = pxdname.dname(); // append to filename if > 1 dataset
+	std::string filedname = hkl_list.dataset(idts).Dname(); // append to filename if > 1 dataset
 	if (!outputcontrols.SplitUnmerged() || hkl_list.num_datasets() <= 1) {
 	  filedname = "";  // no append
 	}
@@ -59,37 +58,46 @@ namespace scala {
 
 	if (outputcontrols.SplitUnmerged()) {
 	  output.logTab(0, LOGFILE,
-			"\n==== Writing unmerged data for dataset "+pxdname.format()+
+			"\n==== Writing unmerged data for dataset "+
+			hkl_list.dataset(idts).formatNames()+
 			" to file "+filename+"\n");
 	} else { // write TOGETHER to single file
 	  output.logTab(0, LOGFILE,
 			"\n==== Writing unmerged data for all datasets to file "+
 			filename);
 	}
+	MtzIO::WriteUnmerged unmergedoutput;
 	int nref =
-	  MtzIO::WriteUnmergedMTZ(hkl_list, SDM, summedpartials, datasetindex,
-				  filename, title);
+	  unmergedoutput.writeUnmergedMTZ(hkl_list, SDM, summedpartials, datasetindex,
+					  filename, title);
 	output.logTabPrintf(0, LOGFILE,
 			    "\nNumber of observations written = %8d\n", nref);
+	output.logTabPrintf(0, LOGFILE,
+			    "\nNumber of multiple (overlapped) observations written = %8d\n",
+			    unmergedoutput.Nmultiple());
       } // end loop datasets
     }
 
     // SCA output
     if (outputcontrols.SCAoutputUnmerged()) {
       for (int idts=0;idts<hkl_list.num_datasets();++idts) {  // loop datasets
-	PxdName pxdname = hkl_list.xdataset(idts).pxdname();
-	std::string filedname = pxdname.dname(); // append to filename if > 1 dataset
+	std::string filedname = hkl_list.dataset(idts).Dname(); // append to filename if > 1 dataset
 	if (hkl_list.num_datasets() <= 1) {
 	  filedname = "";
 	}
 	std::string filename = outputcontrols.Scaunmergedfilename(filedname);
 	output.logTab(0, LOGFILE,
-		      "\n==== Writing unmerged data for dataset "+pxdname.format()+
+		      "\n==== Writing unmerged data for dataset "+
+			hkl_list.dataset(idts).formatNames()+
 		      " to file "+filename+"\n");
+	MtzIO::WriteUnmerged unmergedoutput;
 	int nref =
-	  MtzIO::WriteUnmergedSCA(hkl_list, SDM, idts, filename, Imax);
+	  unmergedoutput.writeUnmergedSCA(hkl_list, SDM, idts, filename, Imax);
 	output.logTabPrintf(0, LOGFILE,
 			    "\nNumber of observations written = %8d\n", nref);
+	output.logTabPrintf(0, LOGFILE,
+			    "\nNumber of multiple (overlapped) observations omitted = %8d\n",
+			    unmergedoutput.Nmultiple());
       } // end loop datasets
     } // SCA
   }
@@ -114,13 +122,12 @@ namespace scala {
     } 
     
     // File name(s)
-    std::vector<Xdataset> xdatasets = mergedlist.Datasets();
+    std::vector<Dataset> datasets = mergedlist.Datasets();
 
     for (int idts=0;idts<mergedlist.NumberDatasets();++idts) {
-      PxdName pxdname = xdatasets[idts].pxdname();
       std::string filedname = "";
       if (nfiles > 1) {
-	filedname = pxdname.dname();  // multiple files identified by dataset name
+	filedname = datasets[idts].Dname();  // multiple files identified by dataset name
       }
       std::string filename;
 
@@ -130,7 +137,8 @@ namespace scala {
 	filename = outputcontrols.Mtzmergedfilename(filedname);
       }
       output.logTab(0, LOGFILE,
-		    "\n==== Writing merged data for dataset "+pxdname.format()+
+		    "\n==== Writing merged data for dataset "+
+		    datasets[idts].formatNames()+
 		    " to file "+filename);
 
       int nref;

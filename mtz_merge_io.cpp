@@ -172,12 +172,15 @@ namespace MtzIO {
     int Nref = hkl_info_list.num_reflections();
 
     // Construct dataset (clipper doesn't give us a project)
-    std::vector<scala::Xdataset> DataSets;
-    DataSets.push_back(scala::Xdataset(PxdName("", labelthings.xname,
-					       labelthings.dname),
-				       Scell(mtzin.cell()), mtzdataset.wavelength(), 1));
+    std::vector<scala::Dataset> DataSets;
+    PxdName pxdname("", labelthings.xname, labelthings.dname);
+    DataSets.push_back(scala::Dataset(scala::Xdataset(pxdname,
+						      Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
     // One batch
     std::vector<Batch> Batches(1);
+    Batches[0].PXDname() = pxdname; 
+    int setid = 1;
+    Batches[0].DatasetID() = setid;
 
     hkl_list.init(title, Nref,
 		  hkl_symmetry(spacegroup), all_controls(),

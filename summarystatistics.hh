@@ -20,7 +20,7 @@ namespace scala {
   // even if they are also stored elsewhere
   {
   public:
-    SummaryStatistics():Anom(false){}
+    SummaryStatistics();
 
     void SetAnom(const bool& anom) {Anom = anom;}
 
@@ -106,9 +106,14 @@ namespace scala {
       (const std::vector<ResolutionLimit>& AnisoresolimitIsig);
     // store anisotropic axis labels
     void StoreAnisoAxisLabels(const std::vector<std::string>& Anisoaxislabels);
+    // store anisotropic deltaB (for amplitudes not Is)
+    void StoreAnisoDeltaB(const double& delB) {anisodeltaB = delB;}
 
     // print the final summary table as RESULT if Result true
-    void PrintSummaryTable(const bool& Result, phaser_io::Output& output);
+    // Only write XML if Result, write only XML if xmlonly
+    void PrintSummaryTable(const bool& Result,
+			   const bool& xmlonly,
+			   phaser_io::Output& output);
 
     PxdName pxdname;                // project, crystal, dataset
     // Various statistics for overall, inner, outer shells(3-vectors)
@@ -147,6 +152,8 @@ namespace scala {
     // anisotropic, from Mn(I/sd)
     std::vector<ResolutionLimit> anisoresolimitIsig;
     std::vector<std::string> anisoaxislabels;
+    double anisodeltaB;  // difference between best & worst anisotropic B (for amplitudes)
+    int nlattices;  // = 1 if single lattice
   };  //   class SummaryStatistics
   // ------------------------------------------------------------
   template<class T> std::vector<T> Store3val(const T& overall, const T& inner, const T& outer)
@@ -183,6 +190,18 @@ namespace scala {
   private:
     std::vector<SummaryStatistics> allsummarystatistics;
     AnomDistribution::anomalousStatus anomstatus;         // anomalous status
-  };
+  };  // class AllSummaryStatistics 
+  // ------------------------------------------------------------  
+  // Utility functions
+  // make XML tags for <overall>, <inner> and <outer> resolution ranges
+  // field width w, Ndecimal places d
+  std::string MakeXMLtag3(const std::string& tag, const int& w, const int& d,
+	  const float& overall, const float& inner, const float& outer);
+  std::string MakeXMLtag3(const std::string& tag, const int& w,
+	  const int& overall, const int& inner, const int& outer);
+  // format XML tags for resolution limit estimates
+  std::string MakeXMLresolimit(const std::string& direction, const std::string& type,
+			       const ResolutionLimit& resolimit);
+
 }  // namespace scala
 #endif

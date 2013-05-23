@@ -503,6 +503,7 @@ namespace CCtbxSym
     // the spacegroup
   {
     sgtbx::space_group::smx_array_type smx_list = SG.smx();
+
     // Denominator of rotation part of change-of-basis operator
     int den = ChBasis.c().r().den();
 
@@ -537,13 +538,16 @@ namespace CCtbxSym
 		  const sgtbx::rt_mx& cb_op_mx)
   {
     // Returns true if ChBoperator is in group (including identity)
-    for (size_t j=0;j<Group.n_smx();j++)
-      {
-	if (cb_op_mx == Group.smx(j))
-	  {
-	    return true;
-	  }
+    //^^
+    //    std::cout << "SymInGroup " << cb_op_mx.as_xyz() <<"\n"; 
+    for (size_t j=0;j<Group.n_smx();j++) {
+      //^
+      //	std::cout << "   Symop   " << Group.smx(j).as_xyz() <<"\n"; 
+      ///      if (cb_op_mx == Group.smx(j)) {
+      if (cb_op_mx.r() == Group.smx(j).r()) {
+	return true;
       }
+    }
     return false;
   }
   //--------------------------------------------------------------
@@ -972,22 +976,29 @@ namespace CCtbxSym
     // Construct from pointgroup name
     // Remove any translations, don't add inversion
   {
-    sgtbx::space_group_symbols sgsymbol;
-    try {  // try name
-      sgsymbol = sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name));
+    if (scala::SpaceGroup::isNameCentredTriclinic(Name)) {
+      // centred triclinic C 1 etc
+      sgtbx::space_group Pgroup;
+      char LatticeType = Name[0];
+      init(Pgroup, LatticeType);
+    } else {
+      sgtbx::space_group_symbols sgsymbol;
+      try {  // try name
+	sgsymbol = sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name));
+      }
+      catch (cctbx::error) {
+	// Fall back via number (and CCP4 libraries) eg for I 1 21 1
+	sgsymbol = sgtbx::space_group_symbols(scala::SpaceGroup(Name).Spacegroup_number());
+      }
+      
+      sgtbx::space_group Pgroup =
+	sgtbx::space_group(sgsymbol.hall()).build_derived_reflection_intensity_group(false);
+      //^
+      //      std::cout << "PGinitName " << Name << " " << CCTBX_SGsymbol_HorR(Name) << " "
+      //		<< sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
+      //		<< Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
+      init(Pgroup, CentringSymbol(Pgroup));
     }
-    catch (cctbx::error) {
-      // Fall back via number (and CCP4 libraries) eg for I 1 21 1
-      sgsymbol = sgtbx::space_group_symbols(scala::SpaceGroup(Name).Spacegroup_number());
-    }
-
-    sgtbx::space_group Pgroup =
-      sgtbx::space_group(sgsymbol.hall()).build_derived_reflection_intensity_group(false);
-    //^
-    //    std::cout << "PGinitName " << Name << " " << CCTBX_SGsymbol_HorR(Name) << " "
-    //    	      << sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
-    //    	      << Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
-    init(Pgroup, CentringSymbol(Pgroup));
   }
   //--------------------------------------------------------------
   PointGroup::PointGroup(const int& Kelement1,

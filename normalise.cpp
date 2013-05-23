@@ -125,6 +125,8 @@ namespace scala {
     const int MIN_NBATCH_TIME_VARIATION = 20;
     int max_nparam = -1;
 
+    userun_.assign(Nruns, false);  // reset to true if any observations in run
+
     // Maximum Number of resolution bins in any run
     Nbins = -1;
     for (int ir=0;ir<Nruns;ir++) {        // loop runs
@@ -222,6 +224,7 @@ namespace scala {
 	  for (int is=0;is<Nbins;is++) {         // loop resolution bins
 	    for (int ib=0;ib<nbatch;ib++) {   // loop batches
 	      if (sums_st[ir](is,ib).num() > 0) {
+		userun_[ir] = true;
 		// Mean I & mean sSqr for this bin (is,ib)
 		double mnI    = sums_st[ir](is,ib).MeanI();
 		double mnSSqr = sums_st[ir](is,ib).MeanSSqr();
@@ -467,6 +470,7 @@ namespace scala {
     int Nruns = hkl_list.num_runs();
     std::vector<Run> Runs = hkl_list.RunList();
     if (Overall) {Nruns = 1;}     // for overall normalisation, only one "run"
+
     std::vector<clipper::Array2d<BinSums> > sums_st(Nruns);
     std::vector<int> Batch0(Nruns);
     std::vector<int> NBatch(Nruns);

@@ -14,7 +14,10 @@
 #include "file_util.hh"
 #include "timer.hh"
 #include "reject.hh"
+#include "observationstatuscontrol.hh"
+
 using phaser_io::LOGFILE;
+using phaser_io::LXML;
 
 namespace scala
 {
@@ -132,7 +135,7 @@ namespace scala
 	  //^-
 	  
 	  // Are there some "sets" with no data?
-	  if (!sdmnum.enoughdata) { // at least one set with insufficientdata
+	  if (!sdmnum.enoughdata) { // at least one set with insufficient data
 	    if (controls.anomalouscontrol.AnomalousSDcorr) {
 	      // keeping I+ & I- separate, try combining them
 	      controls.anomalouscontrol.AnomalousSDcorr = false;
@@ -177,8 +180,9 @@ namespace scala
 	}
 
 
-	// Save tie settings from SDM to restore later
+	// Save SDM ties to restore later
 	SDties savedties = SDM.Ties();
+	bool savedAllSameflag = SDM.AllRunsSame();
 	
 	for (int ipass=0;ipass<npass;++ipass) { // loop one or two passes
 	  bool initialpass = (firstAnalysis == 0) || (npass > 1 && ipass == 0); // initial pass
@@ -195,6 +199,7 @@ namespace scala
 	  rtolerance = 0.01;
 	  max_cycles = 6;
 	  if (initialpass) { // values for first analysis
+	    /*
 	    // Put a tie on SDadd if there isn't one already, to help stabilise refinement
 	    int ksdadd = savedties.targets.size()-1; // SDadd parameter is the last one
 	    if (std::abs(savedties.sdtargets.at(ksdadd)) < 0.000001) {
@@ -202,13 +207,16 @@ namespace scala
 	      double sdaddSDTarget = 0.1;   // and its SD
 	      SDM.ResetTie(ksdadd, sdaddTarget, sdaddSDTarget);
 	    }
+	    */
+	    SDM.SetAllRunsSame(true);
 	  } else if (!initialpass) { // values for final analysis
 	    plot = true;
 	    NintensBinTarget = 400;
 	    FixSdB = false; 
 	    tolerance = 0.0004;
 	    rtolerance = 0.001;
-	    max_cycles = 20;  // 5
+	    max_cycles = 100;  // 5
+	    //	    max_cycles = 20;  // 5
 	  }
 	  
 	  // ==== Outlier rejection, no check between I+ & I- (outlier.ndatasets = 0)
@@ -270,21 +278,24 @@ namespace scala
 	  output.logTab(0,LOGFILE,
 			"\nSD correction parameters after optimisation\n"+SDM.format());
 
+	  output.logTab(0,LXML,SDM.asXML());
+
 	  if (FixSdB) {
 	    SDM.SetNoSDb(saveSdBfix);  // restore saved fixSdB flag
 	  }
 	
 	  hkl_list.ResetReflAccept();  // set to accept (ie cancel SelectSDcorrReflections)
-	  // Reset SDM ties
+	  // Reset SDM 
 	  SDM.ResetTies(savedties);
+	  SDM.SetAllRunsSame(savedAllSameflag);
 	} // end loop one or two passes
 	// Clear all outlier & other status flags (except ObsFlags)
 	ClearObsStatus(hkl_list);
 
-	// I did try to do a final normal probability correction, but this may make it worse
+	// NB I did try to do a final normal probability correction, but this may make it worse
 	//      if (firstAnalysis != 0) {
 	//	// Final correction of SDfac
-	//	/////*/	UpdateSDMfromNPlot(SDM, hkl_list, controls, true, output);
+	//	UpdateSDMfromNPlot(SDM, hkl_list, controls, true, output);
 	//	output.logTab(0,LOGFILE,
 	//		      "\nSD correction parameters after 2nd normal probability correction\n"+
 	//		      SDM.format());
@@ -294,7 +305,8 @@ namespace scala
       } // norefine because of no data 
     } else { // norefine explicit
 	output.logTab(0,LOGFILE,
-      "\nNo refinement of SD correction parameters\n"+SDM.format());      
+      "\nNo refinement of SD correction parameters\n"+SDM.format());
+	plot = true;
 	//^
 	//	hkl_list.ResetReflAccept();  // set to accept everything
 	//	// Select subset of reflections to speed up optimisation
@@ -310,10 +322,17 @@ namespace scala
 	//^-
     } // end refine/norefine
 
+
     //^
     //    MakeSDplot(SDM, hkl_list, controls, NormRes, output);
     //^-
-
+    AnalyseNormalProbability(SDM, hkl_list, controls, plot, output);
+  }  // AnalyseSD
+  //--------------------------------------------------------------
+  void AnalyseNormalProbability(SDmodel& SDM, hkl_unmerge_list& hkl_list,
+				all_controls& controls, const bool& plot,
+				phaser_io::Output& output)
+  {
     // Normal probability analysis for each run
     std::vector<Run> Runs = hkl_list.RunList();
     int Nruns = hkl_list.num_runs();
@@ -325,10 +344,15 @@ namespace scala
 
     // Replot with corrections
     AccumulateNormProb(SDM, hkl_list, controls.anomalouscontrol.AnomalousSDcorr, normalprobanal);
+    //^^
+    //    std::cout << "AnalyseNormalProbability: slopes for 1st set " <<
+    //      normalprobanal[0].Slope() <<" " << normalprobanal[1].Slope() <<"\n";
+    //^-
+
     if (plot) {
       for (int irun=0;irun<Nruns;irun++) {
 	// Dataset name
-	std::string dname = hkl_list.xdataset(Runs[irun].DatasetIndex()).pxdname().dname();
+	std::string dname = hkl_list.dataset(Runs[irun].DatasetIndex()).Dname();
 	std::string fp;
 	for (int ip=2*irun;ip<=2*irun+1;ip++) {
 	  if (ip == 2*irun) {
@@ -342,8 +366,9 @@ namespace scala
       }
       
       NPPlot.ClosePlot();
+      output.logTab(0,LXML,NPPlot.formatXML());
     }
-  }  // AnalyseSD
+  }  // AnalyseNormalProbability
   //--------------------------------------------------------------
   void AddInDelta(SelectedObservations& SelObs, const bool& allsame,
 		  std::vector<NormalProbAnal>& normalprobanal)
@@ -446,6 +471,11 @@ namespace scala
 
     // Get all data into normal probability plots
     AccumulateNormProb(SDM, hkl_list, controls.anomalouscontrol.AnomalousSDcorr, normalprobanal);
+
+    //^^
+    //    std::cout << "UpdateSDMfromNPlot: slopes for 1st set " <<
+    //      normalprobanal[0].Slope() <<" " << normalprobanal[1].Slope() <<"\n";
+    //^-
 
     const int TOOFEW = 20;  // minimum number for NP plot
     // Loop sets for analyses

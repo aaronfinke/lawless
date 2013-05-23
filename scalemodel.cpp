@@ -43,7 +43,14 @@ namespace scala {
   {
     // Setup scale model
     pole = 0;
-    setup(input.getScaleSpecifications(), hkl_list, output);
+    std::vector<scala::ScaleSpecification> scaleSpecs =
+      input.getScaleSpecifications();
+    bool notile = input.noTile();  // true if explicit NOTILE command
+    if (!notile) {
+      // set automatic TILE settings if appropriate
+      autoTiles(scaleSpecs, hkl_list, output);
+    }
+    setup(scaleSpecs, hkl_list, output);
     // Scale normalisation  ..............................
     // FIXME set up scale normalisation flags from input if necessary
     scalenormrun = -1;
@@ -97,7 +104,7 @@ namespace scala {
     }    // normalisation .............................
 
     // Ties
-    SetupTies(input, hkl_list);
+    SetupTies(input);
     // Always calculate all secondary beams & diffraction vectors
     bool secbeamsOK = hkl_list.CalcSecondaryBeams(pole);
 
@@ -154,7 +161,6 @@ namespace scala {
     // Tile stuff
     int ktlidx = -1;
     int k0 = -1;  // tile
-    int ndet0 = -1; // number of detectors
     detectortypes.resize(nruns);
     detector_scale_index_run.assign(nruns,-1);
     runnumbers.resize(nruns);
@@ -290,8 +296,73 @@ namespace scala {
     CountParameters();
   }
   //--------------------------------------------------------------
-  void ScaleModel::SetupTies(const phaser_io::InputAll& input,
-			     const hkl_unmerge_list& hkl_list)
+  void ScaleModel::autoTiles(std::vector<scala::ScaleSpecification>& scaleSpecs,
+			 hkl_unmerge_list& hkl_list,
+			 phaser_io::Output& output)
+  // set automatic TILE settings if appropriate
+  // modifies scaleSpecs
+  {
+    nruns = hkl_list.num_runs();
+    std::vector<Run> runlist = hkl_list.RunList();
+    for (size_t isp=0; isp<scaleSpecs.size(); isp++) { // loop specifications
+      if ((scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) ||
+	  (scaleSpecs[isp].ntilex < 0)) { // no TILE specified for this run
+	int irun = scaleSpecs[isp].run;
+	bool generalspec = false;
+	if (irun < 0) { // the general specification, always the 1st slot
+	  generalspec = true;
+	  if (nruns > 1) {
+	    // find a run which does not have a specific spec
+	    int krun = -1;
+	    for (size_t ksp=0; ksp<scaleSpecs.size(); ksp++) {
+	      if (scaleSpecs[ksp].run < 0) {
+		krun = ksp;
+		break;
+	      }
+	    }
+	    if (krun >= 0) {
+	      irun = krun;
+	    }
+	  } else {
+	    irun = 0;
+	  }
+	  if (irun < 0) {irun = 0;}
+	}
+	// Pick up detector size for 1st batch in this run
+	int b0 = runlist[irun].BatchSerial0();  // batch serial 
+	Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
+	DetectorType detectortype(bat0);
+	//	std::cout << "\nScaleModel::autoTiles DetectorType = "
+	//		  << detectortype.TypeLabel() << "\n"; //^
+	if (detectortype.type() == DetectorType::CCD3x3) {
+	  scaleSpecs[isp].ntilex = detectortype.NtileX();
+	  scaleSpecs[isp].ntiley = detectortype.NtileY();
+	  scaleSpecs[isp].detectorscaletype = scala::DetectorScale::CCD2;
+	  std::string rn = StringUtil::itos(runlist[irun].RunNumber(),3);
+	  std::string s = "\nNB The detector type for run "+rn+
+	    " appears to be a 3x3 tiled CCD detector";
+	  output.logTab(0,LOGFILE,s);
+	  if (generalspec) {
+	    output.logTab(0,LOGFILE,
+  " A TILE scale model has therefore been added to the general SCALES specification");
+	  } else {
+	    output.logTab(0,LOGFILE,
+  " A TILE scale model has therefore been added to the SCALES specification for run "+rn);
+	  }
+	  output.logTab(0,LOGFILE,
+	" This may be switched off using the command SCALES NOTILE\n");
+	} else if (scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) {
+	  // Undefined detector type
+	  Message::message(Message_fatal
+			   ("\nERROR in ScaleModel: undefined detector type for TILE"));
+	}
+      } // end if !TILE
+
+    } // end loop specs
+
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::SetupTies(const phaser_io::InputAll& input)
   // Set up all ties from input list and defaults
   {
     sd_rotation = input.TIE_sd_rotation();
@@ -299,7 +370,13 @@ namespace scala {
     sd_zerob = input.TIE_sd_zerob();
     sd_surface = input.TIE_sd_surface();
     sd_tile = input.TIE_sd_tile();
+    SetupTies();
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::SetupTies()
+  // Set up all ties from input list and defaults
 
+  {
     ties.clear();  // clear tie list
     nties_rot = nties_bfac = nties_zerob = nties_surf = nties_tiles = 0;
 
@@ -355,8 +432,8 @@ namespace scala {
     if (ndetscales > 0) {
       if (sd_tile.size() > 0 && sd_tile[0] > 0.0) {
 	for (int i=0;i<ndetscales;++i) {
-	  std::vector<Tie> these_ties = detector_scales[i].
-	    Ties(sd_tile, idxrun_detector[i]);
+	  std::vector<Tie> these_ties =
+	    detector_scales[i].Ties(sd_tile, idxrun_detector[i]);
 	  ties.insert(ties.end(), these_ties.begin(), these_ties.end());
 	  nties_tiles += these_ties.size();
 	}
@@ -364,6 +441,19 @@ namespace scala {
     }
 
     nties = ties.size();
+  }
+  //--------------------------------------------------------------
+  // If true, allow tile corrections to vary azimuthally
+  // if false, force to be radially symmetric
+  void ScaleModel::symmetricTiles(const bool& symmetric)
+  {
+    if (ndetscales <= 0) {return;} // no tiles
+    for (size_t i=0; i<detector_scales.size(); i++) { 
+      detector_scales[i].setSymmetric(symmetric);
+    }
+    // Recalculate number of parameters and indices etc
+    CountParameters();
+    SetupTies();  // reset tie list
   }
   //--------------------------------------------------------------
   std::string ScaleModel::ScaleParameterTypeString(const ScaleParameterType& type)
@@ -577,10 +667,7 @@ namespace scala {
 			     "number of ties %5d\n").c_str(), sd_surface, nties_surf);
       }
       if (nties_tiles > 0) {
-	output.logTabPrintf(0,LOGFILE,
-			    (std::string("Detector parameters r,w,A will be TIED across the tiles,")+
-			     " with standard deviations %6.3f,%6.3f,%6.3f,\n"+
-			     "  and tile centre positions (x0,y0) will be tied to the true centre with standard deviation %6.3f\n").c_str(), sd_tile[0], sd_tile[1], sd_tile[2], sd_tile[3]);
+	output.logTab(0,LOGFILE, detector_scales[0].formatTies());
       }
     }
     output.logTabPrintf(0,LOGFILE,"\n");
@@ -671,6 +758,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::CountParameters()
+  // private
   // Set all parameter counts
   // Order of parameters:
   //   1. all primary scale parameters (nprimaryscale)
@@ -717,7 +805,7 @@ namespace scala {
     ntilescale = 0;
     if (ndetscales > 0) {
       for (int i=0;i<ndetscales;++i) {
-	idxrun_detector[i] = nparameters;   // index to 1st secondary parameter
+	idxrun_detector[i] = nparameters;   // index to 1st detector parameter
 	ntilescale += detector_scales[i].Number();
 	nparameters += detector_scales[i].Number();
       }
@@ -816,7 +904,7 @@ namespace scala {
     // Find detector scale
     int idetsc;
     bool found = false;
-    for (idetsc=0;idetsc<idxrun_detector.size();++idetsc) {
+    for (idetsc=0;idetsc<int(idxrun_detector.size());++idetsc) {
       if (Ipar >= idxrun_detector[idetsc]) {
 	found = true; break;
       }
@@ -964,48 +1052,85 @@ namespace scala {
       (nsecondaryscale > 0) || (ntilescale > 0);
   }
   //--------------------------------------------------------------
-  double ScaleModel::ScaleObs(observation& obs, const Rtype& invresolsq) const
+  double ScaleModel::ScaleObs(observation& obs, const Rtype& invresolsq,
+			      const bool& onlyUseSingletons) const
   // Scale observation, returns scale applied
+  // if onlyUseSingletons true, do not attempt to apply scales to overlaps
   {
-    // Run
     int irun = obs.run();
+    double g = ScaleFactor(irun, obs, invresolsq); // main scale
+    obs.SetGscale(g);
+
+    // For multiple lattice observations, get appropriate inverse scale factors
+    if (!obs.IsSingleton() && !onlyUseSingletons) {
+      int mainlatnum = obs.MainLatticeNumber();  // for main hkl
+      std::vector<LatticeIndexInfo> lathkl = obs.lathkl();
+      //^
+      //      if (lathkl.size() > 0) {
+      //	std::cout << "ScaleObs " << obs.hkl_original().format() <<
+      //	  " Mainlat "<< mainlatnum <<
+      //	  " Batch " << obs.Batch() << " gm " << g <<"\n";
+      //      }
+      //^-
+      
+      for (size_t l=0; l<lathkl.size(); l++) { 
+	int latnum = lathkl[l].latnum;
+	if (latnum > 0) {
+	  // FIXME assume that additional lattices are in successive runs!
+	  int jscale = irun + latnum - mainlatnum; // scale set for latnum
+	  double glat = ScaleFactor(jscale, obs, invresolsq);
+	  lathkl[l].gscale = glat/g;  // relative lattice fraction from scales
+	  //^
+	  //	  std::cout << "  lattice " << latnum << " " <<
+	  //	    lathkl[l].hkl.format() << " g " << glat <<
+	  //	    " relative g " << lathkl[l].gscale <<"\n";
+	  //^-
+	}	  
+      }
+      obs.StoreLathkl(lathkl);
+    }
+    return g;
+  }
+  //--------------------------------------------------------------
+  double ScaleModel::ScaleFactor(const int& jscale,
+			      const observation& obs, const Rtype& invresolsq) const
+  // Returns scale for observation, using scale set jscale (== irun for main observation
+  {
     double g = 1.0;
     double ps;    // Primary scale
-    if (primary_scales[irun].IsBatchScale()) {
-      ps = primary_scales[irun].Scale(obs.Batch());
+    if (primary_scales[jscale].IsBatchScale()) {
+      ps = primary_scales[jscale].Scale(obs.Batch());
     } else {
-      ps = primary_scales[irun].Scale(obs.phi());
+      ps = primary_scales[jscale].Scale(obs.phi());
     }
 
     // B-factor scale
     double bs = 1.0;
 
-    if (relative_bfactors[irun].Number() > 0) {
-      if (relative_bfactors[irun].IsBatchBfactor()) {
-	bs = relative_bfactors[irun].BfactorScale(obs.Batch(), invresolsq);
+    if (relative_bfactors[jscale].Number() > 0) {
+      if (relative_bfactors[jscale].IsBatchBfactor()) {
+	bs = relative_bfactors[jscale].BfactorScale(obs.Batch(), invresolsq);
       } else {
-	bs = relative_bfactors[irun].BfactorScale(obs.time(), invresolsq);
+	bs = relative_bfactors[jscale].BfactorScale(obs.time(), invresolsq);
       }
     }
     // Secondary   FIXME (why?)
     double ss = 1.0;
     if (nsecscales > 0) {
-      if (sec_scale_index_run[irun] >= 0) {
+      if (sec_scale_index_run[jscale] >= 0) {
 	double thetap, phip;
 	obs.GetS2(thetap, phip);
-	ss = secondary_scales[sec_scale_index_run[irun]].Scale(thetap, phip);
+	ss = secondary_scales[sec_scale_index_run[jscale]].Scale(thetap, phip);
       }
     }
     // Detector
     double ds = 1.0;
     if (ndetscales > 0) {
-      if (detector_scale_index_run[irun] >= 0) {
-	ds = detector_scales[detector_scale_index_run[irun]].Scale(obs.XYdet());
+      if (detector_scale_index_run[jscale] >= 0) {
+	ds = detector_scales[detector_scale_index_run[jscale]].Scale(obs.XYdet());
       }
     }
     g = ps*bs*ss*ds;
-    obs.SetGscale(g);
-
     return g;
   }
   //--------------------------------------------------------------
@@ -1017,6 +1142,7 @@ namespace scala {
     // Run
     int irun = obs.run();
     double g = 1.0;
+    ASSERT (obs.IsSingleton()); // otherwise trouble!
 
     dghldp.assign(nparameters, 0.0);
 
@@ -1266,13 +1392,13 @@ namespace scala {
     switch (GetParameterType(Ipar)) {
     case ScaleModel::SCALE:
       // A primary scale factor
-      return 1.0;
+      return 0.5;
     case ScaleModel::BFACTOR:
       // A relative B-factor
       return 2.0;
     case ScaleModel::SECONDARY:
       // A secondary beam parameter
-      return 0.1;
+      return 0.05;
     case ScaleModel::TILE:
       {    
 	// A detector beam parameter, but which one?
@@ -1440,7 +1566,7 @@ namespace scala {
     int sdtn;
     FR.ReadTag("sd_tile_number"); sdtn = FR.Int();
     sd_tile.resize(sdtn);
-    for (size_t i=0;i<sdtn;++i) {
+    for (int i=0;i<sdtn;++i) {
       FR.ReadTag("sd_tile"); sd_tile[i] = FR.Double();
     }
     // Normalisation
@@ -1453,21 +1579,29 @@ namespace scala {
     scalesin.close();
   }
   //--------------------------------------------------------------
-  void ScaleModel::WriteImage(const std::string fname) const
+  void ScaleModel::WriteImage(const std::string fname,
+			      phaser_io::Output& output) const
   //! Write image[s] for each detector scale
   {
     std::string imagefilename = fname;
     if (getenv(imagefilename.c_str()) != NULL) { // it's an environment variable
-      imagefilename = std::string(getenv(imagefilename.c_str()));
+      imagefilename = std::string(getenv(phaser_io::stoup(imagefilename).c_str()));
     }
 
     for (int idsc=0;idsc<ndetscales;++idsc) {
       std::string basename = FileNameNoExtension(imagefilename);
       std::string ext = FileNameExtension(imagefilename);
       if (ext == "") {ext = "img";}
+      ext = "."+ext;
       std::string name = imagefilename;
-      name = basename+"_"+StringUtil::Strip(StringUtil::itos(idsc+1,4))+"."+ext;
+      if (ndetscales > 1) {
+	name = basename+"_"+StringUtil::Strip(StringUtil::itos(idsc+1,4))+ext;
+      } else {
+	name = basename+ext;
+      }
       detector_scales[idsc].WriteImage(name);
+      output.logTab(0,LOGFILE,
+		    "\nDetector scale image (x1000) written to file "+name);
     }
   }
   //--------------------------------------------------------------

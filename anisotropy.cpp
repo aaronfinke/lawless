@@ -3,7 +3,6 @@
 #include "anisotropy.hh"
 #include "mergedlist.hh"
 #include "string_util.hh"
-#include "timer.hh"
 
 using clipper::Message;
 using clipper::Message_fatal;
@@ -22,10 +21,12 @@ namespace scala {
 void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isigi)
   //! initialise from intensity list
 {
-  Timer t1;
+  // Scale intensities to isotropic average
   sfscl = clipper::Iscale_aniso<float>(3.0);
   sfscl(isigi);
   uanorth = sfscl.u_aniso_orth();
+  // uanorth is U matrix to apply to intensities, divide by 2 for amplitude equivalent
+
 
   clipper::Matrix<double> Uorth(3,3); 
   for (int j=0;j<3;++j) {
@@ -110,11 +111,13 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     abplane = false;
     rlattice = false;
 
+    //%/ Always work out anisotropy
+    SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
     // case (1)
     if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
       // Low symmetry, get principal axes from anisotropic U tensor
       lowsymmetry = true;
-      SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
+      //%/      SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
     // case (2)
     } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));
@@ -217,7 +220,6 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
    const SDmodel& SDM)
   // set principalaxes from data
   {
-    Timer t1;    
     // merged list for given dataset
     MergedList mergedlist(hkl_list, SDM, "", datasetindex);
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
@@ -225,7 +227,8 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
     // Store number of reflections used
     nreflused = isigi.num_obs();
     // Get anisotropy
-    OrthogonalAnisotropy orthogonalanisotropy(isigi);
+    orthogonalanisotropy.init(isigi);
+    //%/    OrthogonalAnisotropy orthogonalanisotropy(isigi);
     principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
   }
 //--------------------------------------------------------------------------
@@ -426,4 +429,26 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
     }}
   return s;
 }
+//--------------------------------------------------------------------------
+//! return eigenvalues for B(amplitude) (orthogonal frame), sorted as closest to a*,b*,c*
+DVect3  AnisotropicAnalysis::EigenValuesOrth() const
+{
+  DVect3 ev = orthogonalanisotropy.EigenValuesOrth();
+  // Convert to B for amplitudes, multiply by 8pi^2, divide by 2
+  for (int i=0;i<3;++i) {
+    ev[i] *= 2.0*clipper::Util::twopi2();
+  }
+  return ev;
+}
+//--------------------------------------------------------------------------
+double AnisotropicAnalysis::BfactorDifference() const
+//! return difference between maximum & minimum B-factor
+{
+  DVect3 eigenvalues = EigenValuesOrth();
+  // get min & max values
+  double minB =  Min(Min(eigenvalues[0], eigenvalues[1]), eigenvalues[2]); 
+  double maxB =  Max(Max(eigenvalues[0], eigenvalues[1]), eigenvalues[2]); 
+  return maxB - minB;
+}
+//--------------------------------------------------------------------------
 }

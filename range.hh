@@ -65,6 +65,9 @@ namespace scala
     // Middle of bin
     float middle(const int& bin) const;
 
+    // Return true if valid (ie set)
+    bool Valid() const {return valid;}
+
     // format
     std::string format() const;
 
@@ -74,6 +77,7 @@ namespace scala
     mutable double width;
     mutable double tolerance; // fraction of bin width as tolerance
     bool ascending;  // false if negative width is allowed 
+    bool valid; // true if set
 
     void init();
     void CheckWidth() const;
@@ -87,7 +91,7 @@ namespace scala
     ResoRange();
     // Construct from low, high in A, number of observations
     //   (not reflections)
-    ResoRange(const float& lowreso, const float& hireso,
+    ResoRange(const double& lowreso, const double& hireso,
 	      const int& Nobs=0);
     // construct from resolution range in s = 1/d^2
     ResoRange(const Range& range);
@@ -100,30 +104,33 @@ namespace scala
     void Set();
 
     // Reset resolution range
-    void SetRange(const float& lowreso, const float& hireso);
-    void SetRange(const float& lowreso, const float& hireso,
+    void SetRange(const double& lowreso, const double& hireso);
+    void SetRange(const double& lowreso, const double& hireso,
 		  const int& Nobs);
     void SetRange(const int& Nobs);
+
+    // Extend range by small tolerance
+    void ExtendRange();
 
     // Unconditionally set number of bins
     void  SetNbins(const int& NumBin);
     int Nbins() const {return Nbin;}
 
     // Force bin width irrespective of Nobservations
-    void SetWidth(const float& width);
+    void SetWidth(const double& width);
     // Return bin width
-    float Width() const {return delta_sSqr;}
+    double Width() const {return delta_sSqr;}
 
     // Return limits
-    float ResLow() const;   // in A
-    float ResHigh() const;  // in A
-    float SResLow() const;  // in 1/d^2 = 4(sin theta/lambda)^2
-    float SResHigh() const; //
+    double ResLow() const;   // in A
+    double ResHigh() const;  // in A
+    double SResLow() const;  // in 1/d^2 = 4(sin theta/lambda)^2
+    double SResHigh() const; //
     Range RRange() const;    // in A
     Range SRange() const;    // in 1/d^2 = 4(sin theta/lambda)^2
 
     // Middle of bin (in A)
-    float middleA(const int& bin) const;
+    double middleA(const int& bin) const;
     // Middle of bin (in 1/d^2), use middle()
     // limits of bin (in A)
     RPair boundsA(const int& bin) const;
@@ -139,20 +146,20 @@ namespace scala
     std::string format() const;
 
   private:
-    static const float LowDef;  // Default low resolution
-    static const float HiDef;   //         high
+    static const double LowDef;  // Default low resolution
+    static const double HiDef;   //         high
 
     bool set;  // true if range explicitly set
 
     int Nbin;
 
-    float LowReso, HiReso;
-    float sSqrmin, sSqrmax;
+    double LowReso, HiReso;
+    double sSqrmin, sSqrmax;
 
     int MinNbin, MaxNbin; 
     int MinNrefBin, MaxNrefBin;
     int Nobservations;
-    float delta_sSqr;
+    double delta_sSqr;
 
     void init();
     void init_reso();
@@ -178,6 +185,7 @@ namespace scala
     void clear();
     // Update min & max (in loop)
     void update(const int& value);
+    void update(const IntRange& range);
 
     // Return min or max
     int min() const;
@@ -185,6 +193,20 @@ namespace scala
 
     // Return true if in range 
     bool InRange(const int& value) const;
+
+    // Returns maximum range
+    IntRange MaxRange(const IntRange& other) const;
+
+    int midrange() const {return (min_+max_)/2;}
+
+    // test equality
+    bool operator == (const IntRange& other)
+    {return ((min_==other.min_) && (max_==other.max_));}
+    bool operator != (const IntRange& other)
+    {return ((min_!=other.min_) || (max_!=other.max_));}
+
+    // true if ranges overlap
+    bool Overlap(const IntRange& other) const;
 
   private:
     int min_, max_;

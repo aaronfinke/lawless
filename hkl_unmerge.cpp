@@ -10,8 +10,8 @@
 
 #include <algorithm>
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 #include "hkl_unmerge.hh"
 #include "scala_util.hh"
@@ -52,32 +52,54 @@ namespace scala {
     is_scale = false;
     is_sigscale = false;
     is_time = false;
+    is_latnum = false;
+    is_lathkl = false;
+    is_latinfo = false;
+    is_latscale = false;
+    n_latinfo = 0;
   }
   // ------------------------------------------------------------------
   void data_flags::print() const // for debugging
   {
-    std:: cout << "\nDataFlags:\n"
-	       << "\nis_h  " << is_h
-	       << "\nis_k  " << is_k
-	       << "\nis_l  " << is_l
-	       << "\nis_misym  " << is_misym
-	       << "\nis_batch  " << is_batch
-	       << "\nis_I  " << is_I
-	       << "\nis_sigI  " << is_sigI
-	       << "\nis_Ipr  " << is_Ipr
-	       << "\nis_sigIpr  " << is_sigIpr
-	       << "\nis_fractioncalc  " << is_fractioncalc
-	       << "\nis_Xdet  " << is_Xdet
-	       << "\nis_Ydet  " << is_Ydet
-	       << "\nis_Rot  " << is_Rot
-	       << "\nis_Width  " << is_Width
-	       << "\nis_LP  " << is_LP
-	       << "\nis_Mpart  " << is_Mpart
-	       << "\nis_ObsFlag  " << is_ObsFlag
-	       << "\nis_BgPkRatio  " << is_BgPkRatio
-	       << "\nis_scale  " << is_scale
-	       << "\nis_sigscale  " << is_sigscale
-	       << "\nis_time  " << is_time  << "\n\n";
+    std::cout << "\nDataFlags:\n"
+	      << "\nis_h  " << is_h
+	      << "\nis_k  " << is_k
+	      << "\nis_l  " << is_l
+	      << "\nis_misym  " << is_misym
+	      << "\nis_batch  " << is_batch
+	      << "\nis_I  " << is_I
+	      << "\nis_sigI  " << is_sigI
+	      << "\nis_Ipr  " << is_Ipr
+	      << "\nis_sigIpr  " << is_sigIpr
+	      << "\nis_fractioncalc  " << is_fractioncalc
+	      << "\nis_Xdet  " << is_Xdet
+	      << "\nis_Ydet  " << is_Ydet
+	      << "\nis_Rot  " << is_Rot
+	      << "\nis_Width  " << is_Width
+	      << "\nis_LP  " << is_LP
+	      << "\nis_Mpart  " << is_Mpart
+	      << "\nis_ObsFlag  " << is_ObsFlag
+	      << "\nis_BgPkRatio  " << is_BgPkRatio
+	      << "\nis_scale  " << is_scale
+	      << "\nis_sigscale  " << is_sigscale
+	      << "\nis_time  " << is_time
+	      << "\nis_latnum " << is_latnum
+	      << "\nis_lathkl " << is_lathkl
+	      << "\nis_latinfo " << is_latinfo
+	      <<"\nn_latinfo " << n_latinfo
+	      << "\n\n";
+  }
+  // ------------------------------------------------------------------
+  // set up flags for multilattice output, for maxNoverlap sets of columns
+  // if scalecolumn true, include a column for the scale
+  void data_flags::SetMultilatticeFlags(const int& maxNoverlap,
+					const bool& scalecolumn)
+  {
+    is_latnum = true;
+    is_latinfo = true;
+    is_lathkl = false;
+    n_latinfo = maxNoverlap;
+    is_latscale = scalecolumn;
   }
   // ------------------------------------------------------------------
   // ******************************************************************
@@ -149,10 +171,23 @@ namespace scala {
     }
     return s;
   }
+  //--------------------------------------------------------------
+  LatticeIndexInfo::LatticeIndexInfo(const int& Latnum, const Hkl& jhkl,
+			   const Rtype& Gscale)
+  {
+    init(Latnum, jhkl, Gscale);
+  }
+  //--------------------------------------------------------------
+  void LatticeIndexInfo::init(const int& Latnum, const Hkl& jhkl,
+			 const Rtype& Gscale)
+  {
+    latnum = Latnum;
+    hkl = jhkl;
+    gscale = Gscale;
+  }
+  //--------------------------------------------------------------
   // ******************  observation_part  *******************
 
-  observation_part::observation_part() {}  // dummy default constructor
-  //              **************
   observation_part::observation_part(const Hkl& hkl_in,
                                      const int& isym_in, const int& batch_in,
                                      const Rtype& I_in, const Rtype& sigI_in,
@@ -162,7 +197,9 @@ namespace scala {
                                      const Rtype& fraction_calc_in, const Rtype& width_in,
                                      const Rtype& LP_in, 
                                      const int& Npart_in, const int& Ipart_in,
-				     const ObservationFlag& ObsFlag_in)
+				     const ObservationFlag& ObsFlag_in,
+				     const int& latnum_in,
+				     const std::vector<LatticeIndexInfo>& lathkl_in)
     :     hkl_(hkl_in),
           isym_(isym_in), batch_(batch_in),
           I_(I_in), sigI_(sigI_in),
@@ -171,8 +208,35 @@ namespace scala {
           fraction_calc_(fraction_calc_in), width_(width_in),
           LP_(LP_in),
           Npart_(Npart_in), Ipart_(Ipart_in), ObsFlag_(ObsFlag_in),
-	  run_(1)
+	  run_(1), latnum_(latnum_in), lathkl_(lathkl_in)
   {}
+  //--------------------------------------------------------------
+  std::string observation_part::format() const // for debugging, incomplete
+  {
+    std::string s = "observation_part: " + hkl_.format();
+    s += " Isym "+ clipper::String(isym_) + " batch " + clipper::String(batch_);
+    s += " Npart " + clipper::String(Npart_) + " Ipart " + clipper::String(Ipart_);
+    if (latnum_ != 0) {
+      s += "\n  Lattice " + clipper::String(latnum_) +"\n";
+      for (size_t i=0; i<lathkl_.size(); i++) { 
+	s += "     Overlap " + clipper::String(lathkl_[i].latnum) +
+	  " " + lathkl_[i].hkl.format() +
+	  " gscale " + clipper::String(lathkl_[i].gscale) + "\n";
+      }
+    }
+    s += "\n";
+    return s;
+  }
+  //--------------------------------------------------------------
+  // apply scale to both IsigIs
+  void observation_part::ScaleIsigI(const Rtype& scale)
+  {
+    I_ *= scale;
+    sigI_ *= scale;
+    Ipr_ *= scale;
+    sigIpr_ *= scale;
+  }
+  //--------------------------------------------------------------
   // ******************  observation  *******************
 
   observation::observation()
@@ -188,17 +252,19 @@ namespace scala {
 			   observation_part ** const part1_in,
 			   const Rtype& TotFrac,
                            const PartFlagSwitch& partialstatus_in,
-			   const ObservationFlag& obsflag_in)
+			   const ObservationFlag& obsflag_in,
+			   const int& latnum_in,
+			   const std::vector<LatticeIndexInfo>& lathkl_in)
     : hkl_original_(hkl_in),
       isym_(isym_in), run_(run_in), datasetIndex_(datasetIndex_in),
       Npart_(Npart_in), part1(part1_in), batch_(0),
       totalfraction(TotFrac), part_flag(partialstatus_in), obs_flag(obsflag_in),
-      gscale(1.0)
+      gscale(1.0), latnum(latnum_in), lathkl_(lathkl_in)
   {
     // By default here reject if any flag set
     // This observation may be accepted later if the flags pass a conditional test
     // (see ResetObsAccept)
-    if (! obs_flag.OK()) obs_status.SetObsFlag();    
+    if (! obs_flag.OK()) obs_status.SetObsFlag();
   }
 
   //--------------------------------------------------------------
@@ -387,6 +453,17 @@ namespace scala {
     return width/Rtype(Npart_);
   }
   //--------------------------------------------------------------
+  // return range of batches for this observation
+  IntRange observation::BatchRange() const
+  {
+    int npart = num_parts();
+    IntRange batchrange;
+    for (int jp=0;jp<npart;++jp) {
+      batchrange.update(get_part(jp).batch());
+    }
+    return batchrange;
+  }
+  //--------------------------------------------------------------
   // ****************** reflection   *******************
   reflection::reflection()  {}   // dummy
   // Normal constructor
@@ -554,7 +631,7 @@ namespace scala {
 			      const int& NreflReserve, 
 			      const hkl_symmetry& symmetry,
 			      const all_controls& controls,
-			      const std::vector<Xdataset>& DataSets,
+			      const std::vector<Dataset>& DataSets,
 			      const std::vector<Batch>& Batches)
   {
     // Initialise reflection list with number of reflections and spacegroup
@@ -599,6 +676,7 @@ namespace scala {
   void hkl_unmerge_list::clear()
   // Clear out list ready for new init
   {
+    status = EMPTY;
     init("Empty list",0,hkl_symmetry(),all_controls());
   }
   //--------------------------------------------------------------
@@ -606,8 +684,8 @@ namespace scala {
   {
     int idataset;
     for (size_t i=0;i<batches.size();i++) {
-      if (in_datasets(batches[i].DatasetID(), datasets, idataset)) {
-	datasets[idataset].add_batch(batches[i].num());
+      if (in_datasets(batches[i].PXDname(), datasets, idataset)) {
+	datasets[idataset].add_batch(batches[i].PXDname(), batches[i].num());
       }	
     }
     nbatches = batches.size();
@@ -633,16 +711,33 @@ namespace scala {
 	// Average batch cell is invalid, use dataset cell instead
 	avbcell[j] = datasets[j].cell();
       }
-      datasets[j].cell() = avbcell[j];
-      datasets[j].Mosaicity() = averageMosaicity[j];
+      ///      datasets[j].SetCell(avbcell[j]);
+      datasets[j].SetMosaicity(averageMosaicity[j]);
       float wvl = averageWavelength[j];
-      if (wvl > 0.001) {	datasets[j].wavelength() = wvl;}
+      datasets[j].SetCellWavelength(avbcell[j], wvl);
     }
     averagecell = AverageDsetCell(datasets);
   }
   //--------------------------------------------------------------
+  Scell hkl_unmerge_list::AverageOtherBatchData(const std::vector<Batch>& batches,
+						const int& ndatasets,
+						std::vector<float>& averageMosaicity,
+						std::vector<float>& averageWavelength,
+						std::vector<Scell>& avbcell) const
+  {
+    // Average batch cells for each dataset
+    //  (like AverageBatchData only for other data)
+    // also mosaicity & wavelength
+    // Returns overall average cell
+    // Sets averageMosaicity, averageWavelength and avbcell
+
+    avbcell = AverageBatchCell(batches, ndatasets,
+			       averageMosaicity, averageWavelength);
+    return AverageDsetCell(datasets);
+  }
+  //--------------------------------------------------------------
   // Store datasets & batch info following previous call to init
-  void hkl_unmerge_list::StoreDatasetBatch(const std::vector<Xdataset>& DataSets,
+  void hkl_unmerge_list::StoreDatasetBatch(const std::vector<Dataset>& DataSets,
 					   const std::vector<Batch>& Batches)
   {
     // datasets
@@ -665,7 +760,7 @@ namespace scala {
     SetUpRuns();
   }
   //--------------------------------------------------------------
-  void hkl_unmerge_list::AddDatasetBatch(const std::vector<Xdataset>& Datasets,
+  void hkl_unmerge_list::AddDatasetBatch(const std::vector<Dataset>& Datasets,
 					 const std::vector<Batch>& Batches)
   // append datasets & batch info following previous call to init
   // This may be one of several, terminated by a call to CloseDatasetBatch
@@ -689,7 +784,7 @@ namespace scala {
       Message::message(Message_fatal
 		       ("hkl_unmerge_list::OffsetBatchNumbers - no runs set"));
     }
-    if (run_set == 0) set_run();  // setup runs in list if not already done
+    if (run_set == 0) set_run();  // setup runs in part list if not already done
     ASSERT (runOffsets.size() == runlist.size());
 
     bool allzero = true;
@@ -714,15 +809,54 @@ namespace scala {
     }
     for (int i = 0; i < nbatches; i++)   {
       batch_lookup.add(batches[i].num(), i);
-      if (in_datasets(batches[i].DatasetID(), datasets, idataset)) {
-	datasets[idataset].add_batch(batches[i].num());
+      if (in_datasets(batches[i].PXDname(), datasets, idataset)) {
+	datasets[idataset].add_batch(batches[i].PXDname(), batches[i].num());
       }	
     }
-    // Reset all batch number in observation part list
+    // Reset all batch numbers in observation part list
     observation_part part;
     for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations
       part = find_part(i);
       find_part(i).set_batch(part.batch() + runOffsets[part.run()]);
+    }
+  }
+  //--------------------------------------------------------------
+  void hkl_unmerge_list::OffsetLatticeNumbers(const int& latticeoffset)
+  // Apply offset to lattice numbers
+  {
+    if (!MultiLattice()) {return;}  // ignore unless multilattice
+    if (latticeoffset == 0) {return;} // don't bother if 0
+
+    if (!run_flags.Set()) {
+      Message::message(Message_fatal
+		       ("hkl_unmerge_list::OffsetLatticeNumbers - no runs set"));
+    }
+    if (run_set == 0) set_run();  // setup runs in part list if not already done
+
+    for (size_t irun=0;irun<runlist.size();irun++) {   // Loop runs
+      runlist[irun].SetLatticeNumber(runlist[irun].LatticeNumber() + latticeoffset);
+    }
+    // Reset all lattice numbers in observation part list
+    observation_part part;
+    for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations
+      part = find_part(i);
+      find_part(i).set_latnum(part.latnum() + latticeoffset);
+      std::vector<LatticeIndexInfo> lathkl = part.lathkl();
+      if (lathkl.size() > 0) {
+	for (size_t j=0; j<lathkl.size(); j++) { 
+	  lathkl[j].latnum += latticeoffset;
+	}
+	find_part(i).set_lathkl(lathkl);
+      }
+    }
+  }
+  //--------------------------------------------------------------
+  void hkl_unmerge_list::SetLatticeforRuns(const std::vector<int> latnumrun)
+  //! store lattice numbers for each run FIXME
+  {
+    ASSERT (latnumrun.size() == runlist.size());
+    for (size_t irun=0; irun<latnumrun.size(); irun++) { 
+      runlist[irun].SetLatticeNumber(latnumrun[irun]);
     }
   }
   //--------------------------------------------------------------
@@ -746,7 +880,7 @@ namespace scala {
     filename += Name;
   }
   //--------------------------------------------------------------
-  void hkl_unmerge_list::MergeDatasetLists(const std::vector<Xdataset>& otherDatasets,
+  void hkl_unmerge_list::MergeDatasetLists(const std::vector<Dataset>& otherDatasets,
 					   const std::vector<Batch>& otherBatches)
   // Are new datasets (in otherDatasets) the same as any old ones? Append new ones to list
   // For each dataset from otherDataset list, store equivalent dataset
@@ -754,20 +888,30 @@ namespace scala {
   // Append batches with dataset references
   {
     //    const double Tolerance = 1.0;
+
+    // Average cell, mosaicity & wavelength over all batches for each dataset
+    // & store in dataset
+    std::vector<float> averageMosaicity;  // size otherDatasets.size()
+    std::vector<float> averageWavelength;
+    std::vector<Scell> avbcell;
+    Scell otheraveragecell =
+      AverageOtherBatchData(otherBatches, otherDatasets.size(),
+			    averageMosaicity, averageWavelength, avbcell);
+
     std::vector<int> DtsIndex(otherDatasets.size());
     int ndts = datasets.size(); // number of current datasets
     int kd = ndts - 1;  // index for new datasets appended to old ones
     int id = -1;        // dataset ID for new datasets, largest current id
-    for (int j=0;j<ndts;j++) {id = Max(id, datasets[j].setid());}
-
-    for (size_t i=0;i<otherDatasets.size();i++) { // loop new datasets
+    for (int j=0;j<ndts;j++) {id = datasets[j].MaxID(id);}
+    
+    for (size_t i=0;i<otherDatasets.size();i++) { // loop new (other) datasets
       DtsIndex[i] = -1;
       for (int j=0;j<ndts;j++) { // loop current datasets
 	if (otherDatasets[i] == datasets[j]) {
-	  DtsIndex[i] = j;  // i'th "Other" dataset has same name as j'th
-	  // add new cell and wavelength into list
-	  datasets[j].AddCellWavelength(otherDatasets[i].cell(),
-					otherDatasets[i].wavelength());
+	  DtsIndex[i] = j;  // i'th "Other" dataset has same names as j'th
+	  // add new cell and wavelength into list (put into 1st Xdataset in Dataset)
+	  datasets[j].AddCellWavelength(avbcell[i],
+					averageWavelength[i]);
 	  // Check for similar unit cell & wavelength
 	  //	  if (!datasets[j].cell().equalsTol(otherDatasets[i].cell(), Tolerance)) {
 	  //	    Message::message(Message_warn
@@ -778,9 +922,11 @@ namespace scala {
       }
       if (DtsIndex[i] < 0) {
 	// New dataset
-	Xdataset OtherDataset = otherDatasets[i];
+	Dataset OtherDataset = otherDatasets[i];
 	DtsIndex[i] = ++kd;  // new index for i'th dataset
-	OtherDataset.setid() = ++id;  // new setid
+	id++;
+	// id returned incremented if OtherDataset contains > 1 Xdataset
+	id = OtherDataset.StoreSetID(id);
 	datasets.push_back(OtherDataset);
       }
     }
@@ -801,9 +947,12 @@ namespace scala {
 			 clipper::String(otherBatches[i].num())));
       }
       // Update dataset index
-      int otherIndex = OtherBatch.index(); // old dataset index
-      OtherBatch.index() = DtsIndex[otherIndex];  // new index
-      OtherBatch.DatasetID() = datasets[DtsIndex[otherIndex]].setid();
+      int otherIndex = OtherBatch.datasetindex(); // old dataset index
+      int idts = DtsIndex[otherIndex];  // new index
+      OtherBatch.datasetindex() = idts;  // store new index
+      PxdName pxdname = OtherBatch.PXDname();  // name
+      int ID = datasets[idts].GetID(pxdname);  // datasetID for this Xdataset
+      OtherBatch.DatasetID() = ID;
       OtherBatch.FileNumber() = filenum;  // store filenumber
       batches.push_back(OtherBatch);
     }
@@ -865,16 +1014,11 @@ namespace scala {
     ResolutionRange = ResolutionRange.MaxRange(OtherList.ResRange());
     ResoLimRange = ResolutionRange;  // FIXME?
 
-
     // Merge dataset & batch lists
     MergeDatasetLists(OtherList.datasets, OtherList.batches);
     // For each dataset from other list, store equivalent dataset
     // index in present list, if it is the same dataset
     ndatasets = datasets.size();
-
-    // Average cell, mosaicity & wavelength over all batches for each dataset
-    // & store in dataset
-    AverageBatchData();
 
     SetBatchList();
 
@@ -902,6 +1046,7 @@ namespace scala {
     sigmamin = 0.0;
     IsPhiOffset = false;
     N_part_list = 0;
+    Nref = 0;
     Nref_valid = 0;
     Nobservations = 0;
     Nobs_full = 0;
@@ -925,6 +1070,7 @@ namespace scala {
     filename = "";
     FileTitle = "";
     dataflags = data_flags();
+    maxlatnum = 0;
   } // initialise
   //--------------------------------------------------------------
   // Store a raw observation part in list
@@ -938,7 +1084,9 @@ namespace scala {
                                     const Rtype& fraction_calc, const Rtype& width,
                                     const Rtype& LP,
                                     const int& Npart, const int& Ipart,
-				    const ObservationFlag& ObsFlag)
+				    const ObservationFlag& ObsFlag,
+				    const int& latnum,
+				    const std::vector<LatticeIndexInfo>& lathkl)
   {
     Rtype Phi = phi;
     Rtype Time = time;
@@ -949,17 +1097,34 @@ namespace scala {
       if (batches.at(batch_lookup.lookup(batch)).IsTimePhi()) {
 	Time += offset;  // also offset time if it is a copy of phi
       }
-    }
+    } 
     obs_part_list.push_back(observation_part(hkl, isym, batch,
                                              I, sigI, Ipr, sigIpr,
                                              Xdet, Ydet, Phi, Time,
                                              fraction_calc, width, LP, 
-                                             Npart, Ipart, ObsFlag));
+                                             Npart, Ipart, ObsFlag,
+					     latnum, lathkl));
     // Don't set pointer list obs_part_pointer until end (in close_part)
     // in case vector gets extended
     N_part_list++;
+    if (latnum > 0) {
+      // get maximum lattice number
+      maxlatnum = Max(obs_part_list.back().latnum(), maxlatnum);
+    }
   } // store_part
-
+  //--------------------------------------------------------------
+  // Store a raw observation part in list
+  void hkl_unmerge_list::store_part(const observation_part& part)
+  {
+    obs_part_list.push_back(part);
+    // Don't set pointer list obs_part_pointer until end (in close_part)
+    // in case vector gets extended
+    N_part_list++;
+    if (part.latnum() > 0) {
+      // get maximum lattice number
+      maxlatnum = Max(part.latnum(), maxlatnum);
+    }
+  } // store_part
   //--------------------------------------------------------------
   // Close raw observation part list, return number of parts
   int hkl_unmerge_list::close_part_list(const ResoRange& RRange,
@@ -982,6 +1147,8 @@ namespace scala {
     // List is already sorted if sorted in input file & no change of asu
     if (Sorted) status = SORTED;
     ChangeIndex = false;
+    nlattices = maxlatnum;
+    nlatticesall = nlattices;  // for now, may be reset later
 
     return  N_part_list;
   } // close_part
@@ -1120,7 +1287,8 @@ namespace scala {
     int offset = 0;
     int filenum = -1;
     int batNgap;
-    float delPhi = 0.0; 
+    float delPhi = 0.0;
+    int latnum = 0;
     float gap = 0.0;
     int nbatAccepted = 0; // number of accepted batches in run
 
@@ -1133,9 +1301,9 @@ namespace scala {
     for (size_t ib=0;ib<batches.size();ib++) {
       if (ib == 0) {
 	// First batch, start run, store dataset index in run
-	ThisRun = Run(batch(ib).index());
+	ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
 	// Store run index in dataset
-	datasets[batch(ib).index()].AddRunIndex(runlist.size());
+	datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
 	offset  = batch(ib).BatchNumberOffset();
 	filenum = batch(ib).FileNumber();
 	phioffset = 0.0;
@@ -1148,8 +1316,9 @@ namespace scala {
 	// Compare this batch with last one
 	bool newgroup = false;
 	// Conditions for being in the same group (run):
-	// same dataset
-	if (batch(ib).index() != ThisRun.DatasetIndex()) {newgroup = true;}
+	// same dataset ID (dataset & crystal)
+	//	if (batch(ib).datasetindex() != ThisRun.DatasetIndex()) {newgroup = true;}
+	if (batch(ib).DatasetID() != ThisRun.DatasetID()) {newgroup = true;}
 	// contiguous batch numbers
 	batNgap = batch(ib).num() - (PreviousBatNum+1);  // gap in batch numbers eg 0
 	if (batNgap != 0) {newgroup = true;}
@@ -1194,12 +1363,13 @@ namespace scala {
 	    ThisRun.FileNumber() = filenum;
 	    ThisRun.SortList();
 	    ThisRun.RunNumber() = runlist.size()+1;
+	    ThisRun.SetLatticeNumber(latnum);
 	    runlist.push_back(ThisRun);
 	  }
 	  // Start new group, store dataset index
-	  ThisRun = Run(batch(ib).index());
+	  ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
 	  // Store run index
-	  datasets[batch(ib).index()].AddRunIndex(runlist.size());
+	  datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
 	  offset  = batch(ib).BatchNumberOffset();
 	  filenum = batch(ib).FileNumber();
 	  phioffset = 0.0;
@@ -1248,6 +1418,7 @@ namespace scala {
       ThisRun.FileNumber() = filenum;
       ThisRun.SortList();
       ThisRun.RunNumber() = runlist.size()+1;
+      ThisRun.SetLatticeNumber(latnum);
       runlist.push_back(ThisRun);
     }
     run_flags.SetStatus(0);  // status set to indicate auto run assignment
@@ -1313,6 +1484,7 @@ namespace scala {
       batches[ib].SetRunIndex(-1);
       maxbatchnum = Max(maxbatchnum, batches[ib].num());
     }
+    int latnum = 0;
 
     for (int irun=0;irun<nruns;++irun) {    // Loop runs
       int runnum = runnumberlist[irun];  // run number
@@ -1330,7 +1502,7 @@ namespace scala {
 		("hkl_unmerge_list:: batch range not found "+br));
 	}
 	//	start run, store dataset index in run	
-	Run ThisRun = Run(batch(ib0).index());      
+	Run ThisRun = Run(batch(ib0).datasetindex(), batch(ib0).DatasetID());      
 	for (size_t i=0;i<batchranges.size();++i) { // loop batch ranges
 	  int ibs1 = NextBatchSerial(batchranges[i].min(), maxbatchnum);
 	  if (ibs1 < 0) {
@@ -1361,12 +1533,13 @@ namespace scala {
 	} // end loop ranges
 	if (nbatAccepted > 0) {
 	  // Store run index in dataset
-	  datasets[batch(ib0).index()].AddRunIndex(runlist.size());
+	  datasets[batch(ib0).datasetindex()].AddRunIndex(batch(ib0).PXDname(), runlist.size());
 	  ThisRun.BatchNumberOffset() = batch(ib0).BatchNumberOffset();
 	  ThisRun.FileNumber() = batch(ib0).FileNumber();
 	  ThisRun.SortList();
 	  ThisRun.RunNumber() = runnum;
 	  // No	  ThisRun.RunNumber() = runlist.size()+1;
+	  ThisRun.SetLatticeNumber(latnum);
 	  runlist.push_back(ThisRun);
 	}
       }
@@ -1620,8 +1793,6 @@ namespace scala {
   {
     refl_list[Nref-1].store_last_index(index);
   }
-
-
   //--------------------------------------------------------------
   int hkl_unmerge_list::partials()
     //                   ^^^^^^^
@@ -1648,6 +1819,18 @@ namespace scala {
     // bool combine = SelectI::Combine(); // true if we want average I for combination
     Rtype avI; // for each observation
     MeanSD meanI;
+    int latnum;
+    std::vector<LatticeIndexInfo> lathkl;
+    // count lattices
+    nlattices = 0;
+    nlatticesall = 0;
+    maxhkloverlap = 0; // maximum number of overlapped hkl on any one observations
+
+    // MAXNLATTICES is maximum number of lattices allowed
+    // count of "main" lattice entries
+    std::vector<int> numberinlattice(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
+    // count of overlapped lattice entries
+    std::vector<int> numberinlatticeall(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
 
     std::vector<Range> invresrangebydataset(ndatasets);
 
@@ -1655,6 +1838,7 @@ namespace scala {
       obs_list.clear();   // clear temporary list
       int i = refl_list[j].first_index();
       bool obsOK = false; // true if at least one accepted observations
+
       while (i <= refl_list[j].last_index())  {
 	// start possible observation
 	//  Set values for first part or full
@@ -1670,89 +1854,174 @@ namespace scala {
 	PartFlagSwitch partial_status = FULL;
 	ObservationFlag obsflag(find_part(i).ObsFlag());
 	avI = find_part(i).Ic();
-	  
+	if (dataflags.is_latnum) {
+	  latnum = find_part(i).latnum();
+	  lathkl = find_part(i).lathkl();
+	  numberinlattice.at(latnum)++;    // count entries for each lattice
+	  numberinlatticeall.at(latnum)++;    // count entries for each lattice
+	}
+
 	int kpart = 1;
+	//  Npart for 1st part: = 1 for a full, > 1 if extracted from MPART column,
+	//     = -1 for a partial with no MPART column
 	int Npart = find_part(i).Npart();
 	
-	if (Npart != 1) {
-	  // Started a Partial (not classified as full)
-	  if (partial_flags.check()) 
-	    // Check 1st part for consistency of Mpart flags
-	    {if (find_part(i).Ipart() != 1) check_ok = false;}
-	  // gap flag, store maximum gap between batches, should = 1
-	  
-	  batchgap = 0;  
-	  while (++i <= refl_list[j].last_index()) {
-	    // Loop through parts 2->EndObs
-	    // Tests for still same observation
-	    // same symmetry
-	    if (isym1 != find_part(i).isym()) break;
-	    //same run
-	    if (run1 != find_part(i).run()) break;
-	    // check contiguous batches: count gaps, should == 0
-	    int gap = (find_part(i).batch() - (batch1+kpart));
-	    if (gap > 2) break;
-	    batchgap += gap;
-	    // Found another part belonging to this observation
-	    // Check for rejection
-	    obsflag.AddFlag(find_part(i).ObsFlag());
-	    kpart++; // kpart counts accepted part
-	    if (partial_flags.check()) 
-	      // Check for consistency of Mpart flags
-	      {if (find_part(i).Ipart() != kpart) check_ok = false;}
-	    
-	    total_fraction += find_part(i).fraction_calc();
-	    avI += find_part(i).Ic();	    
-	  }
-	  Nfound = kpart;
-	  avI /= Rtype(Nfound);
+	// Test both fulls and partials, in case fulls run over > 1 part
+	if (partial_flags.check()) {
+	  // Check 1st part for consistency of Mpart flags
+	  if (find_part(i).Ipart() != 1) check_ok = false;
+	}
+	// gap flag, store maximum gap between batches, should = 1
+	
+	batchgap = 0;  
+	while (++i <= refl_list[j].last_index()) { // loop parts
+	  // Loop through parts 2->EndObs
+	  // Tests for still same observation
+	  // same symmetry
+	  if (isym1 != find_part(i).isym()) break;
+	  //same run
+	  if (run1 != find_part(i).run()) break;
 
-	  if (partial_flags.check()) {
-	    // Check for consistency of Mpart flags
-	    if (Npart == Nfound) 
-	      {partial_status = COMPLETE_CHECKED;}
-	    else
-	      {check_ok = false;}
-	  }
-	  if (! check_ok) {
-	    // Check for acceptability & completeness unless
-	    // Mpart check is all OK
-	    if (total_fraction < partial_flags.accept_fract_min()) {
-	      if (partial_flags.correct_fract_min() > 0.0001
-		  && total_fraction >= partial_flags.correct_fract_min()) {
-		check_ok = true;   // accept &
-		scale_frac = true; // scale incomplete partial
-		partial_status = SCALE; 
-	      } else
-		{partial_flags.IncrementNrejFractionTooSmall();}
-	    } else if (total_fraction > partial_flags.accept_fract_max())
-	      {partial_flags.IncrementNrejFractionTooLarge();}
-	    else {
-	      check_ok = true; // total fraction in range
-	      partial_status = COMPLETE; 
+	  bool addingoverlaps = false;
+	  if (dataflags.is_latnum) {
+	    if (latnum <= 0 ){
+	      latnum = find_part(i).latnum();
+	    } else {
+	      // all parts should belong to the same basic lattice
+	      if (latnum != find_part(i).latnum()) {break;}
+	    }
+	    // set flag to add them in, conditional on passing later tests
+	    addingoverlaps = true;
+	    if (lathkl.size() == 0) {
+	      lathkl = find_part(i).lathkl();
 	    }
 	  }
-	  // Gap check
-	  if (batchgap > partial_flags.maxgap()) {
-	    check_ok = false;
-	    partial_flags.IncrementNrejGap();
+
+	  // check contiguous batches: count gaps, should == 0
+	  int gap = (find_part(i).batch() - (batch1+kpart));
+	  if (std::abs(gap) > 2) break;
+	  batchgap += gap;
+	  
+	  // add in any additional lathkl components
+	  if (addingoverlaps) {
+	    CombineLathkl(lathkl, find_part(i).lathkl());
 	  }
-	  // end of observation, all parts
-	} // partial
-	else {
-	  // full
-	  check_ok = true;
-	  i++;  //i indexes next part after this observation
+
+	  // Found another part belonging to this observation
+	  // Check for rejection
+	  obsflag.AddFlag(find_part(i).ObsFlag());
+
+	  kpart++; // kpart counts accepted part
+	  if (partial_flags.check()) {
+	    // Check for consistency of Mpart flags
+	    if (find_part(i).Ipart() != kpart) check_ok = false;
+	    if (find_part(i).Npart() != Npart) check_ok = false;
+	  }
+
+	  total_fraction += find_part(i).fraction_calc();
+	  avI += find_part(i).Ic();
+	} // end loop parts
+	Nfound = kpart;
+
+	// At this point we have identified Nfound parts from part i1
+	//    as an observation
+	// check_ok = true if MPART flags are being checked & are consistent
+	//    else  = false
+	// Npart is number of parts recorded for the 1st obs_part
+
+	if (Nfound == 1) { // potential FULL
+	  if (Npart == 1) { // yes it is
+	    partial_status = FULL;
+	    if (dataflags.is_fractioncalc) {
+	      if (total_fraction > 0.99) { // should be > 1 for full
+		check_ok = true;  // OK
+	      }
+	      else {
+		check_ok = false; // check total fraction
+	      }
+	    } else {
+		check_ok = true;  // OK
+	    }
+	  } else {
+	    check_ok = false;  // check fraction
+	  }
+	} else { // more than one part found
+	  if (partial_flags.check()) {
+	    // Check for consistency of Mpart flags
+	    if (Npart == Nfound) {
+	      partial_status = COMPLETE_CHECKED;  // unless !check_ok
+	    } else {
+	      check_ok = false;
+	    }
+	  }
 	}
+
+	if (! check_ok) {
+	  // Check for acceptability & completeness unless
+	  // Mpart check is all OK
+	  if (total_fraction < partial_flags.accept_fract_min()) {
+	    if (partial_flags.correct_fract_min() > 0.0001
+		&& total_fraction >= partial_flags.correct_fract_min()) {
+	      check_ok = true;   // accept &
+	      scale_frac = true; // scale incomplete partial
+	      partial_status = SCALE; 
+	    } else {
+	      partial_flags.IncrementNrejFractionTooSmall();
+	      //^
+	      //	      std::cout << "hkl_unmerge_list::partials, rejected small "
+	      //			<< refl_symm.get_from_asu(refl_list[j].hkl(), isym1).format()
+	      //			<<" fract "<< total_fraction <<"\n";
+	      //^-
+	    }
+	  } else if (Nfound > 1 && total_fraction > partial_flags.accept_fract_max()) {
+	    partial_flags.IncrementNrejFractionTooLarge();
+	    //^
+	    //	    std::cout << "hkl_unmerge_list::partials, rejected large "
+	    //		      << refl_symm.get_from_asu(refl_list[j].hkl(), isym1).format()
+	    //		      <<" fract "<< total_fraction <<"\n";
+	    //^-
+	  } else {
+	    check_ok = true; // total fraction in range
+	    partial_status = COMPLETE; 
+	  }
+	}
+	// Gap check
+	if (batchgap > partial_flags.maxgap()) {
+	  check_ok = false;
+	  partial_flags.IncrementNrejGap();
+	}
+	// end of observation, all parts
 	if (check_ok) {
 	  // Store observation
 	  // If any part of obsflag is set, mark observation as REJECTED for now
+	  if (Npart == 1) {
+	    partial_status = FULL;
+	  }
 	  Nobservations += 1;
+	  maxhkloverlap = Max(maxhkloverlap, int(lathkl.size()));
 	  obs_list.push_back(observation(
 			 refl_symm.get_from_asu(refl_list[j].hkl(), isym1),
 			 isym1, run1, datasetIndex, Nfound,
 			 &obs_part_pointer[i1],
-			 total_fraction, partial_status, obsflag));
+			 total_fraction, partial_status, obsflag, latnum, lathkl));
+	  //^
+	  //	  if (DEBUG) {
+	  //	    std::string s = "singleton";
+	  //	    if (lathkl.size() > 0) {s = "multiple ";}
+	  //	    // print all
+	  //	    std::cout << "hkl_unmerge_list::partials, " << s <<" "
+	  //		      << obs_list.back().hkl_original().format()<<" lattice "
+	  //		      << latnum << " I1 = " << find_part(i1).Ic() <<"\n   ";
+	  //	    for (size_t jj=0; jj<lathkl.size(); jj++) { 
+	  //	      std::cout << " lat " <<lathkl[jj].latnum 
+	  //			<< " " <<lathkl[jj].hkl.format();
+	  //	    }
+	  //	    std::cout <<"\n";
+	  //	    std::cout << "i, j, refl_list[j].last_index() "<< i
+	  //		      <<" " << j<<" "<< refl_list[j].last_index() <<"\n";
+	  //	  }
+	  //^-
+
 	  invresrangebydataset[datasetIndex].update(refl_list[j].invresolsq());
 	  obsOK = true;
 	  if (partial_status == FULL) {
@@ -1761,12 +2030,35 @@ namespace scala {
 	    runlist[run1].Npartials()++;
 	  }
 	  meanI.Add(avI);
+
+	  if (dataflags.is_latnum) {
+	    // update counts for each lattice mentioned in lathkl list
+	    UpdateNumberInLattice(numberinlatticeall, lathkl);
+	  }
+
+	} else {
+	  //^
+	  ///	  std::cout << "Not OK " << total_fraction <<"\n"; //^-
 	}
       } // observation loop
       if (obs_list.size() > 0) {
 	refl_list[j].add_observation_list(obs_list);
       }
     } // reflection loop
+
+    nlattices = 0;
+    if (dataflags.is_latnum) {
+      // count lattices with non-zero entries
+      ASSERT (numberinlattice.size() == numberinlatticeall.size());
+      for (size_t j=1; j<numberinlattice.size(); j++) { // loop from 1
+	if (numberinlattice[j] > 0) {
+	  nlattices++;
+	}
+	if (numberinlatticeall[j] > 0) {
+	  nlatticesall++;
+	}
+      }
+    }
 
     // Set flags into runs for only||few fulls||partials
     for (size_t irun=0;irun<runlist.size();++irun) {
@@ -1779,22 +2071,62 @@ namespace scala {
     }
     status = PREPARED;
 
-    ResoRange overallrange;
+    ResoRange overallrange = ResoLimRange;
     for (int id=0;id<ndatasets;++id) {
       // Resolution range for each dataset
-      datasets[id].ResRange() = ResoRange(invresrangebydataset[id]);
+      datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
       // Overall
-      if (id == 0) {
-	overallrange = datasets[id].ResRange();
-      } else {
-	overallrange = overallrange.MaxRange(datasets[id].ResRange());
-      }
+      overallrange = overallrange.MaxRange(datasets[id].ResRange());
     }
+    overallrange.ExtendRange();  // add a little tolerance
     ResoLimRange = overallrange;
 
     ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
   } // end partials
+   //--------------------------------------------------------------
+  void hkl_unmerge_list::UpdateNumberInLattice
+  (std::vector<int>& numberinlatticeall,
+   const std::vector<LatticeIndexInfo> lathkl) const
+  // update counts for each lattice mentioned in lathkl list
+  {
+    for (size_t i=0; i<lathkl.size(); i++) { 
+      if (lathkl[i].latnum > 0) {
+	numberinlatticeall.at(lathkl[i].latnum)++;
+      }
+    }
+  }
+  //--------------------------------------------------------------
+  // add in any additional lathkl components from newlathkl into lathkl
+  void hkl_unmerge_list::CombineLathkl
+  (std::vector<LatticeIndexInfo>& lathkl,
+   const std::vector<LatticeIndexInfo>& newlathkl) const
+  {
+    for (size_t j=0;j<newlathkl.size();++j) { // loop new lathkl
+      // Do we have this one already?
+      bool found = false;
+      for (size_t i=0;i<lathkl.size();++i) { // loop lathkl
+	if (newlathkl[j] == lathkl[i]) {
+	  found = true;
+	}}
+      if (!found) { // a new one, so add it
+	//^
+	//	std::cout << "CombineLathkl " <<j<<" "
+	//		  << newlathkl[j].latnum <<" "
+	//		  << newlathkl[j].hkl.format() <<"\n"; //^
+	//	for (size_t jj=0;jj<newlathkl.size();++jj) { // loop new lathkl
+	//	  std::cout << "NewLathkl " << newlathkl[jj].latnum
+	//		    <<" "<< newlathkl[jj].hkl.format() <<"\n"; //^
+	//	}
+	//	for (size_t i=0;i<lathkl.size();++i) { // loop lathkl
+	//	  std::cout << "Lathkl " << lathkl[i].latnum 
+	//		    <<" "<< lathkl[i].hkl.format() <<"\n"; //^
+	//	}
+	//^-
+	lathkl.push_back(newlathkl[j]);
+      }
+    }
+  }
   //--------------------------------------------------------------
   int hkl_unmerge_list::sum_partials(const bool& forcesum)
   //                   ^^^^^^^^^^^
@@ -1872,7 +2204,7 @@ namespace scala {
 
     // Store resolution range for each dataset
     for (int id=0;id<ndatasets;++id) {
-      datasets[id].ResRange() = ResoRange(invresrangebydataset[id]);
+      datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
     }
   }
   //--------------------------------------------------------------
@@ -1936,20 +2268,19 @@ namespace scala {
     {
       // retrieve cell for a dataset
       // If dataset name blank, get average over all datasets
-      if (ndatasets <= 0) 
-        {
-          Message::message(Message_fatal(
-                                     "hkl_unmerge_list::cell - no datasets") );
-        }
+      if (ndatasets <= 0) {
+	Message::message(Message_fatal(
+				       "hkl_unmerge_list::cell - no datasets") );
+      }
 
-      if (PXDsetName.is_blank())
-        {
-            return averagecell;
-        }
+      if (PXDsetName.is_blank()) {
+	return averagecell;
+      }
       // Find dataset
-      for (int k=0; k<ndatasets; k++)
-        if (PXDsetName == datasets[k].pxdname())
+      for (int k=0; k<ndatasets; k++) {
+        if (PXDsetName == datasets[k].pxdname()) {
             return datasets[k].cell();
+	}}
       Message::message(Message_fatal(
                       "hkl_unmerge_list::cell - dataset not found "+PXDsetName.format()) );
       return Scell(); // dummy
@@ -1972,8 +2303,9 @@ namespace scala {
       return false;
     // Test resolution limits
     Rtype s2 = refl_list[NextRefNum].invresolsq();
-    if (ResoLimRange.tbin(s2) < 0)
+    if (ResoLimRange.tbin(s2) < 0) {
       return false;
+    }
     // Check ice rings: only "reject" rings are stored
     if (Icerings.Nrings() > 0) {
       int ir = Icerings.InRing(s2);
@@ -2088,7 +2420,7 @@ namespace scala {
   bool hkl_unmerge_list::ComparePartOrder::operator()(const observation_part * part1,
                                                       const observation_part * part2)
     // Return true if part1 is before part2 in sort order
-    // Comparison function for sorting on H,K,L,M/ISYM,BATCH
+    // Comparison function for sorting on H,K,L,M/ISYM,[LATTNUM],BATCH
   {
     // Compare most significant keys first
     if (part1->hkl().h() < part2->hkl().h())
@@ -2116,6 +2448,11 @@ namespace scala {
     if (part1->isym() < part2->isym())
       return true;
     else if (part1->isym() > part2->isym())
+      return false;
+
+    if (part1->latnum() < part2->latnum())
+      return true;
+    else if (part1->latnum() > part2->latnum())
       return false;
 
     if (part1->batch() < part2->batch())
@@ -2182,6 +2519,10 @@ namespace scala {
     //^	      << new_symm.symbol_xHM() << "  reindex " << reindex_op.a  s_hkl()
     //^	      << "\n";
 
+    if (dataflags.is_latnum) {
+      ASSERT (nlattices > 0);    // should have already called partials() to set nlattices
+    }
+
     for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations 
       // Original indices
       hkl = refl_symm.get_from_asu(find_part(i).hkl(), find_part(i).isym());
@@ -2195,7 +2536,21 @@ namespace scala {
 	  continue;
 	}
 	hkl_new = new_symm.put_in_asu(hkl_reindex, new_isym);
-      } else {
+	// Multilattice
+	if (dataflags.is_latnum) {
+	  observation_part& part = find_part(i);
+	  std::vector<LatticeIndexInfo> lathkl = part.lathkl();
+	  for (int j=0;j<nlattices;++j) {
+	    HklOK = HklOK || lathkl[j].hkl.change_basis(hkl_reindex, reindex_op);
+	  }
+	  if (!HklOK) {
+	    NfractIdx++;
+	    obs_part_pointer[i] = NULL;  // Clear pointer
+	    continue;
+	  }
+	  find_part(i).set_lathkl(lathkl);
+	}
+      } else {  // no reindex
 	hkl_new = new_symm.put_in_asu(hkl, new_isym);
       }
       //^
@@ -2537,6 +2892,16 @@ namespace scala {
   void hkl_unmerge_list::SetSpaceGroupStatus(const char& spg_status)
   {
     mtzsym.spg_confidence = spg_status;
+  }
+  //--------------------------------------------------------------
+  //! Store use run flags
+  void hkl_unmerge_list::StoreUseRun(const std::vector<bool>& userun)
+  {
+    ASSERT (userun.size() == runlist.size());
+    run_flags.StoreUseRun(userun);
+    for (size_t i=0; i<runlist.size(); i++) { 
+      runlist[i].StoreUse(userun[i]);  // store use flag in runs
+    }
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::dump_reflection(const Hkl& hkl) const

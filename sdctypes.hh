@@ -67,6 +67,8 @@ namespace scala
 
     // Get vector of parameters (2 or 3)
     std::vector<double> GetParameters() const;
+    //  return SdFac, [SDb,] SDadd 2 or 3 parameters
+    std::vector<double> GetRealParameters() const;
 
     // Set all parameters from vector
     void SetParameters(const std::vector<double>& params);

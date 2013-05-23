@@ -24,6 +24,9 @@ using clipper::Message_fatal;
 #include "anisotropy.hh"
 #include "timer.hh"
 
+using phaser_io::LOGFILE;
+using phaser_io::LXML;
+
 namespace scala {
   // ------------------------------------------------------------
   void BatchScales0(const std::vector<Batch>& batches,
@@ -49,7 +52,7 @@ namespace scala {
 
     for (int ib=0;ib<nbatches;++ib) {
       // Is it this dataset?
-      if (batches[ib].index() == datasetIndex) {
+      if (batches[ib].datasetindex() == datasetIndex) {
 	if (batches[ib].Accepted()) {
 	  int irun = batches[ib].RunIndex();
 	  if (irun >= 0) {
@@ -66,11 +69,17 @@ namespace scala {
 	    }
 	    
 	    RelativeBfactor bfac = AllScales.Bfactor(irun);
+
 	    if (bfac.IsBatchBfactor()) {
 	      int batchN = batches[ib].num();
 	      ps = bfac.BfactorValueB(batchN);
 	    } else {
 	      ps = bfac.BfactorValue(batches[ib].MidTime());
+	      //^^
+	      //	      std::cout << "Bfacs: irun, ib, t, B " <<irun<<" "
+	      //			<<ib<<" "<<batches[ib].MidTime()
+	      //			<<" "<<ps<<"\n";
+	      //^-
 	    }
 	    bfacbatch[ib] = ps;
 	  }
@@ -348,10 +357,10 @@ namespace scala {
     SummaryStatistics summaryStatistics;
 
     // Project/Crystal/Dataset for this dataset
-    PxdName dataset_pxd = hkl_list.xdataset(datasetIndex).pxdname();
+    PxdName dataset_pxd = hkl_list.dataset(datasetIndex).pxdname();
     summaryStatistics.StorePXDname(dataset_pxd);
     std::vector<Run> runlist = hkl_list.RunList();
-    Xdataset this_dataset =  hkl_list.xdataset(datasetIndex);
+    Dataset this_dataset =  hkl_list.dataset(datasetIndex);
     // Statistics by batch
     //   batches in whole file, including other datasets
     int nbatches = hkl_list.num_batches();
@@ -367,7 +376,7 @@ namespace scala {
     int nresbin =  ResRange.Nbins();
     // Reset low resolution limit to real one
     //  overall
-    ResoRange resrangedataset = hkl_list.xdataset(datasetIndex).ResRange();
+    ResoRange resrangedataset = hkl_list.dataset(datasetIndex).ResRange();
     // inner
     ResoRange resrange0 = ResRange;
     resrange0.SetRange(resrangedataset.ResLow(), ResRange.BinRange(0).ResHigh());
@@ -466,12 +475,9 @@ namespace scala {
     // Get principal axes of anisotropy depending on symmetry and data
     AnisotropicAnalysis anisoanal(hkl_list, datasetIndex, SDM);
     anisoanal.SetConeAngle(controls.analysis.ConeAngle());  // store cone angle
-    if (anisoanal.AreGeneralAxes()) {
-      // Only for low symmetry
-        output.logTab(0, LOGFILE,
-      "\nTime for determination of anisotropic axes: "+anisotime.format(true)+
-      "\n number of reflections used "+clipper::String(anisoanal.NreflUsed()));
-    }
+    summaryStatistics.StoreAnisoDeltaB(anisoanal.BfactorDifference());
+    output.logTab(0, LOGFILE,
+	 "\nTime for determination of anisotropic axes: "+anisotime.format(true));
     // ----
 
     // Half dataset correlations etc, by resolution
@@ -571,7 +577,11 @@ namespace scala {
 	mnIsdRes[mres].Add(IovsigI);
 	mnIsdInt[mint].Add(IovsigI);
 	// by cone
-	if (jconeaxis >= 0) {
+	if (mres == 0) {
+	  for (int j=0;j<3;++j) {  // lowest res bin, add into all directions
+	    mnIsdResAniso[j][mres].Add(IovsigI);
+	  }
+	} else if (jconeaxis >= 0) {
 	  mnIsdResAniso[jconeaxis][mres].Add(IovsigI);
 	}
 
@@ -901,7 +911,10 @@ namespace scala {
 		    SDM, datasetIndex, dataset_pxd, true, output);
 
     // Correlplot
-    halfDatasetScores.PlotCorrel();
+    std::string s = halfDatasetScores.PlotCorrel();
+    if (s != "") {
+      output.logTab(0,LXML,s);
+    }
 
     // Analysis on the detector
     if (controls.analysis.DetectorAnalysis()) {
@@ -916,8 +929,9 @@ namespace scala {
     summaryStatistics.StoreSDcorrectioRange(minsdcorrfulls, maxsdcorrfulls,
 					    minsdcorrpartials, maxsdcorrpartials);
     summaryStatistics.StoreAnomNPslope(anomProbSlope);
-    summaryStatistics.StoreAverageMosaicity(hkl_list.xdataset(datasetIndex).Mosaicity());
+    summaryStatistics.StoreAverageMosaicity(hkl_list.dataset(datasetIndex).Mosaicity());
     summaryStatistics.StoreAnisoAxisLabels(anisoanal.Axesformat());
+    summaryStatistics.nlattices = hkl_list.NumberofLattices();
     return summaryStatistics;
   }  // Statistics
   // ------------------------------------------------------------   

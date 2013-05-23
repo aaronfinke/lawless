@@ -34,6 +34,7 @@ public:
   {return sfscl.u_aniso_orth().u_aniso_frac(cell);}
 
   //! return eigenvalues (orthogonal frame), sorted as closest to a*,b*,c*
+  //  U values applied to intensities
   DVect3  EigenValuesOrth() const {return eigval;}
 
   //! return eigenvectors (orthogonal frame), sorted as closest to a*,b*,c*
@@ -51,7 +52,7 @@ private:
 //----------------------------------------------------------------------------
   class AnisotropicAnalysis {
   public:
-    AnisotropicAnalysis() {}
+    AnisotropicAnalysis(){}
 
     //! construct from unmerged list
     AnisotropicAnalysis(const hkl_unmerge_list& hkl_list,
@@ -93,6 +94,12 @@ private:
     //! return true if principal axes are general (triclinic, monoclinic)
     bool AreGeneralAxes() const {return lowsymmetry;}
 
+    //! return eigenvalues for B(amplitude) (orthogonal frame), sorted as closest to a*,b*,c*
+    DVect3  EigenValuesOrth() const;
+
+    //! return difference between maximum & minimum B-factor
+    double BfactorDifference() const;
+
     //! return number of reflections used in fit, for lowsymmetry (else = 0)
     int NreflUsed() const {return nreflused;}
 
@@ -113,6 +120,7 @@ private:
     // along principal components for monoclinic & triclinic
     // Orthogonal space in Clipper convention, unit vectors
     std::vector<DVect3> principalaxes;
+    OrthogonalAnisotropy orthogonalanisotropy;  // anisotropy
 
     CrystalSystem cryssys;
     bool lowsymmetry;  // true if monoclinic or triclinic, get axes from fit

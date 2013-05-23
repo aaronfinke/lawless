@@ -193,14 +193,16 @@ namespace scala {
     return C.SD()/E.SD();
   }
   // ------------------------------------------------------------
-  void HalfDataset::PlotCorrel() const
+  std::string HalfDataset::PlotCorrel() const
   // plot stuff
   {
+    std::string s;
     if (iscorrelplot) {
       FILE* correlplotfile = OpenFile("CORRELPLOT", true);
-      correlplot.Plot(correlplotfile);
+      s = correlplot.Plot(correlplotfile);
       fclose (correlplotfile);
     }
+    return s;
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAniso(const int& mres, const int& jaxis,
@@ -209,16 +211,16 @@ namespace scala {
   // Add into sums, for anisotropy analysis along three directions
   {
     float I1, I2;
-    if (jaxis >= 0) { // near axis
-      if (allobs.HalfAverages(I1, I2)) {
-	ccaniso[jaxis][mres].add(I1,I2,wt);  // analyis by axis and resolution
-      }
-    } else if (mres == 0) {
+    if (mres == 0) {
       // inner resolution bin, use all data for all directions
       if (allobs.HalfAverages(I1, I2)) {
 	for (int j=0;j<3;++j) {
 	  ccaniso[j][mres].add(I1,I2,wt);  // analyis by axis and resolution
 	}
+      }
+    } else if (jaxis >= 0) { // near axis
+      if (allobs.HalfAverages(I1, I2)) {
+	ccaniso[jaxis][mres].add(I1,I2,wt);  // analysis by axis and resolution
       }
     }
   }

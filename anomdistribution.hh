@@ -125,19 +125,22 @@ namespace scala {
 
     // Private methods
     // diff = true for dispersive differences
-    std::string FormatTable(const std::string& title,
-			    const std::string& graphtitle,
-			    const std::string& ccl1,
-			    const std::string& ccl2,
-			    const std::vector<std::vector<correl_coeff> >& cc,
-			    const std::vector<std::pair<int,int> >& ccidx,
-			    const bool& diff,
-			    std::vector<correl_coeff>& allcc) const;
+    void FormatTable(const std::string& title,
+		     const std::string& graphtitle,
+		     const std::string& ccl1,
+		     const std::string& ccl2,
+		     const std::vector<std::vector<correl_coeff> >& cc,
+		     const std::vector<std::pair<int,int> >& ccidx,
+		     const bool& diff,
+		     std::vector<correl_coeff>& allcc,
+		     phaser_io::Output& output) const;
 
     // format CC of anomalous differences between datasets as table
-    std::string CrossCorrelation(const std::string& title,
-				 const std::vector<correl_coeff>& allcc,
-				 const bool& diff) const;
+    void CrossCorrelation(const std::string& title,
+			  const std::string& tableid,
+			  const std::vector<correl_coeff>& allcc,
+			  const bool& diff,
+			  phaser_io::Output& output) const;
 
 
   };

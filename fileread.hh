@@ -43,8 +43,11 @@ public:
   //! read one integer
   int Int() const;
 
-  // read one double
+  //! read one double
   double Double() const;
+
+  //! read one string (space terminated)
+  std::string Label() const;
 
   //! read integer vector length N
   std::vector<int> IntVec(const int& N) const;

@@ -21,14 +21,14 @@ namespace scala
 					     const int& datasetIndex,
 					     const AnomalousClass& Anomclass)
   {
-    init(Refl, datasetIndex, Anomclass, VARIANCE);
+    init(Refl, datasetIndex, Anomclass, WeightType::VARIANCE);
   }
   // ------------------------------------------------------------
   // constructor for selecting datasets & anomalous class, weight type
   SelectedObservations::SelectedObservations(const reflection& Refl,
 					     const int& datasetIndex,
 					     const AnomalousClass& Anomclass,
-					     const AverageWeightType& weightType)
+					     const WeightType::AverageWeightType& weightType)
   {
     init(Refl, datasetIndex, Anomclass, weightType);
   }
@@ -38,14 +38,14 @@ namespace scala
 				  const int& datasetIndex,
 				  const AnomalousClass& Anomclass)
   {
-    init(Refl, datasetIndex, Anomclass, VARIANCE);
+    init(Refl, datasetIndex, Anomclass, WeightType::VARIANCE);
   }
   // ------------------------------------------------------------
   // Initialise, selecting datasets & anomalous class
   void SelectedObservations::init(const reflection& Refl,
 				  const int& datasetIndex,
 				  const AnomalousClass& Anomclass,
-				  const AverageWeightType& weightType)
+			  const WeightType::AverageWeightType& weightType)
   // if datasetIndex < 0 select all data
   // Note that this will only select "accepted" observations
   // Npart is number of parts to split into, if required
@@ -156,6 +156,22 @@ namespace scala
     return gotBoth;
   }
   // ------------------------------------------------------------
+  bool SelectedObservations::HalfAveragesSigI(IsigI& I1sig, IsigI& I2sig)
+  // Get average I, sigI for each random part
+  //  return false unless both are present
+  {
+    if (Nused < 2) return false;
+    SetNpart(2);
+    bool gotBoth = true;
+    I1sig = AveragePart(0);
+    if (I1sig.sigI() <= 0.0) gotBoth = false;
+    I2sig = AveragePart(1);
+    if (I2sig.sigI() <= 0.0) gotBoth = false;
+    // Reset state to force average calculation next time
+    State = 0;
+    return gotBoth;
+  }
+  // ------------------------------------------------------------
   bool SelectedObservations::PartAverages(std::vector<float>& Is)
   // Get average I for each random part
   //  return false unless all are present
@@ -173,20 +189,21 @@ namespace scala
   }
   // ------------------------------------------------------------
   //! Set weight
-  void SelectedObservations::SetWeight(const AverageWeightType& weightType)
+  void SelectedObservations::SetWeight(const WeightType::AverageWeightType& weightType)
   {
     weighttype = weightType;
     Average();  // recalculate average with new weights
   }
   // ------------------------------------------------------------
   Rtype SelectedObservations::Weight(const Rtype& sd, const Rtype& g) const
-  // Return weight calculated from val accoding to weighttype
+  // Return weight calculated from val according to weighttype
   {
-    if (weighttype == VARIANCE) {
+    if (weighttype == WeightType::VARIANCE) {
       return 1.0f/(sd*sd);
-    } else if (weighttype == SQRTSCALE) {
+    } else if (weighttype == WeightType::SQRTSCALE) {
       if (g <= 0.0f) return 0.0f;
-      return 1.0f/sqrt(g);
+      // a strong observation has small scale ie large g and high weight not this      return 1.0f/sqrt(g);
+      return sqrt(g);
     }
     return 1.0f;
   }
@@ -285,7 +302,6 @@ namespace scala
       // we need at least 2 observations
       float Iothers;
       float varothers;
-      float g;
 
       std::vector<IsigI> mnothers = MeanIothers(); // mean of other observations
    
@@ -325,7 +341,6 @@ namespace scala
     if (State == 0) Average();
     if (Nused > 1) {
       // we need at least 2 observations
-      float Iothers;
       float varothers;
       float g;
       double wg2others;
@@ -620,15 +635,16 @@ namespace scala
   }
   // ------------------------------------------------------------
   //! return formatted version of weight
-  std::string SelectedObservations::formatWeightType(const AverageWeightType& weighttype )
+  std::string SelectedObservations::formatWeightType
+    (const WeightType::AverageWeightType& weighttype )
   // Weight type for averaging
   //   UNIT        unit weights
   //   VARIANCE    weight = 1/variance
   //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
   {
-    if (weighttype == UNIT) {return "unit weights";}
-    if (weighttype == VARIANCE) {return "variance weights";}
-    if (weighttype == SQRTSCALE) {return "SquareRoot(scale) weights";}
+    if (weighttype == WeightType::UNIT) {return "unit weights";}
+    if (weighttype == WeightType::VARIANCE) {return "variance weights";}
+    if (weighttype == WeightType::SQRTSCALE) {return "SquareRoot(scale) weights";}
     return "";
   }
   // ------------------------------------------------------------

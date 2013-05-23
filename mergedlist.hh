@@ -58,7 +58,7 @@ namespace scala {
 
     int NumberDatasets() const {return ndatasets;}
 
-    std::vector<Xdataset> Datasets() const {return xdatasets;};
+    std::vector<Dataset> Datasets() const {return datasets;};
 
     // return max(1/d^2) for each dataset
     std::vector<float> InvResMax() const {return resmaxdts;}
@@ -76,7 +76,7 @@ namespace scala {
   private:
     int ndatasets; // number of datasets
     int dataset_index;  // dataset index, = -1 if all datasets stored
-    std::vector<Xdataset> xdatasets;
+    std::vector<Dataset> datasets;
     clipper::HKL_info hkl_info_list;  // hkl list
     // Merged intensities for each dataset
     std::vector<MergedDatasetIntensities> datasetdata;

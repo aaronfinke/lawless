@@ -115,6 +115,15 @@ std::vector<double> Fileread::DoubleVec(const int& N) const
   return v;
 }
 //--------------------------------------------------------------
+std::string Fileread::Label() const
+// read one string (space terminated)
+{
+  std::string s;
+  file >> s;
+  if (file.eof()) {EOFerror("");}
+  return s;
+}
+//--------------------------------------------------------------
 void Fileread::EOFerror(const std::string& tag) const
 {
   clipper::Message::message(Message_fatal

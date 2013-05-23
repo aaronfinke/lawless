@@ -140,22 +140,66 @@ std::vector<std::string> StringUtil::split(const std::string& str,
 }
 //--------------------------------------------------------------
 // <tag><data</tag>
-std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& data)
+std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& data,
+				   const bool& edit)
 {
-  return "<"+tag+">"+data+"</"+tag+">";
+  if (edit) {
+    return "<"+tag+">"+XMLstring(data)+"</"+tag+">"; // edited to remove "<" characters etc
+  } else {
+    return "<"+tag+">"+data+"</"+tag+">"; // unedited
+  }
+}
+//--------------------------------------------------------------
+//! make XML tag <tag>value</tag>
+std::string StringUtil::MakeXMLtag(const std::string& tag, const int& value,
+				   const int& w)
+{
+  std::string s = StringUtil::Strip(StringUtil::itos(value, w));
+  return MakeXMLtag(tag, s);
+}
+//--------------------------------------------------------------
+//! make XML tag <tag>value</tag>
+std::string StringUtil::MakeXMLtag(const std::string& tag,
+				   const double& value,
+				   const int& w, const int& d)
+{
+  std::string s = StringUtil::Strip(StringUtil::ftos(value, w,d));
+  return MakeXMLtag(tag, s);
+}
+//--------------------------------------------------------------
+std::string StringUtil::XMLstring(const std::string& s0)
+//! return string modified to replace non-X/HTML characters &<>
+{
+  std::string s;
+  for (size_t i=0;i<s0.size();++i) {
+    if (s0[i] == '&') {s += "&amp;";}
+    else if (s0[i] == '<') {s += "&lt;";}
+    else if (s0[i] == '>') {s += "&gt;";}
+    else {s += s0[i];}
+  }
+  return s;
 }
 //--------------------------------------------------------------
 std::string StringUtil::itos(const int f, const int w)
 { std::ostringstream s; s.width(w); s.setf(std::ios::fixed);s << f; return s.str(); }
 //--------------------------------------------------------------
+std::string StringUtil::itos(const int f)
+{ std::ostringstream s;s << f; return s.str(); }
+//--------------------------------------------------------------
 std::string StringUtil::ftos(const float f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.setf(std::ios::fixed); s.precision(d);s << f; return s.str(); }
+//--------------------------------------------------------------
+std::string StringUtil::ftos(const float f)
+{ std::ostringstream s; s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::etos(const float f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::ftos(const double f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.setf(std::ios::fixed); s.precision(d);s << f; return s.str(); }
+//--------------------------------------------------------------
+std::string StringUtil::ftos(const double f)
+{ std::ostringstream s; s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::etos(const double f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }
@@ -310,6 +354,50 @@ std::string StringUtil::FormatSaveVector(const std::vector<double> vec)
   }
   return s+line+"\n";
 }
+//--------------------------------------------------------------
+std::string StringUtil::FormatXMLcrossTable(const std::string& tableid,
+					    const std::vector<std::string>& names,
+					    const std::string& valTag,
+					    const std::vector<std::pair<double,int> >& valCount)
+// valCount array is in order:-
+//   ab, ac, ad, ...
+//       bc, bd, ...
+//           cd, ...
+// but write out in order, eg for a,b,c,d:
+//   ba
+//   ca, cb
+//   da, db, dc
+{
+  std::string s = "\n<table id=\""+tableid+"\">";
+  int nval = names.size();
+  int npairs = nval*(nval-1)/2;
+  ASSERT (int(valCount.size()) == npairs);
+
+  // column headers, names 0 -> nval-2
+  s += "<th></th>";
+  for (int i=0;i<nval-1;++i) {
+    s += StringUtil::MakeXMLtag("th", names[i]);
+  }
+
+  for (int j=1;j<nval;++j) { // loop rows from 1
+    // row header
+    s += "\n<tr><th>"+names[j]+"</th>";
+    int k = j-1;  // 1st item in row
+    for (int i=0;i<j;++i) { // loop columns
+      ///     std::cout <<"i,j,k " <<i<<" "<<j<<" "<<k<<"\n";
+      // values
+      std::string v = StringUtil::MakeXMLtag
+	(valTag, StringUtil::ftos(valCount[k].first,7,3));
+      v += StringUtil::MakeXMLtag("Number", StringUtil::itos(valCount[k].second,5));
+      s += StringUtil::MakeXMLtag("td", v, false);
+      k += nval-i-2;
+    } // end column loop
+    s += "</tr>";
+  } // end row loop
+
+  s += "\n</table>";
+  return s;
+}
 //======================================================================
 //! just add leading tabs to string and newline if not there already
 std::string FormatOutput::logTab(const int& tab, const std::string& text)
@@ -384,8 +472,40 @@ void Numberfield::init(const int& Type, const int& Width, const int& Dec,
 	    const std::string& Label1, const std::string& Label2)
 {type = Type; width = Width; dec = Dec; label1 = Label1; label2 = Label2;}
 //--------------------------------------------------------------
-
+//======================================================================
+//! construct with one citation
+Citation::Citation(const std::string& citation,
+		   const std::string& link)
+{
+  citations.assign(1, citation);
+  links.assign(1,link);
+}
 //--------------------------------------------------------------
+//! add a citation
+void Citation::AddCitation(const std::string& citation,
+			   const std::string& link)
+{
+  citations.push_back(citation);
+  links.push_back(link);
+}
+//--------------------------------------------------------------
+//! make citation string for log file, with html link
+std::string Citation::MakeLogCitation() const
+{
+  std::string s = "$TEXT:Reference: $$ Please cite $$\n";
+  for (size_t i=0; i<citations.size(); i++) { 
+    s += citations[i]+"\n";
+    if (links[i] != "") {
+      s += "<a href=\""+links[i]+"\">\n";
+      s += "<b>PDF</b></a>\n";
+    }
+  }
+  s += "$$\n";
+  return s;
+}
+//--------------------------------------------------------------
+//! make citation string for XML file, with html link  FIXME
+// std::string Citation::MakeXMLCitation() const;
 
 
 

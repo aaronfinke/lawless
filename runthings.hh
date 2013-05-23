@@ -19,7 +19,7 @@ namespace scala {
     enum FullsAndPartials {FULLSANDPARTIALS, ONLYFULLS, ONLYPARTIALS, FEWFULLS, FEWPARTIALS};
 
     Run();
-    Run(const int& DatasetIndex);
+    Run(const int& DatasetIndex, const int& DatasetID);
     void clear();
     void clearCounts();  // clear reflection/observation counts
 
@@ -33,6 +33,7 @@ namespace scala {
     //  if Accepted == true, only return accepted batches
     std::vector<int> BatchList(const bool& Accepted=false) const;
     int DatasetIndex() const {return dataset_index;}
+    int DatasetID() const {return datasetID;} // -1 if unset or multiple xdatasets
     // return minimum & maximum batch number
     std::pair<int,int> BatchRange() const;
     // return first batch number
@@ -74,8 +75,8 @@ namespace scala {
 
     static int MaximumBatchNumber() {return MaxBatchNumber;}
     
-    std::string formatPrint(const std::vector<Xdataset>& datasets) const;
-    std::string formatPrintBrief(const std::vector<Xdataset>& datasets) const;
+    std::string formatPrint(const std::vector<Dataset>& datasets) const;
+    std::string formatPrintBrief(const std::vector<Dataset>& datasets) const;
 
     int& Nfulls() {return nfulls;}   //!< set number of fully recorded observations
     int& Npartials() {return npartials;}  //!< set number of partial observations
@@ -101,10 +102,23 @@ namespace scala {
     // note that the batch number is not used at present but may be in future
     bool InResoRange(const Rtype& invresolsq, const int& batch);
 
+    //! set lattice number (default = 0)
+    void SetLatticeNumber(const int& latticenumber) {latnum = latticenumber;}
+    //! return lattice number
+    int LatticeNumber() const {return latnum;}
+
+    //! Store use run flag
+    void StoreUse(const bool& userun) {
+      use_ = userun;}
+    //! Return use run flags
+    bool Use() {return use_;}
+
+
   private:
     int runnumber;   // run number, an arbitrary integer (typically 1,2,3...)
     static const int MaxBatchNumber;
     int dataset_index; // index into dataset list
+    int datasetID;     // dataset ID, -1 if multiple xdatasets in run
     mutable std::vector<int> batch_number_list;
     std::vector<bool> batch_accepted;
     int batch_number_offset;
@@ -120,6 +134,8 @@ namespace scala {
     FullsAndPartials fullsandpartials;
     ResoRange resrange; // optional resolution limit for this run
     bool resrangeset;   // true if there is a run resolution limit
+    int latnum;         // lattice number, = 0 for single lattice
+    bool use_;        // true to use
   };
   //--------------------------------------------------------------
   class RunRange 

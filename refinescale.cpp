@@ -51,13 +51,11 @@ namespace scala {
       int nobs = 0;
       hkl_list->rewind();
       int Nref = hkl_list->num_reflections(); // total in file
-      int ip1;
-      int jp;
 
       ////////////////////////
-      int jref, jr, l, ip, myid;
+      int jref, jr, l, myid;
       int nused;
-      double sumwgI, sumwg2, g, di, d;
+      double sumwgI, sumwg2, g, di;
       Rtype invresolsq;
       ////////////////////////
 
@@ -190,7 +188,11 @@ namespace scala {
   // 
   {
     bool DEBUG = false;
+    //    bool DEBUG = true;
     //^    std::cout << "NPROCS " << nprocs <<"\n";
+    //^
+    //^    std::cout << "Npar " << npar <<"\n";
+
     // it is slightly faster to accumulate Hessian in one-dimensional array Hv and
     // then copy it into the 2D array H
     // Accumulating the Hessian is the rate-limiting step
@@ -352,7 +354,7 @@ namespace scala {
 	    sd = obs_used[l].sigI();
 	    w = 1./(sd*sd);
 	    di = (obs_used[l].I() - ghl[l] * mnI);   // deviation
-	    //	if (DEBUG) {std::cout << "\nObs " << l <<"|";}
+	    //	    if (DEBUG) {std::cout << "\nObs " << l <<"|";}
 
 	    for (ip=0;ip!=npar;++ip) {   // Loop parameters
 	      // d(ghl<Ih>)/dp = ghl (dIh/dp)   +   Ih (dghl/dp)
@@ -373,10 +375,10 @@ namespace scala {
 		} else {
 		  gradientTEMP[ip+(myid*npar)] += - di * wdmnIgldp;
 		}
-		//	      if (DEBUG) {
-		//		std::cout << " " <<
-		//		  (- w * di * dmnIgldp[ip]) << " " << gradient[ip];
-		//	      }
+		//		if (DEBUG) {
+		//		  std::cout << " " <<
+		//		    (- w * di * dmnIgldp[ip]) << " " << gradient[ip];
+		//		}
 	    
 		if (DoHessian) {
 		  ip1 = ip*npar;
@@ -388,7 +390,7 @@ namespace scala {
 		}
 	      }
 	    } // end loop parameters
-	    //	  if (DEBUG) {std::cout << "\n";}
+	    //	    if (DEBUG) {std::cout << "\n";}
 	  }  // end loop observations in set
 	}  // end, at least 2 observations
       }
@@ -396,13 +398,26 @@ namespace scala {
 
     // Add ties (restraints) into target etc. Return target
 
-    //printf("3 >>>>>>>>>>>> target=%.3lf nobs=%d\n",target, nobs);
-    //  if (DoGradient) {
-    //     for (int iwg=0;iwg<=(npar*npar)/2;iwg++){
-    //printf("4 >>>>>>>>>>>> nrefpar[%d]=%d gradient[%d]=%.3lf\n",iwg, nrefpar[iwg], iwg, gradient[iwg]);
-    //        printf("4 >>>>>>>>>>>> Hv[%d]=%.3lf\n",iwg, Hv[iwg]);
-    //     } 
-    //  }
+    //    if (DEBUG) {
+    //      printf("\n3 >>>>>>>>>>>> target=%.3lf nobs=%d\n",target, nobs);
+    //      if (DoGradient) {
+    //	for (int i=0;i<npar;i++){
+    //	  printf("4 >>>>>>>>>>>> nrefpar[%d]=%d gradient[%d]=%.3lf\n",i, nrefpar[i], i, gradient[i]);
+    //	  int iwg = i*(npar+1);
+    //	  printf("4 >>>>>>>>>>>> Hv[%d]=%.3lf\n",iwg, Hv[iwg]);
+    //	} 
+    //	if (DoHessian) {
+    //	  printf("Hessian:\n");
+    //	  for (int j=0;j<npar;j++){
+    //	    for (int i=0;i<=j;i++){
+    //	      int iwg = j*npar+i;
+    //	      printf(" %.3lf", Hv[iwg]);
+    //	    }
+    //	    printf("\n");
+    //	  }
+    //	}
+    //      }
+    //    }
 
     std::vector<floatType> dRdpi;
     std::vector<TieHessian> Htie;
@@ -437,6 +452,20 @@ namespace scala {
 		H(i+1,j+1) = H(j+1,i+1); // other half
 	      }
 	    }
+	    if (DEBUG) {
+	      printf("Full Hessian:\n");
+	      for (int j=0;j<npar;j++){
+		for (int i=0;i<npar;i++){
+		  printf(" %.3lf", H(i+1,j+1));
+		}
+		printf("\n");
+	      }
+	      if (npar == 2) {
+		double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
+		printf("Determinant %.4f\n", det);
+	      }
+	    }
+
 	    for (size_t l=0;l<Htie.size();++l) {
 	      int i = Htie[l].index1 + 1; // +1 for fortran-like indexing
 	      int j = Htie[l].index2 + 1; // +1 for fortran-like indexing
@@ -471,12 +500,12 @@ namespace scala {
   // ---------------------------------------------------------
   void RefineScale::applyShift(TNT::Vector<floatType>& newpar)
   {
-    //  std::cout << "applyShift: pars"; //^
+    //    std::cout << "applyShift: pars"; //^
     for (int i=0;i<npar;i++)  {
       params[i] = newpar[i];
-      //    std::cout << " " << params[i]; //^
+      //      std::cout << " " << params[i]; //^
     }
-    //  std::cout <<"\n"; //^
+    //    std::cout <<"\n"; //^
     scalemodel->SetParameters(params, nrefpar);
     gradientOK = false;
   }
@@ -537,7 +566,8 @@ namespace scala {
   {
     TNT::Vector<floatType> large(npar);
     for (int i=0;i<npar;i++) {
-      large[i] = 1.0;
+      ///      large[i] = 1.0;
+      large[i] = scalemodel->GetLargeShift(i);
     }
     return large;
   }

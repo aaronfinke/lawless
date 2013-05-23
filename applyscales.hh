@@ -11,7 +11,9 @@
 
 namespace scala {
   //! Apply scales to all data, return mean(I) in resolution limits
- double ApplyScales(const ScaleModel& AllScales, hkl_unmerge_list& hkl_list);
+  // if onlyUseSingletons true, do not attempt to apply scales to overlaps
+  double ApplyScales(const ScaleModel& AllScales, hkl_unmerge_list& hkl_list,
+		     const bool& onlyUseSingletons);
 }
 
 #endif

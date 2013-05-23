@@ -5,6 +5,7 @@
 #include "scala_util.hh"
 #include "hkl_datatypes.hh"
 #include "scaletypes.hh"
+#include "string_util.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -15,6 +16,13 @@ using clipper::Message_warn;
 
 namespace phaser_io {
 
+//--------------------------------------------------------------
+  void ReportSyntaxError(const std::string& keywords, const std::string& message)
+  {
+    Message::message(Message_warn("Syntax error, keywords:\n"+keywords+"\n"
+				  +"Message: "+message+"\n"));
+    throw SyntaxError(keywords, message);
+  }
 //--------------------------------------------------------------
 ANOMALOUS::ANOMALOUS() : CCP4base(), InputBase()
 {
@@ -38,7 +46,7 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
       else if (keyIs("OFF"))
 	{anomalous = false;}
       else
-	{throw SyntaxError
+	{ReportSyntaxError
 	    (keywords, "key not ON or OFF");}
       given = true;
     }
@@ -58,6 +66,7 @@ SCALES::SCALES() : CCP4base(), InputBase()
   // Set up default SCALES parameters, see scaletypes.hh
   scala::ScaleSpecification spec_default;
   specs.push_back(spec_default);  // and store it
+  notile = false;
 }
 //--------------------------------------------------------------
 Token_value SCALES::parse(std::istringstream& input_stream)
@@ -67,7 +76,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 // [SECONDARY  [<Lmax> [<LmaxOdd>]]]
 // [ABSORPTION [<Lmax> [<LmaxOdd>]] [POLE [h|k|l]]]
 // [CONSTANT]
-// [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]]
+// [[NO]TILE [<Ntilex> [<Ntiley>]] [CCD[n] | FLAT | PIXEL]]
 {
   // Read one SCALES specification
   int irun = -1;
@@ -82,7 +91,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
-      if (expectingNumber > 0) {throw SyntaxError
+      if (expectingNumber > 0) {ReportSyntaxError
 	  (keywords, "SCALES: expecting number not "+string_value);}
       secabs = 0;
       if (keyIs("RUN")) {
@@ -92,39 +101,42 @@ Token_value SCALES::parse(std::istringstream& input_stream)
       } else if (keyIs("CONSTANT")) {
 	spec.SetConstant(irun);
       } else if (keyIs("BATCH")) {
-	if (batch_spec != 0) {throw SyntaxError
+	if (batch_spec != 0) {ReportSyntaxError
 	    (keywords, "SCALES: can't have BATCH & ROTATION)");}
 	spec.batch = true;
 	batch_spec = -1;
 	expectingNumber = 0;
       } else if (keyIs("ROTATION")) {
-	if (batch_spec < 0) {throw SyntaxError
+	if (batch_spec < 0) {ReportSyntaxError
 	    (keywords, "SCALES: can't have BATCH & ROTATION)");}
 	spec.batch = false;
 	batch_spec = +1;
 	expectingNumber = -1;
       } else if (keyIs("SPACING") &&  bfac_spec == 0) {
-	if (batch_spec < 0) {throw SyntaxError
+	if (batch_spec < 0) {ReportSyntaxError
 	    (keywords, "SCALES: can't have BATCH & ROTATION)");}
-	if (batch_spec == +2) {throw SyntaxError
+	if (batch_spec == +2) {ReportSyntaxError
 	    (keywords, "SCALES: can't have ROTATION number & SPACING)");}
 	spec.batch = false;
 	batch_spec = +3;
 	expectingNumber = +1;
       } else if (keyIs("BFACTOR")) {
-	// BFACTOR default to ON
+	// BFACTOR default to ON (-1)
 	expectingNumber = 0;
       } else if (keyIs("ON")) {
+	if (spec.nbfac == -1) {
+	  spec.nbfac = -2;  // switch on B-factors
+	}
       } else if (keyIs("OFF")) {
 	spec.nbfac = 0;  // switch off B-factors
       } else if (keyIs("BROTATION")) {
-	if (batch_spec < 0) {throw SyntaxError
+	if (batch_spec < 0) {ReportSyntaxError
 	    (keywords, "SCALES: can't have BATCH & BROTATION)");}
 	spec.batch = false;
 	bfac_spec = +1;
 	expectingNumber = -1;
       } else if (keyIs("SPACING")  &&  bfac_spec > 0) {
-	if (bfac_spec == +2) {throw SyntaxError
+	if (bfac_spec == +2) {ReportSyntaxError
 	    (keywords, "SCALES: can't have BROTATION number & SPACING)");}
 	spec.batch = false;
 	bfac_spec = +3;
@@ -138,7 +150,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	expectingNumber = -1;
 	secabs = +2;
       } else if (keyIs("POLE")) {
-	if (secabs == +1) {throw SyntaxError
+	if (secabs == +1) {ReportSyntaxError
 	    (keywords, "SCALES: can't have SECONDARY & POLE)");}
 	secabs = -1;
 	expectingNumber = 0;
@@ -151,24 +163,32 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	} else if (keyIs("L")) {
 	  spec.pole = +3;
 	} else {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "SCALES: POLE must be h, k or l)");
 	}
+      } else if (keyIs("NOTILE")) {
+	spec.detectorscaletype = scala::DetectorScale::NONE;
+	notile = true;
       } else if (keyIs("TILE")) {
 	tile = 0;  // expecting Ntilex next
 	spec.detectorscaletype = scala::DetectorScale::AUTOMATIC;
 	expectingNumber = -1;
+	notile = false;
       } else if (tile >= 0) {
       	if (keyIs("FLAT")) {
 	  spec.detectorscaletype = scala::DetectorScale::FLAT;
-	} else if (keyIs("CCD")) {
-	  spec.detectorscaletype = scala::DetectorScale::CCD;
+	} else if (keyIs("CCD1")) {
+	  spec.detectorscaletype = scala::DetectorScale::CCD1;
+	} else if (keyIs("CCD3")) {
+	  spec.detectorscaletype = scala::DetectorScale::CCD3;
+	} else if (keyIs("CCD2") || keyIs("CCD")) {
+	  spec.detectorscaletype = scala::DetectorScale::CCD2;
 	} else if (keyIs("PIXEL")) {
 	  spec.detectorscaletype = scala::DetectorScale::PIXEL;
 	}
       }
     } else if (tokenIs(1,NUMBER)) {
-      if (expectingNumber == 0) {throw SyntaxError
+      if (expectingNumber == 0) {ReportSyntaxError
 	  (keywords, "SCALES: not expecting number"+
 	   clipper::String(number_value));}
       expectingNumber = 0;
@@ -216,7 +236,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 	tile = +2;
       }
     } else {
-      throw SyntaxError
+      ReportSyntaxError
 	(keywords, "SCALES: invalid syntax");
     }
   }
@@ -270,14 +290,14 @@ Token_value RUNSET::parse(std::istringstream& input_stream)
       if (tokenIs(1,NUMBER)) {
 	runnum = Nint(number_value);
       } else {
-	  throw SyntaxError(keywords,"RUN must be followed by a run number");
+	  ReportSyntaxError(keywords,"RUN must be followed by a run number");
       }
       Select = 0;
     } else if (tokenIs(1,NAME) && (keyIs("FILE") || keyIs("SERIES"))) {
       // Keyword FILE or SERIES (synonymous)
       fileSeries = Nint(get1num(input_stream));
       if (fileSeries < 0) {
-	throw SyntaxError(keywords,"FILE | SERIES value must be > 0");
+	ReportSyntaxError(keywords,"FILE | SERIES value must be > 0");
       }
     } else if (Select == 0) {
       if (tokenIs(1,NAME)) {
@@ -292,10 +312,10 @@ Token_value RUNSET::parse(std::istringstream& input_stream)
 	  Select = -1;
 	  continue;
 	} else {
-	  throw SyntaxError(keywords,"unrecognised keyword");
+	  ReportSyntaxError(keywords,"unrecognised keyword");
 	}
       } else { // number, unexpected
-	throw SyntaxError(keywords,"unexpected number");
+	ReportSyntaxError(keywords,"unexpected number");
       }	
     } else if (Select == +1) {
       // Batch selection
@@ -303,36 +323,36 @@ Token_value RUNSET::parse(std::istringstream& input_stream)
 	if (keyIs("TO")) {
 	  // Range
 	  if (brange) {
-	    throw SyntaxError
+	    ReportSyntaxError
 	      (keywords,"only one batch range allowed per RUN command");
 	  }
 	  brange = true;
 	} else {
-	  throw SyntaxError(keywords,"unrecognised keyword");
+	  ReportSyntaxError(keywords,"unrecognised keyword");
 	}
       } else {
 	// gather numbers
 	bnum.push_back(Nint(number_value));
       }
     } else if (Select == -1) {
-      throw SyntaxError(keywords,"RUN DATASET option not yet implemented");
+      ReportSyntaxError(keywords,"RUN DATASET option not yet implemented");
     }
   }
   // Line finished, store results
   if (Select == 0) {
-    throw SyntaxError(keywords,"subkeyword BATCH must be given");
-    //    throw SyntaxError(keywords,"subkeyword BATCH or DATASET must be given");
+    ReportSyntaxError(keywords,"subkeyword BATCH must be given");
+    //    ReportSyntaxError(keywords,"subkeyword BATCH or DATASET must be given");
   }
   if (all) {
     batchranges.AddRange(0, 999999, fileSeries, runnum);
   } else if (brange) {
     if (bnum.size() != 2) {
-      throw SyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
+      ReportSyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
     }
     batchranges.AddRange(bnum[0], bnum[1], fileSeries, runnum);
   } else {
     // List, fail must have range
-    throw SyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
+    ReportSyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
   }  
   return skip_line(input_stream);
 }
@@ -445,7 +465,7 @@ Token_value PARTIALS::parse(std::istringstream& input_stream)
       } else if (keyIs("NOGAP")) {
 	maxgap = 0;
       } else
-	{throw SyntaxError
+	{ReportSyntaxError
 	    (keywords, "unrecognised keyword");}
     } else if (tokenIs(1,NUMBER)) {
       if (limits) {
@@ -454,24 +474,24 @@ Token_value PARTIALS::parse(std::istringstream& input_stream)
 	else if (nlim == 1)
 	  {maxfraclim = number_value;}
 	else
-	  {throw SyntaxError
+	  {ReportSyntaxError
 	      (keywords, "ERROR in TEST two numbers must be given");}
 	nlim++;
       } else if (scalelim) {
 	if (nsclim == 0)
 	  {minscalefrac = number_value;}
 	else
-	  {throw SyntaxError
+	  {ReportSyntaxError
 	      (keywords,
 	       "ERROR in CORRECT one numbers must be given");}
 	nsclim++;
       } else if (gapval) {
 	maxgap = Nint(number_value);
 	if (maxgap < 0 || maxgap > 5) {
-	  throw SyntaxError(keywords,"unreasonable MaxGap ");
+	  ReportSyntaxError(keywords,"unreasonable MaxGap ");
 	}
       } else
-	{throw SyntaxError
+	{ReportSyntaxError
 	    (keywords, "unexpected number");}
     }
   }
@@ -505,7 +525,7 @@ Token_value EXCLUDE::parse(std::istringstream& input_stream)
 	// Keyword FILE or SERIES (synonymous)
 	fileSeries = Nint(get1num(input_stream));
 	if (fileSeries < 0) {
-	  throw SyntaxError(keywords,"FILE | SERIES value must be > 0");
+	  ReportSyntaxError(keywords,"FILE | SERIES value must be > 0");
 	}
     } else if (Select == 0) {
       if (tokenIs(1,NAME)) {
@@ -516,7 +536,7 @@ Token_value EXCLUDE::parse(std::istringstream& input_stream)
 	  Select = -1;
 	  continue;
 	} else {
-	  throw SyntaxError(keywords,"unrecognised keyword");
+	  ReportSyntaxError(keywords,"unrecognised keyword");
 	}
       }
     } else if (Select == +1) {
@@ -525,29 +545,29 @@ Token_value EXCLUDE::parse(std::istringstream& input_stream)
 	if (keyIs("TO")) {
 	  // Range
 	  if (brange) {
-	    throw SyntaxError
+	    ReportSyntaxError
 	      (keywords,"only one batch range allowed per EXCLUDE command");
 	  }
 	  brange = true;
 	} else {
-	  throw SyntaxError(keywords,"unrecognised keyword");
+	  ReportSyntaxError(keywords,"unrecognised keyword");
 	}
       } else {
 	// gather numbers
 	bnum.push_back(Nint(number_value));
       }
     } else if (Select == -1) {
-      throw SyntaxError(keywords,"EXCLUDE DATASET option not yet implemented");
+      ReportSyntaxError(keywords,"EXCLUDE DATASET option not yet implemented");
     }
   }
   // Line finished, store results
   if (Select == 0) {
-    throw SyntaxError(keywords,"subkeyword BATCH must be given");
-    //    throw SyntaxError(keywords,"subkeyword BATCH or DATASET must be given");
+    ReportSyntaxError(keywords,"subkeyword BATCH must be given");
+    //    ReportSyntaxError(keywords,"subkeyword BATCH or DATASET must be given");
   }
   if (brange) {
     if (bnum.size() != 2) {
-      throw SyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
+      ReportSyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
     }
     batchexclude.AddRange(bnum[0], bnum[1], fileSeries);
   } else {
@@ -656,7 +676,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
       } else if (keyIs("EMAX")) {
 	emaxgiven = true;
       } else {
-	throw SyntaxError
+	ReportSyntaxError
 	  (keywords, "REJECT: unrecognised keyword");
       }
       } else if (tokenIs(1,NUMBER)) {
@@ -681,7 +701,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
 	}
       }
     } else {
-      throw SyntaxError
+      ReportSyntaxError
 	(keywords, "REJECT: invalid syntax");
     }
   }
@@ -739,11 +759,11 @@ TIE::TIE()
   tiesd_surface = 0.001; 
   tiesd_rotation = -1.0;
   tiesd_bfactor = -1.0; 
-  tiesd_zerob = -1.0; 
-  // SDs for CCD tile, parameters r, w, A, x0|y0
-  // SDs for r, w, xy0 are relative to maximum radius
-  float sd_tile[] = {0.1, 0.1, 0.05, 0.05};
-  tiesd_tile.assign(sd_tile, sd_tile+4);
+  tiesd_zerob = -1.0;
+  // SDs for CCD tile, parameters r, w, A, x0|y0, Fourier components
+  // SDs for r, w, xy0 are relative to maximum radius (edge)
+  float sd_tile[] = {0.01, 0.01, 0.001, 0.01, 0.002};
+  tiesd_tile.assign(sd_tile, sd_tile+5);
 }
 //--------------------------------------------------------------
 Token_value TIE::parse(std::istringstream& input_stream)
@@ -754,6 +774,8 @@ Token_value TIE::parse(std::istringstream& input_stream)
   //              = BFACTOR    for B-factors
   //              = ZEROB      for B-factors tied to B = 0
   //              = TILE       for tile correction parameters (4 sds)
+  std::vector<double> tsd;  // for tile, up to 5 numbers
+  bool tilesd = false;
   while (get_token(input_stream) != ENDLINE)  {
     if (tokenIs(1,NAME)) {
       if (keyIs("SURFACE") || keyIs("SECONDARY") || keyIs("ABSORPTION")) {
@@ -765,17 +787,20 @@ Token_value TIE::parse(std::istringstream& input_stream)
       } else if (keyIs("ZEROB")) {
 	tiesd_zerob = get1num(input_stream);
       } else if (keyIs("TILE")) {
-	// Expect 4 numbers
-	tiesd_tile.clear();
-	tiesd_tile.push_back(get1num(input_stream));
-	tiesd_tile.push_back(get1num(input_stream));
-	tiesd_tile.push_back(get1num(input_stream));
-	tiesd_tile.push_back(get1num(input_stream));
-	ASSERT (tiesd_tile.size() == 4);
-	for (size_t i=0;i<tiesd_tile.size();++i) {
-	}
+	tilesd = true;
       }
+    } else if (tokenIs(1,NUMBER)) {
+      // only for TILE
+      if (!tilesd) {
+	ReportSyntaxError
+	  (keywords, "TIE: unexpected number when not TILE");
+      }
+      tsd.push_back(number_value);
     }
+  }
+  ASSERT (tiesd_tile.size() == 5);
+  for (size_t i=0;i<tsd.size();++i) {
+    tiesd_tile[i] = tsd[i];  // override defaults
   }
   return skip_line(input_stream);
 }
@@ -871,7 +896,7 @@ Token_value REFINE::parse(std::istringstream& input_stream)
   while (get_token(input_stream) != ENDLINE)  {
     if (tokenIs(1,NAME)) {
       if (expectingNumber > 0) {
-	throw SyntaxError
+	ReportSyntaxError
 	  (keywords, "syntax error expecting a number");
       }
       if (keyIs("BFGS")) {
@@ -906,7 +931,7 @@ Token_value REFINE::parse(std::istringstream& input_stream)
       }
     } else if (tokenIs(1,NUMBER)) {
       if (expectingNumber == 0) {
-	throw SyntaxError
+	ReportSyntaxError
 	  (keywords, "syntax error not expecting a number");
       }
       if (nn == 0) {
@@ -1011,12 +1036,12 @@ Token_value BLANK::parse(std::istringstream& input_stream)
   }
   if (nullResolutionfraction > 0.0) {
     if (nullResolutionfraction < 0.1 || nullResolutionfraction > 1.0001) {
-      throw SyntaxError("ERROR in BLANK command, Resolutionfraction must be between 0.1 and 1.0",
+      ReportSyntaxError("ERROR in BLANK command, Resolutionfraction must be between 0.1 and 1.0",
 			"");
     }}
   if (nullNegativeReject > 0.0) {
     if (nullNegativeReject < 0.01 || nullNegativeReject > 0.501) {
-      throw SyntaxError("ERROR in BLANK command, negative fraction must be between 0.01 and 0.5",
+      ReportSyntaxError("ERROR in BLANK command, negative fraction must be between 0.01 and 0.5",
 			"");
     }}
   return skip_line(input_stream);
@@ -1039,6 +1064,8 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   tietype = -1;  // default tietype
   targets.assign(3,0.0);
   sdtargets.assign(3,0.0);
+  weighttype = scala::WeightType::VARIANCE;
+
 }
 //--------------------------------------------------------------
 Token_value SDCORRECTION::parse(std::istringstream& input_stream)
@@ -1049,6 +1076,12 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 //     DAMP <dampfactor>
 //     TIE [<parameter> <value> <sd>] | NOTIE
 //  <parameter> is "SdFac" "SdB" or "SdAdd" (case insensitive)
+//     SIMILAR <sd1> <sd2> <sd3>   for SDfac, [SDb,] SDadd 
+//     WEIGHT VARIANCE | UNIT | SQRTSCALE  set weighting scheme
+//        for averaging Ih in calculating deviations
+//        VARIANCE  w = 1/var(I)  [default]
+//        UNIT      w = 1
+//        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
 {
   int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
@@ -1056,18 +1089,20 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
   int k = 0;
   bool dampset = false;
   int tieset = -1;
+  int similarset = -1;
   double SDfac;
   double SDb;
   double SDadd;
   scala::SDcorrection sdcfull;
   scala::SDcorrection sdcpartial;
   bool found = false;
+  bool weight = false;  // WEIGHT keyword found
 
   int fullpart = 0;  // +1 full, -1 partial, 0 both
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
-      if (expectingNumber > 0) {throw SyntaxError
+      if (expectingNumber > 0) {ReportSyntaxError
 	  (keywords, "SDCORRECTION: expecting number not "+string_value);}
       expectingNumber = -1;
       // Do we have some values ready to be stored?
@@ -1111,37 +1146,51 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 	expectingNumber = -1;
 	tieset = 0;
 	tietype = -1;  // default tietype
+	similarset = -1; // TIE & SIMILAR are exclusive
+      } else if (keyIs("SIMILAR")) {
+	similarset = 0;
+	tieset = -1;   // TIE & SIMILAR are exclusive
+	expectingNumber = -1;
+	tietype = +2;
       } else if (keyIs("NOTIE")) {
 	expectingNumber = 0;
 	tieset = -1;
 	tietype = 0;  // no ties tietype
       } else if (keyIs("SDFAC")) {
 	if (tieset != 0) {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "SDFAC not expected except after TIE");
 	}
 	tieset = +1;
 	expectingNumber = +1;
       } else if (keyIs("SDB")) {
 	if (tieset != 0) {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "SDB not expected except after TIE");
 	}
 	tieset = +2;
 	expectingNumber = +1;
       } else if (keyIs("SDADD")) {
 	if (tieset != 0) {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "SDADD not expected except after TIE");
 	}
 	tieset = +3;
 	expectingNumber = +1;
+      } else if (keyIs("WEIGHT")) {
+	weight = true;
+      } else if (keyIs("VARIANCE")) {
+	weighttype = scala::WeightType::VARIANCE;
+      } else if (keyIs("UNIT")) {
+	weighttype = scala::WeightType::UNIT;
+      } else if (keyIs("SQRTSCALE")) {
+	weighttype = scala::WeightType::SQRTSCALE;
       } else {
-	throw SyntaxError
+	ReportSyntaxError
 	  (keywords, "unrecognised keyword");
       }
     } else if (tokenIs(1,NUMBER)) {
-      if (expectingNumber == 0) {throw SyntaxError
+      if (expectingNumber == 0) {ReportSyntaxError
 	  (keywords, "SDCORRECTION: not expecting number"+
 	   clipper::String(number_value));}
       if (dampset) {
@@ -1160,6 +1209,10 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
       } else if (irun == 0) {
 	// Run number
 	irun = Nint(number_value);
+      } else if (similarset >= 0) {
+	// target sd values
+	sdtargets[similarset] = number_value;
+	similarset++;
       } else {
 	// Interpret number as k'th SD parameter (0,1,2)
 	if (k == 0) {
@@ -1175,7 +1228,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 	  SDadd = number_value;
 	  expectingNumber = -1;
 	} else {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "SDCORRECTION:: more than 3 values");
 	}
 	k++;
@@ -1195,9 +1248,28 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
   }
 
   if (tieset >= 10) {
-    throw SyntaxError
+    ReportSyntaxError
       (keywords, "SDCORRECTION:: TIE needs two values for target and weight");
   }
+
+  if (similarset >=0) {
+    // should be either = 0, use defaults, or = 3
+    if (similarset == 0) {
+      // use defaults
+      sdtargets[0] = 0.2;
+      sdtargets[1] = 3.0;
+      sdtargets[2] = 0.04;
+    } else if (!similarset == 3) {
+      ReportSyntaxError
+	(keywords, "SDCORRECTION:: SIMILAR needs 0 or 3 numbers for target SDs");
+    }
+    // Set some starting target defaults
+    targets[0] = 1.5;
+    targets[1] = 0.0;
+    targets[2] = 0.04;
+    tietype = +2;
+  }
+
   if (found) {
     if (irun == 0) irun = -1;
     if (sdinput.size() == 0) { // none stored yet
@@ -1243,7 +1315,7 @@ int SDCORRECTION::SDC_NumberInput() const
   return sdinput.size();
 }
 //--------------------------------------------------------------
-//! return ties, target & SDs, = 0 no tie, = -1 defaults, = +1 set here
+//! return ties, target & SDs, = 0 no tie, = -1 defaults, = +1 set here, +2 similarity
 int SDCORRECTION::SDCties(std::vector<double>& Targets,
 			  std::vector<double>& SDtarget) const
 { 
@@ -1257,7 +1329,7 @@ void SDCORRECTION::analyse()
 // unless explicitly set
 {
   if (SDC_NumberInput() > 1 && 	allsame == true) {
-    throw SyntaxError
+    ReportSyntaxError
       (keywords, "SDCORRECTION:: multiple values givem with SAME flag");
   }
   if (refine_set) return;  // explicit refine flag set
@@ -1288,7 +1360,7 @@ Token_value INTENSITIES::parse(std::istringstream& input_stream)
   int type = -1;  // -1 none, = 0 COMBINE, = +1 POWER
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
-      if (expectingNumber > 0) {throw SyntaxError
+      if (expectingNumber > 0) {ReportSyntaxError
 	  (keywords, "INTENSITIES: expecting number not "+string_value);}
       if (keyIs("SUMMATION") || keyIs("INTEGRATED")) {
 	selecticolflag = 0;
@@ -1302,11 +1374,11 @@ Token_value INTENSITIES::parse(std::istringstream& input_stream)
 	expectingNumber = +1;
 	type = +1;	
       } else {
-	throw SyntaxError
+	ReportSyntaxError
 	  (keywords, "unrecognised keyword");
       }
     } else if (tokenIs(1,NUMBER)) {
-      if (expectingNumber == 0) {throw SyntaxError
+      if (expectingNumber == 0) {ReportSyntaxError
 	  (keywords, "INTENSITIES: not expecting number"+
 	   clipper::String(number_value));}
       if (type == 0) {
@@ -1316,11 +1388,11 @@ Token_value INTENSITIES::parse(std::istringstream& input_stream)
 	// POWER set power
 	ipowercomb = Nint(number_value);
 	if (ipowercomb < 1 || ipowercomb > 5) {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "INTENSITIES:: unreasonable POWER value");
 	}
       } else {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "INTENSITIES: no number expected");
       }
       type = -1;
@@ -1348,7 +1420,7 @@ Token_value KEEP::parse(std::istringstream& input_stream)
   int type = -1;  // -1 none, +1 BGRATIO, +2 PKRATIO, +3 GRADIENT
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
-      if (expectingNumber > 0) {throw SyntaxError
+      if (expectingNumber > 0) {ReportSyntaxError
 	  (keywords, "KEEP: expecting number not "+string_value);}
       if (keyIs("OVERLOADS")) {
 	observationflagcontrol.SetAcceptOverload();
@@ -1367,7 +1439,7 @@ Token_value KEEP::parse(std::istringstream& input_stream)
 	expectingNumber = 0;
       } 
     } else if (tokenIs(1,NUMBER)) {
-      if (expectingNumber == 0) {throw SyntaxError
+      if (expectingNumber == 0) {ReportSyntaxError
 	  (keywords, "INTENSITIES: not expecting number"+
 	   clipper::String(number_value));}
       if (type == +1) {
@@ -1380,7 +1452,7 @@ Token_value KEEP::parse(std::istringstream& input_stream)
 	observationflagcontrol.SetGradlimit(number_value);
 	expectingNumber = 0;
       } else {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "KEEP: no number expected");
       }
       type = -1;
@@ -1455,7 +1527,7 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 	  isplitmtzunmerged = -1;
 	}
       } else {
-	  throw SyntaxError
+	  ReportSyntaxError
 	    (keywords, "OUTPUT: unrecognised keyword");
       }
     }
@@ -1463,7 +1535,7 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
   if (isplitmtzmerged != 0) {
     outputcontrols.SplitMerged() = (isplitmtzmerged > 0);  // true if +1 SPLIT
     if (isplitmtzmerged < 0) {
-      throw SyntaxError
+      ReportSyntaxError
 	    (keywords, "OUTPUT MERGED TOGETHER option not yet available");
     }
   }
@@ -1580,6 +1652,21 @@ Token_value INITIAL::parse(std::istringstream& input_stream)
     }
   }
   return skip_line(input_stream);
+}
+//--------------------------------------------------------------
+XMLOUT::XMLOUT() : CCP4base(), InputBase()
+{
+  Add_Key("XMLOUT");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);  
+}
+//--------------------------------------------------------------
+Token_value XMLOUT::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Trim(getLine(input_stream));
+  return ENDLINE;
 }
 //--------------------------------------------------------------
 } // phaser_io

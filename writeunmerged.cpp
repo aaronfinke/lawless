@@ -33,23 +33,26 @@ using namespace CMtz;
 
 namespace MtzIO
 {
+  WriteUnmerged::WriteUnmerged()
+  {
+
+  }
   //--------------------------------------------------------------
-  void OptAddCol(const bool& coln,
-		 MTZCOL* col[], int& ic, MTZ* mtzout, MTZSET* baseset,
-		 const char* label, const char* type)
-    // Conditional column addition, only if coln > 0
-    
+  void WriteUnmerged::OptAddCol(const bool& coln,
+				MTZCOL* col[], int& ic, MTZ* mtzout, MTZSET* baseset,
+				const char* label, const char* type)
+    // Conditional column addition, only if coln > 0    
   {
     if (coln)
 	col[ic++] = MtzAddColumn(mtzout, baseset, label, type);
   }
   //--------------------------------------------------------------
-  int WriteUnmergedMTZ(const scala::hkl_unmerge_list& hkl_list,
-			const SDmodel& SDM,
-			const bool& summedpartials,
-			const int& datasetIndex,
-			const std::string& filename_out,
-			const std::string& title)
+  int WriteUnmerged::writeUnmergedMTZ(const scala::hkl_unmerge_list& hkl_list,
+				      const SDmodel& SDM,
+				      const bool& summedpartials,
+				      const int& datasetIndex,
+				      const std::string& filename_out,
+				      const std::string& title)
   // Write unmerged MTZ file from hkl_unmerge_list object
   // returns number written
   //
@@ -59,13 +62,15 @@ namespace MtzIO
   //  filename_out     output filename
   //  title
   {
-    int nref;
+    nref = 0;
+    nmultiple = 0;
     // Initialise MTZ data structure and output file
     MTZ* mtzout = MtzMalloc(0,0);
     mtzout->refs_in_memory = 0;   // not in memory
     mtzout->fileout = MtzOpenForWrite(filename_out.c_str());
     if (mtzout->fileout == NULL)
       {Message::message(Message_fatal("Can't open file "+filename_out));}
+    int nlattices = hkl_list.NumberofLattices();
 
     // Write title
     ccp4_lwtitl(mtzout, title.c_str(), 0);
@@ -105,29 +110,41 @@ namespace MtzIO
       j1=datasetIndex;
       j2=datasetIndex+1;
     }
+
+    std::map<std::string, MTZXTAL*> xtals;     // list of crystals indexed by Xname
+
     for (int jxd=j1; jxd<j2;jxd++) {
-      // loop xdatasets
-      // NB assume that datasets belonging to a crystal are contiguous
-      std::string xname = hkl_list.xdataset(jxd).pxdname().xname();
-      if (xname != lastxname) {
-	// New crystal
-	lastxname = xname;
-	HKLcell = CG.constrain(hkl_list.xdataset(jxd).cell());
-	for (int i=0;i<6;i++) {
-	  ucell[i] = HKLcell[i];
+      // loop datasets
+      //   Note that the MTZ library insists that a crystal contains datasets,
+      //   rather than the other way round, and that the Cell is a property of the crystal
+      Dataset dataset = hkl_list.dataset(jxd);
+      std::vector<PxdName> pxdnames = dataset.pxdnames(); // names for this dataset (maybe only one)
+      for (size_t ixt=0;ixt<pxdnames.size();++ixt) { // loop crystals
+	std::string xname = pxdnames[ixt].xname();
+	if (xtals[xname] == 0) { // new crystal
+	  HKLcell = CG.constrain(hkl_list.dataset(jxd).cell());
+	  for (int i=0;i<6;i++) {
+	    ucell[i] = HKLcell[i];
+	  }
+	  xtal = MtzAddXtal(mtzout, xname.c_str(),
+			    hkl_list.dataset(jxd).Pname().c_str(),
+			    ucell);
+	  xtals[xname] = xtal; // store pointer
+	} else { // this dataset belongs to a crystal we have already
+	  xtal = xtals[xname];
 	}
-	xtal = MtzAddXtal(mtzout, xname.c_str(),
-			  hkl_list.xdataset(jxd).pxdname().pname().c_str(),
-			  ucell);
-      }
-      // Dataset
-      set = MtzAddDataset(mtzout, xtal,
-			  hkl_list.xdataset(jxd).pxdname().dname().c_str(),
-			  hkl_list.xdataset(jxd).wavelength());
-    }
+	// Add this Xdataset
+	set = MtzAddDataset(mtzout, xtal,
+			    hkl_list.dataset(jxd).Dname().c_str(),
+			    hkl_list.dataset(jxd).wavelength(xname));
+      } // end loop Xdatasets (ie crystals)
+    } // end loop datasets
 
     // Columns, all in base dataset
     data_flags  col_sel = hkl_list.DataFlags();
+    //    col_sel.print(); //^ Debug
+    int maxhkloverlap = hkl_list.MaxHKLoverlap();
+    ASSERT (maxhkloverlap == col_sel.n_latinfo);
 
     // How many columns?
     MTZCOL* col[MAXNCOLUMNS];  // MAXNCOLUMNS defined in openinputfile.hh
@@ -170,6 +187,17 @@ namespace MtzIO
       OptAddCol(col_sel.is_scale, col, ic, mtzout, baseset, "SCALE", "R");
       OptAddCol(col_sel.is_sigscale, col, ic, mtzout, baseset, "SIGSCALE", "R");
     }
+    if (nlattices > 1) { // multilattice
+      OptAddCol(true, col, ic, mtzout, baseset, "LATTNUM", "I");
+      for (int l=0;l<maxhkloverlap;++l) {
+	std::string ns = StringUtil::Strip(StringUtil::itos(l+1,3));
+	OptAddCol(true, col, ic, mtzout, baseset, ("LATTNUM"+ns).c_str(), "I");
+	OptAddCol(true, col, ic, mtzout, baseset, ("H"+ns).c_str(), "H");
+	OptAddCol(true, col, ic, mtzout, baseset, ("K"+ns).c_str(), "H");
+	OptAddCol(true, col, ic, mtzout, baseset, ("L"+ns).c_str(), "H");
+	OptAddCol(true, col, ic, mtzout, baseset, ("SCALE"+ns).c_str(), "R");
+      }
+    }
     int NumCol = ic;
     
     // List is sorted on the first 5 columns
@@ -181,7 +209,7 @@ namespace MtzIO
     char time[9];
     CCP4::ccp4_utils_date(date);
     CCP4::ccp4_utils_time(time);
-    std::string text = "POINTLESS, "+std::string(date)+" "+
+    std::string text = "AIMLESS, "+std::string(date)+" "+
       std::string(time);
     strcpy(history, text.c_str()); 
     int Nhist = MtzAddHistory(mtzout, &history, 1);
@@ -189,13 +217,14 @@ namespace MtzIO
 
     std::vector<int> nobsbatch;
     hkl_list.rewind();
+
     if (summedpartials) {
       // write out summed observations, for selected dataset(s)
-      nobsbatch =  WriteObservations(hkl_list, SDM, NumCol, datasetIndex,
+      nobsbatch =  writeObservations(hkl_list, SDM, NumCol, datasetIndex,
 				     mtzout, col);
     } else {
       // write out unsummed parts, for all datasets
-      nobsbatch =  WriteParts(hkl_list, NumCol, mtzout, col);
+      nobsbatch =  writeParts(hkl_list, NumCol, mtzout, col);
     }
     for (size_t jbat=0;jbat<nobsbatch.size();jbat++)  {
       nref += nobsbatch[jbat];
@@ -238,9 +267,10 @@ namespace MtzIO
 	}
 	// Update NBsetid if required, ie index in dataset list
 	// look it up in new mtzout structure
-	std::string path = "/"+
-	  hkl_list.xdataset(hkl_list.batch(jbat).index()).pxdname().xname()+"/"+
-	  hkl_list.xdataset(hkl_list.batch(jbat).index()).pxdname().dname();
+
+	int nbsetid = hkl_list.batch(jbat).DatasetID();
+	PxdName pxdname =  hkl_list.dataset(hkl_list.batch(jbat).datasetindex()).pxdname(nbsetid);
+	std::string path = "/"+pxdname.xname()+"/"+pxdname.dname();
 	batch->nbsetid = MtzSetLookup(mtzout, path.c_str())->setid;  // setid
 	batch->next = NULL;  // for last one
       }
@@ -255,19 +285,21 @@ namespace MtzIO
     return nref;
   }
   //--------------------------------------------------------------
-  int WriteUnmergedSCA(const scala::hkl_unmerge_list& hkl_list,
-		       const SDmodel& SDM,
-		       const int& datasetIndex,
-		       const std::string& filename_out,
-		       const float& maxintensity)
+  int WriteUnmerged::writeUnmergedSCA(const scala::hkl_unmerge_list& hkl_list,
+				      const SDmodel& SDM,
+				      const int& datasetIndex,
+				      const std::string& filename_out,
+				      const float& maxintensity)
   // Write unmerged scalepack file from hkl_unmerge_list object
   // returns number written
+  // Skip multiples
   //
   //  datasetIndex     dataset index to output, -1 all data
   //  filename_out     output filename
   //  Imax             maximum intensity
   {
-    int nref = 0;
+    nref = 0;
+    nmultiple = 0;
     hkl_list.rewind();
     data_flags  col_sel = hkl_list.DataFlags();
     reflection this_refl;
@@ -310,33 +342,37 @@ namespace MtzIO
 
       // loop observations
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
-	if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
-	  scala::Hkl hkl_orig = this_obs.hkl_original();
-	  int isym = this_obs.Isym();
-	  int iasym = ((isym-1)/2+1);
-	  int batch = this_obs.Batch();
-	  int icn = 0; // centric
-	  int ispndle=0;  // dummy here
-	  if (!Centric) {
-	    if (isym%2 == 0) icn = 2;  // I-
-	    else icn = 1;             // I+
+	if (this_obs.IsSingleton()) {
+	  if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
+	    scala::Hkl hkl_orig = this_obs.hkl_original();
+	    int isym = this_obs.Isym();
+	    int iasym = ((isym-1)/2+1);
+	    int batch = this_obs.Batch();
+	    int icn = 0; // centric
+	    int ispndle=0;  // dummy here
+	    if (!Centric) {
+	      if (isym%2 == 0) icn = 2;  // I-
+	      else icn = 1;             // I+
+	    }
+	    fprintf(scafile, "%4d%4d%4d%4d%4d%4d%6d%2d%2d%3d%8.1f%8.1f\n",
+		    hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
+		    hkl.h(), hkl.k(), hkl.l(),
+		    batch, icn, ispndle, iasym,
+		    scale*this_obs.kI(), scale*this_obs.ksigI());
+	    nref++;
 	  }
-	  fprintf(scafile, "%4d%4d%4d%4d%4d%4d%6d%2d%2d%3d%8.1f%8.1f\n",
-		  hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
-		  hkl.h(), hkl.k(), hkl.l(),
-		  batch, icn, ispndle, iasym,
-		  scale*this_obs.kI(), scale*this_obs.ksigI());
-	  nref++;
+	} else {
+	  nmultiple++; // omitted
 	}
       } // end loop observations
     }  // end loop reflections
     return nref;
   }
   //--------------------------------------------------------------
-  std::vector<int>  WriteParts(const scala::hkl_unmerge_list& hkl_list,
-			       const int& NumCol,
-			       MTZ* mtzout,
-			       MTZCOL* col[])
+  std::vector<int>  WriteUnmerged::writeParts(const scala::hkl_unmerge_list& hkl_list,
+					      const int& NumCol,
+					      MTZ* mtzout,
+					      MTZCOL* col[])
   // write out all parts, all datasets
   {
     // Count observation parts in each batch
@@ -392,12 +428,12 @@ namespace MtzIO
     return nobsbatch;
   }
   //--------------------------------------------------------------
-  std::vector<int>  WriteObservations(const scala::hkl_unmerge_list& hkl_list,
-				      const SDmodel& SDM,
-				      const int& NumCol,
-				      const int& datasetIndex,
-				      MTZ* mtzout,
-				      MTZCOL* col[])
+  std::vector<int>  WriteUnmerged::writeObservations(const scala::hkl_unmerge_list& hkl_list,
+						     const SDmodel& SDM,
+						     const int& NumCol,
+						     const int& datasetIndex,
+						     MTZ* mtzout,
+						     MTZCOL* col[])
   // write out summed observations, for selected dataset(s)
   // omitting rejections
   {
@@ -406,6 +442,8 @@ namespace MtzIO
     // Write all data
     float data[MAXNCOLUMNS];
     data_flags  col_sel = hkl_list.DataFlags();
+    int maxhkloverlap = hkl_list.MaxHKLoverlap();
+
     reflection this_refl;
     observation this_obs;
     int index;
@@ -448,9 +486,25 @@ namespace MtzIO
 	  if (col_sel.is_Rot) data[ic++]  = this_obs.phi();
 	  if (col_sel.is_Width) data[ic++] = this_obs.width();
 	  if (col_sel.is_LP) data[ic++] = this_obs.LP();
-
 	  if (col_sel.is_time) data[ic++] = this_obs.time();
-	  ASSERT (ic == NumCol);
+
+	  if (col_sel.is_latnum) {
+	    data[ic++] = this_obs.MainLatticeNumber();
+	    for (int j=0;j<maxhkloverlap*5;++j) {
+	      data[ic+j] = 0.0; // clear multilattice columns
+	    }
+	    std::vector<LatticeIndexInfo> lathkl = this_obs.lathkl();
+	    if (lathkl.size() > 0) {
+	      nmultiple++;
+	      for (size_t l=0; l<lathkl.size(); l++) { 
+		data[ic++] = lathkl[l].latnum;
+		data[ic++] = lathkl[l].hkl[0];
+		data[ic++] = lathkl[l].hkl[1];
+		data[ic++] = lathkl[l].hkl[2];
+		data[ic++] = lathkl[l].gscale;
+	      }
+	    }
+	  }
 	  
 	  // count observation parts by batch serial
 	  nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;

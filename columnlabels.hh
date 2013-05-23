@@ -18,7 +18,7 @@
 #include "hkl_unmerge.hh"
 #include "range.hh"
 
-// changed by EK, otherwise clasges with 'OPTIONAL' in Windows
+// changed by EK, otherwise clashes with 'OPTIONAL' in Windows
 enum col_opt_flag {OF_COMPULSORY,OF_OPTIONAL};
 
 using namespace scala;
@@ -80,9 +80,12 @@ namespace MtzIO {
     // Stores list of columns (label, number) in map container 
     // Column number is 1->Ncolumns
   public:
-    column_labels() {setup = false;}   // constructor
+    column_labels() : nlatticecolumns(0) {setup = false;}   // constructor
     // Store desired column label and COMPULSORY or OPTIONAL flag
     void add (const std::string& loglabel, const col_opt_flag& cflag);
+
+    // True if setup
+    bool Setup() const{return setup;}
 
     // Store labels for (F or I) and its sigma (eg from LABIN) if set
     // Label them as "FI" and "SIGFI"
@@ -95,6 +98,8 @@ namespace MtzIO {
     int lookup_col(const std::string& loglabel) const;
     // return actual label, "" if not in range
     std::string Label(const std::string& loglabel) const;
+    // return number of lattice columns
+    int NlatticeColumns() const {return nlatticecolumns;}
 
     // Access for setting column numbers
     void start() {pcl = columns.begin(); at_start = true;}  // start iterator
@@ -104,6 +109,8 @@ namespace MtzIO {
     void Store(ColumnNumberLabel& CNL);
     //! return ColumnNumberLabel for specified column
     ColumnNumberLabel CNL(const std::string& loglabel) const;
+    // Store number of latticecolumns
+    void SetNlatticeColumns(const int& nlat) {nlatticecolumns = nlat;}
 
     // format
     std::string format();
@@ -116,7 +123,8 @@ namespace MtzIO {
     // iterator for start & next functions
     std::map<std::string, ColumnNumberLabel>::iterator pcl;
     bool at_start;
-    }; // column_labels
+    int nlatticecolumns;  // number of lattice columns, = 0 if only one
+  }; // column_labels
   //===================================================================
   class column_select
   // Column selections for Scala
@@ -133,6 +141,11 @@ namespace MtzIO {
       col_I, col_sigI, col_Ipr, col_sigIpr, col_fractioncalc,
       col_Xdet, col_Ydet, col_Rot, col_Width, col_LP, col_Mpart,
       col_ObsFlag, col_BgPkRatio, col_scale, col_sigscale, col_time;
+    int col_latnum;
+    // extra hkl list for multiple lattice: index to 1st column of group
+    std::vector<int> col_lathkl;
+    bool scheme2, col_latscale; // true is SCALEn columns present
+    int nlatticecolumns;
   };  // column_select
   //======================================================================
   //-----------------------------------------------------------------------------

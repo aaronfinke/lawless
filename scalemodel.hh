@@ -86,9 +86,9 @@ namespace scala {
     void SetConstant(hkl_unmerge_list& hkl_list,
 		     phaser_io::Output& output);  // set SCALE CONSTANT for all runs
 
-    void SetupTies(const phaser_io::InputAll& input,
-		   const hkl_unmerge_list& hkl_list);
-
+    // If true, allow tile corrections to vary azimuthally
+    // if false, force to be radially symmetric
+    void symmetricTiles(const bool& symmetric);
 
     // Get vector of parameters
     std::vector<double> GetParameters() const;
@@ -140,8 +140,9 @@ namespace scala {
     int Nrange(const int& irun) const {return primary_scales.at(irun).Nintervals();}
 
     // Scale observation, returns scale applied
-    double ScaleObs(observation& obs, const Rtype& invresolsq) const;
-
+    double ScaleObs(observation& obs, const Rtype& invresolsq,
+		    const bool& onlyUseSingletons=true) const;
+      
     // Scale observation, returns scale applied and
     // partial derivative vector d(ghl)/dp
     double ScaleObs(observation& obs, const Rtype& invresolsq,
@@ -159,7 +160,8 @@ namespace scala {
     void PrintScales(phaser_io::Output& output);
 
     //! Write image[s] for each detector scale
-    void WriteImage(const std::string imagefilename) const;
+    void WriteImage(const std::string imagefilename,
+		    phaser_io::Output& output) const;
 
     //!
     void Check() const {if (nsecscales > 0) secondary_scales[0].Check();}
@@ -270,6 +272,19 @@ namespace scala {
     // return index in runlist, -1 if not found
     int RunNotFound(const std::vector<Run>& runlist,
 		    const std::vector<int>& batchnumbers) const;
+
+    // Returns scale for observation, using scale set jscale (== irun for main observation
+    double ScaleFactor(const int& jscale,
+		       const observation& obs, const Rtype& invresolsq) const;
+
+    void SetupTies(const phaser_io::InputAll& input);
+    void SetupTies();
+
+    // set automatic TILE settings if appropriate
+    // modifies scaleSpecs
+    void autoTiles(std::vector<scala::ScaleSpecification>& scaleSpecs,
+		   hkl_unmerge_list& hkl_list,
+		   phaser_io::Output& output);
 
   }; // class ScaleModel 
 }

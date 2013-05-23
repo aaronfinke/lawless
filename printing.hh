@@ -29,6 +29,30 @@ void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& outpu
 // Print scale factors
 void PrintScales(const ScaleModel& AllScales, phaser_io::Output& output);
 //--------------------------------------------------------------
+  // Fit straight line to B factors within each run
+
+class FitBfactorLines {
+
+public:
+  FitBfactorLines (){}
+
+  FitBfactorLines(const std::vector<Batch>& batches,
+				     const std::vector<Run>& RunList,
+				     const int& datasetIndex,
+				     const std::vector<float>& bfacbatch);
+
+  std::vector<float> DecayBatch() const {return bfdecaybatch;}  // for each batch
+
+  // Bfactor slope for run
+  float Slope(const int& irun) const {return scales.at(irun)*bsloperun.at(irun);}
+
+private:
+  std::vector<float> bfdecaybatch;  // for each batch
+  std::vector<float> bsloperun;     // for each run
+  std::vector<float> b0run;         // for each run
+  std::vector<float> scales;        // for each run
+};
+//--------------------------------------------------------------
 void PrintScalesByBatch(const PxdName& dataset_pxd,
 			const std::vector<Batch>& batches, const std::vector<Run>& RunList,
 			const int& datasetIndex,
@@ -136,4 +160,8 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 			      phaser_io::Output& output,
 			      const int& verbose);
 //--------------------------------------------------------------
+// Print counts of partials rejected etc, also to XML
+void PrintPartialCounts(const scala::hkl_unmerge_list& hkl_list,
+			const all_controls& controls,
+			phaser_io::Output& output);
 #endif

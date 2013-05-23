@@ -35,7 +35,7 @@ namespace scala
     //! test against limits, true if inside
     bool in_reslimits(const Rtype& s) const;
 
-    bool accept_dataset(const PxdName& pxdname) const
+    bool accept_dataset(const std::vector<PxdName>& pxdname) const
     {return true;} //!< always true for now
 
     //! Return false if batch_number is in rejection lists

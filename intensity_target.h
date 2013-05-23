@@ -72,13 +72,14 @@ TargetFn_meanInth<T>::rderiv( const clipper::HKL_info::HKL_reference_index& ih, 
 	Rderiv result;
     const clipper::HKL_data<T>& data = *hkl_data;
     if ( !data[ih].missing() ) {
-		clipper::ftype d = fh - pow( clipper::ftype(data[ih].I()) / ih.hkl_class().epsilon(),  // do we want sqrt / epsilon here?
-						   power );
-		result.r = d * d;
-		result.dr = 2.0 * d;
-		result.dr2 = 2.0;
+      clipper::ftype d = fh - pow( clipper::ftype(data[ih].I()) / ih.hkl_class().epsilon(),  // do we want sqrt / epsilon here?
+				   power );
+      clipper::ftype w = 1.0/(data[ih].sigI()*data[ih].sigI());
+      result.r = w * d * d;
+      result.dr = 2.0 * w * d;
+      result.dr2 = 2.0 * w;
     } else {
-		result.r = result.dr = result.dr2 = 0.0;
+      result.r = result.dr = result.dr2 = 0.0;
     }
     return result;
 }

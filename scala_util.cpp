@@ -2,9 +2,10 @@
 #include <cstdlib>
 #include "scala_util.hh"
 #include "string_util.hh"
+#include "dataset.hh"
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 namespace scala 
 {
@@ -142,24 +143,17 @@ namespace scala
     return (a>=0.0) ? sqrt(a) : -sqrt(-a);
   }
   //--------------------------------------------------------------
-  Scell AverageDsetCell(const std::vector<Xdataset>& datasets)
+  Scell AverageDsetCell(const std::vector<Dataset>& datasets)
   // Average unit cells over all datasets & store average
   // On entry:
   //  datasets     list of datasets
   // Returns:   average cell
   {
-    Scell averagecell;
-    int ndatasets = datasets.size();
-    if (ndatasets <= 1) {
-      averagecell = datasets[0].cell();
-    } else {
-      std::vector<Scell> allcells;
-      for (int k=0; k<ndatasets; k++) {
-	allcells.push_back(datasets[k].cell());
-      }
-      averagecell = UnitCellSet(allcells).AverageCell();
+    UnitCellSet cellset;
+    for (size_t k=0; k<datasets.size(); k++) {
+      cellset.AddCellSet(datasets[k].AllCellSet());
     }
-    return averagecell;
+    return cellset.AverageCell();
   }
   //--------------------------------------------------------------
   std::vector<Scell> AverageBatchCell(const std::vector<Batch>& batches,
@@ -182,7 +176,7 @@ namespace scala
     std::vector<std::vector<Scell> > allcells(ndatasets); // batch cell for each dataset
 
     for (int k=0; k<nbatches; k++)  {
-      int idx = batches[k].index(); // dataset index
+      int idx = batches[k].datasetindex(); // dataset index
       allcells[idx].push_back(batches[k].cell()); // add batch cell
       n[idx]++;
       averageMosaicity[idx] += batches[k].Mosaicity(); 
@@ -208,16 +202,16 @@ namespace scala
     if (nc <= 0) return 0.0;
     else if (nc == 1) return allwavelengths[0];
     // We have 2 or more,average
-    float sumwavelength = 0.0;
+    double sumwavelength = 0.0;
     for (size_t k=0; k<allwavelengths.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
 	sumwavelength += allwavelengths[k];
       }
     }
-    return sumwavelength/nc;
+    return float(sumwavelength/double(nc));
   }
   //--------------------------------------------------------------
-  float AverageDsetWavelength(const std::vector<Xdataset>& datasets)
+  float AverageDsetWavelength(const std::vector<Dataset>& datasets)
   // Average wavelength over all datasets & store average
   // On entry:
   //  datasets     list of datasets
@@ -225,15 +219,16 @@ namespace scala
   {
     float averagewvl;
     int ndatasets = datasets.size();
-    if (ndatasets <= 1) {
-      averagewvl = datasets[0].wavelength();
-    } else {
-      double Sumwvl = 0.0;
-      for (int k=0; k<ndatasets; k++) {
-	Sumwvl += datasets[k].wavelength();
+    double Sumwvl = 0.0;
+    int n = 0;
+    for (int k=0; k<ndatasets; k++) {
+      std::vector<float> allwavelengths = datasets[k].AllWavelengths();
+      for (size_t j=0; j<allwavelengths.size(); j++) { 
+  	Sumwvl += allwavelengths[j];
+	n++;
       }
-      averagewvl = Sumwvl/float(ndatasets);
     }
+    averagewvl = Sumwvl/double(n);
     return averagewvl;
   }
   //--------------------------------------------------------------

@@ -6,6 +6,7 @@
 #include "analyseanom.hh"
 #include "selectedobservations.hh"
 using phaser_io::LOGFILE;
+using phaser_io::LXML;
 
 namespace scala
 {
@@ -68,7 +69,7 @@ namespace scala
 			  normalprobanal[id].Number());
       if (ndatasets > 1) {
 	output.logTab(0,LOGFILE,
-		      hkl_list.xdataset(id).pxdname().format());
+		      hkl_list.dataset(id).formatNames());
       } else {
 	output.logTab(0,LOGFILE,"  ");
       }
@@ -78,8 +79,8 @@ namespace scala
       slopes[id] = normalprobanal[id].Slope();
       // Dataset name
       if (ndatasets > 1) {
-	std::string pxdname = hkl_list.xdataset(id).pxdname().format();
-	output.logTab(0,LOGFILE, "\n-- For dataset "+pxdname);
+	std::string pxdlabel = hkl_list.dataset(id).formatNames();
+	output.logTab(0,LOGFILE, "\n-- For dataset "+pxdlabel);
       }
       // Update reject limits
 
@@ -93,10 +94,13 @@ namespace scala
       output.logTab(0,LOGFILE,
 		    controls.outlierMerge.Reject(BOTH, id).format());
 
-      std::string dname = hkl_list.xdataset(id).pxdname().dname();
+      std::string dname = hkl_list.dataset(id).Dname();
       if (plot) normalprobanal[id].Plot(NPPlot, dname);
     }  // end loop datasets
-    if (plot) NPPlot.ClosePlot();
+    if (plot) {
+      NPPlot.ClosePlot();
+      output.logTab(0,LXML,NPPlot.formatXML());
+    }
   }
   //--------------------------------------------------------------
   int AnalyseAnom::AccumulateDelanomNormProb(const SDmodel& SDM,

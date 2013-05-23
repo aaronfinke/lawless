@@ -8,10 +8,12 @@
 
 #include "hkl_datatypes.hh"
 #include "hkl_unmerge.hh"
+#include "weighttype.hh"
 
 namespace scala
 {
-   
+  //  class reflection;
+
   class SelectedObservations
   //! Observations selected from a reflection for:-
   //!   (a) a dataset or all datasets
@@ -19,11 +21,6 @@ namespace scala
   {
   public:
 
-    // Weight type for averaging
-    //   UNIT        unit weights
-    //   VARIANCE    weight = 1/variance
-    //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
-    enum AverageWeightType {UNIT, VARIANCE, SQRTSCALE};
 
     SelectedObservations(){}
     
@@ -36,7 +33,7 @@ namespace scala
     //! if datasetIndex < 0 select everything, set weight type
     SelectedObservations(const reflection& Refl, const int& datasetIndex,
 			 const AnomalousClass& Anomclass,
-			 const AverageWeightType& weightType);
+			 const WeightType::AverageWeightType& weightType);
 
     //! Initialise, selecting datasets & anomalous class
     void init(const reflection& Refl,
@@ -47,7 +44,7 @@ namespace scala
     void init(const reflection& Refl,
 	      const int& datasetIndex,
 	      const AnomalousClass& Anomclass,
-	      const AverageWeightType& weightType);
+	      const WeightType::AverageWeightType& weightType);
 
     //! Divide into Npart parts
     void SetNpart(const int& Npart);
@@ -58,6 +55,7 @@ namespace scala
 
     //! Next used & accepted observation, returns -1 if end 
     int next_observation(observation& obs) const;  
+    void reset_next() {nextobs = -1;}
 
     Hkl hkl() const {return this_ref->hkl();}  //!< reduced hkl
 
@@ -65,16 +63,16 @@ namespace scala
     reflection Reflection() const {return *this_ref;}
 
     //! Set weight
-    void SetWeight(const AverageWeightType& weightType);
+    void SetWeight(const WeightType::AverageWeightType& weightType);
 
     //! Set variance weights
-    void SetVarianceWeights() {SetWeight(VARIANCE);}
+    void SetVarianceWeights() {SetWeight(WeightType::VARIANCE);}
 
     //! Set SqrtScale weights
-    void SetSqrtScaleWeights() {SetWeight(SQRTSCALE);}
+    void SetSqrtScaleWeights() {SetWeight(WeightType::SQRTSCALE);}
 
     //! Set unitweights
-    void SetUnitWeights() {SetWeight(UNIT);}
+    void SetUnitWeights() {SetWeight(WeightType::UNIT);}
 
     //! Average I, weight as specified
     IsigI Average();
@@ -88,6 +86,8 @@ namespace scala
     bool HalfAverages(float& I1, float& I2);
     //! Get average I for each random part, return false unless all are present
     bool PartAverages(std::vector<float>& Is);
+    //! Get average IsigI for each random part, return false unless both are present
+    bool HalfAveragesSigI(IsigI& I1sig, IsigI& I2sig);
 
     //! List of deviations delta (ie delI/sigma(I) ) where delI
     //!  is difference from mean of other observations
@@ -141,7 +141,8 @@ namespace scala
   //           = REJECTSMALLER    reject smaller
 
     //! return formatted version of weight
-    static std::string formatWeightType(const AverageWeightType& weighttype );
+    static std::string formatWeightType
+      (const WeightType::AverageWeightType& weighttype );
 
   private:
     const reflection* this_ref;
@@ -159,7 +160,7 @@ namespace scala
     double sumwg2;  // Sum(w g^2)
     // Deviations delI/sigma  from "others"
     std::vector<float> delta;     // for current list
-    AverageWeightType weighttype;   // type of weighting for average
+    WeightType::AverageWeightType weighttype;   // type of weighting for average
     IsigI avIsigI;
     // =  0  observations stored
     // = +1  average calculated

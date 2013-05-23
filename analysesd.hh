@@ -29,6 +29,10 @@ namespace scala
 		 const Normalise& NormRes,
 		 const int& firstAnalysis,
 		 phaser_io::Output& output);
+
+  void AnalyseNormalProbability(SDmodel& SDM, hkl_unmerge_list& hkl_list,
+				all_controls& controls, const bool& plot,
+				phaser_io::Output& output);
   // ------------------------------------------------------------
   class SDMdataNumbers {  // mostly just a struct to return data
   public:

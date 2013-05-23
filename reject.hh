@@ -49,6 +49,8 @@ namespace scala {
     void End() {
       if (rogueplot.IsPlot()) {rogueplot.End();}
     }
+
+    std::string formatXML() const {return rogueplot.formatXML();}
     
   private:
     FILE* rogues;
@@ -58,12 +60,6 @@ namespace scala {
   //  Clear outlier status flags for all observations
   //  Other flags are left unaltered
   void ClearOutlierFlags(hkl_unmerge_list& hkl_list);
-  // ------------------------------------------------------------
-  // Clear all observation status flags (ObservationStatus) back to
-  // the ObservationFlag setting
-  // ie clear outlier & Emax status flags
-  // the ObservationFlag setting is left unaltered
-  void ClearObsStatus(hkl_unmerge_list& hkl_list);
   // ------------------------------------------------------------
   // Check for outliers in all reflections, using parameters in outliercontrol,
   // and set status flags as required on each observation
@@ -82,6 +78,9 @@ namespace scala {
   // ------------------------------------------------------------
   // Returns counts of flagged outliers within I+/-, between +/- and on Emax
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list);
+  // ------------------------------------------------------------
+  // Returns counts of flagged outliers as XML
+  std::string CountOutliersXML(const std::vector<int>& nrejs);
   // ------------------------------------------------------------
   // Returns counts of flagged outliers within I+/-, between +/- and on Emax
   // return[0] number of rejects [1] number on I+- [2] number on Emax

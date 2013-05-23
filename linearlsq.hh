@@ -28,7 +28,7 @@ namespace scala {
 
     // Add in observation:
     //   y   observed value
-    //   x   measurement vector (the firat constant
+    //   x   measurement vector (the first constant
     //       parameter is explicit and should = 1.0,
     //       so x.size() == Nparam)
     //   w   sqrt(weight)

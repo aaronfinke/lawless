@@ -27,6 +27,8 @@
 #include "string_util.hh"
 #include "optimisecombine.hh"
 #include "file_util.hh"
+#include "observationstatuscontrol.hh"
+#include "analyseoverlaps.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -67,6 +69,8 @@ int main(int argc, char* argv[])
   output.setPackageCCP4();
   output.SetMaxLineWidth(600);
   //  output.openOutputStreams("DEBUG");
+  //  output.openOutputStreams("VERBOSE");
+  //  output.setVerbose(true, true);
 
   GlobalControls GC;
   std::string hklin_filename = "";
@@ -81,14 +85,19 @@ int main(int argc, char* argv[])
     if (CL.getXMLOUT() != "")
       {output.setXmlout(CL.getXMLOUT());}
 
+    // Read input & store if not "online"
+    phaser_io::InputAll input(IsOnline(), output);
+    input.Analyse();
+
+    // XMLOUT command
+    if (input.getXMLOUT() != "")
+      {output.setXmlout(input.getXMLOUT());}
+
     output.logHeader(LOGFILE);
     PrintTitle(output);
     if (hklin_filename == "")
       Message::message(Message_fatal("HKLIN filename not given"));
 
-    // Read input & store if not "online"
-    phaser_io::InputAll input(IsOnline(), output);
-    input.Analyse();
 
    // TITLE command, defaults to title from HKLIN file (see below)
     std::string runTitle = input.Title();
@@ -230,6 +239,16 @@ int main(int argc, char* argv[])
 		       hkl_list.symmetry().symbol_xHM(),
 		       output);
 
+    bool multilattice = hkl_list.MultiLattice();
+    // Set to use singletons only for scaling etc, if multiple lattices present
+    SetOverlapFlags(true, hkl_list);
+
+    bool onlyUseSingletons = false;
+    if (hkl_list.NumberofLattices() != hkl_list.NumberofMainLattices()){
+      // Not all (multi)lattices present in file, set gloabl flag to use singletons only
+      onlyUseSingletons = true;
+    }
+
     // Set number of datasets for anomalous outliers 
     controls.outlierScale.SetNdatasets(0);  // no anomalous rejections in scaling
     controls.outlierMerge.SetNdatasets(hkl_list.num_datasets());
@@ -251,27 +270,7 @@ int main(int argc, char* argv[])
       optimiseCombine = false;
     }
     if (Npart > 0) {
-      output.logTab(0,LOGFILE,controls.partials.format());
-    //    output.logTabPrintf(0,LOGFILE,"\nNumber of reflections     =  %10d\n",
-    //			 hkl_list.num_reflections_valid());
-    //    output.logTabPrintf(0,LOGFILE,  "Number of observations    =  %10d\n",Nobs);
-    //    output.logTabPrintf(0,LOGFILE,  "Number of partials        =  %10d\n", Npart);
-
-      if (hkl_list.num_observations_scaled() > 0) {
-	output.logTabPrintf(0,LOGFILE,"Number of scaled partials =  %10d\n",
-			    hkl_list.num_observations_scaled());
-      }
-      output.logTabPrintf(0,LOGFILE,"\n");
-      // Rejects
-      output.logTabPrintf(0,LOGFILE,
-			  "%8d  partial sets rejected with total fraction too small\n",
-			  hkl_list.num_observations_rejected_FracTooSmall());
-      output.logTabPrintf(0,LOGFILE,
-			  "%8d  partial sets rejected with total fraction too large\n",
-			  hkl_list.num_observations_rejected_FracTooLarge());
-      output.logTabPrintf(0,LOGFILE,
-			  "%8d  partial sets rejected with gaps\n",
-			  hkl_list.num_observations_rejected_Gap());
+      PrintPartialCounts(hkl_list, controls, output);
     }
 
     // Set up SD correction model for all runs, fulls & partials for each run
@@ -326,7 +325,7 @@ int main(int argc, char* argv[])
       initialscale = false; // no initial scales
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
-      overallmeankI = ApplyScales(AllScales, hkl_list);
+      overallmeankI = ApplyScales(AllScales, hkl_list, onlyUseSingletons);
 
       // Restore SD correction
       if (!input.SDC_RefineSet()) {
@@ -392,7 +391,7 @@ int main(int argc, char* argv[])
     output.logFlush();
 
     // ----- Initial scales
-    if (FC.initialScale) {
+    if (initialscale) {
       timer.Start();
       InitialScales(hkl_list, AllScales, controls, output);
       output.logTab(0,LOGFILE,
@@ -407,7 +406,8 @@ int main(int argc, char* argv[])
 
     // Set weighting for SD model
     //   (doesn't make a huge difference at least in some tests)
-    SD_model.SetVarianceWeights();
+    SD_model.SetWeight(input.SDCweightType());
+    //    SD_model.SetVarianceWeights();
     //    SD_model.SetSqrtScaleWeights();
     //    SD_model.SetUnitWeights();
 
@@ -434,6 +434,9 @@ int main(int argc, char* argv[])
       }
       output.logTabPrintf(0,LOGFILE,"\n");
 
+      // For the 1st round, force any tile corrections to be radially symmetric
+      AllScales.symmetricTiles(true);
+
       if (controls.refinecontrol.BFGS()) {
 	ScaleRefine(hkl_list, AllScales, controls,
 		    controls.refinecontrol.Ncyc1(), false, output);
@@ -443,7 +446,7 @@ int main(int argc, char* argv[])
       }
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
-      overallmeankI = ApplyScales(AllScales, hkl_list);
+      overallmeankI = ApplyScales(AllScales, hkl_list, onlyUseSingletons);
 
       output.logFlush();
 
@@ -467,6 +470,9 @@ int main(int argc, char* argv[])
 			  nrejs[0], nrejs[1], nrejs[2]);
       output.logFlush();
       // -- End 1st outlier rejection
+
+      // For the 2nd round, allow tile corrections to vary azimuthally
+      AllScales.symmetricTiles(false);
       
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
       output.logTab(0,LOGFILE,
@@ -533,11 +539,11 @@ int main(int argc, char* argv[])
       // Apply all scales
       // All observations are scaled, including rejected ones
       hkl_list.ResetReflAccept();  // set to accept everything
-      ApplyScales(AllScales, hkl_list);
+      ApplyScales(AllScales, hkl_list, onlyUseSingletons);
       output.logTab(0,LOGFILE,
 		    "\nTime for main scaling: "+timer.format(true));
 
-      AllScales.WriteImage("TILEIMAGE");
+      AllScales.WriteImage("TILEIMAGE", output);
 
       output.logFlush();
     }
@@ -584,10 +590,12 @@ int main(int argc, char* argv[])
 	output.logTab(0,LOGFILE,
       "\nSD correction parameters restored from SCALES file\n"+
 		      SD_model.format());
+	output.logTab(0,LXML,SD_model.asXML());
       } else {
 	output.logTab(0,LOGFILE,
 	"\nSD correction parameters\n"+SD_model.format());
       }
+      AnalyseNormalProbability(SD_model, hkl_list, controls, true, output);
     }
 
     // if scaling done, dump scale model and SDmodel
@@ -668,7 +676,7 @@ int main(int argc, char* argv[])
     //  for plotting ice rings, use shortest wavelength all datasets
     float wavelength = 100000000.;
     for (int i=0;i<hkl_list.num_datasets();++i) {
-      wavelength = Min(wavelength, hkl_list.xdataset(i).wavelength());
+      wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
     WriteRogues RoguesList(true, true,
 			   runTitle, hkl_list.Srange().max(), wavelength,
@@ -681,11 +689,41 @@ int main(int argc, char* argv[])
     output.logTabPrintf(0,LOGFILE,
 	"Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
 			nrejs[0], nrejs[1], nrejs[2]);
+    output.logTab(0,LXML,CountOutliersXML(nrejs));
     output.logFlush();
+    // ROGUEPLOT to XML
+    output.logTab(0,LXML, RoguesList.formatXML());
+
+
+    // for each dataset
+    std::vector<Analyseoverlaps>  analyseoverlaps(hkl_list.num_datasets());
+    if (multilattice && !onlyUseSingletons) {
+      // Check all overlapped observations for self overlaps, ie overlaps with the same
+      // or symmetry-related spots (but not Friedel-related).
+      // Now the data are scaled, these overlap set can be combined into a pseudo-singleton
+      // Also accumulate overlap statistics etc
+      SetOverlapFlags(false, hkl_list); // include overlaps
+      bool verbose = true;
+      for (int idts=0;idts<hkl_list.num_datasets();++idts) {
+	// Project/Crystal/Dataset for this dataset
+	PxdName dataset_pxd = hkl_list.dataset(idts).pxdname();
+	output.logTab(0,LOGFILE,"\nCheck for self-overlaps, dataset "+
+		      dataset_pxd.dname());
+	analyseoverlaps[idts].init(hkl_list, idts, verbose, output);
+	int nmerged = analyseoverlaps[idts].NumberMerged();
+	if (nmerged > 0) {
+	    output.logTabPrintf(0,LOGFILE,
+     "  Number of self-overlapped observations reclassified as singletons = %5d\n",
+			    nmerged);
+	}
+      } // end loop datasets
+      SetOverlapFlags(true, hkl_list); // exclude overlaps
+    }
 
     output.logTab(0,LOGFILE,
 		  "\n********************\n* Final statistics *\n********************\n");
     output.logTab(0,LOGFILE,controls.observationflagcontrol.PrintCounts());
+    output.logTab(0,LXML,controls.observationflagcontrol.asXML());
 
     // Smoothing of batch statistics
     double smoothwidth = input.SmoothStatisticsRange(); // angular range, -1 if unset
@@ -715,7 +753,7 @@ int main(int argc, char* argv[])
       // NormRes just used for intensity binning
       // Store summary statistics for this dataset
       // Resolution range for this dataset
-      ResoRange resrangedataset = hkl_list.xdataset(idts).ResRange();
+      ResoRange resrangedataset = hkl_list.dataset(idts).ResRange();
       // For statistics, reset range to go from same "infinite" resolution
       float lowres = 10000.;
       resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
@@ -728,12 +766,10 @@ int main(int argc, char* argv[])
 					     resrangedataset, NormRes, anomds, aslope, output);
       allsummarystatistics.AddSummaryStatistics(sumstat);
 
+      if (multilattice && !onlyUseSingletons) {
+	analyseoverlaps[idts].PrintOverlapTable(output);
+      }
 
-      //      allsummarystatistics.AddSummaryStatistics(
-      //	 Statistics(AllScales, hkl_list, SD_model, controls, idts,
-      //		    resrangedataset, NormRes,
-      //		    allAnomDistributions.Anomdistribution(idts),
-      //		    anomProbSlopes[idts], output));
       bool Result = true;
       if (hkl_list.num_datasets() != 1) {
 	output.logTab(0,LOGFILE,
@@ -743,7 +779,7 @@ int main(int argc, char* argv[])
       // Print summary as a Results table if one dataset
       allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
       output.logFlush();
-    }
+    } // end loop datasets
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,
@@ -755,6 +791,7 @@ int main(int argc, char* argv[])
     output.logTab(0,LOGFILE,
      "==============================================================\n");
 
+    // Output merged data
     MergedList mergedlist;
     if (outputcontrols.Merged()) {
       // Put all data into clipper classes
@@ -763,8 +800,14 @@ int main(int argc, char* argv[])
       scala::WriteMergedOutputFiles(mergedlist,
 				    outputcontrols, output);
     }
+
+    if (multilattice && !onlyUseSingletons) {
+      // Analyse overlaps
+      SetOverlapFlags(true, hkl_list); // include overlaps
+      //# AnalyseOverlaps(hkl_list)
+    }
     if (outputcontrols.UnMerged()) {
-      // Output unmerged reflections file(s)
+      // Output unmerged reflections file(s), including overlaps
       scala::WriteUnmergedOutputFiles(runTitle, hkl_list, SD_model,
 				      NormRes.Imax(), outputcontrols, output);
     }

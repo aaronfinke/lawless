@@ -12,6 +12,7 @@
 
 #include <map>
 #include "hkl_datatypes.hh"
+#include "dataset.hh"
 #include "hkl_controls.hh"
 #include "controls.hh"
 #include "hkl_symmetry.hh"
@@ -22,6 +23,7 @@
 #include "runthings.hh"
 
 namespace scala {
+  const int MAXNLATTICES = 9;  // maximum number of lattices allowed
   //==============================================================
   class data_flags
   //! Data column flags to indicate which columns are present in the file
@@ -30,17 +32,29 @@ namespace scala {
   public:
     data_flags();  //!< Compulsory flags set true, others false
     void print() const; // for debugging
+
+    // set up flags for multilattice output, for maxNoverlap sets of columns
+    // if scalecolumn true, include a column for the scale
+    void SetMultilatticeFlags(const int& maxNoverlap,
+			      const bool& scalecolumn=false);
     
     bool is_h, is_k, is_l, is_misym, is_batch,
       is_I, is_sigI, is_Ipr, is_sigIpr, is_fractioncalc,
       is_Xdet, is_Ydet, is_Rot, is_Width, is_LP, is_Mpart,
-      is_ObsFlag, is_BgPkRatio, is_scale, is_sigscale, is_time;
+      is_ObsFlag, is_BgPkRatio, is_scale, is_sigscale, is_time,
+    // is_latnum   if LATTNUM column present (ie multiple lattices)
+    // is_lathkl   just H1, K1, L1 etc, ie Mosflm output
+    // is_latinfo  LatticeIndexInfo present
+    // is_latscale true if lattice info includes a scale column
+    //    is_lathkl & is_latinfo are exclusive
+      is_latnum, is_lathkl, is_latinfo, is_latscale;
+    int n_latinfo;  // number of lattice info column sets
   };  // data_flags
   //===================================================================
   // *******************   observation, reflections etc
   class SelectI 
   {
-    //!< A static class to select profile-fitted, summeation integrated, or combined intensity
+    //!< A static class to select profile-fitted, summation integrated, or combined intensity
     //
 
   public:
@@ -88,16 +102,36 @@ namespace scala {
     static bool iprpresent; // true if we have a second intensity Ipr stored
   //===================================================================
   };  // SelectI
+  //==============================================================
+  class LatticeIndexInfo {
+    // Information for overlapped reflection indices etc
+  public:
+    LatticeIndexInfo() : latnum(0), gscale(1.0) {}
+    LatticeIndexInfo(const int& Latnum, const Hkl& jhkl,
+		const Rtype& Gscale=1.0);
+    void init(const int& Latnum, const Hkl& jhkl,
+	      const Rtype& Gscale=1.0);
 
-// PartFlagSwitch
-//   EMPTY  nothing stored
-//   FULL   fully recorded reflection (1 part)
-//   COMPLETE_CHECKED  complete, all Mpart flags consistent
-//   COMPLETE passed total fraction checks
-//   SCALE passed checks to be scaled
-//   INCOMPLETE
-//   EXCLUDED
- enum PartFlagSwitch
+    bool operator == (const LatticeIndexInfo& other) const
+    {return (latnum == other.latnum) && (hkl == other.hkl);}
+
+    bool operator != (const LatticeIndexInfo& other) const
+    {return (latnum != other.latnum) || (hkl != other.hkl);}
+
+    int latnum; // lattice number
+    Hkl hkl;    // hkl in that lattice
+    Rtype gscale;   // inverse scale g
+  };
+  //==============================================================
+  // PartFlagSwitch
+  //   EMPTY  nothing stored
+  //   FULL   fully recorded reflection (1 part)
+  //   COMPLETE_CHECKED  complete, all Mpart flags consistent
+  //   COMPLETE passed total fraction checks
+  //   SCALE passed checks to be scaled
+  //   INCOMPLETE
+  //   EXCLUDED
+  enum PartFlagSwitch
    {EMPTY, FULL, COMPLETE_CHECKED, COMPLETE, SCALE, INCOMPLETE, EXCLUDED};
   //===================================================================
   //! An observation of an intensity: may be a partial
@@ -106,9 +140,9 @@ namespace scala {
   // run is set by call from hkl_unmerge_list::organise
   {
   public:
-
     // constructors
-    observation_part();  // don't use 
+    observation_part():isym_(-1) {};  // empty part, test with Valid()
+ 
     observation_part(const Hkl& hkl_in,
                      const int& isym_in, const int& batch_in,
                      const Rtype& I_in, const Rtype& sigI_in,
@@ -118,14 +152,21 @@ namespace scala {
                      const Rtype& fraction_calc_in, const Rtype& width_in,
                      const Rtype& LP_in,
                      const int& Npart_in, const int& Ipart_in,
-                     const ObservationFlag& ObsFlag_in);
+                     const ObservationFlag& ObsFlag_in,
+		     const int& latnum_in,
+		     const std::vector<LatticeIndexInfo>& lathkl_in=
+ 		       std::vector<LatticeIndexInfo>());
+
     // Npart is number of parts, from input (MPART)
     //       = 1 for full, = -1 unknown but partial
     // Ipart serial number in parts, from input (MPART)
     //       = 1 for full or unknown
 
-    void set_run(const int& run) {run_ = run;}  //!< set by call from hkl_unmerge_list::organise
+    bool Valid() const {return (isym_ >= 0);}
+    // mark as invalid
+    void SetInvalid() {isym_ = -1;}
 
+    void set_run(const int& run) {run_ = run;}  //!< set by call from hkl_unmerge_list::organise
 
     inline  IsigI I_sigI() const {return IsigI(I_, sigI_);}
     inline  Rtype Ic() const {return I_;}       // actual I column
@@ -161,17 +202,32 @@ namespace scala {
     inline  ObservationFlag ObsFlag() const {return ObsFlag_;}
     inline  int run() const {return run_;}
     inline  Hkl hkl()  const {return hkl_;};
-
+    inline  int latnum() const {return latnum_;}
+    inline std::vector<LatticeIndexInfo> lathkl() const {return lathkl_;}
+   
     void set_isym(const int& isym) {isym_ = isym;}  // set isym
     void set_hkl(const Hkl& hkl) {hkl_ = hkl;} // set hkl
     void set_batch(const int& Batch) {batch_ = Batch;} // set batch number
     void set_phi(const Rtype& Phi) {phi_ = Phi;} // set Phi
+    void set_time(const Rtype& time) {time_ = time;} // set Time
     void offset_phi(const Rtype& Offset) {phi_ += Offset;} // offset Phi
     void offset_time(const Rtype& Offset) {time_ += Offset;} // offset Time
     void negate_time() {time_ = -time_;} // negate Time
+    void set_fraction_calc(const Rtype& fraction_calc) {fraction_calc_ = fraction_calc;}
+    void set_width(const Rtype& width) {width_ = width;} // set width
+    void set_XYdet(const Rtype& xdet, const Rtype& ydet) {Xdet_=xdet; Ydet_=ydet;}
+    void set_latnum(const int& latnum) {latnum_ = latnum;}
+    void set_lathkl(const std::vector<LatticeIndexInfo>& lathkl) {lathkl_ = lathkl;}
+    void set_Npart(const int& Npart) {Npart_ = Npart;}
+    void set_Ipart(const int& Ipart) {Ipart_ = Ipart;}
+
+    // apply scale to both IsigIs
+    void ScaleIsigI(const Rtype& scale);
+
+    std::string format() const;   // for debugging
 
   private:
-    Hkl hkl_;
+    Hkl hkl_;                  // reduced hkl
     int isym_, batch_;
     Rtype I_, sigI_;           // from column I
     Rtype Ipr_, sigIpr_;           // from column Ipr (if present)
@@ -180,6 +236,9 @@ namespace scala {
     int  Npart_, Ipart_;
     ObservationFlag ObsFlag_;
     int run_;
+    int latnum_;  // lattice number corresponding to main hkl_
+    // hkl for each lattice (original hkl) etc, may be empty
+    std::vector<LatticeIndexInfo> lathkl_;
   };  // class observation_part
 
   //===================================================================
@@ -196,7 +255,9 @@ namespace scala {
 		observation_part ** const part1_in, 
 		const Rtype& TotFrac,
 		const PartFlagSwitch& partialstatus_in,
-		const ObservationFlag& obsflag_in);
+		const ObservationFlag& obsflag_in,
+		const int& latnum_in=0,
+		const std::vector<LatticeIndexInfo>& lathkl_in=std::vector<LatticeIndexInfo>());
 
     // Accessors
     Rtype I() const {return I_;}    //!< return I
@@ -244,6 +305,9 @@ namespace scala {
     float TotalFraction() const {return totalfraction;} //!< return total fraction
     int Batch() const;  //!< return central batch number
 
+    //! return range of batches for this observation
+    IntRange BatchRange() const;
+
     // Partial status flag
     PartFlagSwitch PartFlag() const {return part_flag;} //!< return partial status
 
@@ -283,6 +347,16 @@ namespace scala {
     //! set status flag
     void UpdateStatus(const ObservationStatus& Status) {obs_status = Status;}
 
+    // Multiple lattice things
+    //! return lattice number for main hkl, = 0 for single lattice
+    int MainLatticeNumber() const {return latnum;}
+    //! return list of hkl information for each overlapped lattice (original hkl)
+    std::vector<LatticeIndexInfo> lathkl() const {return lathkl_;}
+    //! true if this observation is single, ie not overlapped
+    bool IsSingleton() const {return (lathkl_.size() == 0);}
+    //! Store lathkl for overlaps for scales (relative lattice fraction) in lathkl_
+    void StoreLathkl(std::vector<LatticeIndexInfo>& lathkl) {lathkl_ = lathkl;}
+
   private:
     Hkl hkl_original_;
     int isym_;
@@ -301,7 +375,9 @@ namespace scala {
     Rtype LP_;
     ObservationStatus obs_status;
     Rtype thetap, phip;   // secondary beam direction polar angles
-    FVect3 s_dif;         // diffraction vector at Phi setting, rlu
+    FVect3 s_dif;             // diffraction vector at Phi setting, 1/A units
+    int latnum;  // lattice number for main hkl
+    std::vector<LatticeIndexInfo> lathkl_; // hkl info for each lattice (original hkl)
   }; // class observation
 
   //===================================================================
@@ -415,7 +491,7 @@ namespace scala {
 	      const int& NreflReserve, 
 	      const hkl_symmetry& symmetry,
 	      const all_controls& controls,
-	      const std::vector<Xdataset>& DataSets,
+	      const std::vector<Dataset>& DataSets,
 	      const std::vector<Batch>& Batches);
     //! Initialise for internal writing,dataset and batch information added later
     void init(const std::string& Title,
@@ -432,12 +508,12 @@ namespace scala {
     bool IsReady() const {return (status == SUMMED);}
 
     //! Store datasets & batch info following previous call to init
-    void StoreDatasetBatch(const std::vector<Xdataset>& DataSets,
+    void StoreDatasetBatch(const std::vector<Dataset>& DataSets,
 			   const std::vector<Batch>& Batches);
 
     //! append datasets & batch info following previous call to init
     /*! This may be one of several calls*/
-    void AddDatasetBatch(const std::vector<Xdataset>& DataSets,
+    void AddDatasetBatch(const std::vector<Dataset>& DataSets,
 					   const std::vector<Batch>& Batches);
 
     //! Add in another hkl_unmerge_list to this one
@@ -513,8 +589,8 @@ namespace scala {
     Rtype DstarMax() const;                                   //!< maximum d* = lambda/d
     // Return dataset stuff
     int num_datasets() const {return ndatasets;} //!< number of datasets
-    Xdataset xdataset(const int& jset) const {return datasets.at(jset);}  //!< jset'th dataset
-    std::vector<Xdataset> AllXdatasets() const {return datasets;} //!< all datasets
+    Dataset dataset(const int& jset) const {return datasets.at(jset);}  //!< jset'th dataset
+    std::vector<Dataset> AllDatasets() const {return datasets;} //!< all datasets
     // Return batch stuff
     int num_batches() const {return nbatches;} //!< number of batches
     int num_accepted_batches() const;          //!< number of accepted batches
@@ -537,6 +613,12 @@ namespace scala {
     // Run stuff
     int num_runs() const {return runlist.size();} //!< number of runs
     std::vector<Run> RunList() const {return runlist;}  //!< all runs
+    //! Store use run flags
+    void StoreUseRun(const std::vector<bool>& userun);
+    //! Return use run flags
+    std::vector<bool> UseRun() const
+    {return run_flags.UseRun();}
+
 
     //! Apply offset to batch numbers, one offset for each run
     void OffsetBatchNumbers(const std::vector<int>& runOffsets);
@@ -586,6 +668,21 @@ namespace scala {
     observation_part& find_part(const int& i) const;
     //! Total number of parts. Required for MTZ dump, otherwise for internal use
     int num_parts() const {return int(N_part_list);} // length of part list
+
+    // // ! set number of lattices (shouldn't be necessary
+    //    void SetNumberofLattices(const int& nlat) {nlattices = nlat;}
+    //! return number of lattices overall
+    int NumberofLattices() const {return nlatticesall;}
+    //! return number of "main" lattices (ie identified in a LATTNUM column)
+    int NumberofMainLattices() const {return nlattices;}
+    //! return maximum number of overlapped spots on observation (excluding itself)
+    int MaxHKLoverlap() const {return maxhkloverlap;}
+    //! return true if multilattice data
+    bool MultiLattice() const {return (nlatticesall > 0);}
+    //! Apply offset to lattice numbers
+    void OffsetLatticeNumbers(const int& latticeoffset);
+    //! store lattice numbers for each run FIXME
+    void SetLatticeforRuns(const std::vector<int> latnumrun);
 
     // Do things             -------------------------------
 
@@ -669,7 +766,11 @@ namespace scala {
 		    const Rtype& fraction_calc_in, const Rtype& width_in,
 		    const Rtype& LP_in, 
 		    const int& Npart_in, const int& Ipart_in,
-		    const ObservationFlag& ObsFlag_in);
+		    const ObservationFlag& ObsFlag_in,
+		    const int& latnum_in=0,
+		    const std::vector<LatticeIndexInfo>& lathkl_in=std::vector<LatticeIndexInfo>());
+    //! Add raw observation part (spots)
+    void store_part(const observation_part& part);
     //! finish adding parts
     int close_part_list(const ResoRange& RRange,
 			const bool& Sorted);  // returns number of observations
@@ -686,18 +787,6 @@ namespace scala {
     void AutoSetRun();
 
   private:
-    void initialise(const int NreflReserve, 
-		    const hkl_symmetry& symmetry);
-
-    // organise observations into reflections
-    int organise();   // returns number of reflections
-    // assemble partials into observations, returns number of observations
-    int partials();
-    void MakeHklLookup() const;
-
-    void SetBatchList();
-    void AverageBatchData();
-
     // Status:-
     //   EMPTY          initial state
     //   RAWLIST        raw observation list read in
@@ -756,7 +845,7 @@ namespace scala {
     Rings Icerings;
 
     // Datasets & batches
-    std::vector<Xdataset> datasets;
+    std::vector<Dataset> datasets;
     int ndatasets;
     std::vector<Batch> batches;      // list of batches
     int nbatches;
@@ -779,13 +868,36 @@ namespace scala {
     // Flags for which data items are actually present
     data_flags dataflags;
 
+    // > 0 if multiple lattices present, else both == 0
+    // number of main lattices (ie identified in a LATTNUM column and present in the data)
+    int nlattices;  
+    // total number of lattices mentioned, may be > nlattices if some are not present here
+    int nlatticesall;
+    int maxhkloverlap;  // maximum number of overlapped hkl on any one observation (excluding itself)
+    int maxlatnum;
+
     // ****  Private member functions
-    // sort part list
-    void sort();
+    void initialise(const int NreflReserve, 
+		    const hkl_symmetry& symmetry);
+
+    // organise observations into reflections
+    int organise();   // returns number of reflections
+    // assemble partials into observations, returns number of observations
+    int partials();
+    void MakeHklLookup() const;
+
+    void SetBatchList();
+    void AverageBatchData();
+    Scell AverageOtherBatchData(const std::vector<Batch>& batches,
+				const int& ndatasets,
+				std::vector<float>& averageMosaicity,
+				std::vector<float>& averageWavelength,
+				std::vector<Scell>& avbcell) const;
+    void sort();    // sort part list
+
     // for the organise method
     void add_refl(const Hkl& hkl_red, const int& index, const Dtype& s);
     void end_refl(const int& index);
-
 
     void set_run();   // set all runs in part list
 
@@ -807,8 +919,18 @@ namespace scala {
     // Are new datasets the same as any old ones?
     // For each dataset from other list, store equivalent dataset
     // index in present list, if it is the same dataset
-    void MergeDatasetLists(const std::vector<Xdataset>& otherDatasets,
+    void MergeDatasetLists(const std::vector<Dataset>& otherDatasets,
 			   const std::vector<Batch>& otherBatches);
+
+    // add in any additional lathkl components from newlathkl into lathkl
+    void CombineLathkl
+    (std::vector<LatticeIndexInfo>& lathkl,
+     const std::vector<LatticeIndexInfo>& newlathkl) const;
+
+    // update counts for each lattice mentioned in lathkl list
+    void UpdateNumberInLattice(std::vector<int>& numberinlatticeall,
+			       const std::vector<LatticeIndexInfo> lathkl) const;
+
 
     struct ComparePartOrder
     // This construct seems to be a way of getting pointer-to-function

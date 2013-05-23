@@ -20,7 +20,7 @@ namespace scala {
     //! Linear interpolation is used between bin values
     //
   public:
-    ResolutionLimit() : status(-2){}
+    ResolutionLimit() : limit(0.0), highres(0.0), status(-2) {}
     //! construct from score list, resolution range and minimum score
     ResolutionLimit(const std::vector<double> score,
 		    const ResoRange& ResRange,

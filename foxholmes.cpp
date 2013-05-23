@@ -3,8 +3,8 @@
 
 // Test routine for simple-minded Fox-Holmes scaling
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 
 #include "foxholmes.hh"

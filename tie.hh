@@ -43,7 +43,7 @@ public:
   // Constructor for tie between 2
   Tie(const int& kindex1, const int& kindex2, const double& Weight)
     : target(0.0), weight(Weight)  
-  {kpidx.resize(2); kpidx[0] = kindex1; kpidx[2] = kindex2;}
+  {kpidx.resize(2); kpidx[0] = kindex1; kpidx[1] = kindex2;}
   // Constructor for tie between 2 or more parameters
   Tie(const std::vector<int>& kindex, const double& Weight)
     : target(0.0), weight(Weight)  {kpidx = kindex;}

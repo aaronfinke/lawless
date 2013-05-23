@@ -1,7 +1,8 @@
 // imagearray.cpp
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
+
 #include <string.h>
 #include "imagearray.hh"
 #include "file_util.hh"
@@ -27,6 +28,7 @@ Imagearray::Imagearray(const clipper::Array2d<double>& array)
 //--------------------------------------------------------------
 void Imagearray::init(const clipper::Array2d<double>& array)
 //! initialise from 2D array
+//   input array is (x,y), output data has 
 {
   lenheader = 512;
   title = "ADSC format image";
@@ -44,7 +46,7 @@ void Imagearray::init(const clipper::Array2d<double>& array)
     for (int j=0;j<size2;++j) { // loop y
       ASSERT (array(i,j) >= 0.0);
       uint16_t d = scale*array(i,j);
-      size_t k = i*size2 + j;
+      size_t k = i + j*size1;
       data[k] = d;
     }}
 }
@@ -73,7 +75,7 @@ void Imagearray::init(const clipper::Array2d<scala::MeanSD>& array, const bool& 
 	value = array(i,j).SD();
       }
       uint16_t d = scale*value;
-      size_t k = i*size2 + j;
+      size_t k = i + j*size1;
       data[k] = d;
     }}
 }
@@ -84,16 +86,14 @@ void Imagearray::Write(const std::string& filename) const
   // output binary file
   FILE* opfile = OpenFile(filename, true, true);
   std::string header = MakeHeader();
-  char hd[lenheader];
-  strcpy(hd, std::string(lenheader,' ').c_str());
-  strcpy(hd, header.c_str());
-  int n = fwrite(hd, sizeof(char), lenheader, opfile);
-  if (n < header.size()) {
+  int n = fwrite(header.c_str(), sizeof(char), lenheader, opfile);
+  if (n < int(header.size())) {
     Message::message(Message_fatal
-		     ("Imagearray::Write failed to write header"));
+		     ("Imagearray::Write failed to write header: "+
+		      StringUtil::itos(n,5)+", "+StringUtil::itos(int(header.size()),5)));
   }
   n = fwrite(&*data.begin(), sizeof(uint16_t), data.size(), opfile);
-  if (n < data.size()) {
+  if (n < int(data.size())) {
     Message::message(Message_fatal
 		     ("Imagearray::Write failed to write data"));
   }
@@ -134,6 +134,10 @@ void Imagearray::Write(const std::string& filename) const
   header += HeaderLineInt("IMG_SIZE2", imgsize2, 6);
   header += "DISTANCE=100.;\n";
   header += "}\f";
+  // Pad to length lenheader 
+  int nextra = lenheader - header.size();
+  header += std::string(nextra, ' ');
+  ASSERT (int(header.size()) == lenheader);
   return header;
 }
 //--------------------------------------------------------------

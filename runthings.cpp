@@ -4,15 +4,17 @@
 
 #include "runthings.hh"
 #include "string_util.hh"
+#include "dataset.hh"
 
 namespace scala {
   //--------------------------------------------------------------
   Run::Run() {clear();}
   //--------------------------------------------------------------
-  Run::Run(const int& DatasetIndex)
+  Run::Run(const int& DatasetIndex, const int& DatasetID)
   {
     clear();
     dataset_index= DatasetIndex;
+    datasetID = DatasetID;
   }
   //--------------------------------------------------------------
   void Run::clear()
@@ -20,6 +22,7 @@ namespace scala {
     batch_number_list.clear();
     runnumber = 0;
     dataset_index = -1;
+    datasetID = -1;
     batch_number_offset = 0;
     batchserial0 = 0;
     file_number = 0;
@@ -32,6 +35,7 @@ namespace scala {
     fullsandpartials = FULLSANDPARTIALS;
     resrangeset = false;
     resrange = ResoRange();
+    use_ = true;
   }
   //--------------------------------------------------------------
   void Run::clearCounts()
@@ -78,13 +82,13 @@ namespace scala {
     batch_number_offset += offset;
   }
   //--------------------------------------------------------------
-  std::string Run::formatPrint(const std::vector<Xdataset>& datasets) const
+  std::string Run::formatPrint(const std::vector<Dataset>& datasets) const
   {
     std::string s =
       FormatOutput::logTabPrintf(0,
 	      "\nRun number: %3d  Dataset: %3d %s consists of batches:-",
 			 runnumber, dataset_index+1,
-			 datasets[dataset_index].pxdname().format().c_str());
+				 datasets[dataset_index].pxdname().format().c_str());
     const int nperline = 15;
     ASSERT (batch_number_list.size() == batch_accepted.size());
     for (size_t i=0;i<batch_number_list.size();i++)  {
@@ -93,6 +97,13 @@ namespace scala {
 	s += FormatOutput::logTabPrintf(0," %6d", batch_number_list[i]);
       }
     }
+    if (latnum > 0) {
+      s += " Lattice number " + StringUtil::itos(latnum, 2);
+    }
+    if (!use_) {
+      s += " [Not Used]";
+    }
+
     s += FormatOutput::logTabPrintf(0,"\n");
     if (resrangeset) {
       s +=  FormatOutput::logTabPrintf(0,"\n   Resolution range for run: %8.2f    %8.2f\n",
@@ -110,7 +121,7 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
-  std::string Run::formatPrintBrief(const std::vector<Xdataset>& datasets) const
+  std::string Run::formatPrintBrief(const std::vector<Dataset>& datasets) const
   {
     // Only list accepted batches
     std::string s;
@@ -130,20 +141,27 @@ namespace scala {
 	}
       }
 
-      s = FormatOutput::logTabPrintf(3,
-				     "Run number: %3d consists of batches %6d to %6d\n",
+      s = FormatOutput::logTabPrintf(2,
+				     "Run number: %3d consists of batches %6d to %6d",
 				     runnumber, 
 				     firstbatch, lastbatch);
+      if (latnum > 0) {
+	s += " Lattice number " + StringUtil::itos(latnum, 2);
+      }
+      if (!use_) {
+	s += " [Not Used]";
+      }
+      s += "\n";
       if (resrangeset) {
-	s +=  FormatOutput::logTabPrintf(4,"Resolution range for run: %8.2f    %8.2f\n",
+	s +=  FormatOutput::logTabPrintf(3,"Resolution range for run: %8.2f    %8.2f\n",
 					 resrange.ResLow(), resrange.ResHigh());
       }
-      s += FormatOutput::logTabPrintf(4,
+      s += FormatOutput::logTabPrintf(3,
 				      "Phi range: %8.2f to %8.2f   Time range: %8.2f to %8.2f\n",
 				      phirange.first(),phirange.last(),
 				      timerange.first(),timerange.last());
       if (validorientation) {
-	s += FormatOutput::logTab(4,
+	s += FormatOutput::logTab(3,
 				  "Closest reciprocal axis to spindle: "+
 				  spindletoprincipleaxis);
       }

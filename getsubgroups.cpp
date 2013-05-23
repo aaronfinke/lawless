@@ -78,13 +78,16 @@ namespace scala
     std::vector<bool> keepsubgroup(subgroups.size(), true); // flags to keep subgroup
     bool anyremoved = false;
 
-    for (size_t igl=0;igl<subgroups.size();++igl) { // Loop lattice subgroups
-      //^      std::cout << "\nGroup " << igl << " LGname " << subgroups[igl].LGname() << "\n";      
+    // Loop lattice subgroups
+    for (size_t igl=0;igl<subgroups.size();++igl) {
+      //      std::cout << "\nGroup " << igl << " LGname " << subgroups[igl].LGname() << "\n"; //^
       // loop symmetry elements in mergeSymm
       for (int iel=0;iel<mergeSymm.Nelement();++iel) {
 	// 1st op in element
 	clipper::Symop invsymop = mergeSymm.ClipperSymopInElement(0,iel);
+	//	std::cout << "Element "<<iel<<" : "<<invsymop.format() <<"\n"; //^
 	invsymop = reindex.Symop(invsymop); // reindex to lattice cell
+	//	std::cout <<invsymop.format() <<"\n"; //^
 	std::vector<double> Rmatrix =  MVutil::SetVMat33(invsymop.rot()); // ... as matrix
 	// Is this element in the subgroup?
 	if (!subgroups[igl].HasElement(Rmatrix)) {
@@ -109,14 +112,13 @@ namespace scala
 	  //^
 	  //	  std::cout << "Keeping group " << subgroups[igl].LGname() << "\n"; //^
 	  //	} else {
-	  //^
 	  //	  std::cout << "Removing group " << subgroups[igl].LGname() << "\n"; //^
 	}
       }
       subgroups.resize(++k);
       //^      std::cout << "\nRemaining groups:\n";
       //      for (int igl=0;igl<subgroups.size();++igl) { // Loop lattice subgroups
-      //      	std::cout << "Lattice subgroup " << subgroups[igl].LGname() << "\n"; //^
+      //	std::cout << "Lattice subgroup " << subgroups[igl].LGname() << "\n"; //^
       //      }
       //^-
     }

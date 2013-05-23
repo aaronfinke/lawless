@@ -5,15 +5,15 @@
 
 #include "resolutionlimit.hh"
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 namespace scala {
   // ------------------------------------------------------------
   ResolutionLimit::ResolutionLimit(const std::vector<double> score,
 				   const ResoRange& ResRange,
 				   const double& Limit)
-    : status(-2)
+    : limit(0.0), highres(0.0), status(-2)
   //! construct from score list, resolution range and minimum score
   {
     init(score, ResRange, Limit);

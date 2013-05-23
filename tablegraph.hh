@@ -1,45 +1,44 @@
 //
 //   tablegraph.hh
 //
-//!  TableGraph class for writing table for loggraph
-//!
-//! Graph syntax (ccp4 6.1)
-//! ============
-//! 
-//!  $TABLE :table name:
-//!  $GRAPHS :graph1 name:graphtype:column_list:
-//!          :graph2 name:graphtype:column_list:
-//!          :graph 3 ...: ... $$
-//!  column1_name column2_name ... $$ any_characters $$
-//!   numbers $$
-//!
-//!  graphtype is
-//!  
-//!  A[UTO]
-//!     for fully automatic scaling (e.g. ... :A:1,2,4,5:)
-//!  N[OUGHT]
-//!    for automatic y coordinate scaling, where y lowest limit is 0
-//!    (e.g. ... :N:1,2,4,5:)
-//!  XMIN|XMAXxYMIN|YMAX
-//!    for user defined scaling where XMIN ... are axis limits
-//!    (e.g. ... :0|100x-1|1:1,2,4,5:)
-//!  
-//!  
+//!  TableGraph class for writing table for loggraph or qloggraph (aka Pimple)
+//
+// LogGraph syntax (ccp4 6.1)
+// ============
+// 
+//  $TABLE :table name:
+//  $GRAPHS :graph1 name:graphtype:column_list:
+//          :graph2 name:graphtype:column_list:
+//          :graph 3 ...: ... $$
+//  column1_name column2_name ... $$ any_characters $$
+//   numbers $$
+//
+//  graphtype is
+//  
+//  A[UTO]
+//     for fully automatic scaling (e.g. ... :A:1,2,4,5:)
+//  N[OUGHT]
+//    for automatic y coordinate scaling, where y lowest limit is 0
+//    (e.g. ... :N:1,2,4,5:)
+//  XMIN|XMAXxYMIN|YMAX
+//    for user defined scaling where XMIN ... are axis limits
+//    (e.g. ... :0|100x-1|1:1,2,4,5:)
+//  
 
 #ifndef TABLEGRAPH_HEADER
 #define TABLEGRAPH_HEADER
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 #include <string>
 #include <vector>
 #include "range.hh"
 
 class GraphAxesType {
-  //! graph axis type for x and y axes
+  //! graph axis type for both x and y axes
   //
-  //!  Loggraph options are:
+  //!  [Q]Loggraph options are:
   //!  A[UTO]
   //!     for fully automatic scaling of y axis (e.g. ... :A:1,2,4,5:)
   //!  N[OUGHT]
@@ -48,12 +47,14 @@ class GraphAxesType {
   //!  XMIN|XMAXxYMIN|YMAX
   //!    for user defined scaling where XMIN ... are axis limits
   //!    (e.g. ... :0|100x-1|1:1,2,4,5:)
+  //!  ONEOVERSQRT for resolution x-axis
   //!
   //!  these may be extended in future
 public:
   enum GraphType {AUTO_Y, NOUGHT_Y, XY_SPECIFIED};
   //! construct as default
-  GraphAxesType() : graphtype(AUTO_Y){} // default
+  GraphAxesType() : graphtype(AUTO_Y), xinvresolsq(false),
+		    zeroy(false) {} // default
   //! construct as specified
   GraphAxesType(const GraphType& gt) : graphtype(gt){}
   //! construct as explicit X,Y ranges, ZeroY true to start Y at 0
@@ -64,72 +65,263 @@ public:
   //! initialise as explicit X,Y ranges, ZeroY true to start Y at 0
   void init(const scala::Range& Xrange, const scala::Range& Yrange,
 	    const bool& ZeroY);
+  //! X-axis range and type flag (true for 1/d^2)
+  void SetXaxis(const scala::Range& Xrange, const bool& isinvresolsq);
+  //! Y-axis range and ZeroY true to start Y at 0
+  void SetYaxis(const scala::Range& Yrange, const bool& ZeroY);
+
   //! return type
   GraphType Graphtype() const {return graphtype;}
-  //! return formatted for graph
+
+  //! return formatted for loggraph
   std::string FormatType() const;
 
 private:
   GraphType graphtype;
   scala::Range xrange;
+  bool xinvresolsq;  // true if x axis is 1/d^2
   scala::Range yrange;
+  bool zeroy;  // true if Y axis should start at zero
 
   // Fix Yrange to be "sensible"
   // If ZeroY true, then y range should start at 0
   void FixYrange(const bool& ZeroY);
 };
 
+// Definitions in TableGraphPlotline & TableGraphPlot follow Pimple,
+// though not all options are currently supported
+// Many defaults can be left blank
+
+//! a plotline corresponds to a set of data points drawn with a style
+class TableGraphPlotline {
+  //! Only Xcol, Ycol are relevant for loggraph
+public:
+  TableGraphPlotline();
+  //! Construct with properties
+
+  //! \param Xcol, Ycol column numbers for x, y (from 1)
+  //! \param colour string (see below)
+  //! \param symbol a character to define the symbol drawn (see below)
+  //! \param symbolsize = -1 for default
+  //! \param linestyle string, eg "SOLID"
+  //! \param linewidth = -1 for default
+  //!
+  //! Colour: allowed values red, green, blue, yellow, magenta, cyan, black,
+  //! or r, g, b, y, m, c, k,
+  //! or any other colour specification understood by matplotlib,
+  //! e.g. orange, #ff7700.
+  //!
+  //! Symbol strings are 
+  //! 'o','s','d','^','>','<','p','h','*','$\\lambda$',
+  //! '$\\bowtie$', '$\\circlearrowleft$', '$\\clubsuit$', '$\\checkmark$'.
+  //! These values correspond to:
+  //! 'Circle','Square','Diamond','Up arrow','Right arrow','Left arrow',
+  //! 'Pentagon','Hexagon','Star', 'Lambda',
+  //! 'Bow tie','Circle arrow left','Clubs (as in playing cards)','Tick'. 
+  //!
+  //! Linestyles are
+  //! 'Solid','Dashed','Dash-dot','Dotted','Blank' (case-insensitive)
+  //! corresponding to: '-','--','-.',':','.',
+
+  TableGraphPlotline(const int& Xcol, const int& Ycol,
+		     const std::string& colour="",
+		     const std::string& symbol="",
+		     const int& symbolsize=-1,
+		     const std::string& linestyle="",
+		     const int& linewidth=-1);
+
+  void init();
+  //! Initialise with all properties (or xcol,ycol), cf constructor
+  void init(const int& Xcol, const int& Ycol,
+	    const std::string& colr="",
+	    const std::string& symbol="",
+	    const int& symbolsize=-1,
+	    const std::string& linestyle="",
+	    const int& linewidth=-1);
+  //! Set line symbol type
+  void SetSymbol(const std::string& symb, const int& size=-1);
+  //! Set line type
+  void SetLine(const std::string& linestyle, const int& width=-1);
+  //! Set colour
+  void SetColour(const std::string& col);
+
+  int Xcol() const {return xcol;} //!< return x-column
+  int Ycol() const {return ycol;} //!< return y-column
+
+  //! return formatted XML block
+  std::string XMLformat(const int& xcolbreak) const;
+  //!< if xcolbreak >= 0, then use this column for x axis instead of xcol
+
+
+private:
+  int xcol, ycol;  // x & y columns numbers, from 1
+
+  // symbol values:
+  // 'o','s','d','^','>','<','p','h','*','$\lambda$',
+  // '$\bowtie$', '$\circlearrowleft$', '$\clubsuit$', '$\checkmark$'.
+  // These values correspond to:
+  // 'Circle','Square','Diamond','Up arrow','Right arrow','Left arrow',
+  // 'Pentagon','Hexagon','Star', 'Lambda',
+  // 'Bow tie','Circle arrow left','Clubs (as in playing cards)','Tick'. 
+  std::string symbol;
+  int symbolsize;
+
+  std::string slinestyle; // 'Solid','Dashed','Dash-dot','Dotted','Blank'
+  // The style of the line, allowed values:
+  // '-','--','-.',':','.',
+  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'. 
+  std::string linestylevalue;
+  int linesize; // line width
+
+  // Colour: allowed values red, green, blue, yellow, magenta, cyan, black,
+  // or r, g, b, y, m, c, k,
+  // or any other colour specification understood by matplotlib,
+  // e.g. orange, #ff7700.
+  std::string colour; 
+  std::string label; // for legend
+  bool showinlegend; // show line in legend, not used yet
+
+  // convert string to LineStyle
+  static std::string Style(const std::string& style);
+
+};
+
+//! A plot contains one or more plotlines, etc, and styles
+class TableGraphPlot {
+public:
+  TableGraphPlot();
+  //! Construct with graph title
+  TableGraphPlot(const std::string& ptitle);
+
+  //! Initialise with graph title
+  void init(const std::string& ptitle);
+
+  //! Define X-axis properties
+
+  //! \param label    for axis, "" to get from data table
+  //! \param isinvresolsq true if x axis is 1/d^2
+  //! \param range    axis range, null for auto determination
+  //! \param integral true if axis values are integral
+  void SetXaxis(const std::string& label, const bool& isinvresolsq,
+		const scala::Range& range=scala::Range(),
+		const bool& integral=false);
+
+  //! Define a break in the X-axis
+
+  //! \param xcolbr  column number from which to take the broken x value
+  //! \param xbreak  range of the break
+  void SetXbreak(const int& xcolbr, const scala::Range& xbreak);
+
+  //! Define a break in the X-axis
+
+  //! \param xcolbr  column number from which to take the broken x value
+  //! \param xbreaks list of ranges of breaks (may be empty)
+  void SetXbreak(const int& xcolbr, const std::vector<scala::Range>& xbreak);
+
+  //! Define Y-axis properties
+
+  //! \param  label    for axis, "" to get from data table
+  //! \param  ZeroY    true to run y from zero
+  //! \param  range    axis range, null for auto determination
+  //! \param  integral true if axis values are integral
+  void SetYaxis(const std::string& label, const bool& ZeroY,
+		const scala::Range& range=scala::Range(),
+		const bool& integral=false);
+
+  //! Add a line to the plot
+  void AddLine(const TableGraphPlotline& pltline);
+
+  //! Return XML format for Pimple
+  std::string XMLformat() const;
+  //! Return format for loggraph
+  std::string format(const bool& first) const;
+
+private:
+  std::string plottype; // "xy"
+  std::string title;
+  std::string xlabel, ylabel;  // axis labels, if specified
+  std::string xscale; // blank or "oneoversqrt" (mostly not needed);
+  std::string yscale; // not used
+  scala::Range xrange, yrange; // axis ranges
+  std::vector<scala::Range> xbreaks; // breaks in x axis  
+  int xcolbreak;      // x column for breaks
+  bool xinvresolsq;
+  bool zeroy;  // true if Y axis should start at zero
+  std::vector<scala::Range> ybreaks; // breaks in y-axis, not used
+  bool xintegral; // true if x-axis is integral
+  bool yintegral; // true if y-axis is integral
+  GraphAxesType axistypes;  // for both x & y
+
+  std::vector<TableGraphPlotline> plotlines;  // plotlines
+
+  std::string formatXbreaks() const;
+
+};
+
+//! A class to encapsulate a data table and derived graphs
 class TableGraph
+//
+//! A Table may produce multiple graphs (plots), each of which contains
+//! on or more "lines"
+//! All lines in a graph share the same x values, but will have different
+//! y values, though all with the same scaling (ie x, y1, y2, ...)
+//!
+//! The assembled plots and data may be returned either as XML data for
+//! qloggraph/pimple (XMLformat), or as a plain-text $TABLE suitable for
+//! a logfile and loggraph
+//!
+//! Recommended usage is:-
+//!\n  (1) Construct or initialise (\ref TableGraph::init) object with a table title
+//!\n  (2) Define each graph (TableGraphPlot) and add it (TableGraph::AddGraph)
+//!\n  (3) Store information about all data columns
+//!            (TableGraph::StoreColumnFields)
+//!\n  (4) Add each line of data (TableGraph::Line)
+//!\n  (5) Close table (TableGraph::CloseTable)
+//!
+//! A graph (TableGraphPlot) is created with attributes defining the axes etc,
+//! and a list of lines (TableGraphPlotline), each of which has its own
+//! properties
+//!
+//! The complete formatted table may then be returned as a string,
+//! either in XML format (TableGraph::XMLformat)
+//!   or as a $TABLE (TableGraph::format)
+//!
+//! Note that the XML format is a <CCP4Table> block, and will need further
+//! wrapping to process in qloggraph/pimple, possibly to encompass multiple
+//! <CCP4Table> blocks etc
 {
 public:
-  TableGraph()
-  {}  // dummy
+  TableGraph()  {}  // dummy
 
   //! Store title
   TableGraph(const std::string& Title);
   //! Store title
   void init(const std::string& Title);
+  //! Store id string
+  void StoreID(const std::string& idstring) {id = idstring;}
 
-  //! Return formatted title
-  std::string formatTitle() const;
+  //! Add and store a graph (plot)
+  void AddGraph(const TableGraphPlot& tgplot);
 
-  //! Add a graph, return graph header
-  std::string Graph(const std::string& GraphTitle,
-		    const std::string& Graphtypestring,
-		    const std::vector<int>& columnNumbers);
+  //! StoreColumnFields, GetLabels, RawLabels is alternative to ColumnFields
+  //! Define format for data table
+  // ZeroMark = true to replace zero value with "-"
+  void StoreColumnFields(const std::vector<std::string>& Labels,
+			 const std::vector<bool>& ZeroMark,
+			 const std::string& pformat);
 
-  //! Add a graph, return graph header
-  std::string Graph(const std::string& GraphTitle,
-		    const GraphAxesType& Graphaxestype,
-		    const std::vector<int>& columnNumbers);
+  //!  Return formatted line, with zeroes by '-' if requested
 
-  //! Define field widths, & write out labels
-  //!   Vector of column labels
-  //!  ZeroMark true to replace zeroes by character "-"
-  //! pformat is the C-style (printf) format for the table line
-  //!   This works best with no spaces
-  //! Return labels formatted for table output
-  //! if lastmark true [default] add final "$$" after headers
-  std::string ColumnFields(const std::vector<std::string>& Labels,
-			   const std::vector<bool>& ZeroMark,
-			   const std::string& pformat,
-			   const bool& lastmark=true); 
-
-  //! Column labels string
-  std::string Labels() const {return labels;} 
-  //! Column labels string, omitting the leader and trailer (if present)
-  std::string RawLabels() const;
-
-  //! Write nc numbers to returned string, using predefined format
   //! This will probably fail if the number of arguments doesn't match
   //! the format
-  std::string NumberLine(const int nc, ...) const;
-  //
-  //!  Return formatted line, with zeroes by '-' if requested
   std::string Line(const int nc, ...) const;
-
   //!  Return formatted line, with zeroes by '-' if requested, vector first
   std::string Line(const std::vector<double>& val, const int nc, ...) const;
+  //!  Return formatted line, with zeroes by '-' if requested
+  //! Note that NumberLine, Line & GetLine all append the line
+  //!  to internal string array
+  // Write nc numbers to returned string, using predefined format
+  std::string NumberLine(const int nc, ...) const;
 
   //! clear line
   void StartLine();
@@ -137,11 +329,55 @@ public:
   void AddToLine(const int& iv);
   //! Add float to next field in line
   void AddToLine(const float& v);
-  //! return line assembled in AddToLine calls
+  //! Add double to next field in line
+  void AddToLine(const double& v) {AddToLine(float(v));}
+  //! return line assembled in AddToLine calls (& append to internal array)
   std::string GetLine();
 
-  //! Return the table terminating line
+
+  // Methods to return XML version of table graphs
+  //! Return whole table in XML format
+  std::string XMLformat() const;
+  
+  // Methods to generate loggraph formatted $TABLE
+  //! Return whole table formatted for loggraph
+  std::string format() const;
+
+  //! just format title (DEPRECATED)
+  std::string formatTitle() const;
+
+  // Terminate the table
   std::string CloseTable() const;
+
+  //! format label string for loggraph
+  std::string GetLabels(const bool& lastmark) const;
+
+  //! DEPRECATED Add a graph, return graph header, loggraph format
+  std::string Graph(const std::string& GraphTitle,
+		    const std::string& Graphtypestring,
+		    const std::vector<int>& columnNumbers);
+
+  //! DEPRECATED Add a graph, return graph header, loggraph format
+  std::string Graph(const std::string& GraphTitle,
+		    const GraphAxesType& Graphaxestype,
+		    const std::vector<int>& columnNumbers);
+
+  //! DEPRECATED Define field widths, & write out labels
+
+  //!   Vector of column labels
+  //!  ZeroMark true to replace zeroes by character "-"
+  //! pformat is the C-style (printf) format for the table line (with lf)
+  //!   This works best with no spaces
+  //! Return labels formatted for table output (loggraph format)
+  //! if lastmark true [default] add final "$$" after headers
+  std::string ColumnFields(const std::vector<std::string>& Labels,
+			   const std::vector<bool>& ZeroMark,
+			   const std::string& pformat,
+			   const bool& lastmark=true); 
+  //! Return column labels string
+  std::string Labels() const {return labels;} 
+  //! Return column labels string, omitting the leader and trailer (if present)
+  std::string RawLabels() const;
 
 private:
   class fieldInfo {
@@ -156,16 +392,21 @@ private:
 
 
   std::string  title;             // table title
+  std::string id;                 // an id string for this graph
 
   int ngraphs;                    // number of graphs in table
+  std::vector<TableGraphPlot> graphs;     // list of graphs
+
+  // Layout of data table
   int ncolumns;                   // number of columns of data
-
-  std::string prtf_format;           // printf format for data lines
-
-  std::vector<fieldInfo> fields;
-
-  std::string labels;
+  std::string prtf_format;        // printf format for data lines
+  std::vector<fieldInfo> fields;  // info for each fields
+  std::vector<std::string> labelarray; // field labels
+  std::string labels;             // all labels
   int lablen; // actual length of real (raw) label string, excluding leader & trailer
+
+  // Formatted data table, from StoreLine entries
+  mutable std::vector<std::string> sdatatable;
 
   std::string  AddInLabel(const std::string& label,
 			  const int& ifw, const int& ifd,
@@ -177,7 +418,5 @@ private:
   static const std::string LABELTRAILER;
   static const std::string LABELFINAL;
 };
-
-
 
 #endif

@@ -7,6 +7,8 @@
 
 
 #include "columnlabels.hh"
+#include "string_util.hh"
+
 #include <assert.h>
 #define ASSERT assert
 
@@ -139,33 +141,33 @@ namespace MtzIO {
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-  column_select::column_select(const MtzIO::column_labels& column_list,
+  column_select::column_select(const MtzIO::column_labels& column_label_list,
                                col_controls& column_selection)
   {
     // Column assignments
     // compulsory columns
-    col_h = column_list.lookup_col("H");
-    col_k = column_list.lookup_col("K");
-    col_l = column_list.lookup_col("L");
-    col_misym = column_list.lookup_col("M_ISYM");
-    col_batch = column_list.lookup_col("BATCH");
-    col_I = column_list.lookup_col("I");
-    col_sigI = column_list.lookup_col("SIGI");
+    col_h = column_label_list.lookup_col("H");
+    col_k = column_label_list.lookup_col("K");
+    col_l = column_label_list.lookup_col("L");
+    col_misym = column_label_list.lookup_col("M_ISYM");
+    col_batch = column_label_list.lookup_col("BATCH");
+    col_I = column_label_list.lookup_col("I");
+    col_sigI = column_label_list.lookup_col("SIGI");
     // optional columns
-    col_Ipr = column_list.lookup_col("IPR");
-    col_sigIpr = column_list.lookup_col("SIGIPR");
-    col_fractioncalc = column_list.lookup_col("FRACTIONCALC");
-    col_Xdet = column_list.lookup_col("XDET");
-    col_Ydet = column_list.lookup_col("YDET");
-    col_Rot = column_list.lookup_col("ROT");
-    col_Width = column_list.lookup_col("WIDTH");
-    col_LP = column_list.lookup_col("LP");
-    col_Mpart = column_list.lookup_col("MPART");
-    col_ObsFlag = column_list.lookup_col("FLAG");
-    col_BgPkRatio = column_list.lookup_col("BGPKRATIOS");
-    col_scale = column_list.lookup_col("SCALE");
-    col_sigscale = column_list.lookup_col("SIGSCALE");
-    col_time = column_list.lookup_col("TIME");
+    col_Ipr = column_label_list.lookup_col("IPR");
+    col_sigIpr = column_label_list.lookup_col("SIGIPR");
+    col_fractioncalc = column_label_list.lookup_col("FRACTIONCALC");
+    col_Xdet = column_label_list.lookup_col("XDET");
+    col_Ydet = column_label_list.lookup_col("YDET");
+    col_Rot = column_label_list.lookup_col("ROT");
+    col_Width = column_label_list.lookup_col("WIDTH");
+    col_LP = column_label_list.lookup_col("LP");
+    col_Mpart = column_label_list.lookup_col("MPART");
+    col_ObsFlag = column_label_list.lookup_col("FLAG");
+    col_BgPkRatio = column_label_list.lookup_col("BGPKRATIOS");
+    col_scale = column_label_list.lookup_col("SCALE");
+    col_sigscale = column_label_list.lookup_col("SIGSCALE");
+    col_time = column_label_list.lookup_col("TIME");
 
     // Select profile-fitted (IPR) or integrated (I) column as required
     // Reset column selection if necessary:
@@ -175,6 +177,41 @@ namespace MtzIO {
     // Sanity check: I/sigI & Ipr/sigIpr must be both present or both absent
     CheckPairCols("I SIGI",col_I,col_sigI);
     CheckPairCols("IPR SIGIPR",col_Ipr,col_sigIpr);
+
+    // extra columns for multiple lattices, col_latnum, col_lathkl
+    col_latnum = -1;
+    nlatticecolumns = column_label_list.NlatticeColumns();
+    col_lathkl.clear();
+    col_latscale = false;
+    if (nlatticecolumns > 0) {
+      col_latnum = column_label_list.lookup_col("LATTNUM");
+      // If this is a scheme 2 file, then a LATTNUM1 must be present
+      scheme2 = (column_label_list.lookup_col("LATTNUM1") >= 0);
+      std::string label;
+      int colnum;
+      for (int i=0;i<nlatticecolumns;++i) {
+	// Scheme 2, LATTNUMn
+	if (scheme2) {
+	  label = "LATTNUM"+StringUtil::Strip(StringUtil::itos(i+1));
+	  colnum = column_label_list.lookup_col(label);  // column number from 0
+	  label = "SCALE"+StringUtil::Strip(StringUtil::itos(i+1));
+	  if (column_label_list.lookup_col(label) >= 0) {
+	    col_latscale = true;
+	  } else if (col_latscale) {
+	    Message::message(Message_fatal
+			     ( "Inconsistent SCALEn columns\n")); 
+	  }
+	} else {
+	  // Scheme 2, label should be Hn where n is 1->9
+	  label = "H"+StringUtil::Strip(StringUtil::itos(i+1));
+	  colnum = column_label_list.lookup_col(label);  // column number from 0
+	}
+	if (colnum >= 0) {
+	  col_lathkl.push_back(colnum);  // column number for "Hn"
+	}
+      } // end loop nlatticecolumns
+      ASSERT (int(col_lathkl.size()) == nlatticecolumns);
+    }
   }
   //--------------------------------------------------------------
   data_flags column_select::DataFlags() const
@@ -196,6 +233,20 @@ namespace MtzIO {
     if (col_scale >= 0) flags.is_scale = true;
     if (col_sigscale >= 0) flags.is_sigscale = true;
     if (col_time >= 0) flags.is_time = true;
+    if (col_latnum >= 0) {
+      flags.is_latnum = true;
+      flags.n_latinfo = nlatticecolumns;
+      if (scheme2) {
+	// scheme 2 multiple lattices
+	if (col_latscale) flags.is_latscale = true;
+	flags.is_latinfo = true;
+	flags.is_lathkl = false;
+      } else { // scheme 1
+	if (col_lathkl.size() >= 0) flags.is_lathkl = true;
+	flags.is_latscale = false;
+	flags.is_latinfo = false;
+      }
+    }
     return flags;
   }
   //--------------------------------------------------------------

@@ -21,7 +21,7 @@ namespace scala {
   public:
     enum Type {UNKNOWN, CCD1, CCD2x2, CCD3x3, PILATUS6M, PILATUS2M, PIXEL};
 
-    DetectorType() :type(UNKNOWN), typestr("Unknown"),
+    DetectorType() :dettype(UNKNOWN), typestr("Unknown"),
 		    ndet(0), ntilex(0), ntiley(0) {}
 
     //! construct from Batch object
@@ -29,7 +29,7 @@ namespace scala {
 
     //! construct from arguments
     DetectorType(const Type& Dtype, const std::string& TypeLabel,
-		 const std::vector<std::vector<float> >& Detrange);
+    		 const std::vector<std::vector<float> >& Detrange);
 
 
     //! valid: non-zero detector coordinate range
@@ -46,8 +46,13 @@ namespace scala {
     //! Number of tiles deduced from type
     int NtileY() const {return ntiley;}
 
+    Type type() const {return dettype;}
+
     //! return a string corresponding to the detector type
-    std::string TypeLabel(const DetectorType::Type& dtype);
+    std::string TypeLabel() const;
+
+    //! return a string corresponding to the detector type
+    std::string TypeLabel(const DetectorType::Type& dtype) const;
 
     //! test for equality on type and detector range (not on number of tiles)
     bool equals(const DetectorType& b) const;
@@ -56,7 +61,7 @@ namespace scala {
     friend bool operator != (const DetectorType& a,const DetectorType& b);
 
   private:
-    Type type;
+    Type dettype;
     std::string typestr; // detector type (if we can deduce it!)
     int ndet;            // number of detectors included in this class
     std::vector<std::vector<float> > detrange;  // coordinate range
@@ -129,21 +134,25 @@ namespace scala {
     // Scale factor for each position on the detector
     // Parameterised by tile
   public:
-    enum DetectorScaleType {NONE, FLAT, CCD, PIXEL, AUTOMATIC}; // scale type for each tile
+    // scale type for each tile
+    enum DetectorScaleType {NONE, FLAT, CCD1, CCD2, CCD3,
+			    PIXEL, AUTOMATIC};
     DetectorScale() : detectorscaletype(NONE), ntilex(0), ntiley(0) {}
-    DetectorScale(const DetectorScaleType DetScaleType,
+    DetectorScale(const DetectorScaleType& DetScaleType,
 		  const int& nTileX, const int& nTileY,
 		  const DetectorType& dettype);
 
-    void init(const DetectorScaleType DetScaleType,
+    void init(const DetectorScaleType& DetScaleType,
 	      const int& nTileX, const int& nTileY,
 	      const DetectorType& dettype);
 
-    void init(const DetectorScaleType DetScaleType,
+    void init(const DetectorScaleType& DetScaleType,
 	      const int& nTileX, const int& nTileY,
 	      const Range& Xrange, const Range& Yrange);
 
     void init();
+
+    void setSymmetric(const bool& symmetric=false);
 
     ~DetectorScale();
 
@@ -173,7 +182,11 @@ namespace scala {
     // Retrieve number of contributions (length nparams)
     std::vector<int> Nobservations() const {return nobsPar;}
 
+    //! number of parameters
     int Number() const {return nparams;}
+
+    //! return number of parameters/tile
+    int NparamsTile() const;
 
     //! Return list of ties: sdties are sds for weight, idx0 is index to first global
     // parameter for setting ties, since they refer to the global parameter index
@@ -183,6 +196,7 @@ namespace scala {
     //  sdties[1] for w
     //  sdties[2] for A
     //  sdties[3] for x0, y0
+    //  sdties[4] for Fourier coefficients
     std::vector<Tie> Ties(const std::vector<double> sdties,
 			  const int& idx0) const;
 
@@ -200,6 +214,8 @@ namespace scala {
     std::string format() const;
 
     std::string formatparameters() const;
+
+    std::string formatTies() const;
 
     //! write output image of correction factors
     // as ADSC format image
@@ -234,13 +250,75 @@ namespace scala {
 		    double& scale, std::vector<double>& dgdp) const;
   }; // class DetectorScale
   //--------------------------------------------------------------
+  class RadialFunctionBase {
+  public:
+    RadialFunctionBase(){};
+
+    //! calculate the value of the function and store intermediates 
+    virtual double value(const double& z, const double& A) = 0;
+
+    //! derivatives, must follow a call to value() 
+    virtual std::vector<double> deriv(const int& nparams,
+				      const double& w) const = 0;
+
+  private:
+  };
+  //--------------------------------------------------------------
+  class RadialFunctionGompertzCDF : public RadialFunctionBase{
+    // suggested by Rob Nicolls, but not apparently better than erfc
+  public:
+    RadialFunctionGompertzCDF() : A_(-1000.0) {} 
+
+    //! calculate the value of the function and store intermediates 
+    double value(const double& z, const double& A);
+
+    //! derivatives, must follow a call to value() 
+    std::vector<double> deriv(const int& nparams,
+			      const double& w) const;
+
+  private:
+    double z_;
+    double A_;
+    // scale = A f(z) + 1 - A
+    // f(z) = 1 - exp(g(z))
+    // g(z) = -exp(-z)-1
+    double expmz;
+    double gz;
+    double fz;
+  };
+  //--------------------------------------------------------------
+  class RadialFunctionErfc : public RadialFunctionBase{
+  public:
+    RadialFunctionErfc() : A_(-1.0) {} 
+
+    //! calculate the value of the function and store intermediates 
+    double value(const double& z, const double& A);
+
+    //! derivatives, must follow a call to value() 
+    std::vector<double> deriv(const int& nparams,
+			      const double& w) const;
+
+  private:
+    double z_;
+    double A_;
+    // scale = A f(z) + 1 - A
+    // f(z) = 0.5 * erfc(z)
+    double gz;
+    double fz;
+  };
+  //--------------------------------------------------------------
   //--------------------------------------------------------------
   class TileBase {  // base class for tile scale
   public:
     TileBase(){}
     TileBase(const double& Xmax, const double& Ymax) {}
 
+    virtual ~TileBase() {}
+
     virtual void init(const double& Xmax, const double& Ymax) = 0;
+
+    //! symmetric = false to allow A to vary around the tile
+    virtual void setSymmetric(const bool& symmetric) {} // dummy
 
     // Pure virtual functions
     virtual int Nparams() const = 0; //!< number of parameters
@@ -248,6 +326,17 @@ namespace scala {
     virtual void StoreParameters(const std::vector<double>& parameters) = 0;
     //! Retrieve parameter vector (length nparams)
     virtual std::vector<double> Parameters() const = 0;
+    //! return vector of ties, given SDs and 1st global parameter index
+    virtual std::vector<Tie> Ties(const std::vector<double> sdties,
+				   const int& idx0)
+    {return std::vector<Tie>();} // default return empty vector
+
+    //! vector of indices and weights for each parameter to be restrained across tiles 
+    virtual std::pair<std::vector<int>, std::vector<double> > 
+    TiedParameters(const std::vector<double> sdties,
+		   const int& idx0)
+    {return std::pair<std::vector<int>, std::vector<double> >();}
+
 
     //! lower bounds for ipar'th parameter
     virtual double LowerBound(const int& ipar) const = 0;
@@ -256,12 +345,12 @@ namespace scala {
     //! "large shift" for ipar'th parameter
     virtual double LargeShift(const int& ipar) const = 0;
 
-    //! Return maximum radius
-    virtual double Radmax() const = 0;
+    //! Return edge radius
+    virtual double Rad0() const {return 0.0;}
     //! Return Xcentre
-    virtual double Xcentre() const = 0;
+    virtual double Xcentre() const {return 0.0;};
     //! Return Ycentre
-    virtual double Ycentre() const = 0;
+    virtual double Ycentre() const {return 0.0;};
 
     // Return scale & derivatives for tile coordinates Xt, Yt
     virtual void ScaleDeriv(const bool& Deriv,
@@ -274,7 +363,11 @@ namespace scala {
     virtual std::string formattype() const = 0;
 
     //! format parameters for printing
-    virtual std::vector<std::string> formatparameters() const {}
+    virtual std::vector<std::string> formatparameters() const
+    {return std::vector<std::string>(1,"");}
+
+    virtual std::string formatTies() const
+    {return "";}
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;
@@ -282,36 +375,111 @@ namespace scala {
     // restore
     void Restore(Fileread& FR);
 
+    //! number of smoothing parameters for each of r,w,A, CCD only
+    virtual int NparamsSmooth() const {return 0;}
+
+    //! record grid coordinates
+    void SetGridCoordinates(const int& kx, const int& ky)
+    {ix = kx; iy=ky;}
+
+    //! record grid coordinates
+    std::pair<int,int> GridCoordinates() const
+    {return std::pair<int,int>(ix, iy);}
+
+
   protected:
+    int ix, iy;  // grid coordinates of this tile
   };
+
+//==================================================================
+class FourierSmooth {
+  // A four- or five parameter Fourier class,
+  //    like Hendricksen-Lattman coefficients
+  // No constant term if 4 parameters
+  // for angle p,
+  //   v = A cos(p) + B sin(p) + C cos(2p) + D sin(2p)
+  // ie the 1st two complex Fourier coefficients
+  //
+public:
+  FourierSmooth():nparams(-1){}
+  //! construct or initialise from constant value
+  FourierSmooth(const double& flatlevel, const bool& isconstant=true);
+  //! construct or initialise from parameters
+  //  FourierSmooth(const std::vector<double> parameters)
+  //  {setParameters(parameters);}
+
+  //! set either: true for 4 parameters; false no constant term E, 4 params
+  void setIsConstant(const bool& isconstant);
+
+  //! set 4 or 5 parameters
+  void setParameters(const std::vector<double> parameters);
+
+  //! set a constant level, ie set E, A=B=C=D=0
+  void setLevel(const double& flatlevel=0.0);
+
+  //! return parameters
+  std::vector<double> GetParameters() const {return parameters;}
+
+  //! get value at angle phi
+  double Value(const double& phi) const;
+
+  //! get value at angle phi and dvdp its derivatives wrt parameters
+  double ValueDerivatives(const double& phi,
+			  std::vector<double>& dvdp) const;
+
+  std::string format() const;
+  std::string dump() const;
+
+  int NumberParameters() {return nparams;}
+
+private:
+  int nparams;
+  std::vector<double> parameters;
+};
+
   //--------------------------------------------------------------
-  class CCDTile : public TileBase {
+  class CCDTile3 : public TileBase {
     //! A CCD tile, correct for fall-off in the corners
     // Coordinates within the tile are defined from 0->xmax, 0->ymax
 
     // The model:
-    //  Radially symmetric around the point (x0,y0)
     //  distance from centre d = sqrt((X-x0)^2 + Y-y0)^2)
     //  3 parameters defining the radial fall-off:
     //    r  radius for start of fall-off
     //    w  half-width of fall off
     //    A  amplitude of fall-off
+    // r,w,A vary with azimuthal angle around tile centre
+    // r,w stored as fractions of rad0 = tile half-width in pixels
     //
     //  then inverse scale g = (A/2) erfc [ (2/w)(d - r - w) ] + 1 - A
+    //  d, r, w all in same units
     //
-
   public:
-    CCDTile(){}
-    CCDTile(const double& Xmax, const double& Ymax);
+    CCDTile3(){}
+    CCDTile3(const double& Xmax, const double& Ymax);
     void init(const double& Xmax, const double& Ymax);
 
-    int Nparams() const {return nparams;} //!< number of parameters
+    //! symmetric = false to allow A to vary around the tile
+    void setSymmetric(const bool& symmetric);
 
-    // Parameter order: r,w,A,x0,y0
+    int Nparams() const {return nparams;} //!< number of parameters
+    //! number of smoothing parameters for each of r,w,A
+    int NparamsSmooth() const {return nparams_smooth;}
+
+    // Parameter order: r,w,A, each one with 5 parameters (ABCDE)
+    // r,w in pixels
     // Store parameters
     void StoreParameters(const std::vector<double>& parameters);
     // Retrieve parameter vector (length nparams)
     std::vector<double> Parameters() const;
+
+    //! return vector of internal ties, given SDs and 1st global parameter index
+    std::vector<Tie> Ties(const std::vector<double> sdties,
+			  const int& idx0);
+    //! vector of indices and weights for each parameter to be restrained across tiles 
+    std::pair<std::vector<int>, std::vector<double> > 
+    TiedParameters(const std::vector<double> sdties,
+		   const int& idx0);
 
     //! lower bounds for ipar'th parameter
     double LowerBound(const int& ipar) const;
@@ -320,12 +488,12 @@ namespace scala {
     //! "large shift" for ipar'th parameter
     double LargeShift(const int& ipar) const;
 
-    //! Return maximum radius
-    double Radmax() const {return radmax;}
-    //! Return Xcentre
-    double Xcentre() const {return xc0;}
+    //! Return edge radius, pixels
+    double Rad0() const {return rad0;}
+    //! Return Xcentre, pixels
+    double Xcentre() const {return x0*rad0;}
     //! Return Ycentre
-    double Ycentre() const {return yc0;}
+    double Ycentre() const {return y0*rad0;}
 
     // Return scale & derivatives for tile coordinates Xt, Yt
     void ScaleDeriv(const bool& Deriv,
@@ -348,21 +516,221 @@ namespace scala {
 
   private:
     double xmax, ymax; // tile coordinates are 0->xmax, 0->ymax
-    double radmax;     // radius into farthest corner
+    double rad0;     // radius to edge, pixels
     // Parameters
-    int nparams;  // == 5
-    double xc0, yc0;   //  centre of coordinates
-    double x0, y0;     // effective centre of taper
-    double r, w, A;    // fall-off parameters
+    bool circularlysymmetric; // false if A varies with polar coordinate
+    int nparams;  // == 15
+    int nparams_smooth;   // == 5, for each of r,w,A
+    double xc0, yc0;   //  centre of coordinates, pixels
+    double x0, y0;     // effective centre of taper, fraction of rad0
+    
+    double r0, w0, A0;  // constant part
+    FourierSmooth rfs, wfs, Afs; // fall-off parameters, azimuth dependent
+
     double twooverrootpi;  // 2/sqrt(pi)
 
-    // number of obseravtions in each corner
+    // number of observations in each corner
     // corner is defined as
     // d > dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2))
     mutable clipper::Array2d<int> ncorners;
     double dcrnmin;
-  }; // end class CCDTile
+    mutable RadialFunctionErfc radfunc;
+  }; // end class CCDTile3
   //--------------------------------------------------------------
+  class CCDTile1 : public TileBase {
+    //! A CCD tile, correct for fall-off in the corners
+    // Coordinates within the tile are defined from 0->xmax, 0->ymax
+
+    // The model:
+    //  Circularly symmetric around the point (x0,y0)
+    //  distance from centre d = sqrt((X-x0)^2 + Y-y0)^2)
+    //  3 parameters defining the radial fall-off:
+    //    r  radius for start of fall-off
+    //    w  half-width of fall off
+    //    A  amplitude of fall-off
+    //
+    //  then inverse scale g = (A/2) erfc [ (2/w)(d - r - w) ] + 1 - A
+    //
+
+  public:
+    CCDTile1(){}
+    CCDTile1(const double& Xmax, const double& Ymax);
+    void init(const double& Xmax, const double& Ymax);
+
+    int Nparams() const {return nparams;} //!< number of parameters
+
+    // Parameter order: r,w,A,x0,y0
+    // Store parameters
+    void StoreParameters(const std::vector<double>& parameters);
+    // Retrieve parameter vector (length nparams)
+    std::vector<double> Parameters() const;
+
+    //! return vector of internal ties, given SDs and 1st global parameter index
+    std::vector<Tie> Ties(const std::vector<double> sdties,
+			  const int& idx0);
+
+    //! vector of indices and weights for each parameter to be restrained across tiles 
+    std::pair<std::vector<int>, std::vector<double> > 
+    TiedParameters(const std::vector<double> sdties,
+		   const int& idx0);
+
+    //! lower bounds for ipar'th parameter
+    double LowerBound(const int& ipar) const;
+    //! upper bounds for ipar'th parameter
+    double UpperBound(const int& ipar) const;
+    //! "large shift" for ipar'th parameter
+    double LargeShift(const int& ipar) const;
+
+    //! Return edge radius
+    double Rad0() const {return rad0;}
+    //! Return Xcentre
+    double Xcentre() const {return x0*rad0;}
+    //! Return Ycentre
+    double Ycentre() const {return y0*rad0;}
+
+    // Return scale & derivatives for tile coordinates Xt, Yt
+    void ScaleDeriv(const bool& Deriv,
+		    const double& Xt, const double& Yt,
+		    double& scale, std::vector<double>& dgdp) const;
+
+    // Format layout for printing
+    std::string format() const;
+    // Format type for printing
+    std::string formattype() const;
+
+    //! format parameters for printing
+    std::vector<std::string> formatparameters() const;
+
+    // Format all information into a labelled save format for later restoration
+    std::string FormatSave() const;
+
+    // restore
+    void Restore(Fileread& FR);
+
+  private:
+    double xmax, ymax; // tile coordinates are 0->xmax, 0->ymax
+    double rad0;     // radius to edge
+    // Parameters
+    int nparams;  // == 5
+    double xc0, yc0;   //  centre of coordinates, pixels
+    double x0, y0;     // effective centre of taper, fraction of rad0
+    double r, w, A;    // fall-off parameters
+    double twooverrootpi;  // 2/sqrt(pi)
+
+    // number of observations in each corner
+    // corner is defined as
+    // d > dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2))
+    mutable clipper::Array2d<int> ncorners;
+    double dcrnmin;
+    mutable RadialFunctionErfc radfunc;
+  }; // end class CCDTile1
+  //--------------------------------------------------------------
+  class CCDTile2 : public TileBase {
+    //! A CCD tile, correct for fall-off in the corners
+    // Coordinates within the tile are defined from 0->xmax, 0->ymax
+
+    // The model:
+    //  Circularly symmetric around the point (x0,y0) except for amplitude A
+    //  distance from centre d = sqrt((X-x0)^2 + Y-y0)^2)
+    //  3 parameters defining the radial fall-off:
+    //    r  radius for start of fall-off
+    //    w  half-width of fall off
+    //    A  amplitude of fall-off
+    //  A optionally varies with azimuthal angle around tile centre as
+    //     A(constant) * (1 + Afs) where Afs is a 4-parameter Fourier series
+    //
+    //  then inverse scale g = (A/2) erfc [ (2/w)(d - r - w) ] + 1 - A
+    //  d, r, w all in same units
+    //
+  public:
+    CCDTile2(){}
+    CCDTile2(const double& Xmax, const double& Ymax);
+    void init(const double& Xmax, const double& Ymax);
+
+    //! symmetric = false to allow A to vary around the tile
+    void setSymmetric(const bool& symmetric);
+
+    int Nparams() const {return nparams;} //!< number of parameters
+    //! number of smoothing parameters for each of r,w,A
+    int NparamsSmooth() const {return nparams_smooth;}
+
+    // Parameter order: r,w,A, each one with 5 parameters (ABCDE)
+    // r,w in pixels
+    // Store parameters
+    void StoreParameters(const std::vector<double>& parameters);
+    // Retrieve parameter vector (length nparams)
+    std::vector<double> Parameters() const;
+
+    //! return vector of internal ties, given SDs and 1st global parameter index
+    std::vector<Tie> Ties(const std::vector<double> sdties,
+			  const int& idx0);
+    //! vector of indices and weights for each parameter to be restrained across tiles 
+    std::pair<std::vector<int>, std::vector<double> > 
+    TiedParameters(const std::vector<double> sdties,
+		   const int& idx0);
+
+    //! lower bounds for ipar'th parameter
+    double LowerBound(const int& ipar) const;
+    //! upper bounds for ipar'th parameter
+    double UpperBound(const int& ipar) const;
+    //! "large shift" for ipar'th parameter
+    double LargeShift(const int& ipar) const;
+
+    //! Return edge radius, pixels
+    double Rad0() const {return rad0;}
+    //! Return Xcentre, pixels
+    double Xcentre() const {return x0*rad0;}
+    //! Return Ycentre
+    double Ycentre() const {return y0*rad0;}
+
+    // Return scale & derivatives for tile coordinates Xt, Yt
+    void ScaleDeriv(const bool& Deriv,
+		    const double& Xt, const double& Yt,
+		    double& scale, std::vector<double>& dgdp) const;
+
+    // Format layout for printing
+    std::string format() const;
+    // Format type for printing
+    std::string formattype() const;
+
+    std::string formatTies() const;
+
+    //! format parameters for printing
+    std::vector<std::string> formatparameters() const;
+
+    // Format all information into a labelled save format for later restoration
+    std::string FormatSave() const;
+
+    // restore
+    void Restore(Fileread& FR);
+
+  private:
+    double xmax, ymax; // tile coordinates are 0->xmax, 0->ymax
+    double rad0;     // radius to edge
+    // Parameters
+    bool circularlysymmetric; // false if A varies with polar coordinate
+    int nparams;  // == 5 or 9
+    int nparams_smooth;   // == 5, for each of A
+    double xc0, yc0;   //  centre of coordinates, pixels
+    double x0, y0;     // effective centre of taper, fraction of rad0
+    double r;
+    double w;
+    double A0;
+
+    std::vector<double> sdties_;  // stored for printing
+
+    FourierSmooth Afs; // fall-off parameters, azimuth dependent
+
+    double twooverrootpi;  // 2/sqrt(pi)
+
+    // number of observations in each corner
+    // corner is defined as
+    // d > dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2))
+    mutable clipper::Array2d<int> ncorners;
+    double dcrnmin;
+    mutable RadialFunctionErfc radfunc;
+  }; // end class CCDTile2
+   //--------------------------------------------------------------
   class FlatTile : public TileBase {
     //! flat tile, a single scale for each tile
   public:
@@ -383,13 +751,6 @@ namespace scala {
     double UpperBound(const int& ipar) const;
     //! "large shift" for ipar'th parameter
     double LargeShift(const int& ipar) const;
-
-    //! Return maximum radius
-    double Radmax() const {return 0.0;}
-    //! Return Xcentre
-    double Xcentre() const {return 0.0;}
-    //! Return Ycentre
-    double Ycentre() const {return 0.0;}
 
     // Return scale & derivatives for tile coordinates Xt, Yt
     void ScaleDeriv(const bool& Deriv,
@@ -442,14 +803,6 @@ namespace scala {
     double UpperBound(const int& ipar) const;
     //! "large shift" for ipar'th parameter
     double LargeShift(const int& ipar) const;
-
-    // Dummies:-
-    //! Return maximum radius
-    double Radmax() const {return 0.0;}
-    //! Return Xcentre
-    double Xcentre() const {return 0.0;}
-    //! Return Ycentre
-    double Ycentre() const {return 0.0;}
 
     // Return scale & derivatives for tile coordinates Xt, Yt
     void ScaleDeriv(const bool& Deriv,

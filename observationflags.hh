@@ -123,6 +123,8 @@ namespace scala
     
     std::string PrintCounts() const;
 
+    std::string asXML() const;
+
     int NumAccOverload() const {return Naccoverload;}
 
   private:
@@ -153,6 +155,11 @@ namespace scala
     float MaxAccBGratio;    // Maximum accepted BGratio
     float MaxAccPKratio;    // Maximum accepted PKratio 
     float MaxAccGradient;   // Maximum accepted gradient
+
+    std::string XMLset(const int& nflagged, const int& naccepted,
+		       const float& maximumvalue=-10000.,
+		       const float& maxaccepted=-10000.) const;
+
   };
   // --------------------------------------------------------------
   class ObservationStatus
@@ -165,10 +172,13 @@ namespace scala
   //  4    16     > Emax limit
   //  5    32     too strong for scaling   (also Emax)
   //  6    64     too weak for scaling     (Emin)
+  //  7   128     overlapped multiple spot to be excluded
+  //  8   256     rejected by run
   {
   public:
     enum ObsStatusFlag {OBSSTAT_FLAG=1, OBSSTAT_RESOLUTION=2, OBSSTAT_OUTLIER=4, OBSSTAT_OUTLIERANOM=8,
-	       OBSSTAT_EMAX=16, OBSSTAT_STRONG=32, OBSSTAT_WEAK=64};
+			OBSSTAT_EMAX=16, OBSSTAT_STRONG=32, OBSSTAT_WEAK=64, OBSSTAT_OVERLAP=128,
+			OBSSTAT_RUN=256};
 
     ObservationStatus() :bitflags(0){}
     ObservationStatus(const unsigned int& flags) :bitflags(flags){}
@@ -220,7 +230,20 @@ namespace scala
     void SetTooWeak() {bitflags |= OBSSTAT_WEAK;}
     void UnsetTooWeak() {bitflags &= (wordmask-OBSSTAT_WEAK);}
     bool TestTooWeak() const {return (bitflags & OBSSTAT_WEAK) != 0;}
+
+    // Overlapped multiple lattice observation, to be excluded
+    void SetRejectOverlap() {bitflags |= OBSSTAT_OVERLAP;}
+    void UnsetRejectOverlap() {bitflags &= (wordmask-OBSSTAT_OVERLAP);}
+    bool TestRejectOverlap() const {return (bitflags & OBSSTAT_OVERLAP) != 0;}
+
+    // Rejected by run
+    void SetRejectRun() {bitflags |= OBSSTAT_RUN;}
+    void UnsetRejectRun() {bitflags &= (wordmask-OBSSTAT_RUN);}
+    bool TestRejectRun() const {return (bitflags & OBSSTAT_RUN) != 0;}
     
+    // Format for debugging
+    std::string format() const;
+
   private:
     unsigned int bitflags;
     static const unsigned int wordmask = 0xFFFF;

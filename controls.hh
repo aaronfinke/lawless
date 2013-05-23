@@ -38,6 +38,12 @@ namespace scala
     std::vector<IntRange> BatchRanges(const int& RunNumber)
     {return batchrangesruns.BatchRanges(RunNumber);}
 
+    //! Store use run flags
+    void StoreUseRun(const std::vector<bool>& userun) {
+      userun_ = userun;}
+    //! Return use run flags
+    std::vector<bool> UseRun() const {return userun_;}
+
     //! set list of RunNumber, resolution range from input
     void StoreResoByRun(const std::vector<std::pair<int,ResoRange> > Run_resolution_ranges);
     //! return list of RunNumber (NOT Run index!(), resolution range, if set 
@@ -58,6 +64,8 @@ namespace scala
 
     // Batch selections for explicitly defined runs
     BatchSelection batchrangesruns;
+
+    std::vector<bool> userun_;  // runs to use, see ChooseRuns & SetRunsToUse
 
     std::vector<std::pair<int,ResoRange> > run_resolution_ranges; // run ID number and reso range
     bool resobyrun;  // true if there have ever been run_resolution_ranges set, even if cleared

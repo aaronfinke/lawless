@@ -609,6 +609,15 @@ namespace scala
     averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
+  //! Add in a cell set
+  void UnitCellSet::AddCellSet(const UnitCellSet& CellSet)
+  {
+    std::vector<Scell> newcells = CellSet.Cells();
+    for (size_t i=0; i<newcells.size(); i++) { 
+      AddCell(newcells[i]);
+    }
+  }
+  //--------------------------------------------------------------
   Scell UnitCellSet::Average(const int& idxexclude) const
   // Average list of cells
   // if idxexclude >= 0, exclude entry with this index, < 0 include all
@@ -676,6 +685,15 @@ namespace scala
     return dv;
   }
   //--------------------------------------------------------------
+  std::string UnitCellSet::format() const
+  {
+    std::string s = "UnitCellSet\n";
+    for (size_t i=0; i<cells.size(); i++) { 
+      s += cells[i].format()+"\n";
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
   // Change basis: new h' = h * reindex_op 
   // return false if indices are non-integral
   // reindex_op may include translations
@@ -698,11 +716,9 @@ namespace scala
     Vec3<double> v = vh * reindex_op;
     return Hkl(Nint(v[0]), Nint(v[1]), Nint(v[2]));
   }
-
   //--------------------------------------------------------------
   std::string Hkl::format() const
-  { return "HKL = ("+String(h())+","+String(k())+","+String(l())+")"; }
-
+  { return "("+String(h())+","+String(k())+","+String(l())+")"; }
   //--------------------------------------------------------------
   int Hkl::code() const
   // encode hkl triple as integer (not guaranteed unique)
@@ -765,8 +781,15 @@ namespace scala
                      const float& wavel, const int& setid)
     : pxdname_(pxdname), setid_(setid), cell_(cell), wavel_(wavel)
   {
+    allcells_.clear();
+    allwavel_.clear();
     allcells_.AddCell(cell);
     allwavel_.push_back(wavel);
+    //^
+    //    if (allcells_.Number() != int(allwavel_.size())) {
+    //      std::cout << "Xdataset::ctr AddCellWavelength "<<
+    //	allcells_.Number() <<" "<<allwavel_.size()<<"\n";
+    //    } //^-
   }
   //--------------------------------------------------------------
   void Xdataset::add_batch(const int& batch_num)
@@ -787,18 +810,26 @@ namespace scala
     AverageCellWavelength();
   }
   //--------------------------------------------------------------
-  std::string Xdataset::formatPrint() const
+  std::string Xdataset::formatPrint(const bool& first) const
   {
-    std::string s = FormatOutput::logTab(1,"\n * Dataset information *\n");
+    std::string s;
+    if (first) {s += FormatOutput::logTab(1,"\n * Dataset information *\n");}
     s += pxdname_.formatPrint();
-    s += FormatOutput::logTabPrintf(1,"Unit cell:  ");
+    s += FormatOutput::logTabPrintf(3,"Unit cell:  ");
     s += cell_.formatPrint();
-    s += FormatOutput::logTabPrintf(1,
+    s += FormatOutput::logTabPrintf(3,
                                     "Wavelength: %8.5f\n", wavel_);
-    s += FormatOutput::logTabPrintf(1,"Runs: ");
+    s += FormatOutput::logTabPrintf(3,"Runs: ");
     for (size_t i=0;i<run_index_list.size();i++)
       {s += FormatOutput::logTabPrintf(1," %3d", run_index_list[i]+1);}
-    return s+"\n";
+    return s;
+  }
+  //--------------------------------------------------------------
+  void Xdataset::SetCellWavelength(const Scell& cell, const float& wavel) {
+    cell_ = cell;
+    wavel_ = wavel;
+    allcells_.init(std::vector<Scell>(1,cell));
+    allwavel_.assign(1, wavel);
   }
   //--------------------------------------------------------------
   //! average multiple cells and wavelengths, return false if they differ by more than tolerance
@@ -815,6 +846,8 @@ namespace scala
     // allcells_ is an UnitCellSet object
     cell_ = allcells_.Average();
     wavel_ = MeanSD(allwavel_).Mean();
+    //^
+    //    std::cout << "AverageCellWavelength " << allcells_.format() <<"\n";
   }
   //--------------------------------------------------------------
   double Xdataset::WorstDeviation() const
@@ -901,7 +934,7 @@ namespace scala
   // A dummy batch
   {
     batchinfo.num = 1;
-    Xdataset_index = 0;
+    dataset_index = 0;
     run_index = -1;
     accepted = true;
     valid_cell = false;
@@ -934,9 +967,10 @@ namespace scala
     strcpy(batchinfo.gonlab[2], "        ");
   }
   //--------------------------------------------------------------
+  //! constructor from MTZ batch, accept flag, dataset index
   Batch::Batch(const CMtz::MTZBAT& batch,
                const bool& accept, const int& idataset)
-    :   batchinfo(batch), Xdataset_index(idataset), accepted(accept)
+    :   batchinfo(batch), dataset_index(idataset), accepted(accept)
   {
     offset = 0;
     file_num = 1;
@@ -1401,27 +1435,6 @@ namespace scala
   bool operator < (const Batch& a,const Batch& b)
   {
     return (a.batchinfo.num < b.batchinfo.num);
-  }
-  //--------------------------------------------------------------
-  bool in_datasets(const int& setid,
-                   const std::vector<Xdataset>& datasets,
-                   int& idataset)
-  // Return true if dataset setid is in datasets list
-  //  & return dataset index idataset (-1 if not)
-  // If setid == 0, assign to first dataset 
-  {
-    if (setid <= 0) {
-        idataset = 0;
-        return true;
-    }
-    for (size_t k = 0; k < datasets.size(); ++k) {
-      if (setid == datasets[k].setid()) {
-        idataset = k;
-        return true;
-      }
-    }
-    idataset = -1;
-    return false;
   }
   //--------------------------------------------------------------
   BatchSelection::BatchSelection()

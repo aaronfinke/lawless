@@ -108,8 +108,78 @@ void PrintScales(const ScaleModel& AllScales, phaser_io::Output& output)
 {
 }
 //--------------------------------------------------------------
+//--------------------------------------------------------------
+FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
+				 const std::vector<Run>& RunList,
+				 const int& datasetIndex,
+				 const std::vector<float>& bfacbatch)
+{
+  bfdecaybatch.assign(bfacbatch.size(), 0.0);
+  bsloperun.assign(RunList.size(), 0.0);     // for each run
+  b0run.assign(RunList.size(), 0.0);         // for each run
+  scales.assign(RunList.size(), 0.0);         // for each run
+
+  for (size_t irun=0;irun<RunList.size();++irun) { // loop runs
+    if (RunList[irun].DatasetIndex() == datasetIndex) { // is run in this dataset?
+      // Extract Bfactors for batches belonging to this run
+      LinearFit linefit;
+      float w = 1.0;
+      // B slope is determined in A^2/batch, but using the ranges we can convert it to
+      // A^2/degree
+      Range batchserialrange;  // range of batch serials in this run
+      Range phirange;          // range of phi in this run
+
+      for (size_t i=0;i<batches.size();++i) {  // loop batches
+	if (batches[i].RunIndex() == int(irun)) { // in this run
+	  linefit.add(float(i), bfacbatch[i], w); // x = batch serial, y = B
+	  batchserialrange.update(float(i));
+	  phirange.update(batches[i].MidPhi());
+	}
+      }
+      // scaling from batch serial to phi
+      scales[irun] = phirange.AbsRange()/batchserialrange.AbsRange();
+      float scale = 1.0;
+
+      RPair r = linefit.result();
+      bsloperun[irun] = r.first;
+      b0run[irun] = r.second;
+    }
+  } // end loop runs
+  for (size_t i=0;i<batches.size();++i) {  // loop batches
+    // this dataset & accepted
+    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) {
+      int irun = batches[i].RunIndex();
+      bfdecaybatch[i] = float(i) * bsloperun[irun] + b0run[irun];  // from straight line
+    }
+  } // end loop batches
+}
+//--------------------------------------------------------------
+std::vector<Range> FindXbreaks(const PxdName& dataset_pxd,
+			       const std::vector<Batch>& batches,
+			       const int& datasetIndex)
+// Find all breaks in batch number list, for X axis in plots
+{
+  std::vector<Range> breaks;
+  int lastbatchnum = -1;
+  int mingap = 2; // don't break with fewer than mingap missing
+  for (size_t i=0;i<batches.size();++i) {  // even batches that have no reflections
+    // ... but not rejected batches
+    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) {
+      if (lastbatchnum >= 0) {
+	int gap = batches[i].num() - lastbatchnum;
+	if (gap > mingap) { // we have a break
+	  breaks.push_back(Range(lastbatchnum, batches[i].num()));
+	}
+      }
+      lastbatchnum = batches[i].num();
+    }
+  }
+  return breaks;
+}
+//--------------------------------------------------------------
 void PrintScalesByBatch(const PxdName& dataset_pxd,
-			const std::vector<Batch>& batches, const std::vector<Run>& RunList,
+			const std::vector<Batch>& batches,
+			const std::vector<Run>& RunList,
 			const int& datasetIndex,
 			const std::vector<float>& scale0batch,
 			const std::vector<float>& bfacbatch,
@@ -124,53 +194,77 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
 		"Mn(k) is average applied scale, including any input scale\n"+
 		"0k is the scale calculated excluding any input scale\n");
  
-  
+  // Fit straight line to B factors within each run
+  FitBfactorLines fit(batches, RunList, datasetIndex, bfacbatch);
+  std::vector<float> bfdecaybatch = fit.DecayBatch();
+
+  output.logTab(0,LOGFILE,
+		"\nBdecay comes from a straight line fit to the B-factors within each run");
+  for (size_t irun=0;irun<RunList.size();++irun) { // loop runs
+    if (RunList[irun].DatasetIndex() == datasetIndex) { // is run in this dataset?
+      output.logTabPrintf(1,LOGFILE,
+			  "For run number %4d, slope of B (A^2/degree) %8.3f\n",
+			  RunList[irun].RunNumber(), fit.Slope(irun));
+    }
+  }
+
   // $TABLE  start 
   TableGraph table(" >>> Scales v rotation range, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {1,6,7};
-  std::vector<int> cln(c,c+3);
-  output.logTab(0,LOGFILE,
-		table.Graph("Mn(k) & 0k (theta=0) v. batch","N",cln));
-  int c2[] = {1,5};
-  cln.assign(c2, c2+2);
-  output.logTab(0,LOGFILE,
-		table.Graph("Relative Bfactor v. batch","A",cln));
+  table.StoreID("Graph-ScalesVsRotationRange");
+
+  TableGraphPlot graph("Mn(k) & 0k (theta=0) v. batch");
+  graph.AddLine(TableGraphPlotline(1,5,"red"));  // Mn(k)
+  graph.AddLine(TableGraphPlotline(1,6,"blue"));  // 0k
+  graph.SetYaxis("", true);  // Y from zero
+  // Breaks in X axis
+  int xcolbr = 4;  // column for real batch number
+  std::vector<Range> xbreaks = FindXbreaks(dataset_pxd, batches, datasetIndex);
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
+  graph.init("Relative Bfactor & Decay v. batch");
+  graph.AddLine(TableGraphPlotline(1,8,"red"));  // Mn(k)
+  graph.AddLine(TableGraphPlotline(1,9,"blue"));  // 0k
+  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetYaxis("", false);  // Y not from zero
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("Run");       // 2
   collabels.push_back("Phi");       // 3
   collabels.push_back("Batch");     // 4
-  collabels.push_back("Bfactor");   // 5
-  collabels.push_back("Mn(k)");     // 6
-  collabels.push_back("0k");        // 7
-  collabels.push_back("Number");    // 8
-  std::vector<bool> Zero(8, false);
-  Zero[5] = true;
-  output.logTab(0,LOGFILE,
-  		table.ColumnFields(collabels, Zero,
-   				   "%5d%5d%8.2f%8d%10.2f%10.4f%10.4f%10d\n")); 
-
+  collabels.push_back("Mn(k)");     // 5
+  collabels.push_back("0k");        // 6
+  collabels.push_back("Number");    // 7
+  collabels.push_back("Bfactor");   // 8
+  collabels.push_back("Bdecay");    // 9
   int nc = collabels.size();
+  
+  std::vector<bool> Zero(nc, false);
+  Zero[4] = true;
+  Zero[9] = true;
+  Zero[10] = true;
+  table.StoreColumnFields(collabels, Zero, 
+			  "%5d%5d%8.2f%8d%10.2f%10.2f%10d%10.4f%10.4f\n");
 
   int n=1;
   for (size_t i=0;i<batches.size();++i) {  // print even batches that have no reflections
-    //      std::cout << n<< " " << batches[i].MidPhi()<< " " << batches[i].num()<< " " <<
-    //	bfacbatch[i]<< " " << scalebatch[i].Mean()<< " " << scale0batch[i]<< " " << scalebatch[i].Count() << "\n";;
     //  batch in this dataset
-    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
-      output.logTab(0,LOGFILE,
-		    table.Line(nc, n,
-			       RunList[batches[i].RunIndex()].RunNumber(),
-			       batches[i].MidPhi(), batches[i].num(),
-			       bfacbatch[i], scalebatch[i].Mean(),
-			       scale0batch[i], scalebatch[i].Count()));
+    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
+      table.Line(nc, n,
+		 RunList[batches[i].RunIndex()].RunNumber(),
+		 batches[i].MidPhi(), batches[i].num(),
+		 scalebatch[i].Mean(),
+		 scale0batch[i], scalebatch[i].Count(),
+		 bfacbatch[i], bfdecaybatch[i]);
       n++;
     }
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+  output.logTab(0,LOGFILE, "\n"+table.format());
   output.logTab(0,LOGFILE,table.RawLabels());
+  output.logTab(0,LXML,table.XMLformat());
 }
 //--------------------------------------------------------------
 void PrintDeviationsByBatch(const PxdName& dataset_pxd,
@@ -241,8 +335,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   //	    <<" " << maxresbatch.size()<<"\n"; //^
   int nb = 0;
   for (size_t i=0;i<batches.size();++i) {
-    //  batch in this dataset
-    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
+    if (batches[i].Accepted()) { // ... but not rejected batches
       nb++;
     } // count actual batches
   }
@@ -251,51 +344,67 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 
   TableGraph table
     (" Analysis against all Batches for all runs, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int ncl = (smoothR) ? 3 : 2;
-  std::vector<int> cln(ncl);
-  cln[0] = 1;
-  cln[1] = 6; // just unsmoothed
-  if (smoothR) {
-    cln[1] = 13; // smoothed one first so it comes out on top
-    cln[2] = 6;
-  }
-  output.logTab(0,LOGFILE,
-		table.Graph("Rmerge v Batch for all runs","N",cln));
+  table.StoreID("Graph-StatsVsBatch");
 
-  int c1[] = {1,9,10};
-  cln.assign(c1,c1+3);
-  output.logTab(0,LOGFILE,
-		table.Graph("Cumulative %completeness & Anom%cmpl v Batch","N",cln));
-
-  ncl = (smoothMaxRes) ? 3 : 2;
-  cln.resize(ncl);
-  cln[0] = 1;
-  cln[1] = 11;
-  if (smoothMaxRes) {
-    cln[1] = 14;
-    cln[2] = 11;
+  TableGraphPlot graph("Rmerge v Batch for all runs");
+  if (smoothR) { // smoothed, 2 lines, smoothed first
+    graph.AddLine(TableGraphPlotline(1,13,"red")); // smoothed
+    graph.AddLine(TableGraphPlotline(1,6,"blue")); // unsmoothed
+  } else {
+    graph.AddLine(TableGraphPlotline(1,6,"blue")); // unsmoothed
   }
+  graph.SetYaxis("", true);  // Y from zero
+  // Breaks in X axis
+  int xcolbr = 2;  // column for real batch number
+  std::vector<Range> xbreaks = FindXbreaks(dataset_pxd, batches, datasetIndex);
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
+  graph.init("Cumulative %completeness & Anom%cmpl v Batch");
+  graph.AddLine(TableGraphPlotline(1,9,"red"));  // completeness
+  graph.AddLine(TableGraphPlotline(1,10,"blue"));  // anomalous completeness
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
   std::string s = "Maximum resolution limit, I/sigma > "+StringUtil::ftos(MinimumIoverSigma,5,1);
-  output.logTab(0,LOGFILE,
-		table.Graph(s,GraphAxesType(xrange,yrange,false),cln));
+  graph.init(s);
+  if (smoothMaxRes) {
+    graph.AddLine(TableGraphPlotline(1,14,"red"));  // smoothed
+    graph.AddLine(TableGraphPlotline(1,11,"blue"));  // unsmoothed
+  } else {
+    graph.AddLine(TableGraphPlotline(1,11,"blue"));  // unsmoothed
+  }
+  graph.SetXaxis("", false, xrange, true);
+  graph.SetYaxis("", false, yrange);
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
 
-  int c2[] = {1,12};
-  cln.assign(c2, c2+2);
-  output.logTab(0,LOGFILE,
-		table.Graph("Cumulative multiplicity","N",cln));
-  int c3[] = {1,3,4};
-  cln.assign(c3, c3+3);
-  output.logTab(0,LOGFILE,
-		table.Graph("Imean & RMS Scatter","N",cln));
-  int c4[] = {1,5};
-  cln.assign(c4, c4+2);
-  output.logTab(0,LOGFILE,
-		table.Graph("Imean/RMS scatter","N",cln));
-  int c5[] = {1,8};
-  cln.assign(c5, c5+2);
-  output.logTab(0,LOGFILE,
-		table.Graph("Number of rejects","N",cln));
+  graph.init("Cumulative multiplicity");
+  graph.AddLine(TableGraphPlotline(1,12,"red"));
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
+  graph.init("Imean & RMS Scatter");
+  graph.AddLine(TableGraphPlotline(1,3,"red"));
+  graph.AddLine(TableGraphPlotline(1,4,"blue"));
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
+  graph.init("Imean/RMS scatter");
+  graph.AddLine(TableGraphPlotline(1,5,"red"));
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
+  graph.init("Number of rejects");
+  graph.AddLine(TableGraphPlotline(1,8,"red"));
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaks);
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");          // 1
   collabels.push_back("Batch");      // 2
@@ -324,63 +433,60 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   if  (smoothR) {lineformat += " %8.3f";}
   if  (smoothMaxRes) {lineformat += " %8.2f";}
   lineformat += "\n";
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, lineformat));
+  table.StoreColumnFields(collabels, Zero, lineformat);
 
   int n=1;
   for (size_t i=0;i<batches.size();++i) { // print all batches even if they have no observations
     //  batch in this dataset
-    if (batches[i].index() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
+    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
       float r = 0.0;
       if (rmsDbatch[i].Count() > 0) {
 	r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
       }
       if (nbatchsmooth == 1) { // no smoothed stats
-	output.logTab(0,LOGFILE,
-		      table.Line(nc, n, batches[i].num(),
-				 imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-				 r,
-				 rmergebatch[i].R(),
-				 rmergebatch[i].result().count,
-				 rejectedbatch[i],
-				 100.*batchcompleteness[i],
-				 100.*batchanomcompleteness[i],
-				 maxresbatch[i]),
-		      batchmultiplicity[i]);
+	table.Line(nc, n, batches[i].num(),
+		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		   r,
+		   rmergebatch[i].R(),
+		   rmergebatch[i].result().count,
+		   rejectedbatch[i],
+		   100.*batchcompleteness[i],
+		   100.*batchanomcompleteness[i],
+		   maxresbatch[i],
+		   batchmultiplicity[i]);
       } else if (smoothMaxRes) {
-	output.logTab(0,LOGFILE,
-		      table.Line(nc, n, batches[i].num(),
-				 imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-				 r,
-				 rmergebatch[i].R(), 
-				 rmergebatch[i].result().count,
-				 rejectedbatch[i],
-				 100.*batchcompleteness[i],
-				 100.*batchanomcompleteness[i],
-				 maxresbatch[i],
-				 batchmultiplicity[i],
-				 rmergebatchsmoothed[i].R(),
-				 maxresbatchsmoothed[i]));
+	table.Line(nc, n, batches[i].num(),
+		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		   r,
+		   rmergebatch[i].R(), 
+		   rmergebatch[i].result().count,
+		   rejectedbatch[i],
+		   100.*batchcompleteness[i],
+		   100.*batchanomcompleteness[i],
+		   maxresbatch[i],
+		   batchmultiplicity[i],
+		   rmergebatchsmoothed[i].R(),
+		   maxresbatchsmoothed[i]);
       } else{
-	output.logTab(0,LOGFILE,
-		      table.Line(nc, n, batches[i].num(),
-				 imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-				 r,
-				 rmergebatch[i].R(), 
-				 rmergebatch[i].result().count,
-				 rejectedbatch[i],
-				 100.*batchcompleteness[i],
-				 100.*batchanomcompleteness[i],
-				 maxresbatch[i],
-				 batchmultiplicity[i],
-				 rmergebatchsmoothed[i].R()));
+	table.Line(nc, n, batches[i].num(),
+		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		   r,
+		   rmergebatch[i].R(), 
+		   rmergebatch[i].result().count,
+		   rejectedbatch[i],
+		   100.*batchcompleteness[i],
+		   100.*batchanomcompleteness[i],
+		   maxresbatch[i],
+		   batchmultiplicity[i],
+		   rmergebatchsmoothed[i].R());
       }
       n++;
     }  // rejected batches
   } // batch loop
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+  output.logTab(0,LOGFILE, "\n"+table.format());
   output.logTab(0,LOGFILE,table.RawLabels());
+  output.logTab(0,LXML,table.XMLformat());
 } 
 //--------------------------------------------------------------
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
@@ -427,10 +533,13 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 		std::string("\n\nBy 4sinTheta/Lambda^2 bins (all statistics use Mn(I+),Mn(I-)etc)\n")+
                 	    "----------------------------------------------------------------\n");
   TableGraph table(" Analysis against resolution, "+dataset_pxd.dname());
+  table.StoreID("Graph-StatsVsResolution");
+
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(4);   // for each graph
   // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
+  // (as qloggraph does)
   for (int i=0;i<ResRange.Nbins();++i) {
     float frcbias = 0.0;
     if (biasIRes[i].Count() > 0) {
@@ -456,23 +565,38 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     yranges[3].update(frcbias);
   } // end line loop
 
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {2,13,14};
-  std::vector<int> cln(c,c+3);
-  output.logTab(0,LOGFILE,
-		table.Graph("I/sigma, Mean Mn(I)/sd(Mn(I))",GraphAxesType(xrange,yranges[0],true),cln));
-  int c2[] = {2,4,5,6,7};
-  cln.assign(c2, c2+5);
-  output.logTab(0,LOGFILE,
-		table.Graph("Rmerge, Rfull, Rmeas, Rpim v Resolution",GraphAxesType(xrange,yranges[1],true),cln));
-  int c3[] = {2,10,11,12};
-  cln.assign(c3, c3+4);
-  output.logTab(0,LOGFILE,
-		table.Graph("Average I, RMSdeviation and Sd",GraphAxesType(xrange,yranges[2],true),cln));
-  int c4[] = {2,15};
-  cln.assign(c4, c4+2);
-  output.logTab(0,LOGFILE,
-		table.Graph("Fractional bias",GraphAxesType(xrange,yranges[3],false),cln));
+  
+  TableGraphPlot graph("I/sigma, Mean Mn(I)/sd(Mn(I))");  // 1st graph
+  graph.AddLine(TableGraphPlotline(2,13)); // column numbers for x,y
+  graph.AddLine(TableGraphPlotline(2,14));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
+  graph.init("Rmerge, Rfull, Rmeas, Rpim v Resolution");  // 2nd graph
+  graph.AddLine(TableGraphPlotline(2,4));
+  graph.AddLine(TableGraphPlotline(2,5));
+  graph.AddLine(TableGraphPlotline(2,6));
+  graph.AddLine(TableGraphPlotline(2,7));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
+  graph.init("Average I, RMSdeviation and Sd");  // 3rd graph
+  graph.AddLine(TableGraphPlotline(2,10));
+  graph.AddLine(TableGraphPlotline(2,11));
+  graph.AddLine(TableGraphPlotline(2,12));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[2]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
+  graph.init("Fractional bias");  // 4th graph
+  graph.AddLine(TableGraphPlotline(2,15));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", false, yranges[3]);  // y axis from minimum to maximum
+  table.AddGraph(graph);
+
+  // Define column labels
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -489,13 +613,15 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   collabels.push_back("I/RMS");     // 13
   collabels.push_back("Mn(I/sd)");  // 14
   collabels.push_back("FrcBias");   // 15
+  int nc = collabels.size();
+  // which columns should have "0.0" replaced by "-"
   bool z[] =
     {false, false, false, true, true, true, true, true, false, true, true, true, true, true, true};
   std::vector<bool> Zero(z, z+15);
   std::string fmt = "%7.3f%7.3f%7.3f%7.3f%7.3f%9d%9d%7d%7d%7.1f%9.1f%9.3f\n"; // excluding 1st 3 columns
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
-  int nc = collabels.size();
+  // store labels, zero flags and format
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
+
   Rfactor Rcum;  // cumulative R
   Rfactor Rfull, Rmeas, Rpim;
   MeanSD Imean, rmsD, avSd, mnIsd, bias, biasI;
@@ -507,21 +633,18 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     if (biasIRes[i].Count() > 0) {
       frcbias = biasRes[i].Mean()/biasIRes[i].Mean();
     }
-    //    output.logTab(0,LOGFILE,
-    //		  table.Line(nc, n++, ResRange.boundsS(i).second,
-    //			     ResRange.boundsA(i).second,
     double sd = sqrt(Max(rmsDRes[i].Mean(), 0.0));
     double Iovsd = 0.0;
     if ( sd > 0.0) {Iovsd = imeanRes[i].Mean()/sd;}
-    output.logTab(0,LOGFILE,
-		  table.Line(nc, n++, ResRange.middle(i),
-			     ResRange.middleA(i),
-			     rmergeRes[i].R(), rmergeResFull[i].R(), Rcum.R(),
-			     rmeasRes[i].R(), rpimRes[i].R(),
-			     rmergeRes[i].result().count,
-			     Nint(imeanRes[i].Mean()), Nint(sqrt(rmsDRes[i].Mean())),
-			     Nint(avSdRes[i].Mean()), Iovsd,
-			     mnIsdRes[i].Mean(), frcbias));
+    // Store each table line
+    table.Line(nc, n++, ResRange.middle(i),
+	       ResRange.middleA(i),
+	       rmergeRes[i].R(), rmergeResFull[i].R(), Rcum.R(),
+	       rmeasRes[i].R(), rpimRes[i].R(),
+	       rmergeRes[i].result().count,
+	       Nint(imeanRes[i].Mean()), Nint(sqrt(rmsDRes[i].Mean())),
+	       Nint(avSdRes[i].Mean()), Iovsd,
+	       mnIsdRes[i].Mean(), frcbias);
     // Totals
     Rfull += rmergeResFull[i];
     Rmeas += rmeasRes[i];
@@ -533,18 +656,21 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     bias += biasRes[i];
     biasI += biasIRes[i];
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+
+  table.CloseTable();
   float frcbias = 0.0;
   if (biasI.Count() > 0) {
     frcbias = bias.Mean()/biasI.Mean();
   }
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   fmt = "Overall:          "+fmt;
-  // //  fmt = "Overall:          "+fmt+"\n";
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
 		      Rcum.R(), Rfull.R(), Rcum.R(),
 		      Rmeas.R(), Rpim.R(), Rcum.result().count,
-		   Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
+		      Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
 		   Imean.Mean()/sqrt(rmsD.Mean()), mnIsd.Mean(), frcbias);
   output.logTab(0,LOGFILE,table.RawLabels());
   // Store things in summary object
@@ -568,7 +694,7 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
   int nrd = 0;  // non-zero runs
   std::vector<bool> runpresent(nruns, false);
   for (int irun=0;irun<nruns;++irun) {
-    ASSERT (rmergeRun[irun].size() == ResRange.Nbins());
+    ASSERT (int(rmergeRun[irun].size()) == ResRange.Nbins());
     bool nonzero = false;
     for (int i=0;i<ResRange.Nbins();++i) {
       if (rmergeRun[irun][i].result().count > 0) {
@@ -607,8 +733,11 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
 		"\n--------------------------------\n");
 
 
-  TableGraph table(" Analysis against resolution for each run in dataset, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
+  TableGraph table(" Analysis against resolution for each run in dataset, "+
+		   dataset_pxd.dname());
+  table.StoreID("Graph-StatsByRun");
+
+  TableGraphPlot graph("Rmeas v. resolution for each run");  // 1st graph
 
   // Graph for each run, column 2 + 4...
   std::vector<int> cln(nrd+1, 2); 
@@ -616,12 +745,14 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
   for (int irun=0;irun<nruns;++irun) {
     if (runpresent[irun]) {
       cln[k] = 3 + k;
+      graph.AddLine(TableGraphPlotline(2,cln[k])); // column numbers for x,y
       k++;
     }
   }
-  output.logTab(0,LOGFILE,
-		table.Graph("Rmeas v. resolution for each run",
-		GraphAxesType(xrange,yrange,true),cln));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yrange);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -638,8 +769,7 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
     }
   }
   fmt += "\n";
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
   int nc = collabels.size();
   std::vector<Rfactor> RmeasR(nrd); // overall values
 
@@ -655,12 +785,15 @@ void PrintDeviationsByRun(const PxdName& dataset_pxd,
 	k++;
       }
     }
-    output.logTab(0,LOGFILE,
-		  table.Line(Rfacs, 3,
-			     n++, ResRange.middle(i), ResRange.middleA(i)));
+    table.Line(Rfacs, 3,
+	       n++, ResRange.middle(i), ResRange.middleA(i));
   } // end loop resolution bins
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   // Overall values
   std::string s = "Overall:          ";
   for (int k=0;k<nrd;++k) {
@@ -690,6 +823,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
 		"Other statistics are with either I+ or I- sets, for acentrics, ie with anomalous\n\n");
   TableGraph table(" Analysis against resolution, with & without anomalous (Ov), "+dataset_pxd.dname());
+  table.StoreID("Graph-StatsAllVsResolution");
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
@@ -705,11 +839,17 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   }
   yrange.first() = 0.0;  // from 0
 
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {2,4,5,8,9,10,11};
-  std::vector<int> cln(c,c+7);
-  output.logTab(0,LOGFILE,
-		table.Graph("Rmerge, Rmeas, Rpim v Resolution",GraphAxesType(xrange,yrange,true),cln));
+  TableGraphPlot graph("Rmerge, Rmeas, Rpim v Resolution");
+  graph.AddLine(TableGraphPlotline(2,4));
+  graph.AddLine(TableGraphPlotline(2,5));
+  graph.AddLine(TableGraphPlotline(2,8));
+  graph.AddLine(TableGraphPlotline(2,9));
+  graph.AddLine(TableGraphPlotline(2,10));
+  graph.AddLine(TableGraphPlotline(2,11));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yrange);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -726,8 +866,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   bool z[] = {false, false, false, true, true, true, true, true, true, true, true, false};
   std::vector<bool> Zero(z, z+12);
   std::string fmt = "%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%9d\n"; // excluding 1st 3 columns
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
   int nc = collabels.size();
   Rfactor Rcum, RcumOv;  // cumulative R
   Rfactor Rmeas, Rpim, RmeasOv, RpimOv;
@@ -736,24 +875,24 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   for (int i=0;i<ResRange.Nbins();++i) {
     Rcum += rmergeRes[i];
     RcumOv += rmergeResOv[i];
-    //  output.logTab(0,LOGFILE,
-    //		table.Line(nc, n++, ResRange.boundsS(i).second, ResRange.boundsA(i).second,
-  output.logTab(0,LOGFILE,
-		table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i), // 1,2,3
-			   rmergeRes[i].R(), rmergeResOv[i].R(), // 4,5
-			   Rcum.R(), RcumOv.R(), // 6,7
-			   rmeasRes[i].R(), rmeasResOv[i].R(),  //8,9
-			   rpimRes[i].R(), rpimResOv[i].R(),    //10,11
-			   rmergeResOv[i].result().count));     //12
+    table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i), // 1,2,3
+	       rmergeRes[i].R(), rmergeResOv[i].R(), // 4,5
+	       Rcum.R(), RcumOv.R(), // 6,7
+	       rmeasRes[i].R(), rmeasResOv[i].R(),  //8,9
+	       rpimRes[i].R(), rpimResOv[i].R(),    //10,11
+	       rmergeResOv[i].result().count);     //12
     // Totals
     Rmeas += rmeasRes[i];
     Rpim  += rpimRes[i];
     RmeasOv += rmeasResOv[i];
     RpimOv  += rpimResOv[i];
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
-  // //   fmt = "Overall:          "+fmt+"\n";
+  table.CloseTable();
+
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   fmt = "Overall:          "+fmt;
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
 		      Rcum.R(), RcumOv.R(),
@@ -796,11 +935,15 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   }
 
   TableGraph table(" Analysis against intensity, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {1,2,4,5};
-  std::vector<int> cln(c,c+4);
-  output.logTab(0,LOGFILE,
-		table.Graph("Rmerge v Intensity","N",cln));
+  table.StoreID("Graph-StatsVsIntensity");
+
+  TableGraphPlot graph("Rmerge v Intensity");
+  graph.AddLine(TableGraphPlotline(1,2));
+  graph.AddLine(TableGraphPlotline(1,4));
+  graph.AddLine(TableGraphPlotline(1,5));
+  graph.SetYaxis("", true);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("Imax");      // 1 
   collabels.push_back("Rmrg");      // 2 
@@ -818,8 +961,7 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   bool z[] = {false, true, true, true, true, false, true, true, true, true, true, true};
   std::vector<bool> Zero(z, z+12);
   std::string fmt = "%7.3f%7.3f%7.3f%7.3f%9d%9d%7d%7d%7.1f%9.1f%9.3f\n"; // excluding 1st column
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%10.0f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%10.0f"+fmt); 
   int nc = collabels.size();
   Rfactor Rcum;  // cumulative R
   Rfactor Rmeas, Rpim;
@@ -831,14 +973,13 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
     if (biasIInt[i].Count() > 0) {
       frcbias = biasInt[i].Mean()/biasIInt[i].Mean();
     }
-  output.logTab(0,LOGFILE,
-		table.Line(nc, Irange.bounds(i).second,
-			   rmergeInt[i].R(), Rcum.R(),
-			   rmeasInt[i].R(), rpimInt[i].R(),
-			   rmergeInt[i].result().count,
-			   Nint(imeanInt[i].Mean()), Nint(sqrt(rmsDInt[i].Mean())),
-			   Nint(avSdInt[i].Mean()), imeanInt[i].Mean()/sqrt(rmsDInt[i].Mean()),
-			   mnIsdInt[i].Mean(), frcbias));
+    table.Line(nc, Irange.bounds(i).second,
+	       rmergeInt[i].R(), Rcum.R(),
+	       rmeasInt[i].R(), rpimInt[i].R(),
+	       rmergeInt[i].result().count,
+	       Nint(imeanInt[i].Mean()), Nint(sqrt(rmsDInt[i].Mean())),
+	       Nint(avSdInt[i].Mean()), imeanInt[i].Mean()/sqrt(rmsDInt[i].Mean()),
+	       mnIsdInt[i].Mean(), frcbias);
     // Totals
     Rmeas += rmeasInt[i];
     Rpim  += rpimInt[i];
@@ -849,8 +990,11 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
     bias += biasInt[i];
     biasI += biasIInt[i];
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   float frcbias = 0.0;
   if (biasI.Count() > 0) {
     frcbias = bias.Mean()/biasI.Mean();
@@ -913,16 +1057,26 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   }
   yranges[0].first() = 0.0;  // maximum completeness 
   yranges[0].last() = 100.0;  // maximum completeness 
+
   TableGraph table(" Completeness & multiplicity v. resolution, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
-  int c[] = {2,7,8,10,11};
-  std::vector<int> cln(c,c+5);
-  output.logTab(0,LOGFILE,
-		table.Graph("Completeness v Resolution ",GraphAxesType(xrange,yranges[0],true),cln));
-  int c2[] = {2,9,12};
-  cln.assign(c2, c2+3);
-  output.logTab(0,LOGFILE,
-		table.Graph("Multiplicity v Resolution",GraphAxesType(xrange,yranges[1],true),cln));
+  table.StoreID("Graph-CompletenessVsResolution");
+
+  TableGraphPlot graph("Completeness v Resolution ");
+  graph.AddLine(TableGraphPlotline(2,7));
+  graph.AddLine(TableGraphPlotline(2,8));
+  graph.AddLine(TableGraphPlotline(2,10));
+  graph.AddLine(TableGraphPlotline(2,11));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
+  graph.init("Multiplicity v Resolution");
+  graph.AddLine(TableGraphPlotline(2,9));
+  graph.AddLine(TableGraphPlotline(2,12));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+  
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -939,8 +1093,7 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   bool z[] = {false, false, false, false, false, false, true, true, true, true, true, true};
   std::vector<bool> Zero(z, z+12);
   std::string fmt = "%9d%9d%9d%7.1f%7.1f%7.1f%9.1f%7.1f%7.1f\n"; // excluding 1st 3 columns
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
   int nc = collabels.size();
 
   int Nobs=0;
@@ -971,13 +1124,10 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
     cumposs = FractionN(100., NrefSphere, Nrefcmpl);  // cumulative completeness
     anomcmpl = FractionN(100., NumAnomSphere[i], Nrefacen[i]);
     anomfrc = FractionN(100., NumAnom[i], NumACentric[i]);
-    //    output.logTab(0,LOGFILE,
-    //		table.Line(nc, n++, ResRange.boundsS(i).second, ResRange.boundsA(i).second,
-    output.logTab(0,LOGFILE,
-		table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-			   NumObs[i], NumRef[i], NumCentric[i], poss, cumposs,
-			   FractionN(1.0, NumObs[i], NumRef[i]),
-			   anomcmpl, anomfrc, FractionN(1.0, SNumAnomPairs[i], NumACentric[i])));
+    table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+	       NumObs[i], NumRef[i], NumCentric[i], poss, cumposs,
+	       FractionN(1.0, NumObs[i], NumRef[i]),
+	       anomcmpl, anomfrc, FractionN(1.0, SNumAnomPairs[i], NumACentric[i]));
     // Totals
     Ncen += NumCentric[i];
     Nanom += NumAnom[i];
@@ -999,10 +1149,13 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
     }
 
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
 
-    anomcmpl = FractionN(100., NanomSphere, Nanomref);
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
+  anomcmpl = FractionN(100., NanomSphere, Nanomref);
   std::string leader = "Overall:          ";
   fmt = leader+fmt;
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
@@ -1039,27 +1192,32 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
 " This ratio will be > 1 if there is a significant anomalous signal\n");
 
   TableGraph table(" Correlations CC(1/2) within dataset, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
+  table.StoreID("Graph-CChalf");
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(2);   // for each graph
-  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't nned to do this)
+  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   for (int i=0;i<ResRange.Nbins();++i) {
     yranges[1].update(halfDatasetScores.RMScorrelRatio(i));
     //    yranges[1].update(halfDatasetScores.RMScorrelRatioCen(i));
   }
   yranges[0].first() = 0.0;  // CC
   yranges[0].last() = 1.0;  // CC
-  int c[] = {2,4,7};
-  std::vector<int> cln(c,c+3);
-  output.logTab(0,LOGFILE,
-		table.Graph(" Anom & Imean CCs v resolution",
-		GraphAxesType(xrange,yranges[0],true),cln));
-  int c2[] = {2,6};
-  cln.assign(c2,c2+2);
-  output.logTab(0,LOGFILE,
-		table.Graph(" RMS correlation ratio ",GraphAxesType(xrange,yranges[1],true),cln));
+
+  TableGraphPlot graph(" Anom & Imean CCs v resolution");
+  graph.AddLine(TableGraphPlotline(2,4));
+  graph.AddLine(TableGraphPlotline(2,7));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
+  graph.init(" RMS correlation ratio ");
+  graph.AddLine(TableGraphPlotline(2,6));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -1072,27 +1230,27 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   bool z[] = {false, false, false, true, false, true, true, false};
   std::vector<bool> Zero(z, z+8);
   std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d\n"; // excluding 1st 3 columns
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
   int nc = collabels.size();
 
   int n=1;
   for (int i=0;i<ResRange.Nbins();++i) {
-    //  output.logTab(0,LOGFILE,
-    //		table.Line(nc, n++, ResRange.boundsS(i).second, ResRange.boundsA(i).second,
-  output.logTab(0,LOGFILE,
-		table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-			   halfDatasetScores.CCanom(i).result().val,
-			   halfDatasetScores.CCanom(i).result().count,
-			   //			   halfDatasetScores.CCanomCen(i).result().val,
-			   //			   halfDatasetScores.CCanomCen(i).result().count,
-			   halfDatasetScores.RMScorrelRatio(i),
-			   //			   halfDatasetScores.RMScorrelRatioCen(i),
-			   halfDatasetScores.CC_Imean(i).result().val,
-			   halfDatasetScores.CC_Imean(i).result().count));
+    table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+	       halfDatasetScores.CCanom(i).result().val,
+	       halfDatasetScores.CCanom(i).result().count,
+	       //			   halfDatasetScores.CCanomCen(i).result().val,
+	       //			   halfDatasetScores.CCanomCen(i).result().count,
+	       halfDatasetScores.RMScorrelRatio(i),
+	       //			   halfDatasetScores.RMScorrelRatioCen(i),
+	       halfDatasetScores.CC_Imean(i).result().val,
+	       halfDatasetScores.CC_Imean(i).result().count);
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   // Totals
   std::string leader = "Overall:          ";
   fmt = leader+fmt;
@@ -1171,6 +1329,14 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     axlabels[2] = "c*";
   }
 
+  DVect3  eigenvalues = anisoanal.EigenValuesOrth();
+  output.logTabPrintf(0,LOGFILE,
+		      "\nEigenvalues of [B](orth) along principal axes : %8.3f %8.3f %8.3f\n",
+		      eigenvalues[0], eigenvalues[1], eigenvalues[2]); 
+  output.logTabPrintf(0,LOGFILE,
+      "Difference between maximum and minimum anisotropic B (= 8 pi^2 U) %7.1f\n",
+		      anisoanal.BfactorDifference());
+
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(2);   // for each graph
@@ -1181,8 +1347,10 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   }
   yranges[0].first() = 0.0; // CC
   yranges[0].last() = 1.0; // CC
+
   TableGraph table(" Anisotropy analysis of CC(1/2) and I/sd, "+dataset_pxd.dname());
-  output.logTab(0,LOGFILE,table.formatTitle());
+  table.StoreID("Graph-Anisotropy");
+
   std::vector<int> cln;
   if (isplane) { // only two directions if plane
     int c[] = {2,4,5};
@@ -1191,8 +1359,14 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     int c[] = {2,4,5,6};
     cln.assign(c,c+4);
   }
-  output.logTab(0,LOGFILE,
-		table.Graph(" Imean CCs v resolution",GraphAxesType(xrange,yranges[0],true),cln));
+  TableGraphPlot graph(" Imean CCs v resolution");
+  for (size_t i=1; i<cln.size(); i++) { // from 1
+    graph.AddLine(TableGraphPlotline(2,cln[i]));
+  }
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+    
   if (isplane) {
     int c2[] = {2,6,7};
     cln.assign(c2,c2+3);
@@ -1200,8 +1374,14 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     int c2[] = {2,7,8,9};
     cln.assign(c2,c2+4);
   }
-  output.logTab(0,LOGFILE,
-		table.Graph(" Mn(I/sd) v resolution",GraphAxesType(xrange,yranges[1],true),cln));
+  graph.init(" Mn(I/sd) v resolution");
+  for (size_t i=1; i<cln.size(); i++) { // from 1
+    graph.AddLine(TableGraphPlotline(2,cln[i]));
+  }
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   if (isplane) {
     int c3[] = {2,8,9};
     cln.assign(c3,c3+3);
@@ -1209,8 +1389,13 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     int c3[] = {2,10,11,12};
     cln.assign(c3,c3+4);
   }
-  output.logTab(0,LOGFILE,
-		table.Graph(" Projected Imean CCs v resolution",GraphAxesType(xrange,yranges[0],true),cln));
+  graph.init(" Projected Imean CCs v resolution");
+  for (size_t i=1; i<cln.size(); i++) { // from 1
+    graph.AddLine(TableGraphPlotline(2,cln[i]));
+  }
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
 
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
@@ -1234,34 +1419,32 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   if (isplane) {
     fmt = " %8.3f%8.3f %11.2f%11.2f %8.3f%8.3f\n"; // excluding 1st 3 columns
   }
-  output.logTab(0,LOGFILE,
-		table.ColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt)); 
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
   std::vector<MeanSD> mnIsd(3);
   int n=1;
   for (int i=0;i<ResRange.Nbins();++i) {
     std::string s;
     if (isplane) {
-      s = table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-		     halfDatasetScores.CCaniso(0,i).result().val,
-		     halfDatasetScores.CCaniso(2,i).result().val,
-		     mnIsdResCone[0][i].Mean(),
-		     mnIsdResCone[2][i].Mean(),
-		     halfDatasetScores.CCanisoProjection(0,i).result().val,
-		     halfDatasetScores.CCanisoProjection(2,i).result().val);
+      table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+		 halfDatasetScores.CCaniso(0,i).result().val,
+		 halfDatasetScores.CCaniso(2,i).result().val,
+		 mnIsdResCone[0][i].Mean(),
+		 mnIsdResCone[2][i].Mean(),
+		 halfDatasetScores.CCanisoProjection(0,i).result().val,
+		 halfDatasetScores.CCanisoProjection(2,i).result().val);
     } else {
-      s = table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-		     halfDatasetScores.CCaniso(0,i).result().val,
-		     halfDatasetScores.CCaniso(1,i).result().val,
-		     halfDatasetScores.CCaniso(2,i).result().val,
-		     mnIsdResCone[0][i].Mean(),
-		     mnIsdResCone[1][i].Mean(),
-		     mnIsdResCone[2][i].Mean(),
-		     halfDatasetScores.CCanisoProjection(0,i).result().val,
-		     halfDatasetScores.CCanisoProjection(1,i).result().val,
-		     halfDatasetScores.CCanisoProjection(2,i).result().val);
+      table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+		 halfDatasetScores.CCaniso(0,i).result().val,
+		 halfDatasetScores.CCaniso(1,i).result().val,
+		 halfDatasetScores.CCaniso(2,i).result().val,
+		 mnIsdResCone[0][i].Mean(),
+		 mnIsdResCone[1][i].Mean(),
+		 mnIsdResCone[2][i].Mean(),
+		 halfDatasetScores.CCanisoProjection(0,i).result().val,
+		 halfDatasetScores.CCanisoProjection(1,i).result().val,
+		 halfDatasetScores.CCanisoProjection(2,i).result().val);
     }
-    output.logTab(0,LOGFILE,s);
 
     //^	
     //    std::cout 
@@ -1276,8 +1459,12 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     mnIsd[1] += mnIsdResCone[1][i];
     mnIsd[2] += mnIsdResCone[2][i];
   }
-  output.logTab(0,LOGFILE,
-		table.CloseTable());
+  table.CloseTable();
+
+  // Output table to log file and XML
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  output.logTab(0,LXML,table.XMLformat());
+
   // Totals
   std::string leader = "Overall:          ";
   fmt = leader+fmt;
@@ -1323,6 +1510,12 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 			      const int& verbose)
 // Optional summary printing
 {
+  if (hkl_list.MultiLattice()) {
+    output.logTab(0,LOGFILE," ");
+    output.logTabPrintf(1,LOGFILE,
+			"Multiple lattice data, number of lattices %2d\n",
+			(hkl_list.NumberofMainLattices()));
+  }
   if (verbose > 0)  {
     if (verbose == 1 || !hkl_list.IsReady()) {
       output.logTab(0,LOGFILE,
@@ -1382,7 +1575,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 	    b1 = -1;
 	  }
 	}
-      }
+      } // end loop batches
       if (b1 >= 0) {
 	int ib = nbatches;
 	// store range
@@ -1396,13 +1589,14 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 	}
       }
       int nrb = rejectedbatches.size();
-      std::vector<Xdataset> datasets = hkl_list.AllXdatasets();
+      std::vector<Dataset> datasets = hkl_list.AllDatasets();
       std::vector<Run> runlist = hkl_list.RunList();
       for (int k=0; k<ndatasets; k++) {
-	output.logTab(0,LOGFILE,"\n"+datasets[k].pxdname().formatPrint());
-	output.logTab(3,LOGFILE,"Cell: "+datasets[k].cell().formatPrint());
-	output.logTabPrintf(3,LOGFILE,
-			    "Wavelength %8.5f A\n", datasets[k].wavelength());
+	output.logTab(0,LOGFILE,"\n"+datasets[k].format());
+	//	output.logTab(0,LOGFILE,"\n"+datasets[k].formatPrint());
+	//	output.logTab(3,LOGFILE,"Cell: "+datasets[k].cell().formatPrint());
+	//	output.logTabPrintf(3,LOGFILE,
+	//			    "Wavelength %8.5f A\n", datasets[k].wavelength());
 	if (verbose == 3) {
 	  for (size_t i=0;i<runlist.size();i++) {
 	    if (runlist[i].DatasetIndex() == k) {
@@ -1427,9 +1621,9 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 	    }
 	  }
 	}
-      }
+      }  // end loop datasets
     } else if (verbose > 3) {
-      std::vector<Xdataset> datasets = hkl_list.AllXdatasets();
+      std::vector<Dataset> datasets = hkl_list.AllDatasets();
       for (size_t k=0; k<datasets.size(); k++) {
 	output.logTab(0,LOGFILE,
 		      datasets[k].formatPrint());
@@ -1441,7 +1635,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       
     if (verbose > 3) {
       std::vector<Run> runlist = hkl_list.RunList();
-      std::vector<Xdataset> datasets = hkl_list.AllXdatasets();
+      std::vector<Dataset> datasets = hkl_list.AllDatasets();
       for (size_t i=0;i<runlist.size();i++) {
 	output.logTab(0,LOGFILE,runlist[i].formatPrint(datasets));}
     }
@@ -1460,6 +1654,10 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       }
     }
     output.logTab(0,LXML,"<ReflectionData>");
+    float resmax = hkl_list.ResRange().ResHigh();
+    output.logTab(1,LXML,
+		  StringUtil::MakeXMLtag("ResolutionHigh",
+					 StringUtil::ftos(resmax,8,2)));
     output.logTabPrintf(1,LXML,
 			"<NumberReflections>  %10d </NumberReflections>\n",
 			hkl_list.num_reflections_valid());
@@ -1469,6 +1667,9 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
     output.logTabPrintf(1,LXML,
 			"<NumberParts>        %10d </NumberParts>\n",
 			hkl_list.num_parts());
+    output.logTab(1,LXML,
+		  StringUtil::MakeXMLtag("NumberLattices",
+			StringUtil::itos(hkl_list.NumberofMainLattices())));
     output.logTabPrintf(1,LXML,
 			"<NumberBatches>      %10d </NumberBatches>\n", 
 			hkl_list.num_batches());
@@ -1477,10 +1678,10 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
 			hkl_list.num_datasets());
 
     int ndatasets = hkl_list.num_datasets();
-    std::vector<Xdataset> datasets = hkl_list.AllXdatasets();
+    std::vector<Dataset> datasets = hkl_list.AllDatasets();
     for (int k=0; k<ndatasets; k++) {
       output.logTabPrintf(1,LXML, "<Dataset  name=\"%s\">\n",
-			  datasets[k].pxdname().format().c_str());
+			  datasets[k].formatNames().c_str());
       for (size_t i=0;i<runlist.size();i++) {
 	if (runlist[i].DatasetIndex() == k) {
 	  output.logTabPrintf(2,LXML,"<Run> <number> %3d </number>\n",i+1);
@@ -1501,5 +1702,38 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
     }
     output.logTab(0,LXML,"</ReflectionData>");
   }
+}
+//--------------------------------------------------------------
+void PrintPartialCounts(const scala::hkl_unmerge_list& hkl_list,
+			const all_controls& controls,
+			phaser_io::Output& output)
+// Print counts of partials rejected etc, also to XML
+{
+  if (hkl_list.num_observations_part() > 0) {
+      output.logTab(0,LOGFILE,controls.partials.format());
+      if (hkl_list.num_observations_scaled() > 0) {
+	output.logTabPrintf(0,LOGFILE,"Number of scaled partials =  %10d\n",
+			    hkl_list.num_observations_scaled());
+	output.logTab(0,LXML,StringUtil::MakeXMLtag("NumberScaledPartials",
+					    hkl_list.num_observations_scaled()));
+      }
+      output.logTabPrintf(0,LOGFILE,"\n");
+      // Rejects
+      output.logTabPrintf(0,LOGFILE,
+			  "%8d  partial sets rejected with total fraction too small\n",
+			  hkl_list.num_observations_rejected_FracTooSmall());
+      output.logTab(0,LXML,StringUtil::MakeXMLtag("NumberPartialsTooSmall",
+			  hkl_list.num_observations_rejected_FracTooSmall()));
+      output.logTabPrintf(0,LOGFILE,
+			  "%8d  partial sets rejected with total fraction too large\n",
+			  hkl_list.num_observations_rejected_FracTooLarge());
+      output.logTab(0,LXML,StringUtil::MakeXMLtag("NumberPartialsTooLarge",
+			  hkl_list.num_observations_rejected_FracTooLarge()));
+      output.logTabPrintf(0,LOGFILE,
+			  "%8d  partial sets rejected with gaps\n",
+			  hkl_list.num_observations_rejected_Gap());
+      output.logTab(0,LXML,StringUtil::MakeXMLtag("NumberPartialsGap",
+			  hkl_list.num_observations_rejected_Gap()));
+    }
 }
 //--------------------------------------------------------------

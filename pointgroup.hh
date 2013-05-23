@@ -17,7 +17,7 @@ using namespace cctbx;
 
 #include <iostream>
 #include "hkl_datatypes.hh"
-#include "lattice.hh"
+#include "crystaltype.hh"
 #include "Output.hh"
 #include "controls.hh"
 #include "zone.hh"

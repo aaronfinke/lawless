@@ -238,6 +238,42 @@ namespace scala
 			 Nedge, Naccedge);
     return s;
   }
+  //--------------------------------------------------------------
+  std::string ObservationFlagControl::XMLset(const int& nflagged, const int& naccepted,
+					     const float& maximumvalue,
+					     const float& maxaccepted) const
+  {
+    std::string s;
+    s += StringUtil::MakeXMLtag("NumberFlagged", nflagged);
+    s += StringUtil::MakeXMLtag("NumberAccepted", naccepted);
+    if (maximumvalue > -9999.0) {
+      s += StringUtil::MakeXMLtag("Maximum", maximumvalue, 8,3);
+      s += StringUtil::MakeXMLtag("MaximumAccepted", maxaccepted);
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string ObservationFlagControl::asXML() const
+  {
+    std::string s;
+    if (NBGratio+NPKratio+NTooNeg+NGradient+Noverload+Nedge == 0) return s;
+
+    s += "<ObservationFlags>\n";
+    s += StringUtil::MakeXMLtag("BGratioTooLarge",
+				XMLset(NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio));
+    s += StringUtil::MakeXMLtag("PKratioTooLarge",
+				XMLset(NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio));
+    s += StringUtil::MakeXMLtag("TooNegative",
+				XMLset(NTooNeg, NaccTooNeg));
+    s += StringUtil::MakeXMLtag("GradientTooLarge",
+				XMLset(NGradient, NaccGradient, MaxGradient, MaxAccGradient));
+    s += StringUtil::MakeXMLtag("ProfileFittedOverloads",
+				XMLset(Noverload, Naccoverload));
+    s += StringUtil::MakeXMLtag("Edge",
+				XMLset(Nedge, Naccedge));
+    s += "</ObservationFlags>\n";
+    return s;
+  }
 //--------------------------------------------------------------
   const unsigned int ObservationStatus::wordmask;  //  = 0xFFFF
 //--------------------------------------------------------------
@@ -250,5 +286,24 @@ namespace scala
     return (bitflags & ROGUES_FLAG) == 0;
   }
 //--------------------------------------------------------------
+  // Format for debugging
+  std::string ObservationStatus::format() const
+  {
+    std::string s;
+    if (IsAccepted()) {
+      s = "Accepted";
+      return s;
+    }
+    if (TestObsFlag()) {s += "|OBSSTAT_FLAG";}
+    if (TestResolution()) {s += "|OBSSTAT_RESOLUTION";}
+    if (TestOutlier()) {s += "|OBSSTAT_OUTLIER";}
+    if (TestOutlierAnom()) {s += "|OBSSTAT_OUTLIERANOM";}
+    if (TestEmax()) {s += "|OBSSTAT_EMAX";}
+    if (TestTooStrong()) {s += "|OBSSTAT_STRONG";}
+    if (TestTooWeak()) {s += "|OBSSTAT_WEAK";}
+    if (TestRejectOverlap()) {s += "|OBSSTAT_OVERLAP";}
+    if (TestRejectRun()) {s += "|OBSSTAT_RUN";}
+    return s;
+  }
 //--------------------------------------------------------------
-}
+} // namespace scala

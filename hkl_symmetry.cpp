@@ -77,9 +77,7 @@ namespace scala {
 	Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
       }
       sname = StringUtil::Trim(sname.substr(1));
-      std::string lt = std::string(1,lattype);
-      // add space if space in name
-      if (sname.find(" ") != std::string::npos) {lt += " ";}
+      std::string lt = std::string(1,lattype) + " ";
       sname = lt+sname;
     }
     return sname;
@@ -117,6 +115,7 @@ namespace scala {
   void SpaceGroup::init(const std::string& spgname)
   // Create from name
   {
+    spacegroupname = spgname;
     // Change names with lattice type 'H' to 'R' for clipper construction
     std::string name = SGnameHtoR(spgname, 'R');
     char lt1 = StringUtil::Trim(spgname)[0];  // original lattice type
@@ -130,12 +129,21 @@ namespace scala {
     if (name.find(" ") == std::string::npos) {
       // if no spaces, add them by translating from the library file
       CSym::CCP4SPG* CCP4sg = CSym::ccp4spg_load_by_spgname(spgname.c_str());
-      if (CCP4sg == NULL) return;
-      name = CCP4sg->symbol_xHM;
+      ////      if (CCP4sg == NULL) return;
+      if (CCP4sg == NULL) {
+	name = spgname;
+      } else {
+	name = CCP4sg->symbol_xHM;
+      }
     }
     try {
       if (name.find(":") == std::string::npos) {
-	spgd = clipper::Spgr_descr(name, Spacegroup::HM);
+	// Special for centred triclinic
+	if (isNameCentredTriclinic(name)) {
+	  spgd = clipper::Spgr_descr(name, Spacegroup::Hall);
+	} else {
+	  spgd = clipper::Spgr_descr(name, Spacegroup::HM);
+	}
       } else {
 	spgd = clipper::Spgr_descr(name, Spacegroup::XHM);  // name contains ":"
       }
@@ -150,6 +158,21 @@ namespace scala {
     }
     clipper::Spacegroup::init(spgd);
     init();
+  }
+  //--------------------------------------------------------------
+  bool SpaceGroup::isNameCentredTriclinic(const std::string& name)
+  {
+    //    std::cout <<"isNameCentredTriclinic "<<name<<"\n"; //^
+    if (name.size() != 3) return false;
+    if (name.substr(1,2) != " 1") return false;  // not triclinic
+    char lattices[] = {'P','A','B','C','I','F','R','H'};
+    const int NLTYPES = 8;
+    bool centred = false;
+    for (int i=1;i<NLTYPES;++i) { // not P
+      if (name[0] == lattices[i]) {centred = true;}
+    }
+    //    if (centred) std::cout << "centred\n"; //^
+    return centred;
   }
   //--------------------------------------------------------------
   void SpaceGroup::init(const int& SpgNumber)
@@ -182,12 +205,20 @@ namespace scala {
       rotsymops[i] = clipper::Symop(clipper::RTop<>(csymops[i].rot()));
       invrotsymops[i] = clipper::Symop(clipper::RTop<>(csymops[i].rot()).inverse());
     }
-    if (spacegroupname == "Unknown") {
-      spacegroupname = CCP4spaceGroupName();  // construct from csymops
+    std::string spgname = spacegroupname;
+    if (spgname == "Unknown") {
+      spgname = CCP4spaceGroupName();  // construct from csymops
+    } else if (spgname == "") {
+      spgname = "Unknown";
     }
-    spacegroupname = symbol_hm();
+    spacegroupname = spgname;
     spacegroupnumber = spacegroup_number();
-    CCP4spacegroupnumber = spacegroupnumber;
+    if (spacegroupnumber == 0) {
+      CCP4spacegroupnumber = 0;
+    } else {
+      spacegroupname = symbol_hm();
+      CCP4spacegroupnumber = spacegroupnumber;
+    }
     // Sort out name if unknown
     //^    std::cout << "SpaceGroup: HM: " << symbol_hm()
     //^	      << "  Hall: " << symbol_hall() << "\n";
@@ -203,8 +234,12 @@ namespace scala {
   {
     std::string hallSymbol = symbol_hall();
     if (hallSymbol == "Unknown") {
-      hallSymbol =
-	std::string(CSym::ccp4spg_load_by_ccp4_num(CCP4spacegroupnumber)->symbol_Hall);
+      if (CCP4spacegroupnumber == 0) {
+	hallSymbol = spacegroupname;
+      } else {
+	hallSymbol =
+	  std::string(CSym::ccp4spg_load_by_ccp4_num(CCP4spacegroupnumber)->symbol_Hall);
+      }
     }
     return hallSymbol;
   }
@@ -794,7 +829,10 @@ namespace scala {
     }
 
     s = s+" <Axis>"+clipper::String(Iaxis[0], 2)+clipper::String(Iaxis[1], 2)
-      +clipper::String(Iaxis[2], 2)+" </Axis>";
+      +clipper::String(Iaxis[2], 2)+" </Axis>\n";
+
+    // String format
+    s += StringUtil::MakeXMLtag("SymmetryElementString", format_element(kelement));
 
     return std::string(s);
   }
@@ -1092,9 +1130,9 @@ namespace scala {
     //   75-142  tetragonal
     //   16-74   orthorhombic
     //   3-15    monoclinic
-    //   1-2     triclinic
+    //   1-2     triclinic (and 0)
     CrystalSystem CrysSys;
-    if (SpaceGroupNumber < 1 || SpaceGroupNumber > 230)
+    if (SpaceGroupNumber < 0 || SpaceGroupNumber > 230)
       {Message::message(Message_fatal
 			("Illegal space group number "+
 			 clipper::String(SpaceGroupNumber)));}

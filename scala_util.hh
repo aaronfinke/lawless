@@ -47,7 +47,7 @@ namespace scala
   // On entry:
   //  datasets     list of datasets
   // Returns:   average cell
-  Scell AverageDsetCell(const std::vector<Xdataset>& datasets);
+  Scell AverageDsetCell(const std::vector<Dataset>& datasets);
   //--------------------------------------------------------------
   // Average unit cells over all batches for each dataset
   // On entry:
@@ -64,7 +64,7 @@ namespace scala
   // On entry:
   //  datasets     list of datasets
   // Returns:   average wavelength
-  float AverageDsetWavelength(const std::vector<Xdataset>& datasets);
+  float AverageDsetWavelength(const std::vector<Dataset>& datasets);
   //--------------------------------------------------------------
   // Average list of wavelengths
   // if idxexclude >= 0, exclude entry with this index

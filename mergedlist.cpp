@@ -62,9 +62,9 @@ namespace scala {
     spg_status = hkl_list.MtzSym().spg_confidence; // status of space group
 
     if (dataset_index < 0) {
-      xdatasets = hkl_list.AllXdatasets();
+      datasets = hkl_list.AllDatasets();
     } else { // just selected dataset
-      xdatasets.assign(1, hkl_list.xdataset(dataset_index));
+      datasets.assign(1, hkl_list.dataset(dataset_index));
     }
 
     // Initialise data objects for each dataset
@@ -79,17 +79,17 @@ namespace scala {
     for (int idts=0;idts<ndatasets;++idts) {
       // idts is local index to dataset stored, which may be just one
       // Individual cells for each dataset
-      HKLcell = CG.constrain(hkl_list.cell(xdatasets[idts].pxdname()));  // constrained cell
+      HKLcell = CG.constrain(datasets[idts].cell());  // constrained cell
       clipper::Cell dcell = HKLcell.ClipperCell();
       datasetdata[idts].init(hkl_info_list, dcell);
       // construct clipper-style mtzpaths
-      PxdName pxdname = xdatasets[idts].pxdname();
+      PxdName pxdname = datasets[idts].pxdname();  // consensus name, all crystals for this dataset
       clipper::String mtzpath = pxdname.xname()+"/"+pxdname.dname()+"/";
       datasetdata[idts].mtzpath = mtzpath+"["+simean+", "+sipm+"]";;
       datasetdata[idts].mtzpathImean = mtzpath+"["+simean+"]";
       datasetdata[idts].mtzpathIpm = mtzpath+"["+sipm+"]";
       datasetdata[idts].cset =
-	clipper::MTZdataset(pxdname.dname(), xdatasets[idts].wavelength());
+	clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
       datasetdata[idts].cxtl =
 	clipper::MTZcrystal(pxdname.xname(), pxdname.pname(), dcell);
     }
@@ -242,7 +242,7 @@ namespace scala {
     // cell
     // Impose lattice symmetry constraints on cell
     CCtbxSym::CellGroup CG(hkl_info_list.spacegroup());
-    scala::Scell HKLcell = CG.constrain(xdatasets.at(idx).cell());  // constrained cell
+    scala::Scell HKLcell = CG.constrain(datasets.at(idx).cell());  // constrained cell
     std::vector<Dtype> scell = HKLcell.UnitCell();
     for (int i=0;i<6;++i) {
       fprintf(scafile, "%10.3f", scell[i]);

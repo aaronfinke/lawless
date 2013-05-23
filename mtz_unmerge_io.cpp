@@ -9,10 +9,32 @@
 //
 // All in MtzIO namespace
 //
+// If there are multiple lattices, then two possible schemes are used to represent
+// the data in an MTZ file
+// 
+//  Scheme 1)    for each lattice
+//   there will be 3 addition columns of the form Xn where "X" = H,K, or L
+//   and n is the lattice number
+//   Also a LATTNUM column, this is the lattice number for the main hkl
+//   
+//  Scheme 2) 
+//   there will be 4 or 5 addition columns of the form
+//    a) LATTNUMn where n is a sequential number (not the lattice number)
+//    b) 3 columns Xn where "X" = H,K, or L
+//    c) optionally a SCALEn column, giving the scale for this overlapped
+//       reflection relative to the main HKL (LATTNUM)
+//   Also a LATTNUM column, this is the lattice number for the main hkl
+//   The number of extra column sets will depend on the maximum number of overlapped
+//   spots in the dataset (nlatticecolumns)
+//
+// Scheme 2 may be distinguished by the presence of a LATTNUM1 column
+// Note that in scheme 1 there is an entry Hn,Kn,Ln for the observation's main lattice
+//   (ie that indicated by the LATTNUM column), but in scheme 2 the main lattice HKL is
+//   not given in the extra index list, just in columns 1,2,3 (reduced hkl)
 
 #include <algorithm>
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 #include "mtz_unmerge_io.hh"
 #include "mtz_utils.hh"
@@ -29,8 +51,7 @@ namespace MtzIO
     attached to any file for either input or output */
   MtzUnmrgFile::MtzUnmrgFile()
   {
-    mode = NONE;
-    mtzsym.spcgrp = -1;  // set to null
+    clear();
   }
 
   //--------------------------------------------------------------
@@ -38,6 +59,14 @@ namespace MtzIO
   MtzUnmrgFile::~MtzUnmrgFile()
   {
     close_read();
+  }
+  //--------------------------------------------------------------
+  void MtzUnmrgFile::clear() {
+    mode = NONE;
+    mtzsym.spcgrp = -1;  // set to null
+    mtzin = NULL;
+    nlatticecolumns = 0;
+    nlattices = 0;
   }
   //--------------------------------------------------------------
   /*! The file is opened for reading. This MtzUnmrgFile object will
@@ -48,46 +77,56 @@ namespace MtzIO
   bool MtzUnmrgFile::open_read(const std::string filename_in)
   // returns false if fails
   {
-    if ( mode != NONE )
-      Message::message( Message_fatal( "MtzUnmrgFile: open_read - File already open" ) );
-    if ( filename_in == "") 
-      Message::message( Message_fatal( "MtzUnmrgFile: open_read - no filename given" ) );
+    if ( mode != NONE ) {
+      Message::message( Message_fatal( "MtzUnmrgFile: open_read - File already open" ) );}
+    if ( filename_in == "") {
+      Message::message( Message_fatal( "MtzUnmrgFile: open_read - no filename given" ) );}
 
     // store filename
-    if (getenv(filename_in.c_str()) != NULL)
+    if (getenv(filename_in.c_str()) != NULL) {
       filename_in_ = std::string(getenv(filename_in.c_str()));
-    else
+    } else{
       filename_in_ = filename_in;
-
+    }
     // open file
     mtzin = CMtz::MtzGet( filename_in_.c_str(), 0 );
-    if ( mtzin == NULL) 
+    if ( mtzin == NULL) {
       return false;
       //      Message::message( Message_fatal( "MtzUnmrgFile: open_read - failed assignment" ) );
-
+    }
     if (!CMtz::MtzAssignHKLtoBase( mtzin )) {return false;}
-    // get the list of datasets and crystals
+    // get the list of datasets (fdatasets) from the file
     // (returns 0 if no datasets in file & one was created)
-    int Ndatasets_file = read_datasets(mtzin, xdatasets);
+    int Ndatasets_file = read_datasets();
     if (Ndatasets_file <= 0) {
       {Message::message(
 			Message_info( "MtzUnmrgFile: Warning, no datasets in file" ) );}
     }
 
-    // get list of batches
+    // get list of MTZ batches (vector<MTZBAT*> mtzbatches)
+    // updates fdatasets with batch list
     if (!read_batches(mtzin, mtzbatches)) {
       merged = true;
       return false;
     }
     merged = false;
 
+    // Do we have any multi-lattice entries in this file?
+    //  If so count the columns
+    CheckMultipleLattices();
+
     // Columns
     Ncolumns = CMtz::MtzNcol(mtzin);
-    // Make list of required columns in unmerged HKLIN file
-    column_list = MtzIO::setup_columns();
-    // Set into column_list the actual column numbers for columns
-    //    requested by program (in column_list)
-    get_col_lookup(column_list);
+    // Make list of required columns in unmerged HKLIN file (basic columns)
+    column_label_list = MtzIO::setup_columns();
+    column_label_list.SetNlatticeColumns(0);
+    //
+    if (nlatticecolumns > 0) {
+      add_extra_columns(); // add extra lattice columns to column_label_list if required
+    }
+    // Set into column_label_list the actual column numbers for columns
+    //    requested by program (in column_label_list)
+    get_col_lookup(column_label_list);
 
     // Pick up global file parameters
     // get spacegroup by decoding symops
@@ -124,14 +163,13 @@ namespace MtzIO
   }
   //--------------------------------------------------------------
   bool MtzUnmrgFile::get_dataset(const int& kdataset,
-				 Xdataset& this_dataset) const
-  // Get kdataset'th dataset in crystal/dataset list
+				 Dataset& this_dataset) const
+  // Get kdataset'th dataset in dataset list
   // kdataset from 0
   // Returns false if non-existent
   {
-    // Find requested dataset
-    if (unsigned(kdataset) < xdatasets.size())  {
-      this_dataset = xdatasets[kdataset];
+    if (unsigned(kdataset) < fdatasets.size())  {
+      this_dataset = fdatasets[kdataset];
       return true;
     }
     // Not found
@@ -140,7 +178,7 @@ namespace MtzIO
   //--------------------------------------------------------------
   bool MtzUnmrgFile::get_batch(const int& kbatch,
 			       CMtz::MTZBAT& this_batch) const
-  // Get kbatch'th batch in batch list
+  // Get kbatch'th MTZ batch in batch list into this_batch
   // kbatch from 0
   // Returns false if non-existent
   {
@@ -177,26 +215,6 @@ namespace MtzIO
 	break;
       }
     return ok;
-  }
-  //--------------------------------------------------------------
-  // return batch list for all batches in file
-  std::vector<Batch> MtzUnmrgFile::BatchList()
-  {
-    if (batches.size() > 0) return batches; // list already filled (in AddHklList)
-    // store all batches unconditionally
-    batches.clear();
-    CMtz::MTZBAT this_batch;
-    bool accept = true;
-    int idataset;
-    int j = 0;
-    while (get_batch(j, this_batch)) {
-      idataset = this_batch.nbsetid;
-      Batch batch(this_batch, accept, idataset);
-      // store batch with "accept" flag
-      batches.push_back(batch);
-      ++j;
-    }
-    return batches;
   }
   //--------------------------------------------------------------
   void MtzUnmrgFile::Rewind()
@@ -243,7 +261,7 @@ namespace MtzIO
     Scell cell;
     double cellTolerance(2.0);
     return AddHklList(fileSeries, mtzname, file_sel, column_selection,
-		      column_list, controls,  InputPxdName, cell, cellTolerance,
+		      column_label_list, controls,  InputPxdName, cell, cellTolerance,
 		      output, verbose, hkl_list);
   }
   //--------------------------------------------------------------
@@ -251,7 +269,7 @@ namespace MtzIO
 				    const std::string& mtzname,
 				    file_select& file_sel, 
 				    col_controls& column_selection,
-				    MtzIO::column_labels& Column_list,
+				    const MtzIO::column_labels& column_label,
 				    const all_controls& controls,
 				    const scala::PxdName& InputPxdName,
 				    const scala::Scell& cell,
@@ -284,7 +302,7 @@ namespace MtzIO
   //                     - input scale factor (MULTIPLY)
   //  column_selection   flags for column selection
   //                      - PROFILE or INTEGRATED
-  //  column_list        list of column names wanted by the program
+  //  column_label       list of column names wanted by the program, ignored if invalid
   //  controls           run controls, partial controls
   //  InputPxdName       PXD name to override dataset information from
   //                     MTZ file (forces one dataset)
@@ -300,7 +318,9 @@ namespace MtzIO
   //            "change_symmetry"
   //
   {
-    column_list = Column_list;
+    if (column_label.Setup()) {
+      column_label_list = column_label;  // only use if set
+    }
     output = "";
     // If hkl_list has something in it already, pick up its MTZ-style symmetry,
     // if present
@@ -309,14 +329,13 @@ namespace MtzIO
       std::vector<clipper::Symop> ops = ClipperSymopsFromMtzSYMGRP(mtzsym);
       spacegroup_.init(ops);
     } else {
-      mtzsym.spcgrp = -1;  // set to null  //^!!
+      mtzsym.spcgrp = -1;  // set to null
     }
 
     // Open MTZ file for reading if necessary
     bool opened = false;
-    //^    std::cout <<"Mode: " << mode<<"\n"; //^
     if (mode == NONE)      {
-      // Read headers etc
+      // Read headers etc (MTZ datasets and batches, create array of Datasets, fdatasets)
       opened = open_read(mtzname);
     } else if (mode == READ)      {
       // File already opened for reading, check it is the same file
@@ -341,9 +360,9 @@ namespace MtzIO
     }
 
     //   transfer the actual column numbers  into col_select for file reading
-    col_select = column_select(column_list, column_selection);
+    col_select = column_select(column_label_list, column_selection);
     // Fudge for blank ROT column: if so flag to replace by batch number
-    if (column_list.CNL("ROT").valuerange.AbsRange() < 0.001) {
+    if (column_label_list.CNL("ROT").valuerange.AbsRange() < 0.001) {
       col_select.col_Rot = -1;
     }
     if (col_select.col_Rot < 0) {
@@ -412,12 +431,11 @@ namespace MtzIO
 
     OffsetBatches();  // offset batch numbers
     // Add in dataset list & batch list, but don't close list
-    hkl_list.AddDatasetBatch(datasets, batches);
+    hkl_list.AddDatasetBatch(datasets, batches);  //  "datasets" from get_dset_batch_info
     // Store data presence flags (won't hurt to do this again)
     hkl_list.StoreDataFlags(col_select.DataFlags());
     // Store file name
     hkl_list.AppendFileName(mtzname);
-
 
     // Close mtz file
     close_read();
@@ -513,11 +531,14 @@ namespace MtzIO
     if (!InputPxdName.is_blank()) ForceOneDataset = true;
 
     // Select datasets from this MTZ file
-    Xdataset this_dataset;
+    Dataset this_dataset;
     int k = 0;
     while (get_dataset(k, this_dataset)) {
       // Do we want this dataset?
-      if (file_sel.accept_dataset(this_dataset.pxdname())) {
+      // FIXME (see hkl_controls.hh) this always returns true for now, ie accept
+      //   if we want to implement eg "EXCLUDE <pxdname>" we must remove it from the
+      //   Dataset object and do something about it
+      if (file_sel.accept_dataset(this_dataset.pxdnames())) {
 	// yes, wanted
 	datasets.push_back(this_dataset);
       }       
@@ -538,15 +559,21 @@ namespace MtzIO
       }
       accepted_cell = cell;
       for (size_t id=0;id<datasets.size();id++) {
-      	datasets[id].cell() = accepted_cell;   // reset all dataset cells to 
+	float wvl = datasets[id].wavelength();
+	if (wvl < 0.001) {
+	  wvl = averagewvl;
+	}
+      	datasets[id].SetCellWavelength(accepted_cell, wvl);   // reset all dataset cells to average
       }
     }
 
-    Xdataset OneDataset;
-    int setid = 0;
+    PxdName pxdname;
+    Dataset OneDataset;
+    int setid = 1;
     if (ForceOneDataset) {
-      // Make new datasets to include everything
-      OneDataset = Xdataset(InputPxdName, accepted_cell, averagewvl, setid);
+      // Make new dataset to include everything
+      OneDataset.AddXdataset(Xdataset(InputPxdName, accepted_cell, averagewvl, setid));
+      pxdname = InputPxdName; // for storing in batches
     }
 
     // Now batches: store all batches even if not needed
@@ -556,21 +583,28 @@ namespace MtzIO
     int idataset;
     int j = 0;
     while (get_batch(j, this_batch)) {
+      if (!ForceOneDataset) {
+	setid = this_batch.nbsetid; // SetID from file, if not OneDataset
+      }	
+      // in_datasets returns idataset as index into datasets array for found file setid
       if (in_datasets(this_batch.nbsetid, datasets, idataset)) {
 	// This batch is in accepted dataset
 	// Do we want this batch? (batch exclusions etc)
 	accept = file_sel.accept_batch(this_batch.num, fileSeries);
 	// Store list of batch numbers for this dataset
 	if (ForceOneDataset) {
-	  OneDataset.add_batch(this_batch.num);
-	  idataset = setid;
+	  OneDataset.add_batch(setid, this_batch.num);
+	  idataset = 0;
 	} else {
-	  datasets[idataset].add_batch(this_batch.num);
+	  datasets[idataset].add_batch(setid, this_batch.num);
+	  pxdname = datasets[idataset].pxdname(setid); // name for this SetID
 	}
-      } else {
+      } else { // dataset not accepted, so reject batch
 	accept = false;
 	if (ForceOneDataset) {
-	  idataset = setid;
+	  idataset = 0; // one dataset
+	} else {
+	  pxdname = datasets[idataset].pxdname(setid); // name for this SetID
 	}
       }
       // Check if there is any valid time information
@@ -579,7 +613,9 @@ namespace MtzIO
 	this_batch.time1 = 0.0;
 	this_batch.time2 = 0.0;
       }
-      Batch batch(this_batch, accept, idataset);
+      Batch batch(this_batch, accept, idataset);  // create Batch object
+      batch.PXDname() = pxdname; 
+      batch.DatasetID() = setid;
       if (NewCell) {
 	batch.SetCell(accepted_cell);
       }
@@ -617,16 +653,14 @@ namespace MtzIO
     float col_value = 0.0;  // set default = 0.0
     status = false;
     
-    if (mcol >= 0)
-      {
-        // check column for MNF
-        if (col_mnf[mcol]) 
-          {
-            status = true;
-            return col_value;
-          }
-        col_value = cols[mcol];
+    if (mcol >= 0) {
+      // check column for MNF
+      if (col_mnf[mcol]) {
+	status = true;
+	return col_value;
       }
+      col_value = cols[mcol];
+    }
     return col_value;
   }
   //---------------------------------------------------------------------------
@@ -692,6 +726,9 @@ namespace MtzIO
       changeSymmetry = true;
     }
 
+    // MAXNLATTICES is maximum number of lattices allowed
+    numberinlattice.assign(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
+
     int nread = 0;
 
     // <<<< Loop all reflection records
@@ -716,10 +753,10 @@ namespace MtzIO
       sigI = check_column(cols, col_mnf, col_sel.col_sigI, StatusFlag);
       flag = flag || StatusFlag;
       
-      if (flag)
+      if (flag) {
 	Message::message(
 			 Message_fatal( "get_refs: MNF in compulsory column near hkl "+hkl.format() ) );
-      
+      }
       if (sigI <= 0.0) { // reject negative or zero sigma
 	continue;
       }
@@ -789,6 +826,52 @@ namespace MtzIO
 	  }
 	}
 
+      // Multiple lattice options
+      std::vector<LatticeIndexInfo> lathkl;
+
+      int latnum = 0;
+      if (col_select.col_latnum > 0) {
+	latnum = Nint(check_column(cols, col_mnf, col_select.col_latnum, StatusFlag));
+	flag = flag || StatusFlag;
+	// read extra hkl into lathkl, and lattnum, scale if scheme2
+	Hkl hkln;
+	for (int ih=0;ih<nlatticecolumns;++ih) {
+	  bool flag = false;
+	  int colnum = col_select.col_lathkl[ih];  // 1st column of group
+	  // if scheme 2, read LATTNUMn
+	  int latn = ih+1; // lattice number for this group if scheme 1
+	  if (multilatscheme == 2) { // LATTNUMn
+	    latn = Nint(check_column(cols, col_mnf, colnum, StatusFlag));
+	    colnum++;
+	  }
+	  hkln.h() = Nint(check_column(cols, col_mnf, colnum, StatusFlag));
+	  flag = flag || StatusFlag;
+	  hkln.k() = Nint(check_column(cols, col_mnf, colnum+1, StatusFlag));
+	  flag = flag || StatusFlag;
+	  hkln.l() = Nint(check_column(cols, col_mnf, colnum+2, StatusFlag));
+	  flag = flag || StatusFlag;
+	  Rtype scale = 1.0;
+	  if (col_select.col_latscale) {
+	    scale = check_column(cols, col_mnf, colnum+3, StatusFlag);
+	  }
+	  if (hkln != Hkl(0,0,0)) {
+	    // Store non-null extra indices with lattice number (from 1),
+	    // but not if it belongs to the main lattice with the same hkl
+	    if ((latn != latnum) ||
+		(hkln != FileSym.get_from_asu(hkl,isym))) {
+	      lathkl.push_back(LatticeIndexInfo(latn, hkln, scale));
+	    }
+	  }
+	} // end loop lattices
+ 	if (flag) {
+	  Message::message(
+		 Message_fatal
+		 ("get_refs: MNF in compulsory multilattice column near hkl "+hkl.format()));
+	}
+	// count entries for each lattice
+	numberinlattice.at(latnum)++;
+      }
+
       if (changeSymmetry) {
 	//  reduce hkl to asymmetric unit
 	int new_isym;
@@ -837,8 +920,19 @@ namespace MtzIO
       hkl_list.store_part(hkl, isym, batch, I, sigI, Ipr, sigIpr,
 			  Xdet, Ydet, phi, time,
 			  fraction_calc, width, LP,
-			  Npart, Ipart, ObservationFlag(IObsFlag, BgPkRatio));
+			  Npart, Ipart, ObservationFlag(IObsFlag, BgPkRatio),
+			  latnum, lathkl);
       nread++;
+    } // end loop read reflections
+
+    // count lattices with non-zero entries
+    nlattices = 0;
+    if (nlatticecolumns > 0) {
+      for (size_t j=1; j<numberinlattice.size(); j++) { // loop from 1
+	if (numberinlattice[j] > 0) {
+	  nlattices++;
+	}
+      }
     }
 
     // Store accepted resolution range for this file
@@ -862,8 +956,8 @@ namespace MtzIO
 	runindex++;
 	run.clear();
 	run.AddBatch(batches[ib].num());
-	lb = batches[ib].num();
       }
+      lb = batches[ib].num();
       batches[ib].SetRunIndex(runindex);
     }
     if (run.Nbatches() > 0) {
@@ -899,7 +993,7 @@ namespace MtzIO
     }
   }
   //--------------------------------------------------------------
-  //^ Close a file after reading
+  // Close a file after reading
   void MtzUnmrgFile::close_read() {
     if (mode == READ) {
       MtzFree(mtzin);}
@@ -941,34 +1035,52 @@ namespace MtzIO
   }
   //--------------------------------------------------------------
   /* Read crystals and datasets from mtzin */
-  int MtzUnmrgFile::read_datasets(const CMtz::MTZ* mtzin,
-				  std::vector<Xdataset>& xdatasets)
+  int MtzUnmrgFile::read_datasets()
+  // sets fdatasets
   {
-    xdatasets.clear();
+    fdatasets.clear();
     Scell OverallCell;
-
+    columnlabels.clear();
+    columntypes.clear();
+    //^    std::cout << "\nMtzUnmrgFile::read_datasets\n"; //^
     // Loop crystals
     for (int x=0; x < CMtz::MtzNxtal(mtzin); x++) {
       CMtz::MTZXTAL* xtl = CMtz::MtzIxtal(mtzin,x);
-
       // Loop datasets within crystal
       for (int s=0; s < CMtz::MtzNsetsInXtal(xtl); s++) {
 	CMtz::MTZSET* set = CMtz::MtzIsetInXtal(xtl,s);
 	// Don't store HKL_base, except the overall cell in case it is needed
-	if (std::string(set->dname) == "HKL_base")
-	  {
-	    OverallCell = Scell(xtl->cell);
+	if (std::string(set->dname) == "HKL_base") {
+	  OverallCell = Scell(xtl->cell);
+	} else {
+	  Xdataset xdts(PxdName(xtl->pname, xtl->xname, set->dname),
+			Scell(xtl->cell), set->wavelength, set->setid);
+	  bool added = false;
+	  if (fdatasets.size() > 0) {
+	    // try to add this Xdataset to existing datasets
+	    for (size_t idts=0;idts<fdatasets.size();++idts) {
+	      added = fdatasets[idts].AddXdataset(xdts);
+	      if (added) break;
+	    }
 	  }
-	else
-	  {
-	    Xdataset xdts(PxdName(xtl->pname, xtl->xname, set->dname),
-				Scell(xtl->cell), set->wavelength, set->setid);
-	    xdatasets.push_back(xdts);
+	  if (!added) {
+	    fdatasets.push_back(Dataset(xdts));
 	  }
+	}
+	for (int c=0; c < CMtz::MtzNcolsInSet(set); c++) {
+	  CMtz::MTZCOL* mc = CMtz::MtzIcolInSet(set,c);
+	  std::string label(mc->label);
+	  columnlabels.push_back(label);
+	  std::string ctype(mc->type);
+	  columntypes.push_back(ctype);
+	  //^
+	  //^	  std::cout << "Label, type " << c << " " << label
+	  //^		    << " " << ctype << "\n";
+	}
       }
     }
-    // If no datasets, create one
-    int Ndatasets = xdatasets.size();
+    // If no datasets, create a dummy one
+    int Ndatasets = fdatasets.size();
     if (Ndatasets == 0) {
       float wavelength = 0.0;
       int setid = 1;
@@ -977,7 +1089,7 @@ namespace MtzIO
 			    "UnspecifiedCrystal",
 			    "UnspecifiedDataset"),
 		    OverallCell, wavelength, setid);
-      xdatasets.push_back(xdts);
+      fdatasets.push_back(Dataset(xdts));
     }
     return Ndatasets;
   }
@@ -985,6 +1097,8 @@ namespace MtzIO
   bool MtzUnmrgFile::read_batches(const CMtz::MTZ* mtzin, 
 				  std::vector<CMtz::MTZBAT*>& mtzbatches)
   // read list of batches from mtzin
+  // returns batch list in mtzbatches
+  // updates fdatasets with batch list
   // Returns false if error
   {
     if (CMtz::MtzNbat(mtzin) == 0) {
@@ -1001,9 +1115,14 @@ namespace MtzIO
     while (batch != NULL) {
       mtzbatches.push_back(batch);
       // find dataset and add this batch to its list
-      //  if nbsetid = 0 assign to first dataset
-      if (in_datasets(batch->nbsetid, xdatasets, idataset)) {
-	xdatasets[idataset].add_batch(batch->num);
+      //  if nbsetid = 0 assign to first dataset and reset setid to 1
+      int setidb = batch->nbsetid;
+      if (setidb <= 0) {
+	setidb = 1;
+	batch->nbsetid = setidb;
+      }
+      if (in_datasets(setidb, fdatasets, idataset)) {
+	fdatasets[idataset].add_batch(setidb, batch->num);
       }
       batch = batch->next;  // pointer to next batch
       nbat++;
@@ -1017,6 +1136,178 @@ namespace MtzIO
     return true;
   }
   //--------------------------------------------------------------
+  std::pair<int, int> 
+  MtzUnmrgFile::CheckColumnlabelHKL(const std::string& label) const
+  // Interpret a column label of the form H1, L3 etc
+  // ie 1st character of column label is H, K or L & second character
+  // a digit, then return
+  //  first   1,2,3 for H, K, L
+  //  second  digit value (lattice column number)
+  // else 0,0
+  {
+    int jhkl = 0;
+    int jlat = 0;
+    char c1 = label[0];
+    char c2 = label[1];
+    if (c1 == 'H') {jhkl = 1;}
+    else if (c1 == 'K') {jhkl = 2;}
+    else if (c1 == 'L') {jhkl = 3;}
+    if (jhkl > 0 && isdigit(c2)) {
+      jlat = std::atoi(&c2);
+    } else {
+      jhkl = 0;
+    }
+    return   std::pair<int, int>(jhkl, jlat);
+  }
+  //--------------------------------------------------------------
+  int MtzUnmrgFile::CheckColumnlabelN(const std::string& label,
+				      const std::string& basestring) const
+  // Interpret a column label of the form <basestring>n, eg <basestring>1 etc
+  // ie 1st part of column label == base & last character
+  // a digit, then return last character as a digit, else 0 if fails
+  {
+    int jlat = 0;
+    std::string::size_type i = label.find(basestring);
+    if (i == std::string::npos) { // not found
+      //      std::cout << "CheckColumnlabelN not found, " << label << " : " << basestring<<"\n"; //^-
+      return jlat;
+    }
+    char c2 = label[label.size()-1];
+    if (isdigit(c2)) {
+      jlat = std::atoi(&c2);
+    }
+    //^
+    //    std::cout << "CheckColumnlabelN, " << label << " : " << basestring
+    //	      <<" " << c2 <<" " <<jlat<<"\n"; //^-
+    return jlat;
+  }
+  //--------------------------------------------------------------
+  // Do we have any multi-lattice entries in this file?
+  void MtzUnmrgFile::CheckMultipleLattices()
+  // Multilattice if LATTNUM column present
+  // sets nlatticecolumns extracted from columnlabels
+  //
+  // If there are multiple lattices, then
+  // Scheme 1)    for each lattice
+  // there will be 3 addition columns of the form Xn where "X" = H,K, or L
+  // and n is the lattice number
+  // Also a LATTNUM column, this is the lattice number for the main hkl
+  // Scheme 2) 
+  // there will be 4 or 5 addition columns of the form
+  //   a) LATTNUMn where n is a sequential number
+  //   b) 3 columns Xn where "X" = H,K, or L
+  //   c) optionally a SCALEn column
+  //  Also a LATTNUM column, this is the lattice number for the main hkl
+  {
+    nlatticecolumns = 0;  // usual case, no multiple lattices
+    extracolumnlabels.clear();
+    bool latnumcolumn = false;
+
+    size_t ic=3;
+    multilatscheme = 1;   // scheme 1
+
+    while (ic<columnlabels.size()) { // skip 1st 3 columns
+      if (columnlabels[ic] == "LATTNUM") {
+	latnumcolumn = true;
+	extracolumnlabels.push_back(columnlabels[ic]);
+	ic++;
+	continue;
+      }  
+      int nlatncol = CheckColumnlabelN(columnlabels[ic], "LATTNUM");
+      if (nlatncol > 0) {
+	multilatscheme = 2;   // scheme 2
+	extracolumnlabels.push_back(columnlabels[ic]);
+      }
+      int nscalencol = CheckColumnlabelN(columnlabels[ic], "SCALE");
+      if (nscalencol > 0) {
+	extracolumnlabels.push_back(columnlabels[ic]);
+      }
+      std::pair<int, int> hkln = 
+	CheckColumnlabelHKL(columnlabels[ic]);
+      if (hkln.first == 1) { // column"Hn" found
+	// Sanity check: following columns should be Kn, Ln with same n
+	//  and type = "H"
+	int hn = hkln.second;  // n
+	bool OK = true;
+	if (columntypes[ic] != "H") {OK = false;} // fail
+	hkln = CheckColumnlabelHKL(columnlabels[ic+1]); // Kn
+	if (hkln.first != 2 || hkln.second != hn) {OK = false;} // fail
+	if (columntypes[ic] != "H") {OK = false;} // fail
+	hkln = CheckColumnlabelHKL(columnlabels[ic+2]); // Ln
+	if (hkln.first != 3 || hkln.second != hn) {OK = false;} // fail
+	if (columntypes[ic] != "H") {OK = false;} // fail
+	if (!OK) {
+	  Message::message
+	    (Message_fatal
+	     ("MtzUnmrgFile: CheckMultipleLattices - inconsistent HKL column labels or types" ) );
+	}
+	// Store extra column labels
+	for (int i=0;i<3;++i) {
+	  extracolumnlabels.push_back(columnlabels[ic+i]);
+	}
+	nlatticecolumns++;
+	ic += 2; // extra increment over 3 hkl labels
+      } // end if Hn column
+      ic++;
+    } // end loop columns
+    //^
+    //    std::cout <<"CheckMultipleLattices, nlatticecolumns "
+    //    	      << nlatticecolumns << "\n";;
+    //    for (size_t j=0; j<extracolumnlabels.size(); j++) { 
+    //      std::cout << " "<< extracolumnlabels[j];
+    //    }
+    //    std::cout <<"\n";
+    //^-
+  }
+  //--------------------------------------------------------------
+  // add extra lattice columns to column_label_list if required
+  void  MtzUnmrgFile::add_extra_columns()
+  {
+    if (nlatticecolumns > 0) {
+      for (size_t l=0;l<extracolumnlabels.size();++l) {
+	// compulsory now we know it's there
+	column_label_list.add(extracolumnlabels[l],OF_COMPULSORY);
+      }
+    }
+    column_label_list.SetNlatticeColumns(nlatticecolumns);
+  }
+  //--------------------------------------------------------------
+  //! return lattice number, = 0 for single lattice, = -1 for mixed lattices
+  int MtzUnmrgFile::LatticeNumber() const
+  {
+    if (nlatticecolumns <= 0) return 0;
+    int count = 0;
+    int lat = 0;
+    for (size_t i=0;i<numberinlattice.size();++i) {
+      // for single lattice, only one of these should be > 0
+      if (numberinlattice[i] > 0) {
+	count++;
+	lat = i;
+      }
+    }
+    if (count == 1) return lat;
+    return -1;
+  }
+  //--------------------------------------------------------------
+  // Copy constructor throws exception unless object is EMPTY
+  MtzUnmrgFile::MtzUnmrgFile(const MtzUnmrgFile& MUfile)
+  {
+    if (MUfile.mtzin != NULL)      {
+      Message::message(Message_fatal
+		       ("MtzUnmrgFile: illegal copy constructor"));
+    }
+    clear();
+  }
+  //--------------------------------------------------------------
+  // Copy operator throws exception unless object is EMPTY
+  MtzUnmrgFile& MtzUnmrgFile::operator= (const MtzUnmrgFile& MUfile)
+  {
+    if (MUfile.mtzin != NULL)      {
+      Message::message(Message_fatal
+		       ("MtzUnmrgFile: illegal copy operation"));
+    }
+    clear();
+    return *this; 
+  }
+//--------------------------------------------------------------
 } // namespace MtzIO 
-
-

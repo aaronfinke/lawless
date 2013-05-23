@@ -105,7 +105,8 @@ namespace scala{
     // resolution of current reflection
     double invresolsq() const;
 
-    void PrintHeaderStuff(phaser_io::Output& output) const;
+    void PrintHeaderStuff(const bool& isreference,
+			  phaser_io::Output& output) const;
 
   private:
     MLIST::mlist_status status;

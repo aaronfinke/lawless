@@ -12,8 +12,8 @@
 
 #include "linearlsq.hh"
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 namespace scala {
   //--------------------------------------------------------------

@@ -124,7 +124,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
   std::vector<double> targets(3);    // 3 targets
   std::vector<double> sdtargets(3);  // ... and their SDs (= 0 no target)
-  // = 0 no tie, = -1 defaults, = +1 set from input
+  // = 0 no tie, = -1 defaults, = +1 set from input, = +2 similarity tie
   int tietype = input.SDCties(targets, sdtargets);
   SDM.SetTies(tietype, targets, sdtargets);  // for all SD corrections
 
@@ -187,7 +187,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
  }
   //-------------------------------------------------------------
   //! Store ties for all SD corrections
-  // tietype = 0 no tie, = -1 defaults, = +1 set from parameters
+  // tietype = 0 no tie, = -1 defaults, = +1 set from parameters, = +2 similarity
   void SDmodel::SetTies(const int& Tietype,
 			const std::vector<double>& Targets,
 			const std::vector<double>& SDtargets)
@@ -214,6 +214,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   // tietype = 0 no tie, = -1 defaults, = +1 set from parameters
   void SDmodel::SetTies()
   {
+    //^
+    //    std::cout << "SDmodel::SetTies " <<
+    //      " " << ties.targets[0]<< " " << ties.targets[1]
+    //	      << " " << ties.targets[2] <<"\n" 
+    //	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
+    //	      << " " << ties.sdtargets[2] <<"\n";
+    //^-
     for (int irun=0;irun<Nruns();++irun) {
       if (ties.tietype == 0) { // no ties
 	sdc_full_run[irun].ClearRestraints();
@@ -223,7 +230,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 	sdc_partial_run[irun].SetDefaultRestraints();
 	// Store default parameters for printing
 	sdc_full_run[irun].GetRestraints(ties.targets, ties.sdtargets);
-      } else { // use input values
+      } else { // use input values or similarity
 	sdc_full_run[irun].SetRestraints(ties.targets, ties.sdtargets);
 	sdc_partial_run[irun].SetRestraints(ties.targets, ties.sdtargets);
       }
@@ -251,7 +258,9 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       }
     }
 
-    if (restraints) {
+    if (ties.tietype == +2) {  
+      s = "SD parameters tied to average across all runs";
+    } else if (restraints) {
       s = "Restraints on SD correction parameters (target (+-SD)):";
       if (ties.sdtargets[0] != 0.0) { // SdAdd
 	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[0],5,1))+
@@ -556,6 +565,53 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     return shifts;
   }
 //-------------------------------------------------------------
+  void SDmodel::AddToAverages(std::vector<MeanValue>& averagerealparameters,
+			      const std::vector<double>& realparameters) const
+  // add 2 or 3 parameters into averages    
+  {
+    ASSERT (averagerealparameters.size() == realparameters.size());
+    for (size_t i=0; i<averagerealparameters.size(); i++) { 
+      averagerealparameters[i].Add(realparameters[i]);
+    }
+  }
+  //-------------------------------------------------------------
+  void SDmodel::SetTargetsFromAverageParameters()
+  {
+    if (ties.tietype != +2) {return;} // not similarity
+
+    int npc = Max(sdc_full_run[0].Nparams(), sdc_partial_run[0].Nparams());
+    // NB refined parameters are not SdFac, SDb, SDadd but
+    //  averages and restraints are
+    std::vector<MeanValue> averagerealparameters(npc); // SdFac, [SDb,] SDadd
+    
+    for (int irun=0;irun<Nruns();++irun) { // loop all runs
+      AddToAverages(averagerealparameters, sdc_full_run[irun].GetRealParameters());
+      AddToAverages(averagerealparameters, sdc_partial_run[irun].GetRealParameters());
+    } // end loop runs
+
+    // Average parameter values
+    std::vector<double> newtargets(3);  // always 3
+    for (int j=0;j<npc;++j) {
+      newtargets[j] = averagerealparameters[j].Mean();
+    }
+    if (npc == 2) { // fixSDb
+      newtargets[2] = newtargets[1];
+      newtargets[1] = 0.0;
+    }
+    ties.targets = newtargets;
+    //^
+    std::cout << "Updating SDcorrection targets "
+	      << " " << newtargets[0]
+	      << " " << newtargets[1]
+	      << " " << newtargets[2] <<"\n";
+    std::cout << "SDmodel::SetTies " <<
+      " " << ties.targets[0]<< " " << ties.targets[1]
+	      << " " << ties.targets[2] <<"\n" 
+	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
+	      << " " << ties.sdtargets[2] <<"\n";
+    //^-
+  }
+//-------------------------------------------------------------
   // Set all parameters from vector
   void SDmodel::SetParameters(const std::vector<double>& params)
   {
@@ -584,6 +640,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       }
       sdc_partial_run[irun].SetParameters(pars); // set values for partials
     } // end loop runs
+
+    SetTargetsFromAverageParameters();
   }
   //-------------------------------------------------------------
   std::vector <std::vector<double> >
@@ -889,6 +947,37 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     }  // end loop runs
     return ss;
   }
+  //-------------------------------------------------------------
+  std::string SDmodel::asXML() const
+  {
+    std::string s = "<SDcorrection>\n";
+
+    for (int irun=0;irun<nsets;++irun) { // loop runs
+      if (allrunssame) {
+	s += "  <AllRuns/>\n";
+      }
+
+
+
+      if (usetype[irun] >= 0) {
+	s += "  <Fulls>\n";
+	s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_full_run[irun].SDfac(),6,2);
+	s += StringUtil::MakeXMLtag("SDb",   sdc_full_run[irun].SDb(),6,2);
+	s += StringUtil::MakeXMLtag("SDadd", sdc_full_run[irun].SDadd(),8,4);
+	s += "\n  </Fulls>\n";
+      }
+      if (usetype[irun] <= 0) {
+	s += "  <Partials>\n";
+	s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_partial_run[irun].SDfac(),6,2);
+	s += StringUtil::MakeXMLtag("SDb",   sdc_partial_run[irun].SDb(),6,2);
+	s += StringUtil::MakeXMLtag("SDadd", sdc_partial_run[irun].SDadd(),8,4);
+	s += "\n  </Partials>\n";
+      }
+    }  // end loop runs
+    s += "</SDcorrection>\n";
+
+    return s;
+  }
 //-------------------------------------------------------------
   //! return formatted weight information
   std::string SDmodel::formatWeightType() const
@@ -902,12 +991,12 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::string ds = "SDModel "+SDMODELVERSION+" {\n";
 
     int nruns = Nruns();
-    ASSERT (sdc_full_run.size() == nruns);
-    ASSERT (sdc_partial_run.size() == nruns);
-    ASSERT (runnumbers.size() == nruns);
+    ASSERT (int(sdc_full_run.size()) == nruns);
+    ASSERT (int(sdc_partial_run.size()) == nruns);
+    ASSERT (int(runnumbers.size()) == nruns);
     //    ASSERT (idxfullparam.size() == nruns);
     //    ASSERT (idxpartialparam.size() == nruns);
-    ASSERT (usetype.size() == nruns);
+    ASSERT (int(usetype.size()) == nruns);
 
     ds += "Nruns "+clipper::String(nruns)+"\n";
     for (int i=0;i<nruns;++i) { // loop runs

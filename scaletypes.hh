@@ -264,6 +264,12 @@ namespace scala {
     //   dg(j)/B(i) = 2 s2 gB  if j == i, else  = 0
     //
   public:
+    // Type of B-factor:
+    //   NONE     none
+    //   BATCH    for each batch
+    //   SMOOTH   at intervals, smoothed with Gaussian interpolation
+    enum RelativeBtype {NONE, BATCH, SMOOTH, DECAY};
+
     RelativeBfactor();  // null constructor
 
     // Construct smooth B-factors from number of Bfactor intervals

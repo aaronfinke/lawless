@@ -15,8 +15,8 @@
 // 
 //
 
-#define ASSERT assert
 #include <assert.h>
+#define ASSERT assert
 
 #include "refinesdcorrection.hh"
 
@@ -50,6 +50,7 @@ namespace scala {
   // print information about parameter restraints
   output.logTab(0,LOGFILE, SDM.formatTie());
  
+  SDM.SetTargetsFromAverageParameters();  // if similarity targets
 
   for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
     // Accumulate all sums from data
@@ -121,10 +122,9 @@ namespace scala {
 
     SDanalysis sdanal(irange, SDM, SDM.AllRunsSame(), true);
     // Set weight type
-    SelectedObservations::AverageWeightType weighttype = SDM.Weight();
+    WeightType::AverageWeightType weighttype = SDM.Weight();
 
     reflection this_refl;
-    int Nrej = 0;
     int nref = 0;
     hkl_list.rewind();
     std::vector<float> delta, delta2;

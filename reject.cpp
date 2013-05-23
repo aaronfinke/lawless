@@ -6,10 +6,11 @@
 #include "reject.hh"
 #include "selectedobservations.hh"
 #include "file_util.hh"
+#include "observationstatuscontrol.hh"
+#include "string_util.hh"
 
-#define ASSERT assert
 #include <assert.h>
-
+#define ASSERT assert
 
 namespace scala {
   // ------------------------------------------------------------
@@ -29,30 +30,6 @@ namespace scala {
 	this_obs = this_refl.get_observation(lobs);
 	ObservationStatus status = this_obs.ObsStatus();
 	status.UnsetOutlier();
-	this_obs.UpdateStatus(status);
-	this_refl.replace_observation(this_obs);
-      }
-      hkl_list.replace_reflection(this_refl);
-    }
-  }
-  // ------------------------------------------------------------
-  void ClearObsStatus(hkl_unmerge_list& hkl_list)
-  // Clear all observation status flags back to the ObservationFlag setting
-  // ie clear outlier & Emax status flags
-  // the ObservationFlag setting is left unaltered
-  {
-    reflection this_refl;
-    observation this_obs;
-    hkl_list.rewind();
-
-    // loop all reflections unconditionally
-    for (int jref=0;jref<hkl_list.num_reflections();++jref) {
-      this_refl = hkl_list.get_reflection(jref);
-      // loop all observations, ignoring accept flag
-      for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
-	this_obs = this_refl.get_observation(lobs);
-	ObservationStatus status = this_obs.ObsStatus();
-	status.ResetStatus();
 	this_obs.UpdateStatus(status);
 	this_refl.replace_observation(this_obs);
       }
@@ -318,6 +295,19 @@ namespace scala {
     std::vector<int> rejv(3);
     rejv[0]=n; rejv[1]=na; rejv[2]=nemax;
     return rejv;
+  }
+  // ------------------------------------------------------------
+  std::string CountOutliersXML(const std::vector<int>& nrejs)
+  {
+    std::string s = "<Outliers>\n";
+    // within I+, I- sets
+    s += StringUtil::MakeXMLtag("RejectNumberUnique", nrejs[0])+"\n";;
+    // between I+ & I-
+    s += StringUtil::MakeXMLtag("RejectNumberFriedel", nrejs[1])+"\n";
+    // on Emax
+    s += StringUtil::MakeXMLtag("RejectNumberEmax", nrejs[2])+"\n";
+    s += "</Outliers>\n";
+    return s;
   }
   // ------------------------------------------------------------
   std::vector<int> EmaxRejectIndexList

@@ -342,12 +342,6 @@ namespace scala
 	      int kpl = idxlocal[k]; // local parameter number within run/full/partial
 	      sdparametergroup[jpc].AddDerivative(mint, kpl,
 						     ddeltadp[iobs][k], delta[iobs]);
-	      //^
-	      //	      std::cout << "SDanalysis::AddDerivatives "
-	      //			<< "jpc,kpl,iobs,k,ddeltadp[iobs][k] "
-	      //			<< jpc<<" "<<kpl<<" "<<iobs<<" "<<k<<" "<<ddeltadp[iobs][k]
-	      //			<<"\n";
-	      //^-
 	    }
 	  } // end loop global parameters k
 	}
@@ -710,6 +704,7 @@ namespace scala
     TableGraph table;
     table.init(ttitle);
     output.logTab(0,LOGFILE,table.formatTitle());
+    table.StoreID("Graph-SDanalysis");
 
     std::vector<int> cln(c,c+nanalsets+1);
     std::string graphtitle = " Sigma(scatter/SD)";

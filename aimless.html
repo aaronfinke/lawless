@@ -4,7 +4,6 @@
 <h2>NAME</h2>
 <span style="font-weight: bold;">aimless<br></span><b>&nbsp;</b>- scale together multiple observations of reflections
 <h2>SYNOPSIS</h2>
-
 <p><b>aimless HKLIN</b> <i>foo_in.mtz</i> <b>HKLOUT</b> <i>foo_out.mtz</i>
 <br>
 <a href="#keywords">[Keyworded Input</a>]<br>
@@ -236,8 +235,19 @@ only be strictly valid if the beam is larger than the crystal. </dd>
 POLE L): the pole will default to either the closest axis to the
 spindle (if known), or l (k for monoclinic space-groups). </dd>
       <dt><a name="scales_constant"></a>CONSTANT </dt>
-      <dd>One scale for each run (equivalent to ROTATION 1) </dd>
-      <dt><br></dt></dl></dd>
+      <dd>One scale for each run (equivalent to ROTATION 1)</dd><dt><a name="scales_tile"></a>TILE &lt;NtileX&gt; &lt;NtileY&gt; [CCD]<br>
+      </dt>
+      <dd>Define a detector scale for each tile. Currently this
+implements a scale model for 3x3 tiled CCD detectors to correct for the
+underestimation of intensities in the corners of the tile, see <a href="#appendix2_tiles">Appendix 2</a>.
+If the detector appears to be a 3x3 CCD (3072x3072 pixels) then this
+correction will be activated automatically unless the NOTILE keyword is
+given. The parameters are restrained using the TIE TILE parameters (<a href="#tie">qv</a>)<br>
+      </dd>
+
+      <dt><a name="scales_notile"></a>NOTILE</dt><dd>Switch off the automatic TILE 3 3 correction for CCD detectors<br>
+      </dd>
+</dl></dd>
 </dl>
 <h3><a name="sdcorrection"></a>SDCORRECTION [[NO]REFINE]&nbsp;&nbsp;
 [INDIVIDUAL | SAME&nbsp; [FIXSDB] <br>
@@ -246,8 +256,14 @@ spindle (if known), or l (k for monoclinic space-groups). </dd>
 &lt;RunNumber&gt;] [FULL | PARTIAL] &lt;SdFac&gt; [&lt;SdB&gt;]
 &lt;SdAdd&gt; [DAMP &lt;dampfactor&gt;] <br>
 </h3>
+
+<h3>[SIMILAR [&lt;sd1&gt; &lt;sd2&gt; &lt;sd3&gt;]] ||<br>
+</h3>
+
+
 <h3>[[NO]TIE&nbsp; SdFac | SdB | SdAdd &lt;targetvalue&gt; &lt;SDtarget&gt;]<br>
 </h3>
+
 <h3>
 </h3>
 
@@ -268,7 +284,7 @@ intensity ranges. The residual minimised is Sum( w * (1 - SD)^2) + Restraint Res
 </p>
 <p> Other subkeys
 control what values are determined and used for each run (if more
-than one)<br>
+than one). TIE and SIMILAR are mutually exclusive<br>
 </p>
 
 <ul>
@@ -283,6 +299,12 @@ refine, even though it has no obvious physical meaning) <br>
 </li>
   <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set dampfactor to damp shifts in the refinement [default 0.05]</li>
+  <li>SIMILAR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+restrain parameters to be the same for all runs, with SDs optionally
+given for SdFac (sd1), SdB (sd2), and SdAdd (sd3) [defaults 0.2, 3.0,
+0.04)<br>
+  </li>
+
   <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set restraints for named parameter, "SdFac", "SdB", or "SdAdd". Each
 restraint is to a specified target value, with a weight =
@@ -577,7 +599,8 @@ altogether. </dd>
       </dl>
   </dd>
 </dl>
-<h3><a name="tie"></a>TIE [SURFACE &lt;Sd_srf&gt;] [BFACTOR &lt;Sd_bfac&gt;] [ZEROB &lt;Sd_zerob&gt;] [ROTATION &lt;Sd_z&gt;] </h3>
+<h3><a name="tie"></a>TIE [SURFACE &lt;Sd_srf&gt;] [BFACTOR &lt;Sd_bfac&gt;] [ZEROB &lt;Sd_zerob&gt;] [ROTATION &lt;Sd_z&gt;] [TILE &lt;Sd1-5&gt;]<br>
+ </h3>
 <p>Apply or remove restraints to parameters. These can be pairs of
 neighbouring scale factors on rotation axis (ROTATION = primary beam) to have the same
 value, or neighbouring Bfactors, or surface spherical harmonic
@@ -601,7 +624,9 @@ SURFACE 0.001]</dt>
 with
 BATCH mode)</dt>
     
-  </dl>
+  </dl><dd>TILE: tie the CCD tile parameters. 5 numbers for radius r, width w, amplitude A, centre x0,y0, and Fourier coefficients<br>
+  </dd>
+
 </dl>
 <h3><a name="output"></a>OUTPUT [MTZ] [NO]MERGED<span style="color: rgb(255, 102, 0);"></span> [UNMERGED [SPLIT|TOGETHER]] [SCALEPACK [MERGED<span style="color: rgb(255, 102, 0);"></span> | UNMERGED]]</h3>
 
@@ -802,14 +827,22 @@ specified then the filename will be taken from SCALEPACK with&nbsp;
 <h4>Other files</h4>
 <dl compact="compact">
 
+  <dt>XMLOUT</dt><dd>XML output for plotting etc. It includes the NORMPLOT, ANOMPLOT, CORRELPLOT and ROGUEPLOT data, as well as the $TABLE graph data<br>
+  </dd>
   <dt>SCALES </dt>
+
 
   <dd>scale factors from DUMP, used by RESTORE option </dd>
   <dt>ROGUES </dt>
-  <dd>list of bad agreements </dd><dt>NORMPLOT </dt>
+  <dd>list of bad agreements </dd><dt>TILEIMAGE</dt><dd>a detector image representing the CCD TILE correction, if <a href="#scales_tile">activated</a>, in ADSC image format which may be viewed with <span style="font-style: italic;">adxv</span><br>
+  </dd>
+</dl>The following 4 files are also represented in the XMLOUT file:<br>
+<dl compact="compact">
+  <dt>NORMPLOT </dt>
+
   <dd>normal probability plot from merge stage <br>
 *** this is at present written is a format for plotting program xmgr
-(aka grace), but can also be read by loggraph *** </dd>
+(aka [xm]grace), but can also be read by loggraph *** </dd>
   <dt>ANOMPLOT </dt>
   <dd>normal probability plot of anomalous differences
     <pre>            (I+ - I-)/sqrt[sd(I+)**2 + sd(I-)**2]<br></pre>
@@ -829,6 +862,7 @@ the position of the principle ice rings shown <br>
 xmgr (aka grace), but can also be read by loggraph ***&nbsp;</dd><p><a name="references"></a></p>
   <h2>REFERENCES</h2>
 </dl>
+
 
 
 <dl compact="compact">
@@ -1008,9 +1042,44 @@ coefficient.</li>
 antisymmetric</li>
     <li>Restraining all terms to zero (with the TIE SURFACE) reduces
 the
-anisotropic correction. This should always be done</li>
+anisotropic correction. This should always be done</li><br>
+</ul></dl>
+<p style="font-weight: bold;"><a name="appendix2_tiles"></a>(d) Detector <span style="font-weight: bold;">correction (TILES)</span></p>
+<span style="font-weight: normal;">A correction for tiled CCD detectors
+has been implemented to attempt to correct for the underestimation of
+spots falling in the corner of the detector. The present model
+expresses a correction factor in terms of an erfc function of the
+distance from the tile centre, such that the correction = 1 in the
+centre of the tile and falls off at the edge and corners<br>
+</span><br>
+For a spot at position x,y relative to the tile centre, normalised by
+the tile width in pixels such that x &amp; y run from -1 to +1, then<br>
+<div style="margin-left: 40px;">distance from centre (x0,y0) d = sqrt[(x-x0)<sup>2</sup> + (y-y0)<sup>2</sup>]<br>
+correction factor g&nbsp; = A f(z) + 1 - A&nbsp;&nbsp;&nbsp; where A is
+the amplitude of the correction near the edge and f(z) is a radial
+function of the modified "radius"&nbsp; z = (2/w)(d - r - w)&nbsp;
+.&nbsp; r&nbsp; defines the point at which the scale starts to decline
+from 1.0, and w the "width" of the fall-off<br>
+Currently f(z) = 0.5 erfx(z) though other expressions have been tried<br>
+</div>
+<br>
+Amplitude A various azimuthally with the angle phi = tan<sup>-1</sup>(y/x) as a Fourier series, A = A0{a cos(phi) + b sin(phi) + c cos(2phi) + d sin(2phi)}<br>
+<br>
+Refined parameters for each tile are r, w, A0, x0, y0, and the four Fourier terms for A, a,b,c,d. <br>
+<br>
+By default, parameters are restrained (TIE) as follows (see <a href="#tie">TIE</a> TILE)<br>
+<div style="margin-left: 40px;">A0, a,b,c,d and x0,y0 are tied to 0.0<br>
+r, w, and A0 are tied to be similar over all tiles<br>
+Five SD values control the strength of the restraints, respectively for r, w, A0, x0|y0, and abcd<br>
+SD = 0 switches off the restraint<br>
+</div>
+<dl compact="compact">
+  <ul style="font-weight: bold;">
+
+  
   </ul>
-  <sup>
+
+  <sup style="font-weight: bold;">
   <hr></sup><a name="Appendix3"></a><h2>Appendix 3: Data from Denzo</h2>
   <p> DENZO is often run refining the cell and orientation angles for
 each image independently, then postrefinement is done in
@@ -1092,7 +1161,10 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.1.30 allow TIE with negative sd to turn off tie, as documented. Also fixed bug in ABSORPTION<br>
+  <h2>RELEASE NOTES</h2>0.2.1
+&nbsp; some major reorganisations. Added XML output. SCALES TILE
+option. Handling of multilattice data. SDCORRECTION SIMILAR<br>
+0.1.30 allow TIE with negative sd to turn off tie, as documented. Also fixed bug in ABSORPTION<br>
 0.1.29 small change to Result table to work with Baubles arcane (and undocumented) rules for Magic Tables<br>
 0.1.28 bug fix in "sdcorrection same"<br>
 0.1.27 bug fix in minimizer which sometimes affected the case with just 2 parameters<br>
@@ -1141,4 +1213,5 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
   
 </dl>
+
 </body></html>

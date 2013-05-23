@@ -109,6 +109,16 @@ namespace scala {
     return params;
   }
   //--------------------------------------------------------------
+  std::vector<double> SDcorrection::GetRealParameters() const
+  //  return SdFac, [SDb,] SDadd
+  {
+    std::vector<double> realparams;
+    realparams.push_back(sdfac);
+    if (!fixsdb) realparams.push_back(sdb);
+    realparams.push_back(sdadd);
+    return realparams;
+  }
+  //--------------------------------------------------------------
   void SDcorrection::SetRefineParameters()
   // Set internal vector p (2 or 3) from Sdfac etc
   //  vector p is (p1,p2,p3), p2 may be missing 
@@ -314,7 +324,7 @@ namespace scala {
   {
     // Always 3 values, even if SdB [1] will be ignored
     double dtarget[] = {0.0,0.0,0.0};
-    double dweight[] = {0.0,25.0,0.0};  // SdB only
+    double dweight[] = {0.0,10.0,0.0};  // SdB only
     SetRestraints(std::vector<double>(dtarget, dtarget+3),
 		  std::vector<double>(dweight, dweight+3));
   }

@@ -13,6 +13,16 @@ using phaser_io::LXML;
 
 namespace scala {
   // ------------------------------------------------------------
+  SummaryStatistics::SummaryStatistics()
+  {
+    Anom = false;
+    anomNPslope = 0.0;
+    averageMosaicity = 0.0;
+    minSDcorrFulls = maxSDcorrFulls = minSDcorrPartials = maxSDcorrPartials = 0.0;
+    maxinvresolsq = 0.0;
+    anisodeltaB = 0.0;
+  }
+  // ------------------------------------------------------------
   void SummaryStatistics::StoreResRanges(const ResoRange& overall,
 					 const ResoRange& inner,
 					 const ResoRange& outer)  {
@@ -179,129 +189,243 @@ namespace scala {
     if (reslimit.Status() > 0) {
       return " == maximum resolution";
     } else if (reslimit.Status() < 0) {
-      return "WARNING: weak data, all data below threshold";
+      return
+	"WARNING: weak or missing data, all observed data below threshold";
     }
     return "";
   }
   // ------------------------------------------------------------  
-  void SummaryStatistics::PrintSummaryTable(const bool& Result, phaser_io::Output& output)
+  void SummaryStatistics::PrintSummaryTable(const bool& Result,
+					    const bool& xmlonly,
+					    phaser_io::Output& output)
   // print the final summary table as RESULT if Result == true
+  // Only write XML if Result, write only XML if xmlonly
   {
     phaser_io::outStream OUTSTREAM = LOGFILE;
     if (Result) {OUTSTREAM = RESULT;}
 
-    output.logTabPrintf(0,OUTSTREAM,"Summary data for  ");
-    output.logTab(0,OUTSTREAM,pxdname.formatPrint());
-    output.logTab(0,OUTSTREAM,
-     "\n                                           Overall  InnerShell  OuterShell");
-    output.logTabPrintf(0,OUTSTREAM,
-			"Low resolution limit                  %10.2f%10.2f%10.2f\n",
-			resRange[0].ResLow(),resRange[1].ResLow(),resRange[2].ResLow());
-    output.logTabPrintf(0,OUTSTREAM,
-			"High resolution limit                 %10.2f%10.2f%10.2f\n\n",
-			resRange[0].ResHigh(),resRange[1].ResHigh(),resRange[2].ResHigh());
-    // Always write out R-factors within I+/I- sets and overall
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rmerge  (within I+/I-)                %10.3f%10.3f%10.3f\n",
-			rmerge[0].R(), rmerge[1].R(), rmerge[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rmerge  (all I+ and I-)               %10.3f%10.3f%10.3f\n",
-			rmergeOv[0].R(), rmergeOv[1].R(), rmergeOv[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rmeas (within I+/I-)                  %10.3f%10.3f%10.3f\n",
-			rmeas[0].R(), rmeas[1].R(), rmeas[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rmeas (all I+ & I-)                   %10.3f%10.3f%10.3f\n",
-			  rmeasOv[0].R(), rmeasOv[1].R(), rmeasOv[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rpim (within I+/I-)                   %10.3f%10.3f%10.3f\n",
-			rpim[0].R(), rpim[1].R(), rpim[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rpim (all I+ & I-)                    %10.3f%10.3f%10.3f\n",
-			rpimOv[0].R(), rpimOv[1].R(), rpimOv[2].R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Rmerge in top intensity bin           %10.3f        -         - \n",
-			RmergeTopI.R());
-    output.logTabPrintf(0,OUTSTREAM,
-			"Total number of observations          %10d%10d%10d\n",
-			Nobs[0], Nobs[1], Nobs[2]);
-    output.logTabPrintf(0,OUTSTREAM,
-			"Total number unique                   %10d%10d%10d\n",
-			Nuniq[0], Nuniq[1], Nuniq[2]);
-    output.logTabPrintf(0,OUTSTREAM,
-			"Mean((I)/sd(I))                       %10.1f%10.1f%10.1f\n",
-			MnIsd[0], MnIsd[1], MnIsd[2]);
-    output.logTabPrintf(0,OUTSTREAM,
-			"Mn(I) half-set correlation CC(1/2)    %10.3f%10.3f%10.3f\n",
-			Icorrelation[0], Icorrelation[1], Icorrelation[2]);
-
-    output.logTabPrintf(0,OUTSTREAM,
-			"Completeness                          %10.1f%10.1f%10.1f\n",
-			complete[0], complete[1], complete[2]);
-    output.logTabPrintf(0,OUTSTREAM,
-			"Multiplicity                          %10.1f%10.1f%10.1f\n",
-			multiplicity[0], multiplicity[1], multiplicity[2]);
-    if (Anom) {
-      output.logTabPrintf(0,OUTSTREAM,
-			  "\nAnomalous completeness                %10.1f%10.1f%10.1f\n",
-			  anomcomplete[0], anomcomplete[1], anomcomplete[2]);
-      output.logTabPrintf(0,OUTSTREAM,
-			  "Anomalous multiplicity                %10.1f%10.1f%10.1f\n",
-			  anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]);
-      output.logTabPrintf(0,OUTSTREAM,
-			  "DelAnom correlation between half-sets %10.3f%10.3f%10.3f\n",
-			  anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]);
-      output.logTabPrintf(0,OUTSTREAM,
-			  "Mid-Slope of Anom Normal Probability  %10.3f       -         -  \n",
-			  anomNPslope);
-    }
-
-    // Resolution limit estimates
-    output.logTab(0,OUTSTREAM,
-		  "\nEstimates of resolution limits: overall");
-    output.logTabPrintf(1,OUTSTREAM,
-		"from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
-			overallresolimitCC.Limit(),
-			overallresolimitCC.HighResolution(),
-			ResoLimitWarning(overallresolimitCC).c_str());
-
-    output.logTabPrintf(1,OUTSTREAM,
-		"from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
-			overallresolimitIsig.Limit(),
-			overallresolimitIsig.HighResolution(),
-			ResoLimitWarning(overallresolimitIsig).c_str());
-    // Anisotropy analysis
-    if (int(anisoresolimitCC.size()) > 0) {
+    if (!xmlonly) {
+      output.logTabPrintf(0,OUTSTREAM,"Summary data for  ");
+      output.logTab(0,OUTSTREAM,pxdname.formatPrint());
+      
+      if (nlattices > 1) {
+	output.logTabPrintf(0,OUTSTREAM,
+			    "\nMultilattice data, number of lattices = %3d\n",
+			    nlattices);
+      output.logTab(0,OUTSTREAM,"Statistics from singletons only");
+      }      
       output.logTab(0,OUTSTREAM,
-		    "\nEstimates of resolution limits in reciprocal lattice directions:");
-      for (int jax=0;jax<3;++jax) {
-	if (anisoresolimitCC[jax].Status() > -2) { // valid direction
-	  output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
-	  output.logTabPrintf(1,OUTSTREAM,
-			      "from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
-			      anisoresolimitCC[jax].Limit(),
-			      anisoresolimitCC[jax].HighResolution(),
-			      ResoLimitWarning(anisoresolimitCC[jax]).c_str());
-	  output.logTabPrintf(1,OUTSTREAM,
-			      "from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
-			      anisoresolimitIsig[jax].Limit(),
-			      anisoresolimitIsig[jax].HighResolution(),
-			      ResoLimitWarning(anisoresolimitIsig[jax]).c_str());
+		    "\n                                           Overall  InnerShell  OuterShell");
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Low resolution limit                  %10.2f%10.2f%10.2f\n",
+			  resRange[0].ResLow(),resRange[1].ResLow(),resRange[2].ResLow());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "High resolution limit                 %10.2f%10.2f%10.2f\n\n",
+			  resRange[0].ResHigh(),resRange[1].ResHigh(),resRange[2].ResHigh());
+      
+      // Always write out R-factors within I+/I- sets and overall
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rmerge  (within I+/I-)                %10.3f%10.3f%10.3f\n",
+			  rmerge[0].R(), rmerge[1].R(), rmerge[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rmerge  (all I+ and I-)               %10.3f%10.3f%10.3f\n",
+			  rmergeOv[0].R(), rmergeOv[1].R(), rmergeOv[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rmeas (within I+/I-)                  %10.3f%10.3f%10.3f\n",
+			  rmeas[0].R(), rmeas[1].R(), rmeas[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rmeas (all I+ & I-)                   %10.3f%10.3f%10.3f\n",
+			  rmeasOv[0].R(), rmeasOv[1].R(), rmeasOv[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rpim (within I+/I-)                   %10.3f%10.3f%10.3f\n",
+			  rpim[0].R(), rpim[1].R(), rpim[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rpim (all I+ & I-)                    %10.3f%10.3f%10.3f\n",
+			  rpimOv[0].R(), rpimOv[1].R(), rpimOv[2].R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Rmerge in top intensity bin           %10.3f        -         - \n",
+			  RmergeTopI.R());
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Total number of observations          %10d%10d%10d\n",
+			  Nobs[0], Nobs[1], Nobs[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Total number unique                   %10d%10d%10d\n",
+			  Nuniq[0], Nuniq[1], Nuniq[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Mean((I)/sd(I))                       %10.1f%10.1f%10.1f\n",
+			  MnIsd[0], MnIsd[1], MnIsd[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Mn(I) half-set correlation CC(1/2)    %10.3f%10.3f%10.3f\n",
+			  Icorrelation[0], Icorrelation[1], Icorrelation[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Completeness                          %10.1f%10.1f%10.1f\n",
+			  complete[0], complete[1], complete[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Multiplicity                          %10.1f%10.1f%10.1f\n",
+			  multiplicity[0], multiplicity[1], multiplicity[2]);
+      if (Anom) {
+	output.logTabPrintf(0,OUTSTREAM,
+			    "\nAnomalous completeness                %10.1f%10.1f%10.1f\n",
+			    anomcomplete[0], anomcomplete[1], anomcomplete[2]);
+	output.logTabPrintf(0,OUTSTREAM,
+			    "Anomalous multiplicity                %10.1f%10.1f%10.1f\n",
+			    anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]);
+	output.logTabPrintf(0,OUTSTREAM,
+			    "DelAnom correlation between half-sets %10.3f%10.3f%10.3f\n",
+			    anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]);
+	output.logTabPrintf(0,OUTSTREAM,
+			    "Mid-Slope of Anom Normal Probability  %10.3f       -         -  \n",
+			    anomNPslope);
+      }
+      
+      // Resolution limit estimates
+      output.logTab(0,OUTSTREAM,
+		    "\nEstimates of resolution limits: overall");
+      output.logTabPrintf(1,OUTSTREAM,
+			  "from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
+			  overallresolimitCC.Limit(),
+			  overallresolimitCC.HighResolution(),
+			  ResoLimitWarning(overallresolimitCC).c_str());
+      output.logTabPrintf(1,OUTSTREAM,
+			  "from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
+			  overallresolimitIsig.Limit(),
+			  overallresolimitIsig.HighResolution(),
+			  ResoLimitWarning(overallresolimitIsig).c_str());
+      // Anisotropy analysis
+      if (int(anisoresolimitCC.size()) > 0) {
+	output.logTab(0,OUTSTREAM,
+		      "\nEstimates of resolution limits in reciprocal lattice directions:");
+	for (int jax=0;jax<3;++jax) {
+	  if (anisoresolimitCC[jax].Status() > -2) { // valid direction
+	    output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
+	    output.logTabPrintf(1,OUTSTREAM,
+				"from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
+				anisoresolimitCC[jax].Limit(),
+				anisoresolimitCC[jax].HighResolution(),
+				ResoLimitWarning(anisoresolimitCC[jax]).c_str());
+	    output.logTabPrintf(1,OUTSTREAM,
+				"from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
+				anisoresolimitIsig[jax].Limit(),
+				anisoresolimitIsig[jax].HighResolution(),
+				ResoLimitWarning(anisoresolimitIsig[jax]).c_str());
+	  }
+	}
+	output.logTabPrintf(0,OUTSTREAM,
+			    "\nAnisotropic deltaB (i.e. range of principal components), A^2: %5.2f\n",
+			    anisodeltaB);
+	
+      } else {
+	output.logTab(0,OUTSTREAM, "\nNo anisotropy");
+      }
+      
+      output.logTab(0,OUTSTREAM,
+		    "\nAverage unit cell: "+averageCell.format());
+      output.logTab(0,OUTSTREAM,
+		    "Space group: "+spacegroupname);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Average mosaicity: %6.2f\n", averageMosaicity);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "\nMinimum and maximum SD correction factors: Fulls %6.2f %6.2f Partials %6.2f %6.2f\n",  
+			  minSDcorrFulls, maxSDcorrFulls, minSDcorrPartials, maxSDcorrPartials);
+    } // not XML only
+    
+    if (Result) {
+      if (!xmlonly) {output.logTab(0,LXML,"<Result>");}
+      output.logTab(1,LXML, "<Dataset  name=\""+pxdname.format()+"\">");
+      if (nlattices > 1) {
+	output.logTab(1,LXML,
+		      StringUtil::MakeXMLtag("NumberLattices",
+					     StringUtil::itos(nlattices, 2)));
+      }
+      output.logTab(1,LXML,
+		    MakeXMLtag3("ResolutionLow",8,2,
+				resRange[0].ResLow(),resRange[1].ResLow(),resRange[2].ResLow()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("ResolutionHigh",8,2,
+				resRange[0].ResHigh(),resRange[1].ResHigh(),resRange[2].ResHigh()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("Rmerge",8,3,
+				rmerge[0].R(), rmerge[1].R(), rmerge[2].R()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("RmergeOverall",8,3,
+				rmergeOv[0].R(), rmergeOv[1].R(), rmergeOv[2].R()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("Rmeas",8,3,
+				rmeas[0].R(), rmeas[1].R(), rmeas[2].R()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("RmeasOverall",8,3,
+				rmeasOv[0].R(), rmeasOv[1].R(), rmeasOv[2].R()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("Rpim",8,3,
+				rpim[0].R(), rpim[1].R(), rpim[2].R()));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("RpimOverall",8,3,
+				rpimOv[0].R(), rpimOv[1].R(), rpimOv[2].R()));
+      output.logTab(1,LXML,
+		    StringUtil::MakeXMLtag("RmergeTopI", StringUtil::ftos(RmergeTopI.R(), 8,3)));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("NumberObservations",9,
+				Nobs[0], Nobs[1], Nobs[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("NumberReflections",9,
+				Nuniq[0], Nuniq[1], Nuniq[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("MeanIoverSD",7,1,
+				MnIsd[0], MnIsd[1], MnIsd[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("CChalf",6,3,
+				Icorrelation[0], Icorrelation[1], Icorrelation[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("Completeness",6,1,
+				complete[0], complete[1], complete[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("Multiplicity",8,1,
+				multiplicity[0], multiplicity[1], multiplicity[2]));
+      if (Anom) {
+	output.logTab(1,LXML,
+		      MakeXMLtag3("AnomalousCompleteness",6,1,
+				  anomcomplete[0], anomcomplete[1], anomcomplete[2]));
+	output.logTab(1,LXML,
+		      MakeXMLtag3("AnomalousMultiplicity",8,1,
+				  anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]));
+	output.logTab(1,LXML,
+		      MakeXMLtag3("AnomalousCChalf",8,3,
+				  anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]));
+	output.logTab(1,LXML,
+		      StringUtil::MakeXMLtag("AnomalousNPslope", StringUtil::ftos(anomNPslope, 8,3)));
+      }
+      output.logTab(1,LXML,
+		    MakeXMLresolimit("Overall", "CChalf", overallresolimitCC));
+      output.logTab(1,LXML,
+		    MakeXMLresolimit("Overall", "I/sd", overallresolimitIsig));
+
+      if (int(anisoresolimitCC.size()) > 0) {
+	for (int jax=0;jax<3;++jax) {
+	  if (anisoresolimitCC[jax].Status() > -2) { // valid direction
+	    output.logTab(1,LXML,
+			  MakeXMLresolimit(anisoaxislabels[jax], "CChalf",
+					   anisoresolimitCC[jax]));
+	    output.logTab(1,LXML,
+			  MakeXMLresolimit(anisoaxislabels[jax], "I/sd",
+					   anisoresolimitIsig[jax]));
+	  }
 	}
       }
-    } else {
-      output.logTab(0,OUTSTREAM, "\nNo anisotropy");
+      output.logTab(1,LXML, averageCell.xml());
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("SpacegroupName", spacegroupname));
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("Mosaicity",
+						   StringUtil::ftos(averageMosaicity,6,2)));
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("MinimumSDcorrectionFulls",
+						   StringUtil::ftos(minSDcorrFulls,6,2)));
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("MaximumSDcorrectionFulls",
+						   StringUtil::ftos(maxSDcorrFulls,6,2)));
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("MinimumSDcorrectionPartials",
+						   StringUtil::ftos(minSDcorrPartials,6,2)));
+      output.logTab(1,LXML, StringUtil::MakeXMLtag("MaximumSDcorrectionPartials",
+						   StringUtil::ftos(maxSDcorrPartials,6,2)));
+      output.logTab(1,LXML, "</Dataset>");
+      if (!xmlonly) {output.logTab(0,LXML,"</Result>");}
     }
-
-    output.logTab(0,OUTSTREAM,
-		  "\nAverage unit cell: "+averageCell.format());
-    output.logTab(0,OUTSTREAM,
-		  "Space group: "+spacegroupname);
-    output.logTabPrintf(0,OUTSTREAM,
-			"Average mosaicity: %6.2f\n", averageMosaicity);
-    output.logTabPrintf(0,OUTSTREAM,
-     "\nMinimum and maximum SD correction factors: Fulls %6.2f %6.2f Partials %6.2f %6.2f\n",  
-			minSDcorrFulls, maxSDcorrFulls, minSDcorrPartials, maxSDcorrPartials);
   }  // PrintSummaryTable 
   // ------------------------------------------------------------  
   void AllSummaryStatistics::AddSummaryStatistics(const SummaryStatistics& summarystatistics)
@@ -312,14 +436,19 @@ namespace scala {
   // ------------------------------------------------------------  
   //! print the final summary table for one dataset (idts), as RESULT if Result true
   void AllSummaryStatistics::PrintOneSummaryTable(const int& idts,
-				     const bool& Result, phaser_io::Output& output)
+						  const bool& Result, phaser_io::Output& output)
   {
     phaser_io::outStream OUTSTREAM = LOGFILE;
     if (Result) {OUTSTREAM = RESULT;}
     if (idts >= 0 && idts < int(allsummarystatistics.size())) {
-      allsummarystatistics[idts].PrintSummaryTable(Result, output);
+      allsummarystatistics[idts].PrintSummaryTable(Result, false, output);
       output.logTab(0,OUTSTREAM,
 		    AnomDistribution::formatStatus(anomstatus));
+      if (Result) { // also to XML
+	output.logTab(0,LXML,
+		      StringUtil::MakeXMLtag("AnomalousStatus",
+		     AnomDistribution::formatStatus(anomstatus)));
+      }
     }
   }
   // ------------------------------------------------------------  
@@ -334,25 +463,33 @@ namespace scala {
     int ndts = allsummarystatistics.size(); // number of datasets
     if (ndts == 0) {return;}
     if (ndts == 1) {
-      allsummarystatistics[0].PrintSummaryTable(Result, output);
+      allsummarystatistics[0].PrintSummaryTable(Result, false, output);
       return;
     }
 
     // Column widths for Overall/Inner/Outer = 9/8/8 for each derivative
     // + 2 between them
-
     output.logTab(0,OUTSTREAM,"\nSummary data for datasets");
     for (int idts=0;idts<ndts;++idts) {
       output.logTab(0,OUTSTREAM,"   "+allsummarystatistics[idts].pxdname.formatPrint());
     }
     output.logTab(0,OUTSTREAM, "\n                                    ", false);
+    bool multilattice = false;
     for (int idts=0;idts<ndts;++idts) {
       output.logTab(0,OUTSTREAM,
-	    StringUtil::CentreString(allsummarystatistics[idts].pxdname.format(),27),
+		    StringUtil::CentreString(allsummarystatistics[idts].pxdname.format(),27),
 		    false);
+      if (allsummarystatistics[idts].nlattices > 1) {multilattice = true;}
     }
     output.logTab(0,OUTSTREAM," ");
-
+    if (multilattice) {
+      std::string s = " Number of lattices      "; 
+      for (int idts=0;idts<ndts;++idts) {
+	s += StringUtil::CentreString
+	  (StringUtil::itos(allsummarystatistics[idts].nlattices,3), 27);
+      }
+      output.logTab(0,OUTSTREAM,s);
+    }
     output.logTab(0,OUTSTREAM, "\n                                    ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTab(0,OUTSTREAM, "    Overall   Inner   Outer", false);
@@ -380,9 +517,9 @@ namespace scala {
     output.logTab(0,OUTSTREAM, "\nRmerge  (within I+/I-)              ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9.3f%8.3f%8.3f",
-			allsummarystatistics[idts].rmerge[0].R(),
-			allsummarystatistics[idts].rmerge[1].R(),
-			allsummarystatistics[idts].rmerge[2].R());
+			  allsummarystatistics[idts].rmerge[0].R(),
+			  allsummarystatistics[idts].rmerge[1].R(),
+			  allsummarystatistics[idts].rmerge[2].R());
     }
     output.logTab(0,OUTSTREAM," ");
     output.logTab(0,OUTSTREAM, "Rmerge  (all I+ and I-)             ", false);
@@ -428,31 +565,31 @@ namespace scala {
     output.logTab(0,OUTSTREAM, "Rmerge in top intensity bin         ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9.3f      -       - ",
-			allsummarystatistics[idts].RmergeTopI.R());
+			  allsummarystatistics[idts].RmergeTopI.R());
     }
     output.logTab(0,OUTSTREAM," ");
     output.logTab(0,OUTSTREAM, "Total number of observations        ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9d%8d%8d",
-			allsummarystatistics[idts].Nobs[0],
-			allsummarystatistics[idts].Nobs[1],
-			allsummarystatistics[idts].Nobs[2]);
+			  allsummarystatistics[idts].Nobs[0],
+			  allsummarystatistics[idts].Nobs[1],
+			  allsummarystatistics[idts].Nobs[2]);
     }
     output.logTab(0,OUTSTREAM," ");
     output.logTab(0,OUTSTREAM, "Total number unique                 ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9d%8d%8d",
-			allsummarystatistics[idts].Nuniq[0],
-			allsummarystatistics[idts].Nuniq[1],
-			allsummarystatistics[idts].Nuniq[2]);
+			  allsummarystatistics[idts].Nuniq[0],
+			  allsummarystatistics[idts].Nuniq[1],
+			  allsummarystatistics[idts].Nuniq[2]);
     }
     output.logTab(0,OUTSTREAM," ");
     output.logTab(0,OUTSTREAM, "Mean((I)/sd(I))                     ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
-			allsummarystatistics[idts].MnIsd[0],
-			allsummarystatistics[idts].MnIsd[1],
-			allsummarystatistics[idts].MnIsd[2]);
+			  allsummarystatistics[idts].MnIsd[0],
+			  allsummarystatistics[idts].MnIsd[1],
+			  allsummarystatistics[idts].MnIsd[2]);
     }
     output.logTab(0,OUTSTREAM," ");
     output.logTab(0,OUTSTREAM, "Mn(I) correlation between half-sets ", false);
@@ -474,8 +611,8 @@ namespace scala {
     output.logTab(0,OUTSTREAM, "Multiplicity                        ", false);
     for (int idts=0;idts<ndts;++idts) {
       output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
-			allsummarystatistics[idts].multiplicity[0],
-			allsummarystatistics[idts].multiplicity[1],
+			  allsummarystatistics[idts].multiplicity[0],
+			  allsummarystatistics[idts].multiplicity[1],
 			  allsummarystatistics[idts].multiplicity[2]);
     }
     output.logTab(0,OUTSTREAM," ");
@@ -493,8 +630,8 @@ namespace scala {
 			  "Anomalous multiplicity              ", false);
       for (int idts=0;idts<ndts;++idts) {
 	output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
-			  allsummarystatistics[idts].anommultiplicity[0],
-			  allsummarystatistics[idts].anommultiplicity[1],
+			    allsummarystatistics[idts].anommultiplicity[0],
+			    allsummarystatistics[idts].anommultiplicity[1],
 			    allsummarystatistics[idts].anommultiplicity[2]);
       }
       output.logTab(0,OUTSTREAM," ");
@@ -520,16 +657,16 @@ namespace scala {
       output.logTab(1,OUTSTREAM,
 		    "Dataset: "+allsummarystatistics[idts].pxdname.format());
       output.logTabPrintf(2,OUTSTREAM,
-		  "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
+			  "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
 			  allsummarystatistics[idts].overallresolimitCC.Limit(),
 			  allsummarystatistics[idts].overallresolimitCC.HighResolution(),
 			  ResoLimitWarning(allsummarystatistics[idts].overallresolimitCC).c_str());
 
       output.logTabPrintf(2,OUTSTREAM,
-		"from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
-			allsummarystatistics[idts].overallresolimitIsig.Limit(),
-			allsummarystatistics[idts].overallresolimitIsig.HighResolution(),
-			ResoLimitWarning(allsummarystatistics[idts].overallresolimitIsig).c_str());
+			  "from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
+			  allsummarystatistics[idts].overallresolimitIsig.Limit(),
+			  allsummarystatistics[idts].overallresolimitIsig.HighResolution(),
+			  ResoLimitWarning(allsummarystatistics[idts].overallresolimitIsig).c_str());
     }
     output.logTab(0,OUTSTREAM," ");
 
@@ -560,6 +697,9 @@ namespace scala {
 				ResoLimitWarning(allsummarystatistics[idts].anisoresolimitIsig[jax]).c_str());
 	  }
 	}
+	output.logTabPrintf(1,OUTSTREAM,
+			    "\nAnisotropic deltaB (i.e. range of principal components), A^2: %5.2f\n\n",
+			    allsummarystatistics[idts].anisodeltaB);
       } else {
 	output.logTab(0,OUTSTREAM, "\nNo anisotropy");
       }
@@ -572,12 +712,12 @@ namespace scala {
       output.logTab(1,OUTSTREAM,
 		    "Average unit cell: "+allsummarystatistics[idts].averageCell.format());
       output.logTab(1,OUTSTREAM,
-		  "Space group: "+allsummarystatistics[idts].spacegroupname);
+		    "Space group: "+allsummarystatistics[idts].spacegroupname);
       output.logTabPrintf(1,OUTSTREAM,
 			  "Average mosaicity: %6.2f\n",
 			  allsummarystatistics[idts].averageMosaicity);
       output.logTabPrintf(1,OUTSTREAM,
-     "Minimum and maximum SD correction factors: Fulls %6.2f %6.2f Partials %6.2f %6.2f\n",  
+			  "Minimum and maximum SD correction factors: Fulls %6.2f %6.2f Partials %6.2f %6.2f\n",  
 			  allsummarystatistics[idts].minSDcorrFulls,
 			  allsummarystatistics[idts].maxSDcorrFulls,
 			  allsummarystatistics[idts].minSDcorrPartials,
@@ -585,6 +725,66 @@ namespace scala {
     }
     output.logTab(0,OUTSTREAM,
 		  "\n"+AnomDistribution::formatStatus(anomstatus));
+
+    if (Result) {
+      // write XML
+      output.logTab(0,LXML,"<Result>");
+      for (int idts=0;idts<ndts;++idts) {
+	// write XML only
+	allsummarystatistics[idts].PrintSummaryTable(Result, true, output);
+      }
+      output.logTab(0,LXML,"</Result>");
+    }
+    if (Result) { // also to XML
+      output.logTab(0,LXML,
+		    StringUtil::MakeXMLtag("AnomalousStatus",
+					   AnomDistribution::formatStatus(anomstatus)));
+    }
+  } // AllSummaryStatistics::PrintSummaryTable
+  // ------------------------------------------------------------  
+  std::string MakeXMLtag3(const std::string& tag, const int& w, const int& d,
+			  const float& overall, const float& inner, const float& outer)
+  // make XML tags for <overall>, <inner> and <outer> resolution ranges
+  // field width w, Ndecimal places d
+  {
+    std::string s = "<"+tag+">";
+    s += StringUtil::MakeXMLtag("Overall", StringUtil::ftos(overall,w,d));
+    s += StringUtil::MakeXMLtag("Inner", StringUtil::ftos(inner,w,d));
+    s += StringUtil::MakeXMLtag("Outer", StringUtil::ftos(outer,w,d));
+    s += "</"+tag+">";
+    return s;
   }
   // ------------------------------------------------------------  
+  std::string MakeXMLtag3(const std::string& tag, const int& w,
+			  const int& overall, const int& inner, const int& outer)
+  // make XML tags for <overall>, <inner> and <outer> resolution ranges
+  // field width w
+  {
+    std::string s = "<"+tag+">";
+    s += StringUtil::MakeXMLtag("Overall", StringUtil::itos(overall,w));
+    s += StringUtil::MakeXMLtag("Inner", StringUtil::itos(inner,w));
+    s += StringUtil::MakeXMLtag("Outer", StringUtil::itos(outer,w));
+    s += "</"+tag+">\n";
+    return s;
+  }
+  // ------------------------------------------------------------  
+  std::string MakeXMLresolimit(const std::string& direction, const std::string& type,
+			       const ResolutionLimit& resolimit)
+  // format XML tags for resolution limit estimates
+  {
+    std::string s = "<ResolutionLimitEstimate type=\""+type+"\">";
+    s += StringUtil::MakeXMLtag("Direction", direction);
+    s += StringUtil::MakeXMLtag("Threshold",
+				StringUtil::ftos(resolimit.Limit(),5,2));
+    s += StringUtil::MakeXMLtag("MaximumResolution",
+				StringUtil::ftos(resolimit.HighResolution(),5,2));
+    s += "\n";
+    std::string warn = ResoLimitWarning(resolimit);
+    if (warn != "") {
+      // message or warning
+      s += StringUtil::MakeXMLtag("Message", warn);
+    }
+    s += "</ResolutionLimitEstimate>\n";
+    return s;
+  }
 } // namespace scala

@@ -3,6 +3,7 @@
 //
 
 #include "tie.hh"
+#include "string_util.hh"
 
 //--------------------------------------------------------------
 floatType Tie::R(const std::vector<double>& params)
@@ -71,23 +72,29 @@ std::vector<TieHessian> Tie::Hessian(const std::vector<double>& params)
   return TH;
 }
 //--------------------------------------------------------------
-/*
 std::string Tie::format() const
 {
   std::string s;
   if (kpidx.size() == 1) {
-    TH.push_back(TieHessian(kpidx[0], kpidx[0], weight));
+    // restraint to target
+    s += "Tie index "+StringUtil::itos(kpidx[0],5)+
+      " to target "+StringUtil::ftos(target,8,4)+
+      " weight "+StringUtil::ftos(weight,8,4);
   } else if (kpidx.size() == 2) {
-    TH.push_back(TieHessian(kpidx[0], kpidx[0], weight));
-    TH.push_back(TieHessian(kpidx[1], kpidx[1], weight));
-    TH.push_back(TieHessian(kpidx[0], kpidx[1], -weight));
+    // tie between two
+    s += "Tie index "+StringUtil::itos(kpidx[0],5)+
+      " to index "+StringUtil::itos(kpidx[1],5)+
+      " weight "+StringUtil::ftos(weight,8,4);
+  } else if (kpidx.size() > 2) {
+    // tie between > two
+    s += "Tie togetherindices ";
+    for (size_t i=0; i<kpidx.size(); i++) { 
+      s += StringUtil::itos(kpidx[i],5);
+      if (i<kpidx.size()-1) {s += ", ";}
+    }
+    " weight "+StringUtil::ftos(weight,8,4);
   } else {
-    double wn = 1./double(kpidx.size()*kpidx.size());
-    for (int i=0;i<kpidx.size();++i) {
-      for (int j=i;j<kpidx.size();++j) {
-	TH.push_back(TieHessian(kpidx[i], kpidx[j], weight*wn));
-      }}
+    s = "No tie";
   }
-  //^!! incomplete
+  return s;
 }
-*/

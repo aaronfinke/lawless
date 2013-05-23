@@ -41,6 +41,7 @@ namespace scala
   std::string Chiral_as_string(const Chirality& chiral);
 
   class SpaceGroup; // forward definition
+  class Dataset;
 
   enum AnomalousClass {ALL, BOTH, IPLUS, IMINUS};
 
@@ -237,7 +238,7 @@ namespace scala
   /*! This has a different orthogonalisation convention to that in
     clipper::Cell. This one follows the "Cambridge" convention used in
     Mosflm, Scala etc
-   */
+  */
   {
   public:
     Scell() {cell_.assign(6,0.0);}
@@ -322,9 +323,13 @@ namespace scala
     UnitCellSet(const std::vector<Scell>& Cells);
     //! Initialise from list of cells
     void init(const std::vector<Scell>& Cells);
-
+    //! Clear cell list
+    void clear() {cells.clear(); averagecell = Scell();}
     //! Add in a cell
     void AddCell(const Scell& Cell);
+
+    //! Add in a cell set
+    void AddCellSet(const UnitCellSet& CellSet);
 
     //! Number of cells stored
     int Number() const {return cells.size();}
@@ -344,6 +349,8 @@ namespace scala
 
     //! Average list of cells, if idxexclude >= 0, exclude entry with this index
     Scell Average(const int& idxexclude=-1) const;
+
+    std::string format() const;
 
   private:
     std::vector<Scell> cells;
@@ -389,6 +396,7 @@ namespace scala
     Vec3<Dtype> orth(const Scell& cell) const
     {return (cell.Bmat() * real());}
     std::string format() const;  //!< return formatted String representation
+  
     //! returned packed form as index code
     //  Note that this uses 10-bit packing, so is not guaranteed to
     //  produce a unique code, but it is good enough for some purposes
@@ -455,11 +463,14 @@ namespace scala
   class Xdataset
   //! Crystal/Dataset object
   /*!  for these purposes we are not really interested in the crystal
-    level in the hierarchy, just datasets */
+    level in the hierarchy, just datasets, so Xdataset objects may be
+    grouped into a Dataset object, and indeed should largely be addressed
+    via a Dataset object */
   {
   public:
     Xdataset(){}
-    //! constructor from names, cell, wavelength, ID index
+    //! constructor from names, cell, wavelength, Xdataset ID index
+    /*!  setid is an ID number unique in a file */
     Xdataset(const PxdName& pxdname, const Scell& cell,
 	     const float& wavel, const int& setid);
   
@@ -475,18 +486,21 @@ namespace scala
     std::vector<int> RunIndexList() const {return run_index_list;} //!< return run index list
   
     PxdName pxdname() const {return pxdname_;} //!< return PXD names
-    int setid() const {return setid_;} //!< get set ID index
-    int& setid() {return setid_;}  //!< set set ID index
+    // setid_ is a unique Xdataset identifier number
+    int setid() const {return setid_;} //!< get set ID
+    int& setid() {return setid_;}  //!< set set ID
 
     Scell cell() const {return cell_;} //!< return cell
     Scell& cell() {return cell_;} //!< set cell
+    void SetCellWavelength(const Scell& cell, const float& wavel);
+
     float wavelength() const {return wavel_;} //!< return wavelength
-    float& wavelength() {return wavel_;} //!< set wavelength
+    ///    float& wavelength() {return wavel_;} //!< set wavelength
 
     float Mosaicity() const {return av_mosaic;} //!< return average mosaicity
     float& Mosaicity() {return av_mosaic;}  //!< set average mosaicity
    
-    std::string formatPrint() const; //!< format
+    std::string formatPrint(const bool& first=true) const; //!< format
 
     //! add in another cell and wavelength
     void AddCellWavelength(const Scell& newcell, const float& wavel);
@@ -495,6 +509,11 @@ namespace scala
     void AverageCellWavelength(); 
     //! return number of cells/wavelengths
     int NumberofCells() const {return allcells_.Number();}
+
+    UnitCellSet AllCells() const {return allcells_;}
+
+    // List of wavelengths if multiple runs
+    std::vector<float> AllWavelengths() const {return allwavel_;}
 
     std::string formatAllCells() const; //!< format cell & wavelength list if more than one
     //! return worst deviation (A), = 0 if only one
@@ -508,7 +527,7 @@ namespace scala
     
   private:
     PxdName pxdname_;
-    int setid_;
+    int setid_;  // unique ID number
     Scell cell_;
     float wavel_;
     float av_mosaic;
@@ -575,10 +594,14 @@ namespace scala
     //! retrieve batch number offset [default = 0]
     int  BatchNumberOffset() const {return offset;}  // get
 
-    int index() const {return Xdataset_index;} //!< get dataset index
-    int& index() {return Xdataset_index;} //!< set dataset index
-    int DatasetID() const {return batchinfo.nbsetid;} //!< return dataset ID
+    // Note dataset_index refers to a Dataset, which may include multiple Xdatasets
+    // individual Xdatasets should be addressed by their DatasetID
+    int  datasetindex() const {return dataset_index;} //!< get dataset index
+    int& datasetindex() {return dataset_index;} //!< set dataset index
+    int  DatasetID() const {return batchinfo.nbsetid;} //!< return dataset ID
     int& DatasetID() {return batchinfo.nbsetid;}  //!< set dataset ID
+    PxdName PXDname() const {return pxdname_;} //!< return PXDname
+    PxdName& PXDname() {return pxdname_;} //!< set PXDname
 
     //! return start phi1
     float Phi1() const {return valid_phi ? batchinfo.phistt : 0.0f;}
@@ -712,7 +735,8 @@ namespace scala
     void initBatchInfo();
 
     CMtz::MTZBAT batchinfo;   // All in original frame
-    int Xdataset_index;      // index into crystal/dataset list (-1 if rejected)
+    int dataset_index;       // index into dataset list (NB not xdataset) (-1 if rejected ?)
+    PxdName pxdname_;        // PXDname 
     int run_index;           // index into run list
     bool accepted;
     bool valid_cell;
@@ -755,7 +779,13 @@ namespace scala
   // Return true if dataset setid is in datasets list
   //  & return dataset index idataset (-1 if not)
   bool in_datasets(const int& setid,
-		   const std::vector<Xdataset>& datasets,
+		   const std::vector<Dataset>& datasets,
+		   int& idataset);
+  //======================================================================
+  // Return true if dataset pxdname is in datasets list
+  //  & return dataset index idataset (-1 if not)
+  bool in_datasets(const PxdName& pxdname,
+		   const std::vector<Dataset>& datasets,
 		   int& idataset);
   //======================================================================
   class BatchSelection
@@ -765,7 +795,7 @@ namespace scala
     file, before any offsets. If == 0 then it applies to the offset numbers.
     They may also be flagged with an  numerical flag eg a run number indicating
     what "class" they belong to, > 0 if valid, = 0 if unset
- */
+  */
   {
   public:
     BatchSelection();
@@ -819,7 +849,7 @@ namespace scala
     std::vector<int> fileseries_range;  // file series numbers for ranges
     std::vector<int> flaglist;          // a numerical flag eg a run number
   };
-//--------------------------------------------------------------
+  //--------------------------------------------------------------
   class FileRead
   //! Status of a file, was it read succesfully etc?
   {

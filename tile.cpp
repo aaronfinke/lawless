@@ -16,7 +16,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! construct from Batch object
   DetectorType::DetectorType(const Batch& batch)
-    :type(UNKNOWN), typestr("Unknown"),
+    :dettype(UNKNOWN), typestr("Unknown"),
      ndet(1), ntilex(0), ntiley(0)
   {
     if (batch.Ndet() > 1) {
@@ -25,6 +25,7 @@ namespace scala {
     }
     // At present, the only detector information we have is the
     // range of detector pixel coordinates
+
     detrange = batch.DetectorCoordinateRange();
     // Usually this contains pixel coordinates from 0
     // Check if this is so: if not, leave type as Unknown
@@ -38,13 +39,20 @@ namespace scala {
     }
     if (pixelcoords) {
       // Try to deduce detector type
+      int xdetrange = Nint(detrange[0][1] - detrange[0][0]);
+      int ydetrange = Nint(detrange[1][1] - detrange[1][0]);
+      if (xdetrange == 3072 && ydetrange == 3072) {
+	dettype = CCD3x3;
+	ntilex = 3;
+	ntiley = 3;
+      }
     }
   }
   //--------------------------------------------------------------
   //! construct from arguments
   DetectorType::DetectorType(const Type& Dtype, const std::string& TypeLabel,
 			     const std::vector<std::vector<float> >& Detrange)
-    :type(Dtype), typestr(TypeLabel),
+    :dettype(Dtype), typestr(TypeLabel),
      ndet(1)
   {
     if (ndet > 1) {
@@ -52,8 +60,8 @@ namespace scala {
    ("DetectorType: cannot cope with more than one detector, update program"));
     }
     ntilex = ntiley = 1;
-    if (type == CCD2x2) {ntilex = ntiley = 2;}
-    if (type == CCD3x3) {ntilex = ntiley = 3;}
+    if (dettype == CCD2x2) {ntilex = ntiley = 2;}
+    if (dettype == CCD3x3) {ntilex = ntiley = 3;}
 
     // At present, the only detector information we have is the
     // range of detector pixel coordinates
@@ -94,7 +102,13 @@ namespace scala {
     return Range(detrange[1][0], detrange[1][1]);
   }
   //--------------------------------------------------------------
-  std::string DetectorType::TypeLabel(const DetectorType::Type& dtype)
+  std::string DetectorType::TypeLabel() const
+  //! return a string corresponding to the detector type
+  {
+    return TypeLabel(dettype);
+  }
+  //--------------------------------------------------------------
+  std::string DetectorType::TypeLabel(const DetectorType::Type& dtype) const
   //! return a string corresponding to the detector type
   {
     std::string s;
@@ -117,6 +131,8 @@ namespace scala {
     case PILATUS2M:
       s = "Pilatus2M";
       break;
+    default:
+      s = "Unknown";
     }
     return s;
   }
@@ -124,7 +140,7 @@ namespace scala {
   bool DetectorType::equals(const DetectorType& b) const
   //! test for equality on type and detector range (not on number of tiles)
   {
-    if (type != b.type) return false;
+    if (dettype != b.dettype) return false;
     if (ndet != b.ndet) return false;
     for (int i=0;i<2;++i) {for (int j=0;j<2;++j) {
 	if (std::abs(detrange[i][j]-b.detrange[i][j]) > 0.001) {
@@ -327,18 +343,19 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-  DetectorScale::DetectorScale(const DetectorScaleType DetScaleType,
+  DetectorScale::DetectorScale(const DetectorScaleType& DetScaleType,
 			       const int& nTileX, const int& nTileY,
 			       const DetectorType& dettype)
   {
     init(DetScaleType, nTileX, nTileY, dettype);
   }
   //--------------------------------------------------------------
-  void DetectorScale::init(const DetectorScaleType DetScaleType,
+  void DetectorScale::init(const DetectorScaleType& DetScaleType,
 			   const int& nTileX, const int& nTileY,
 			   const DetectorType& dettype)
   {
     detectorscaletype = DetScaleType;
+    type = dettype;
     ntilex = nTileX;
     ntiley = nTileY;
     if (ntilex <= 0) {ntilex = dettype.NtileX();}
@@ -352,7 +369,7 @@ namespace scala {
     init();
   }
   //--------------------------------------------------------------
-  void DetectorScale::init(const DetectorScaleType DetScaleType,
+  void DetectorScale::init(const DetectorScaleType& DetScaleType,
 			   const int& nTileX, const int& nTileY,
 			   const Range& Xrange, const Range& Yrange)
   {
@@ -379,15 +396,31 @@ namespace scala {
       for (int j=0;j<ntiley;++j) { // loop y
 	if (detectorscaletype == FLAT) {
 	  tilescales(i,j) = new FlatTile;
-	} else if (detectorscaletype == CCD) {
-	  tilescales(i,j) = new CCDTile;
+	} else if (detectorscaletype == CCD3) {
+	  tilescales(i,j) = new CCDTile3;
+	} else if (detectorscaletype == CCD1) {
+	  tilescales(i,j) = new CCDTile1;
+	} else if (detectorscaletype == CCD2) {
+	  tilescales(i,j) = new CCDTile2;
 	} else if (detectorscaletype == PIXEL) {
 	  tilescales(i,j) = new TilePixel;
 	}
 	tilescales(i,j)->init(sizex, sizey);
+	tilescales(i,j)->SetGridCoordinates(i,j);
+      }}
+    setSymmetric(false);
+  }
+  //--------------------------------------------------------------
+  void DetectorScale::setSymmetric(const bool& symmetric)
+  {
+    nparams = 0;
+    for (int i=0;i<ntilex;++i) { // loop x
+      for (int j=0;j<ntiley;++j) { // loop y
+	tilescales(i,j)->setSymmetric(symmetric);
 	idx_tile(i,j) = nparams;
 	nparams += tilescales(i,j)->Nparams();
       }}
+    //    std::cout << "DetectorScale::nparams " <<nparams <<"\n";  //^-
   }
   //--------------------------------------------------------------
   DetectorScale::~DetectorScale() {
@@ -426,7 +459,9 @@ namespace scala {
     } else if (detectorscaletype == FLAT) {
       // Only sensible if more than one tile
       if (ntilex <= 0 || ntiley <= 0) {return false;}
-    } else if (detectorscaletype == CCD) {
+    } else if ((detectorscaletype == CCD1) ||
+	       (detectorscaletype == CCD2) ||
+	       (detectorscaletype == CCD3)) {
       // At least one tile
       if (ntilex <= 1 || ntiley <= 1) {return false;}
       if (nparams <= 0) {return false;}
@@ -526,44 +561,54 @@ namespace scala {
   //  sdties[1] for w
   //  sdties[2] for A
   //  sdties[3] for x0, y0
+  //  sdties[4] for Fourier coefficients (if needed)
   {
     std::vector<Tie> ties;
-    if (detectorscaletype != CCD) {return ties;}
+    if (! ((detectorscaletype == CCD1) ||
+	   (detectorscaletype == CCD2) ||
+	   (detectorscaletype == CCD3)))
+      {return ties;}
     // Only ties for CCD tiled detector (at present)
-
-    ASSERT (sdties.size() == 4);
-    // x0, y0 tie to centre position
-    // sdties[3] is relative to tile size
-    int idx = idx0 + 3;  // first x0 parameter
+    int idx = idx0;
+    // for ties between tiles:
+    //  for each tile, a list of parameter indices and a list of weights
+    std::vector<std::pair<std::vector<int>, std::vector<double> > > kindexwt;
+     int kcentral = -1;
+    if ((ntilex%2 != 0) && (ntiley%2 != 0)) {
+      // there is a central tile if both nx & ny are odd
+      kcentral = (ntilex/2)*ntiley+ntiley/2;
+      if (kcentral == 0) kcentral = -1;
+    }
     for (int i=0;i<ntilex;++i) { // loop tile x
       for (int j=0;j<ntiley;++j) { // loop tile y
-	double weight = sdties[3] * tilescales(i,j)->Radmax();
-	weight = 1./(weight*weight);
-	// tie x0 to centre
-	ties.push_back(Tie(idx, tilescales(i,j)->Xcentre(), weight));
-	// tie y0 to centre
-	ties.push_back(Tie(idx+1, tilescales(i,j)->Ycentre(), weight));
-	idx += tilescales(i,j)->Nparams(); // increment for next tile tie
-      }}
+	std::vector<Tie> tileties = tilescales(i,j)->Ties(sdties, idx);
+	// ties within tile
+	ties.insert(ties.end(), tileties.begin(), tileties.end());
+	// Ties between tiles
+	kindexwt.push_back(tilescales(i,j)->TiedParameters(sdties, idx));
+	idx += tilescales(i,j)->Nparams(); // point to 1st parameter of next tile
+      }}  // end tile loop
 
-    // Tie r,w,A parameters together for all tiles
-    for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r,w,A
-      // Use Radmax from central tile to scale weight for r & w
-      double weight = sdties[k];
-      if (k<2) {
-	weight *= tilescales(ntilex/2,ntiley/2)->Radmax();
+    int ntiles = ntilex*ntiley;
+    ASSERT (int(kindexwt.size()) == ntiles);
+    int npars = kindexwt[0].first.size();  // number of tied parameters/tile
+    for (int j=0;j<npars;++j) { // loop parameters
+      std::vector<int> kindex; // indices
+      for (size_t k=0; k<kindexwt.size(); k++) {  // loop tiles
+	kindex.push_back(kindexwt[k].first[j]);  // add in parameter index for tile
+	if (int(k) == kcentral) { // overweight central tile
+	  kindex.push_back(kindexwt[k].first[j]);  // add in again
+	  kindex.push_back(kindexwt[k].first[j]);
+	}
       }
-      weight = 1./(weight*weight);
-
-      std::vector<int> kindex;  // parameter indices for this group of parameters
-      idx = idx0 + k;   // starting index
-      for (int i=0;i<ntilex;++i) { // loop tile x
-	for (int j=0;j<ntiley;++j) { // loop tile y
-	  kindex.push_back(idx);
-	  idx += tilescales(i,j)->Nparams(); // increment for next tile tie
-	}}
-      ties.push_back(Tie(kindex, weight));  // add tie to list
-    } // end loop r,w,A
+      if (kindex.size() > 1) {ties.push_back(Tie(kindex, kindexwt[0].second[j]));}
+    }
+    //^
+    //    std::cout << "Ties:\n";
+    //    for (size_t j=0; j<ties.size(); j++) { 
+    //      std::cout << ties[j].format() <<"\n";
+    //    }
+    //^-
 
     return ties;
   }
@@ -620,6 +665,10 @@ namespace scala {
     //^-
   }
   //--------------------------------------------------------------
+    //! return number of parameters/tile
+  int DetectorScale::NparamsTile() const
+  {return tilescales(0,0)->Nparams();}
+  //--------------------------------------------------------------
   std::string DetectorScale::format() const
   //! Format for printing scale type
   {
@@ -646,20 +695,20 @@ namespace scala {
       " tiles\n";
     s += tilescales(ntilex/2, ntiley/2)->formattype()+"\n";
 
-    s += "    Tile parameters arranged with Xdet across and Ydet up\n";
+    s += "    Tile parameters arranged with Xdet across and Ydet down\n";
     s += "    Numbers in the corners are the number of observations contributing to the scales\n";
 
     // tile scale
-    for (int j=ntiley-1;j>=0;j--) { // loop y backwards
+    for (int j=0;j<ntiley;++j) { // loop y
       // Get formatted squares for x tiles
       // these should all have the same number of lines
       std::vector<std::vector<std::string> > sxtiles(ntilex);
       for (int i=0;i<ntilex;++i) { // loop x
-	  sxtiles[i] = tilescales(i,j)->formatparameters();
-	  if (i>0) {
-	    ASSERT (sxtiles[i].size() == sxtiles[0].size());
-	  }
+	sxtiles[i] = tilescales(i,j)->formatparameters();
+	if (i>0) {
+	  ASSERT (sxtiles[i].size() == sxtiles[0].size());
 	}
+      }
       // Print them out across the page (to string)
       for (size_t k=0;k<sxtiles[0].size();++k) { // loop lines
 	for (int i=0;i<ntilex;++i) { // loop x tiles
@@ -669,6 +718,11 @@ namespace scala {
       }
     } // end loop y tiles
     return s;
+  }
+  //--------------------------------------------------------------
+  std::string DetectorScale::formatTies() const
+  {
+    return tilescales(ntilex/2, ntiley/2)->formatTies();
   }
   //--------------------------------------------------------------
   void DetectorScale::WriteImage(const std::string& imagefilename) const
@@ -693,37 +747,361 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-  CCDTile::CCDTile(const double& Xmax, const double& Ymax)
+  CCDTile3::CCDTile3(const double& Xmax, const double& Ymax)
   {
     init(Xmax, Ymax);
   }
   //--------------------------------------------------------------
-  void CCDTile::init(const double& Xmax, const double& Ymax)
+  void CCDTile3::init(const double& Xmax, const double& Ymax)
   // coordinates in range 0->Xmax, 0->Ymax
+  {
+    xmax = Xmax;
+    ymax = Ymax;
+    nparams = 15;
+    twooverrootpi = 2.0/sqrt(clipper::Util::pi()); // 2/sqrt(pi)
+
+    // Centre of coordinate system (for ties)
+    xc0 = xmax/2.0;
+    yc0 = ymax/2.0;
+    rad0 = Max(xc0, yc0);  // larger edge radius, pixels
+    // Set default (initial) values
+    x0 = 0.0;
+    y0 = 0.0;
+
+    rfs.setIsConstant(false);
+    r0 = 0.7;
+    rfs.setLevel(0.0);  // relative to rad0
+    wfs.setIsConstant(false);
+    w0 = 0.2;
+    wfs.setLevel(0.0);
+    Afs.setIsConstant(false);
+    A0 = 0.1;
+    Afs.setLevel(0.0);
+    nparams_smooth = rfs.NumberParameters(); // for each of r,w,A
+
+    ncorners.resize(2,2,0); // counts in corners, initialise to 0
+    // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
+    dcrnmin = (sqrt(0.5*0.25*(xmax*xmax + ymax*ymax)))/rad0;
+  }
+  //--------------------------------------------------------------
+  //! symmetric = false to allow A to vary around the tile
+  void CCDTile3::setSymmetric(const bool& symmetric)
+  {
+    circularlysymmetric = symmetric;
+    rfs.setIsConstant(false); // no constant term in Fourier smoothing
+    rfs.setLevel(0.0);
+    wfs.setIsConstant(false); // no constant term in Fourier smoothing
+    wfs.setLevel(0.0);
+    Afs.setIsConstant(false); // no constant term in Fourier smoothing
+    Afs.setLevel(0.0);
+    if (circularlysymmetric) {
+      nparams_smooth = 0; // for r,w,A
+    } else {
+      nparams_smooth = Afs.NumberParameters(); // for r,w,A
+    }
+    nparams = 3*nparams_smooth + 3;  // r,w,A,Asmooth(4)
+  }
+  //--------------------------------------------------------------
+  // Parameter order: r0, w0, A0, rfs(4), wfs(4), Afs(4)
+  // Store parameters
+  void CCDTile3::StoreParameters(const std::vector<double>& parameters)
+  {
+    ASSERT (int(parameters.size()) == nparams);
+    
+    r0 = parameters[0];
+    w0 = parameters[1];
+    A0 = parameters[2];
+    if (!circularlysymmetric) {
+      std::vector<double>::const_iterator pp = parameters.begin()+3;
+      std::vector<double> r_params(pp, pp+nparams_smooth);
+      pp += nparams_smooth;
+      std::vector<double> w_params(pp, pp+nparams_smooth);
+      pp += nparams_smooth;
+      std::vector<double> A_params(pp, pp+nparams_smooth);
+      rfs.setParameters(r_params);
+      wfs.setParameters(w_params);
+      Afs.setParameters(A_params);
+    }
+    //^
+    //    std::cout <<"\nr : " <<r0<<" "<< rfs.format() <<"\n";
+    //    std::cout <<"w : " <<w0<<" "<< wfs.format() <<"\n";
+    //    std::cout <<"A : " <<A0<<" "<< Afs.format() <<"\n";
+    //    std::cout <<"\n";  //^-
+  }
+  //--------------------------------------------------------------
+  // Retrieve parameter vector (length nparams)
+  // Parameter order: r0, w0, A0, rfs(4), wfs(4), Afs(4)
+  std::vector<double> CCDTile3::Parameters() const
+  {
+    std::vector<double> par;
+    par.push_back(r0);
+    par.push_back(w0);
+    par.push_back(A0);
+    if (!circularlysymmetric) {
+      std::vector<double> r_params = rfs.GetParameters();
+      std::vector<double> w_params = wfs.GetParameters();
+      std::vector<double> A_params = Afs.GetParameters();
+      par.insert(par.end(), r_params.begin(), r_params.end());
+      par.insert(par.end(), w_params.begin(), w_params.end());
+      par.insert(par.end(), A_params.begin(), A_params.end());
+    }
+    ASSERT (int(par.size()) == nparams);
+    return par;
+  }
+  //--------------------------------------------------------------
+  //! return vector of internal ties, given SDs and 1st global parameter index
+  std::vector<Tie> CCDTile3::Ties(const std::vector<double> sdties,
+				   const int& idx0)
+  {
+    // 12 parameters expressed as Fourier series, r,w relative to rad0
+    // For all parameter types r,w,A, tie all Fourier coefficients to 0.0
+    // no ties if SD = 0
+    std::vector<Tie> ties;
+    if (!circularlysymmetric && sdties[4] > 0.0) {
+      int nparams_tile = Nparams();
+      double SD = sdties[4];
+      double weight = 1.0/(SD*SD);
+      int idx = idx0+3;  // skip r0, w0, A0
+      
+      for (int k=3;k<nparams_tile;++k) { // loop parameters / tile (=15-3)
+	// tie ABCD to 0.0
+	ties.push_back(Tie(idx, 0.0, weight));
+	idx++;
+      }
+    }
+    return ties;
+  }
+  //--------------------------------------------------------------
+  //! vector of indices and weights for each parameter to be restrained across tiles 
+  std::pair<std::vector<int>, std::vector<double> > 
+  CCDTile3::TiedParameters(const std::vector<double> sdties,
+		 const int& idx0)
+  {
+    // tie r0,w0,A0 tiles
+    std::pair<std::vector<int>, std::vector<double> > kindexwt;
+
+    int idx = idx0;
+    
+    for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r0,w0,A0
+      if (sdties[k] > 0.0) {
+	double weight = 1.0/(sdties[k]*sdties[k]);
+	kindexwt.first.push_back(idx);
+	kindexwt.second.push_back(weight);
+      }
+      idx++;
+    }
+    return kindexwt;
+  }
+  //--------------------------------------------------------------
+  //! lower bounds for ipar'th parameter
+  double CCDTile3::LowerBound(const int& ipar) const
+  {
+    ASSERT (ipar >= 0 && ipar < nparams);
+    if (ipar == 0) { // r0
+      return 0.1;
+    } else if (ipar == 1) { // w0
+      return 0.1;
+    } else if (ipar == 2) { // A0
+      return -0.001;
+    }
+    return -1.0;  // Fourier terms
+  }
+  //--------------------------------------------------------------
+  //! upper bounds for ipar'th parameter
+  double CCDTile3::UpperBound(const int& ipar) const
+  {
+    ASSERT (ipar >= 0 && ipar < nparams);
+    if (ipar == 0) { // r0
+      return 1.41;
+    } else if (ipar == 1) { // w0
+      return 1.0;
+    } else if (ipar == 2) { // A0
+      return 0.5;
+    }
+    return +1.0;  // Fourier terms
+  }
+  //--------------------------------------------------------------
+  //! "large shift" for ipar'th parameter
+  double CCDTile3::LargeShift(const int& ipar) const
+  {
+    ASSERT (ipar >= 0 && ipar < nparams);
+    if (ipar == 0) { // r0
+      return 0.3;
+    } else if (ipar == 1) { // w0
+      return 0.2;
+    } else if (ipar == 2) { // A0
+      return 0.2;
+    }
+    return 0.05;  // Fourier terms
+  }
+  //--------------------------------------------------------------
+  // Return scale & derivatives for tile coordinates Xt, Yt
+  void CCDTile3::ScaleDeriv(const bool& Deriv,
+				 const double& Xt, const double& Yt,
+				 double& scale,
+				 std::vector<double>& dgdp) const
+  {
+    // Xt, Yt in pixels
+    double x = (Xt-xc0)/rad0;
+    double y = (Yt-yc0)/rad0;
+
+    double d = sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)); // relative to rad0
+    double phi = atan2((y-y0), (x-x0));
+
+    // For Fourier coefficients
+    std::vector<double> drdp;
+    std::vector<double> dwdp;
+    std::vector<double> dAdp;
+    double fr = 0.0;
+    double fw = 0.0;
+    double fA = 0.0;
+    if (!circularlysymmetric) {
+      fr = rfs.ValueDerivatives(phi, drdp); // rfs and dr/dp vector
+      fw = wfs.ValueDerivatives(phi, dwdp); // w and dw/dp vector
+      fA = Afs.ValueDerivatives(phi, dAdp); // A and dA/dp vector
+    }
+    double r = r0*(1.0+fr);
+    double w = w0*(1.0+fw);
+    double A = A0*(1.0+fA);
+
+    double z = 2.0*(d-r-w)/w;
+    scale = radfunc.value(z, A);
+
+    // Count observations in each corner
+    if (d > dcrnmin) { // in a corner
+      int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
+      int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
+      ncorners(i,j)++;
+    }
+
+    if (Deriv) {
+      const int NPARAMBASE = 3;
+      dgdp = radfunc.deriv(NPARAMBASE, w);  // fills 1st 3 slots in dgdp
+      if (!circularlysymmetric) {
+	// d/d(Fourier coefficients)
+	for (size_t i=0; i<drdp.size(); i++) { 
+	  // dg/dr(ABCD) = dg/dr * r0 * df(phi)/dr(ABCD)
+	  drdp[i] *= r0*dgdp[0];
+	  dwdp[i] *= w0*dgdp[1];  //  etc
+	  dAdp[i] *= A0*dgdp[2];
+	}
+	// dg/dq0 = dg/dq dq/dq0 = dg/dq (1+fq)  for q=r,w,A
+	dgdp[0] *= (1.0+fr); // dg/dr0
+	dgdp[1] *= (1.0+fw); // dg/dw0
+	dgdp[2] *= (1.0+fA); // dg/dA0
+	dgdp.insert(dgdp.end(), drdp.begin(), drdp.end());
+	dgdp.insert(dgdp.end(), dwdp.begin(), dwdp.end());
+	dgdp.insert(dgdp.end(), dAdp.begin(), dAdp.end());
+      }
+      ASSERT (int(dgdp.size()) == nparams);
+    }
+  }
+  //--------------------------------------------------------------
+  std::string CCDTile3::format() const
+  //! format scale type for printing
+  {
+    std::string text = "Tile correction for CCD detector";
+    return text;
+  }
+  //--------------------------------------------------------------
+  std::string CCDTile3::formattype() const
+  //! format scale type for printing
+  {
+    std::string text = format()+"\n\n";
+    text += "   Scale up the corners of the tiles to allow for fall-off in the taper\n";
+    text += "   Inverse scale g calculated from coordinate within the tile (xd,yd) as\n";
+    text += "     g = (A/2) erfc(z) + 1 - A\n";
+    text += "      where A is amplitude and z = 2(d - r - w)/w\n";
+    text += "       d is the distance of the pixel (xd, yd) from the effective tile centre (x0, y0)\n";
+    text += "       r is the radius of the fall-off\n";
+    text += "       w is the width (steepness) of the fall-off\n";
+    text += "   r,w and A are each parameterised as a constant and a 4-parameter Fourier series\n";
+    text += "     eg r = r0 * (1 + f(phi))\n";
+    return text;
+  }
+  //--------------------------------------------------------------
+  std::vector<std::string> CCDTile3::formatparameters() const
+  //! format parameters for printing
+  {
+    std::vector<std::string> s;
+    std::string line;
+    int width = 34; // width of window
+    line = "";
+    for (int i=0;i<width;++i) {line += "-";};
+    s.push_back(line);
+    // counts for top corners
+    line = "| "+
+      StringUtil::LeftString(StringUtil::Strip(StringUtil::itos(ncorners(0,1),6)),6)+
+      StringUtil::PadString(" ",width-12-4)+
+      StringUtil::RightString(StringUtil::Strip(StringUtil::itos(ncorners(1,1),6)),6)+
+      +" |";
+    s.push_back(line);
+    line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
+    s.push_back(line);
+    // r, w, A
+    line = "| "+
+      StringUtil::CentreString(("r="+StringUtil::Strip(StringUtil::ftos(r0,6,2))
+				+rfs.format()), width-4)+
+      " |";
+    s.push_back(line);
+    line = "| "+
+      StringUtil::CentreString(("w="+StringUtil::Strip(StringUtil::ftos(w0,6,2))
+				+wfs.format()), width-4)+
+      " |";
+    s.push_back(line);
+    line = "| "+
+      StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
+				+Afs.format()), width-4)+
+      " |";
+    s.push_back(line);
+    line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
+    s.push_back(line);
+    // counts for bottom corners
+    line = "| "+
+      StringUtil::LeftString(StringUtil::Strip(StringUtil::itos(ncorners(0,0),6)),6)+
+      StringUtil::PadString(" ",width-12-4)+
+      StringUtil::RightString(StringUtil::Strip(StringUtil::itos(ncorners(1,0),6)),6)+
+      +" |";
+    s.push_back(line);
+    line = "";
+    for (int i=0;i<width;++i) {line += "-";};
+    s.push_back(line);
+    return s;
+  }
+  //--------------------------------------------------------------
+  CCDTile1::CCDTile1(const double& Xmax, const double& Ymax)
+  {
+    init(Xmax, Ymax);
+  }
+  //--------------------------------------------------------------
+  void CCDTile1::init(const double& Xmax, const double& Ymax)
+  // coordinates in range 0->Xmax, 0->Ymax
+  // symmetric correction, function of x & y separately
   {
     xmax = Xmax;
     ymax = Ymax;
     nparams = 5;
     twooverrootpi = 2.0/sqrt(clipper::Util::pi()); // 2/sqrt(pi)
+
     // Centre of coordinate system (for ties)
     xc0 = xmax/2.0;
     yc0 = ymax/2.0;
+    rad0 = Max(xc0, yc0);  // larger edge radius, pixels
     // Set default (initial) values
-    x0 = xc0;
-    y0 = yc0;
-    double xymax = Max(x0, y0);  // larger radius
-    radmax = sqrt(2.*xymax*xymax); // to corner
-    r = radmax * 0.7;
-    w = radmax * 0.1;
-    A = 0.1;
+    x0 = 0.0;
+    y0 = 0.0;
+
+    r = 0.6;
+    w = 0.4;
+    A = 0.2;
     ncorners.resize(2,2,0); // counts in corners, initialise to 0
     // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
-    dcrnmin = sqrt(0.5*0.25*(xmax*xmax + ymax*ymax));
+    dcrnmin = 0.5*0.25*(xmax*xmax + ymax*ymax)/(rad0*rad0);
   }
   //--------------------------------------------------------------
   // Parameter order: r,w,A,x0,y0,
   // Store parameters
-  void CCDTile::StoreParameters(const std::vector<double>& parameters)
+  void CCDTile1::StoreParameters(const std::vector<double>& parameters)
   {
     ASSERT (int(parameters.size()) == nparams);
     r = parameters[0];
@@ -732,13 +1110,13 @@ namespace scala {
     x0 = parameters[3];
     y0 = parameters[4];
     //^
-    std::cout << "r,w,A,x0,y0 ";
-    for (int i=0;i<5;++i) {std::cout <<" "<<parameters[i];}
-    std::cout <<"\n";  //^-
+    //    std::cout << "r,w,A,x0,y0 ";
+    //    for (int i=0;i<5;++i) {std::cout <<" "<<parameters[i];}
+    //    std::cout <<"\n";  //^-
   }
   //--------------------------------------------------------------
   // Retrieve parameter vector (length nparams)
-  std::vector<double> CCDTile::Parameters() const
+  std::vector<double> CCDTile1::Parameters() const
   {
     std::vector<double> par(nparams);
     par[0] = r;
@@ -749,86 +1127,151 @@ namespace scala {
     return par;
   }
   //--------------------------------------------------------------
+  //! return vector of ties, given SDs and 1st global parameter index
+  std::vector<Tie> CCDTile1::Ties(const std::vector<double> sdties,
+				   const int& idx0)
+  {
+    // Note that r,w,x0,y0 etc are in fractions of rad0
+    std::vector<Tie> ties;
+    if (sdties[3] > 0.0) {
+      // x0, y0 tie to centre position
+      // sdties[3] is relative to tile size
+      int idx = idx0 + 3;  // first x0 parameter
+      double weight = sdties[3];
+      weight = 1./(weight*weight);
+      // tie x0 to centre
+      ties.push_back(Tie(idx, 0.0, weight));
+      // tie y0 to centre
+      ties.push_back(Tie(idx+1, 0.0, weight));
+    }
+    return ties;
+  }
+  //--------------------------------------------------------------
+  //! vector of indices and weights for each parameter to be restrained across tiles 
+  std::pair<std::vector<int>, std::vector<double> > 
+  CCDTile1::TiedParameters(const std::vector<double> sdties,
+		 const int& idx0)
+  {
+    std::pair<std::vector<int>, std::vector<double> > kindexwt;
+    // Tie r,w,A parameters together for all tiles
+    int idx = idx0;   // starting global parameter index
+    for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r,w,A
+      if (sdties[k] > 0.0) {
+	double weight = sdties[k];
+	weight = 1./(weight*weight);
+	kindexwt.second.push_back(weight);
+	std::cout << k <<" tie for r,w,A = 0,1,2\n";
+	std::vector<int> kindex;  // parameter indices for this group of parameters
+	kindexwt.first.push_back(idx);
+      }
+      idx++;
+    } // end loop r,w,A
+    return kindexwt;
+  }
+  //--------------------------------------------------------------
   //! lower bounds for ipar'th parameter
-  double CCDTile::LowerBound(const int& ipar) const
+  double CCDTile1::LowerBound(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
     if (ipar <= 1) {
-      return 0.1 * radmax; // r or w
+      return 0.1; // r or w
     } else if (ipar == 2 ) {
-      return 0.0; // A
+      return -0.001; // A
     }
-    return -0.5 * radmax;  // x0 or y0
+    return -0.5;  // x0 or y0
   }
   //--------------------------------------------------------------
   //! upper bounds for ipar'th parameter
-  double CCDTile::UpperBound(const int& ipar) const
+  double CCDTile1::UpperBound(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
-    if (ipar <= 1) {
-      return radmax; // r or w
+    if (ipar == 0) { // r
+      return 1.41;
+    } else if (ipar == 1) { // w
+      return 1.0;
     } else if (ipar == 2 ) {
       return 0.5; // A
     }
-    return +0.5 * radmax;  // x0 or y0
+    return +0.5;  // x0 or y0
   }
   //--------------------------------------------------------------
   //! "large shift" for ipar'th parameter
-  double CCDTile::LargeShift(const int& ipar) const
+  double CCDTile1::LargeShift(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
-    if (ipar <= 1) {
-      return 0.3 * radmax; // r or w
-    } else if (ipar == 2 ) {
-      return 0.2; // A
+    if (ipar == 0) { // r
+      return 0.3;
+    } else if (ipar == 1) { // w
+      return 0.2;
+    } else if (ipar == 2) { // A
+      return 0.2;
     }
-    return 0.4 * radmax;  // x0 or y0
+    return 0.4;  // x0 or y0
   }
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
-  void CCDTile::ScaleDeriv(const bool& Deriv,
-				 const double& Xt, const double& Yt,
-				 double& scale,
-				 std::vector<double>& dgdp) const
+  void CCDTile1::ScaleDeriv(const bool& Deriv,
+			    const double& Xt, const double& Yt,
+			    double& scale,
+			    std::vector<double>& dgdp) const
   {
-    double d = sqrt((Xt-x0)*(Xt-x0) + (Yt-y0)*(Yt-y0));
+    // symmetric correction, function of x & y separately
+    // Xt, Yt in pixels
+    double x = (Xt-xc0)/rad0;  // relative to centre, scaled by rad0
+    double y = (Yt-yc0)/rad0;  // ie in range -1 to +1
+
+    double dx = x-x0;
+    double dy = y-y0;
+    double d2 = dx*dx + dy*dy;
+    double d = sqrt(d2);
     double z = 2.0*(d-r-w)/w;
-    double erfz = erfc(z);
-    scale = 0.5 * A * erfz + 1.0 - A;
+    scale = radfunc.value(z, A);
+    /*
+    double expmz = exp(-z); // also = dg/dz
+    // scale = A f(z) + 1 - A
+    // f(z) = 1 - exp(g(z))
+    // g(z) = -exp(-z)-1
+    double gz = -expmz - 1.0;
+    double fz = 1.0 - exp(gz);
+    scale = A * fz + 1.0 - A;
+    */
+
     // Count observations in each corner
-    if (d > dcrnmin) { // in a corner
-      int i = (Xt-xc0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
-      int j = (Yt-yc0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
+    if (d2 > dcrnmin) { // in a corner
+      int i = dx < 0.0 ? 0 : 1; // 0 or 1 if left or right
+      int j = dy < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
       ncorners(i,j)++;
     }
 
-    //^
-    //    std::cout <<"\nXt,x0,Yt,y0 "<<Xt<<" "<<x0<<" "<<Yt<<" "<<y0<<"\n";
-    //    std::cout <<"d,z,erfz "<<d<<" "<<z<<" "<<erfz<<"\n"; //^-
-
     if (Deriv) {
-      dgdp.resize(nparams);
-      dgdp[0] = (twooverrootpi * A / w) * exp(-z*z);  // dgdr = -dgdd
-      dgdp[1] = dgdp[0] * (1. + 0.5*z);               // dgdw 
-      dgdp[2] = 0.5 * erfz - 1.0;                     // dgdA
+      dgdp = radfunc.deriv(nparams, w);  // fills 1st 3 slots in dgdp
+      /*
+      // df/dz = exp(gz)exp(-z); ds/dz = A df/dz
+      double dsdz = - A * exp(gz) * expmz;
+      dgdp[0] = - dsdz * 2.0/w;          // ds/dr = -ds/dd
+      dgdp[1] = dgdp[0] *(1.0 + 0.5*z);  // ds/dw
+      dgdp[2] = fz - 1.0;                // ds/dA
+      */
+      // ds/dx0 = ds/dd dd/dx0
+      // dd/dx0 = 
       if (d == 0.0) {
-	dgdp[3] = 0.0;
-	dgdp[4] = 0.0;
+	dgdp[3] = dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
+	dgdp[4] = dgdp[0]; //  dd/dy0 = -1
       } else {
-	dgdp[3] = - dgdp[0] * (x0 - Xt)/d;  // dgdx0 = dg/dd * dd/dx0
-	dgdp[4] = - dgdp[0] * (y0 - Yt)/d;  // dgdy0 = dg/dd * dd/dy0
+	dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
+	dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
       }
     }
   }
   //--------------------------------------------------------------
-  std::string CCDTile::format() const
+  std::string CCDTile1::format() const
   //! format scale type for printing
   {
     std::string text = "Tile correction for CCD detector";
     return text;
   }
   //--------------------------------------------------------------
-  std::string CCDTile::formattype() const
+  std::string CCDTile1::formattype() const
   //! format scale type for printing
   {
     std::string text = format()+"\n\n";
@@ -842,7 +1285,7 @@ namespace scala {
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> CCDTile::formatparameters() const
+  std::vector<std::string> CCDTile1::formatparameters() const
   //! format parameters for printing
   {
     std::vector<std::string> s;
@@ -862,15 +1305,15 @@ namespace scala {
     s.push_back(line);
     // r, w, A
     line = "| "+
-      StringUtil::CentreString(("r="+StringUtil::ftos(r/radmax,6,2)+
-				", w="+StringUtil::ftos(w/radmax,6,2)+
+      StringUtil::CentreString(("r="+StringUtil::ftos(r,6,2)+
+				", w="+StringUtil::ftos(w,6,2)+
 				", A="+StringUtil::ftos(A,6,2)), width-4)+
       " |";
     s.push_back(line);
     line = "| "+
       StringUtil::CentreString
-      (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,1))+
-	", "+StringUtil::Strip(StringUtil::ftos(y0,7,1))), width-4)+
+      (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
+	", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
       " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
@@ -888,6 +1331,441 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+  //--------------------------------------------------------------
+  CCDTile2::CCDTile2(const double& Xmax, const double& Ymax)
+  {
+    init(Xmax, Ymax);
+  }
+  //--------------------------------------------------------------
+  void CCDTile2::init(const double& Xmax, const double& Ymax)
+  // coordinates in range 0->Xmax, 0->Ymax
+  {
+    xmax = Xmax;
+    ymax = Ymax;
+    twooverrootpi = 2.0/sqrt(clipper::Util::pi()); // 2/sqrt(pi)
+
+    // Centre of coordinate system (for ties)
+    xc0 = xmax/2.0;
+    yc0 = ymax/2.0;
+    rad0 = Max(xc0, yc0);  // larger edge radius, pixels
+    // Set default (initial) values
+    x0 = 0.0;
+    y0 = 0.0;
+
+    r = 0.7;  // relative to rad0
+    w = 0.4;
+    A0 = 0.2;
+    setSymmetric(false);  // set default to allow A to vary
+    sdties_.assign(5,1.0);
+
+    ncorners.resize(2,2,0); // counts in corners, initialise to 0
+    // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
+    dcrnmin = (sqrt(0.5*0.25*(xmax*xmax + ymax*ymax)))/rad0;
+  }
+  //--------------------------------------------------------------
+  //! symmetric = false to allow A to vary around the tile
+  void CCDTile2::setSymmetric(const bool& symmetric)
+  {
+    circularlysymmetric = symmetric;
+    Afs.setIsConstant(false); // no constant term in Fourier smoothing
+    Afs.setLevel(0.0);
+    if (circularlysymmetric) {
+      nparams_smooth = 0; // for A
+    } else {
+      nparams_smooth = Afs.NumberParameters(); // for A
+    }
+    nparams = nparams_smooth + 5;  // r,w,x0,y0,A,Asmooth(4)
+  }
+  //--------------------------------------------------------------
+  // Parameter order: r,w,A0,x0,y0
+  // Store parameters
+  void CCDTile2::StoreParameters(const std::vector<double>& parameters)
+  {
+    ASSERT (int(parameters.size()) == nparams);
+    r = parameters[0];
+    w = parameters[1];
+    A0 = parameters[2];
+    x0 = parameters[3];
+    y0 = parameters[4];
+    
+    if (!circularlysymmetric) {
+      std::vector<double>::const_iterator pp = parameters.begin() + 5;
+      std::vector<double> A_params(pp, pp+nparams_smooth);
+      Afs.setParameters(A_params);
+    }
+    //^
+    //    std::cout <<"Tile "<<ix<<","<<iy<<", r : " << r;
+    //    std::cout <<"  w : " << w;
+    //    std::cout <<"  A0 : " <<A0<<" "<< Afs.format() <<"\n";
+    //    std::cout << "x0, y0: " << x0 <<" " << y0<<"\n";
+    //    std::cout <<"\n";  //^-
+  }
+  //--------------------------------------------------------------
+  // Retrieve parameter vector (length nparams)
+  std::vector<double> CCDTile2::Parameters() const
+  {
+    std::vector<double> par(nparams);
+    par[0] = r;
+    par[1] = w;
+    par[2] = A0;
+    par[3] = x0;
+    par[4] = y0;
+    if (!circularlysymmetric) {
+      std::vector<double> A_params = Afs.GetParameters();
+      for (size_t j=0; j<A_params.size(); j++) { 
+	par[j+5] = A_params[j];
+      }
+    }
+    ASSERT (int(par.size()) == nparams);
+    return par;
+  }
+  //--------------------------------------------------------------
+  //! return vector of internal ties, given SDs and 1st global parameter index
+  std::vector<Tie> CCDTile2::Ties(const std::vector<double> sdties,
+				   const int& idx0)
+  {
+    std::vector<Tie> ties;
+    sdties_ = sdties;
+    int idx = idx0 + 2;  // skip r, w
+    double weight;
+
+    // Tie A0 to 0.0
+    if (sdties[2] > 0.0) {
+      weight = 1.0/(4.0*sdties[2]*sdties[2]);  // sd*2 for tie to zero
+      ties.push_back(Tie(idx, 0.0, weight));
+    }
+    idx++;
+
+    // x0, y0 tie to centre position
+    // sdties[3] is relative to tile size as are x0, y0 parameters
+    if (sdties[3] > 0.0) {
+      weight = sdties[3]; // rad0 in pixels
+      weight = 1./(weight*weight);
+      // tie x0 to centre
+      ties.push_back(Tie(idx++, 0.0, weight));
+      // tie y0 to centre
+      ties.push_back(Tie(idx++, 0.0, weight));
+    } else {
+      idx += 2;
+    }
+    if (!circularlysymmetric && sdties[4] > 0.0) {
+      weight = 1.0/(sdties[4]*sdties[4]);
+      // For parameter type A, tie all Fourier coefficients to 0.0
+      for (int j=0;j<nparams_smooth;++j) { // ABCD
+	// tie ABCD to 0.0
+	ties.push_back(Tie(idx++, 0.0, weight));
+      }
+    }
+    return ties;
+  }
+  //--------------------------------------------------------------
+  //! vector of indices and weights for each parameter to be restrained across tiles 
+  std::pair<std::vector<int>, std::vector<double> > 
+  CCDTile2::TiedParameters(const std::vector<double> sdties,
+		 const int& idx0)
+  {
+    //  r,w relative to rad0
+    // For parameter types r,w,A, tie across tiles
+    std::pair<std::vector<int>, std::vector<double> > kindexwt;
+    sdties_ = sdties;
+
+    int idx = idx0;
+    double weight;
+
+    // r
+    if (sdties[0] > 0.0) {
+      weight = 1./(sdties[0]*sdties[0]);
+      kindexwt.second.push_back(weight);
+      kindexwt.first.push_back(idx);
+    }
+    idx++;
+    // w
+    if (sdties[1] > 0.0) {
+      weight = 1./(sdties[1]*sdties[1]);
+      kindexwt.second.push_back(weight);
+      kindexwt.first.push_back(idx);
+    }
+    idx++;
+    // A0
+    if (sdties[2] > 0.0) {
+      weight = 1./(sdties[2]*sdties[2]);
+      kindexwt.second.push_back(weight);
+      kindexwt.first.push_back(idx);
+    }
+    return kindexwt;
+  }
+  //--------------------------------------------------------------
+  //! lower bounds for ipar'th parameter
+  double CCDTile2::LowerBound(const int& ipar) const
+  {
+    ASSERT (ipar >= 0 && ipar < nparams);
+    if (ipar == 0) {
+      return 0.1; // r
+    } else if (ipar == 1) {
+      return 0.1; //  w
+    } else if (ipar == 2) { // A0
+      return 0.002;
+    } else if (ipar <= 4 ) {
+      return -0.5;  // x0 or y0
+    }
+    return -0.8; // ABCD for A
+  }
+  //--------------------------------------------------------------
+  //! upper bounds for ipar'th parameter
+  double CCDTile2::UpperBound(const int& ipar) const
+  {
+    if (ipar == 0) {
+      return 1.41; // r
+    } else if (ipar == 1) {
+      return 1.0; //  w
+    } else if (ipar == 3) { // A0
+      return 1.0;
+    } else if (ipar <= 4 ) {
+      return +0.5;  // x0 or y0
+    }
+    return +0.8; // ABCD for A
+  }
+  //--------------------------------------------------------------
+  //! "large shift" for ipar'th parameter
+  double CCDTile2::LargeShift(const int& ipar) const
+  {
+    ASSERT (ipar >= 0 && ipar < nparams);
+    if (ipar == 0) {
+      return 0.3; // r
+    } else if (ipar == 1) {
+      return 0.3; //  w
+    } else if (ipar == 3) { // A0
+      return 0.3;
+    } else if (ipar <= 4 ) {
+      return +0.05;  // x0 or y0
+    }
+    return +0.05; // ABCD for A
+  }
+  //--------------------------------------------------------------
+  // Return scale & derivatives for tile coordinates Xt, Yt
+  void CCDTile2::ScaleDeriv(const bool& Deriv,
+				 const double& Xt, const double& Yt,
+				 double& scale,
+				 std::vector<double>& dgdp) const
+  {
+    // Xt, Yt in pixels
+    double x = (Xt-xc0)/rad0;
+    double y = (Yt-yc0)/rad0;
+
+    double d = sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)); // relative to rad0
+    double phi = atan2((y-y0), (x-x0));
+
+    std::vector<double> dAdp;
+    double fA = 0.0;
+    if (!circularlysymmetric) {
+      fA = Afs.ValueDerivatives(phi, dAdp); // ABCD and dA/dp vector
+    }
+    double A = A0*(1.0 + fA); // A
+
+
+    double z = 2.0*(d-r-w)/w;
+
+    scale = radfunc.value(z, A);
+
+    //*    scale = 0.5 * A * erfz + 1.0 - A;
+
+    // Count observations in each corner
+    if (d > dcrnmin) { // in a corner
+      int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
+      int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
+      ncorners(i,j)++;
+    }
+
+    //^
+    //    std::cout <<"\nXt,x0,Yt,y0 "<<Xt<<" "<<x0<<" "<<Yt<<" "<<y0<<"\n";
+    //    std::cout <<"d,z,erfz "<<d<<" "<<z<<" "<<erfz<<"\n"; //^-
+
+    if (Deriv) {
+      dgdp = radfunc.deriv(nparams, w);  // fills 1st 3 slots in dgdp
+      /*
+	dgdp.resize(nparams);
+	dgdp[0] = (twooverrootpi * A / w) * exp(-z*z);  // dgdr = -dgdd
+	dgdp[1] = dgdp[0] * (1. + 0.5*z);               // dgdw 
+	double dgdA = 0.5 * erfz - 1.0;         // dgd(Atotal)
+	dgdp[2] = dgdA *(1.0 + fA);  // dg/d(Aconstant) = dg/dA dA/d(Aconstant)
+      */
+      // dg/dA0 = dg/dA dA/dA0 = dg/dA (1 + fA)
+      dgdp[2] = dgdp[2] *(1.0 + fA); // dg/d(Aconstant) = dg/dA dA/d(Aconstant)
+      // x0, y0
+      if (d == 0.0) {
+	dgdp[3] = - dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
+	dgdp[4] = - dgdp[0]; //  dd/dy0 = -1
+      } else {
+	dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
+	dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
+      }
+      if (!circularlysymmetric) {
+	for (size_t i=0; i<dAdp.size(); i++) { 
+	  dgdp[i+5] = dAdp[i] * dgdp[2] * A0;
+	}
+      }
+    }
+  }
+  //--------------------------------------------------------------
+  std::string CCDTile2::format() const
+  //! format scale type for printing
+  {
+    std::string text = "Tile correction for CCD detector";
+    return text;
+  }
+  //--------------------------------------------------------------
+  std::string CCDTile2::formattype() const
+  //! format scale type for printing
+  {
+    std::string text = format()+"\n\n";
+    text += "   Scale up the corners of the tiles to allow for fall-off in the taper\n";
+    text += "   Inverse scale g calculated from coordinate within the tile (xd,yd) as\n";
+    text += "     g = (A/2) erfc(z) + 1 - A\n";
+    text += "      where A is amplitude and z = 2(d - r - w)/w\n";
+    text += "       d is the distance of the pixel (xd, yd) from the effective tile centre (x0, y0)\n";
+    text += "       r is the radius of the fall-off\n";
+    text += "       w is the width (steepness) of the fall-off\n";
+    if (circularlysymmetric) {
+      text += "   r,w,A0 and x0,y0 are refined, all circularly symmetric\n";
+    } else {
+      text += "   r,w,A and x0,y0 are refined\n";
+      text += "   A is parameterised as a constant (A0) + a 4-parameter Fourier series\n";
+    }
+    return text;
+  }
+  //--------------------------------------------------------------
+  std::vector<std::string> CCDTile2::formatparameters() const
+  //! format parameters for printing
+  {
+    std::vector<std::string> s;
+    std::string line;
+    int width = 35; // width of window
+    line = "";
+    for (int i=0;i<width;++i) {line += "-";};
+    s.push_back(line);
+    // counts for top corners
+    line = "| "+
+      StringUtil::LeftString(StringUtil::Strip(StringUtil::itos(ncorners(0,0),6)),6)+
+      StringUtil::PadString(" ",width-12-4)+
+      StringUtil::RightString(StringUtil::Strip(StringUtil::itos(ncorners(1,0),6)),6)+
+      +" |";
+    s.push_back(line);
+    line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
+    s.push_back(line);
+    // r, w, A
+    line = "| "+
+      StringUtil::CentreString("r="+StringUtil::ftos(r,6,2)+
+			       ", w="+StringUtil::ftos(w,6,2), width-4)+" |";
+    s.push_back(line);
+    if (circularlysymmetric) {
+      line = "| "+
+	StringUtil::CentreString("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2)), width-4)+
+      " |";
+    } else {
+      line = "| "+
+	StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
+				  +Afs.format()), width-4)+
+	" |";
+    }
+    s.push_back(line);
+    line = "| "+
+      StringUtil::CentreString
+      (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
+	", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
+      " |";
+    s.push_back(line);
+    line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
+    s.push_back(line);
+    // counts for bottom corners
+    line = "| "+
+      StringUtil::LeftString(StringUtil::Strip(StringUtil::itos(ncorners(0,1),6)),6)+
+      StringUtil::PadString(" ",width-12-4)+
+      StringUtil::RightString(StringUtil::Strip(StringUtil::itos(ncorners(1,1),6)),6)+
+      +" |";
+    s.push_back(line);
+    line = "";
+    for (int i=0;i<width;++i) {line += "-";};
+    s.push_back(line);
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string CCDTile2::formatTies() const
+  {
+    std::string s =
+      std::string("Detector parameters r,w,A0 will be TIED across the tiles,")+
+      " with SDs ";
+    s += StringUtil::ftos(sdties_[0],7,3)+","+StringUtil::ftos(sdties_[1],7,3)+","
+      +StringUtil::ftos(sdties_[2],7,4)+"\n";
+    s += std::string
+      ("  amplitude parameter A0 will be tied to zero with SD")+
+      StringUtil::ftos(sdties_[2],7,4)+"\n";
+    s += std::string
+      ("  and tile centre positions (x0,y0) will be tied to the true centre with SD")+
+      StringUtil::ftos(sdties_[3],7,3)+"\n";
+    if (!circularlysymmetric) {
+      s += std::string(
+	"   Fourier coefficients of variation of A will be tied to zero with SD")+
+	StringUtil::ftos(sdties_[4],7,3)+"\n";
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+  double RadialFunctionGompertzCDF::value(const double& z, const double& A)
+  //! calculate the value of the function and store intermediates 
+  {
+    // Gompertz distribution CDF
+    z_ = z;
+    A_ = A;
+    expmz = exp(-z); // also = dg/dz
+    // scale = A f(z) + 1 - A
+    // f(z) = 1 - exp(g(z))
+    // g(z) = -exp(-z)
+    gz = -expmz;
+    fz = 1.0 - exp(gz);
+    double scale = A * fz + 1.0 - A;
+    return scale;
+  }
+  //--------------------------------------------------------------
+  //! derivatives ds/dp0, for r,w,A, must follow a call to value
+  std::vector<double> RadialFunctionGompertzCDF::deriv(const int& nparams,
+						       const double& w) const
+  {
+    ASSERT (A_ >= -999.);
+    std::vector<double> dsdp(nparams); // nparams >= 3
+    // df/dz = exp(gz)exp(-z); ds/dz = A df/dz
+    double dsdz = - A_ * exp(gz) * expmz;
+    dsdp[0] = - dsdz * 2.0/w;          // ds/dr = -ds/dd
+    dsdp[1] = dsdp[0] *(1.0 + 0.5*z_);  // ds/dw
+    dsdp[2] = fz - 1.0;                // ds/dA
+    return dsdp;
+  }
+  //--------------------------------------------------------------
+  double RadialFunctionErfc::value(const double& z, const double& A)
+  //! calculate the value of the function and store intermediates 
+  {
+    // erfc
+    z_ = z;
+    A_ = A;
+    // scale = A f(z) + 1 - A
+    // f(z) = 0.5*erfc(z)
+    fz = 0.5*erfc(z);
+    double scale = A * fz + 1.0 - A;
+    return scale;
+  }
+  //--------------------------------------------------------------
+  //! derivatives ds/dp0, for r,w,A, must follow a call to value
+  std::vector<double> RadialFunctionErfc::deriv(const int& nparams,
+						       const double& w) const
+  {
+    std::vector<double> dsdp(nparams); // nparams >= 3
+    // df/dz = -(1/sqrt(pi))exp(-z^2); ds/dz = A df/dz
+    double twooverrootpi = 2.0/sqrt(clipper::Util::pi()); // 2/sqrt(pi)
+    double dsdz = - A_ * twooverrootpi * exp(z_*z_);
+    dsdp[0] = - dsdz/w;          // ds/dr = -ds/dd
+    dsdp[1] = dsdp[0] *(1.0 + 0.5*z_);  // ds/dw
+    dsdp[2] = fz - 1.0;                // ds/dA
+    return dsdp;
+  }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   // Store parameters (just one)
@@ -978,7 +1856,6 @@ namespace scala {
     scalexy.resize(njx, njy, 1.0);  // set all scales to 1.0
   }
   //--------------------------------------------------------------
-  // Parameter order: r,w,A,x0,y0,
   // Store parameters
   void TilePixel::StoreParameters(const std::vector<double>& parameters)
   {
@@ -1006,21 +1883,21 @@ namespace scala {
   double TilePixel::LowerBound(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
-    return 0.0;  // x0 or y0
+    return 0.0;
   }
   //--------------------------------------------------------------
   //! upper bounds for ipar'th parameter
   double TilePixel::UpperBound(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
-    return 5.0;  // x0 or y0
+    return 5.0;
   }
   //--------------------------------------------------------------
   //! "large shift" for ipar'th parameter
   double TilePixel::LargeShift(const int& ipar) const
   {
     ASSERT (ipar >= 0 && ipar < nparams);
-    return 0.2;  // x0 or y0
+    return 0.2;
   }
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
@@ -1061,4 +1938,129 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+//=======================================================================
+  //! construct or initialise from constant value
+  FourierSmooth::FourierSmooth(const double& flatlevel,
+			       const bool& isconstant)
+  {
+    setIsConstant(isconstant);
+    setLevel(flatlevel);
+  }
+  //-------------------------------------------------------------------------
+  //! set either: true for 4 parameters; false no constant term E, 4 params
+  void FourierSmooth::setIsConstant(const bool& isconstant)
+  {
+    nparams = 4;
+    if (isconstant) {nparams = 5;} // constant term E present
+    parameters.resize(nparams);
+  }
+  //------------------------------------------------------------------------
+  void FourierSmooth::setParameters(const std::vector<double> params)
+  {
+    ASSERT (int(params.size()) == nparams);
+    parameters = params;
+  }
+  //--------------------------------------------------------------------------
+  //! set a constant level, ie set E, A=B=C=D=0
+  void FourierSmooth::setLevel(const double& flatlevel)
+  {
+    parameters.assign(nparams,0.0);
+    if (nparams == 5 ){parameters[4] = flatlevel;}
+  }
+  /*
+//----------------------------------------------------------------------------
+//! set parameters from 5 values, ideally at pi/5 + n pi/2
+void FourierSmooth::determineParameters(const std::vector<double>& phivalues,
+					const std::vector<double>& values)
+{
+  if (int(phivalues.size()) != 5) {
+    clipper::Message::message(Message_fatal
+	("FourierSmooth::determineParameters: must have 5 values"));
+  }
+  ASSERT (phivalues.size() == values.size());
+  // We have 5 observational equations, i=1,5, values v[i], angles p[i]
+  //   v[i] = A cos(p[i]) + B sin(p[i]) + C cos(2p[i]) + D sin(2p[i])
+  // so we solve the equations
+  //  v = [P] parameters
+  //    where the row [P]i. = A cos(p[i]) + B sin(p[i]) + C cos(2p[i]) + D sin(2p[i])
+  clipper::Matrix<double> P(5,5);
+  for (size_t j=0; j<phivalues.size(); j++) {  // build the matrix
+    P(j, 0) = cos(phivalues[j]);
+    P(j, 1) = sin(phivalues[j]); 
+    P(j, 2) = cos(2.0*phivalues[j]);
+    P(j, 3) = sin(2.0*phivalues[j]);
+    P(j, 4) = 1.0;
+    //^
+    std::cout << "P["<<j<<" : " << phivalues[j] <<" : "<<
+      P(j, 0) <<" " << P(j, 1) <<" " << P(j, 2) <<" " << P(j, 3) <<"\n";
+  }
+  // and solve it
+  parameters = P.solve(values);
+  //^
+  std::cout << "determineParameters: new values ";
+  //^-
+}
+  */
+//-----------------------------------------------------------------------
+//! get value at angle phi
+double FourierSmooth::Value(const double& phi) const
+{
+  double cp = cos(phi);
+  double sp = sin(phi);
+  double c2p = cos(2.0*phi);
+  double s2p = sin(2.0*phi);
+  double value = parameters[0] * cp + parameters[1] * sp +
+    parameters[2] * c2p + parameters[3] * s2p;
+  if (nparams == 5) value += parameters[4];
+  return value;
+}
+//-----------------------------------------------------------------------
+//! get value at angle phi and dvdp its derivatives wrt parameters
+double FourierSmooth::ValueDerivatives(const double& phi,
+				       std::vector<double>& dvdp) const
+{
+  double cp = cos(phi);
+  double sp = sin(phi);
+  double c2p = cos(2.0*phi);
+  double s2p = sin(2.0*phi);
+  double value = parameters[0] * cp + parameters[1] * sp +
+    parameters[2] * c2p + parameters[3] * s2p;
+  if (nparams == 5) value += parameters[4];
+  dvdp.resize(nparams);
+  dvdp[0] = cp;  // dv/dA = cos(phi)
+  dvdp[1] = sp;  //  etc
+  dvdp[2] = c2p;
+  dvdp[3] = s2p;
+  if (nparams == 5) {dvdp[4] = 1.0;}
+  return value;
+}
+//-----------------------------------------------------------------------
+std::string FourierSmooth::dump() const
+{
+  std::string s = "FourierSmooth: ABCD[E] = ";
+  for (size_t j=0; j<parameters.size(); j++) { 
+    s += " "+StringUtil::ftos(parameters[j], 9, 4);
+  }
+  return s+"\n";
+}
+//-----------------------------------------------------------------------
+std::string FourierSmooth::format() const
+{
+  std::string s = "";
+  size_t last = parameters.size();
+  if (nparams == 5) {
+    last = parameters.size()-1;
+    s += StringUtil::ftos(parameters.back(), 5, 2);
+  }
+  s += " {";
+  for (size_t j=0; j<last; j++) { 
+    if (j != 0) {s += ",";}
+    s += StringUtil::ftos(parameters[j], 5, 2);
+  }
+  s += "}";
+  return StringUtil::Strip(s);
+}
+//-----------------------------------------------------------------------
+  
+
 }

@@ -9,6 +9,7 @@
 #include "string_util.hh"
 
 using phaser_io::LOGFILE;
+using phaser_io::LXML;
 using phaser_io::itos;
 
 
@@ -37,18 +38,18 @@ namespace scala {
     // Set number of resolution bins
     for (int id=0;id<ndatasets;++id) {
       anomdistributions[id].init(nresbin,
-				 hkl_list.xdataset(id).pxdname(),
+				 hkl_list.dataset(id).pxdname(),
 				 analysanom.RmsDelAnom().at(id));
     }
     //  datasets
-    std::vector<Xdataset> xdatasets = hkl_list.AllXdatasets();
+    std::vector<Dataset> datasets = hkl_list.AllDatasets();
     pxdnames.resize(ndatasets);
     wavelengths.resize(ndatasets);
     dnames.resize(ndatasets);
     for (int id=0;id<ndatasets;id++) {
-      pxdnames[id] = xdatasets[id].pxdname();
-      wavelengths[id] = xdatasets[id].wavelength();
-      dnames[id] = pxdnames[id].dname();
+      pxdnames[id] = datasets[id].pxdname();
+      wavelengths[id] = datasets[id].wavelength();
+      dnames[id] = datasets[id].Dname();
     }
 
     basedataset = controls.datasetcontrol.BaseDataset();
@@ -154,7 +155,7 @@ namespace scala {
   void AllAnomDistributions::SetSlope(const std::vector<float>& slope)
   {
     ASSERT (slope.size() == anomdistributions.size());
-    for (int id=0;id<slope.size();++id) {
+    for (size_t id=0;id<slope.size();++id) {
       anomdistributions[id].SetSlope(slope[id]);
     }
   }
@@ -252,14 +253,13 @@ namespace scala {
     std::string cl1 = "1st dataset         ";
     std::string cl2 = "2nd dataset         ";
     std::vector<correl_coeff> allcc;  // totals
-    output.logTab(0, LOGFILE,
-		  FormatTable(title, graphtitle, cl1, cl2, cca,
-			      ccadtsindex, false, allcc));
+    FormatTable(title, graphtitle, cl1, cl2, cca,
+		ccadtsindex, false, allcc, output);
 
     // Format cross-correlation table
     title = "\nOverall correlation of Anomalous Differences between datasets\n";
     title += "      (Numbers in brackets)\n\n";
-    output.logTab(0, LOGFILE, CrossCorrelation(title, allcc, false));
+    CrossCorrelation(title, "DatasetAnomalousCorrelation",allcc, false, output);
 
     if (ndatasets < 3) return;
 
@@ -269,34 +269,45 @@ namespace scala {
     for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
     cl1 = "1st difference      ";
     cl2 = "2nd difference      ";
-    output.logTab(0, LOGFILE,
-		  FormatTable(title, graphtitle, cl1, cl2, ccd,
-			      ccddtsindex, true, allcc));
+    FormatTable(title, graphtitle, cl1, cl2, ccd,
+		ccddtsindex, true, allcc, output);
     // Format cross-correlation table
     title = "\nCorrelation between datasets of Dispersive Differences from base set\n";
     title += "      (Numbers in brackets)\n\n";
-    output.logTab(0, LOGFILE, CrossCorrelation(title, allcc, true));
+    CrossCorrelation(title, "DatasetDispersiveCorrelation", allcc, true, output);
   }
   // ------------------------------------------------------------
-  std::string AllAnomDistributions::FormatTable(const std::string& title,
-						const std::string& graphtitle,
-						const std::string& ccl1,
-						const std::string& ccl2,
-				const std::vector<std::vector<correl_coeff> >& cc,
-				const std::vector<std::pair<int,int> >& ccidx,
-				const bool& diff,
-  			        std::vector<correl_coeff>& allcc) const
+  void AllAnomDistributions::FormatTable(const std::string& title,
+					 const std::string& graphtitle,
+					 const std::string& ccl1,
+					 const std::string& ccl2,
+					 const std::vector<std::vector<correl_coeff> >& cc,
+					 const std::vector<std::pair<int,int> >& ccidx,
+					 const bool& diff,
+					 std::vector<correl_coeff>& allcc,
+					 phaser_io::Output& output) const
   // diff = true for dispersive differences
+  // private
   {
     TableGraph table(title);
-    std::string outstring = table.formatTitle()+"\n";
-    std::vector<int> cln(1,2);
+    std::string id = "Graph-";
+    if (diff) {
+      id += "DispersiveDifferences";
+    } else {
+      id += "AnomalousDifferences";
+    }
+    table.StoreID(id);
+
     int ng = cc.size();     // number of graphs
 
-    for (int id=0;id<ng;++id) {
-      cln.push_back(id*2+4);
+    TableGraphPlot graph(graphtitle);
+    for (int id=0;id<ng;++id) { // loop graphs for each dataset pair
+      graph.AddLine(TableGraphPlotline(2,id*2+4));  // default colour
     }
-    outstring += table.Graph(graphtitle,"N", cln)+"\n";
+    graph.SetXaxis("", true);  // x axis is 1/d^2
+    Range yrange(0.0, 1.0);   // Y from 0 to 1
+    graph.SetYaxis("", true, yrange);
+    table.AddGraph(graph);
 
     // Column labels, zero-field flags & format
     std::vector<std::string> collabels;
@@ -334,11 +345,10 @@ namespace scala {
       Zero.push_back(true);
       Zero.push_back(true);
       fmt += fmtn;
-    }
+    } // end loop dataset pairs
     fmt += "\n";
-    outstring += table.ColumnFields(collabels, Zero, fmt, false)+"\n";
-    // extra header lines
-    outstring += cl1+"\n"+cl2+"\n$$\n";
+
+    table.StoreColumnFields(collabels, Zero, fmt);
 
     allcc.assign(cc.size(), correl_coeff());  // totals
     for (int ir=0;ir<resrange.Nbins();++ir) {
@@ -356,10 +366,15 @@ namespace scala {
 	  table.AddToLine(cc[i][ir].result().count);
 	  allcc[i] += cc[i][ir];
 	}
-	outstring += table.GetLine();
+	table.GetLine();
       }
     }  // end loop res bins
-    outstring += table.CloseTable()+"\n";
+    table.CloseTable();
+
+    // Output table to log file and XML
+    output.logTab(0,LOGFILE, "\n"+table.format());
+    output.logTab(0,LXML,table.XMLformat());
+
     std::string line = "Overall           ";
     char buf[256];
     for (size_t i=0;i<cc.size();++i) {
@@ -367,14 +382,16 @@ namespace scala {
 	      allcc[i].result().val, allcc[i].result().count);
       line += std::string(buf);
     }
-    outstring += line+"\n";
-    return outstring;
+    output.logTab(0,LOGFILE, line);
   }
   // ------------------------------------------------------------
-  std::string AllAnomDistributions::CrossCorrelation(const std::string& title,
-						     const std::vector<correl_coeff>& allcc,
-						     const bool& diff) const
+  void AllAnomDistributions::CrossCorrelation(const std::string& title,
+					      const std::string& tableid,
+					      const std::vector<correl_coeff>& allcc,
+					      const bool& diff,
+					      phaser_io::Output& output) const
   // format CC of anomalous differences between datasets as table
+  // private
   {
     std::string outstring = title;
     std::string line1 = "            ";
@@ -413,7 +430,14 @@ namespace scala {
       }
       outstring += line1+"\n"+line2+"\n";
     }  // end loop lines
-    return outstring+"\n";
+    output.logTab(0,LOGFILE, "\n"+outstring);
+    // XML output
+    std::vector<std::pair<double,int> > valCount(allcc.size());
+    for (size_t k=0; k<allcc.size(); k++) { 
+      valCount[k] = std::pair<double,int>(allcc[k].result().val, allcc[k].result().count);
+    }
+    output.logTab(0,LXML,
+		  StringUtil::FormatXMLcrossTable(tableid, ldf, "CC", valCount));
   }
   // ------------------------------------------------------------
   // ------------------------------------------------------------

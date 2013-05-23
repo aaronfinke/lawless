@@ -30,6 +30,7 @@ using clipper::Message_fatal;
 #include "InputAll.hh"
 #include "Output.hh"
 #include "printing.hh"
+#include "Errors.hh"
 
 #include "analysesd.hh"
 #include "sdmodel.hh"

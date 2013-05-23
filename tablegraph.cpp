@@ -39,20 +39,38 @@ using clipper::Message_warn;
 #include "string_util.hh"
 
 //--------------------------------------------------------------
-//! construct as explicit X,Y ranges
-GraphAxesType::GraphAxesType(const scala::Range& Xrange, const scala::Range& Yrange,
+// construct as explicit X,Y ranges
+GraphAxesType::GraphAxesType(const scala::Range& Xrange,
+			     const scala::Range& Yrange,
 			     const bool& ZeroY)
 {
   init(Xrange, Yrange, ZeroY);
 }
 //--------------------------------------------------------------
-//! initialise as explicit X,Y ranges
-void GraphAxesType::init(const scala::Range& Xrange, const scala::Range& Yrange,
+// initialise as explicit X,Y ranges
+void GraphAxesType::init(const scala::Range& Xrange,
+			 const scala::Range& Yrange,
 			 const bool& ZeroY)
 {
-  xrange = Xrange;
-  yrange = Yrange;
   graphtype = XY_SPECIFIED;
+  xrange = Xrange;
+  xinvresolsq = false;
+  yrange = Yrange;
+  FixYrange(ZeroY);
+}
+//--------------------------------------------------------------
+  // X-axis range and type flag (true for 1/d^2)
+void GraphAxesType::SetXaxis(const scala::Range& Xrange,
+			     const bool& isinvresolsq)
+{
+  xrange = Xrange;
+  xinvresolsq = isinvresolsq;
+}
+//--------------------------------------------------------------
+// Y-axis range and ZeroY true to start Y at 0
+void GraphAxesType::SetYaxis(const scala::Range& Yrange, const bool& ZeroY)
+{
+  yrange = Yrange;
   FixYrange(ZeroY);
 }
 //--------------------------------------------------------------
@@ -63,12 +81,16 @@ void GraphAxesType::FixYrange(const bool& ZeroY)
   if (ZeroY) {
     yrange.first() = 0.0;
   }
+  zeroy = ZeroY;
 }
 //--------------------------------------------------------------
 std::string GraphAxesType::FormatType() const
-  //! return formatted for graph
+  // return formatted for loggraph
 {
   if (graphtype == AUTO_Y) {
+    if (zeroy) {
+      return "N";
+    }
     return "A";
   } else if (graphtype == NOUGHT_Y) {
     return "N";
@@ -82,27 +104,353 @@ std::string GraphAxesType::FormatType() const
   return "A";
 }
 //--------------------------------------------------------------
+//--------------------------------------------------------------
+TableGraphPlotline::TableGraphPlotline() {
+  init();
+}
+//--------------------------------------------------------------
+TableGraphPlotline::TableGraphPlotline
+(const int& Xcol, const int& Ycol, const std::string& colr,
+ const std::string& symb, const int& symbsize,
+ const std::string& linestyle, const int& linewidth)
+{
+  init(Xcol, Ycol, colr, symb, symbsize, linestyle, linewidth);
+}
+//--------------------------------------------------------------
+void TableGraphPlotline::init() {
+  init(1,2);
+}
+//--------------------------------------------------------------
+// set xcol, ycol from 1, etc
+void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
+			      const std::string& colr,
+			      const std::string& symb, const int& symbsize,
+			      const std::string& linestyle,
+			      const int& linewidth)
+{
+  xcol = Xcol;
+  ycol = Ycol;
+  SetColour(colr);
+  SetSymbol(symb, symbsize);
+  SetLine(linestyle, linewidth);
+}
+//--------------------------------------------------------------
+void TableGraphPlotline::SetSymbol(const std::string& symb, const int& size) {
+  // size default = -1 ie unspecified
+  symbol = symb;
+  symbolsize = size; 
+}
+//--------------------------------------------------------------
+void TableGraphPlotline::SetLine(const std::string& linestyle,
+				 const int& width) {
+  slinestyle = Style(linestyle);  // standard value
+  linesize = width; // default = -1, unspecified
+  // The style of the line, allowed values:
+  // '-','--','-.',':','.',
+  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'. 
+  linestylevalue = "";
+  if (slinestyle == "Solid") {
+    linestylevalue = "-";
+  } else if (slinestyle == "Dashed") {
+    linestylevalue = "--";
+  } else if (slinestyle == "Dash-dot") {
+    linestylevalue = "-.";
+  } else if (slinestyle == "Dotted") {
+    linestylevalue = ":";
+  } else if (slinestyle == "Blank") {
+    linestylevalue = ".";
+  }
+}
+//--------------------------------------------------------------
+void TableGraphPlotline::SetColour(const std::string& colr)
+{
+  colour = colr;
+}
+//--------------------------------------------------------------
+// return formatted XML block
+std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
+// if xcolbreak >= 0, then use this column for x axis instead of xcol
+{
+  std::string s;
+  // <plotline xcol="ix" ycol="iy">
+  int xc = xcol;
+  if (xcolbreak >= 0) {xc = xcolbreak;}
+  std::string sxcol = StringUtil::itos(xc,3);
+  std::string sycol = StringUtil::itos(ycol,3);
+  s += "<plotline xcol=\""+sxcol+"\" ycol=\""+sycol+"\">\n";
+  if (symbol != "") {
+    s += StringUtil::MakeXMLtag("symbol", symbol)+"\n";
+  }
+  if (symbolsize >= 0) {
+    s += StringUtil::MakeXMLtag("symbolsize",StringUtil::itos(symbolsize,3))+"\n";
+  }
+  if (linestylevalue != "") {
+    s += StringUtil::MakeXMLtag("linestyle", linestylevalue)+"\n";
+  }
+  if (linesize > 0) {
+    s += StringUtil::MakeXMLtag("linesize",StringUtil::itos(linesize,3))+"\n";
+  }
+  if (colour != "") {
+    s += StringUtil::MakeXMLtag("colour", colour)+"\n";
+  }
+  if (label != "") {
+    s += StringUtil::MakeXMLtag("label", label)+"\n";
+  }
+  s += "</plotline>\n"; // end block
+  return s;
+}
+//--------------------------------------------------------------
+// convert string to standard linestyle string
+std::string TableGraphPlotline::Style(const std::string& style)
+{
+  std::string upperstyle = StringUtil::ToUpper(style);
+  if (upperstyle == "" || upperstyle == "DEFAULT") {
+    return "Solid";
+  }
+  if (upperstyle == "SOLID") {
+    return "Solid";
+  }
+  if (upperstyle == "DASHED") {
+    return "Dashed";
+  }
+  if (upperstyle == "DASH-DOT" || upperstyle == "DASH_DOT") {
+    return "Dash-dot";
+  }
+  if (upperstyle == "DOTTED") {
+    return "Dotted";
+  }
+  if (upperstyle == "BLANK") {
+    return "Blank";
+  }
+  return "Solid";
+}
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+TableGraphPlot::TableGraphPlot() {
+  init("");
+}
+//--------------------------------------------------------------
+TableGraphPlot::TableGraphPlot(const std::string& ptitle) {
+  init(ptitle);
+}
+//--------------------------------------------------------------
+void TableGraphPlot::init(const std::string& ptitle) {
+  plottype = "xy";
+  title = ptitle;
+  xlabel = "";
+  ylabel = "";
+  xscale = "";
+  yscale = "";
+  xrange.clear();
+  yrange.clear();
+  xbreaks.clear();
+  xcolbreak = -1;
+  xinvresolsq = false;
+  zeroy = false;
+  ybreaks.clear();
+  xintegral = false;
+  yintegral = false;
+  axistypes.init(GraphAxesType::AUTO_Y); // default Y axis type
+  plotlines.clear();
+}
+//--------------------------------------------------------------
+void TableGraphPlot::SetXaxis(const std::string& label,
+			      const bool& isinvresolsq,
+			      const scala::Range& range,
+			      const bool& integral)
+//  Define X-axis:
+//  label    for axis, "" to get from data table
+//  isinvresolsq true if x axis is 1/d^2
+//  range    axis range, null for auto determination
+//  integral true if axis values are integral
+{
+  if (label != "") {
+    xlabel = label;
+  }
+  xinvresolsq = isinvresolsq;
+  if (range.Valid()) {
+    xrange = range;
+  }
+  xintegral = integral;
+
+  axistypes.SetXaxis(xrange, xinvresolsq);
+}
+//--------------------------------------------------------------
+void TableGraphPlot::SetXbreak(const int& xcolbr, const scala::Range& xbreak)
+{
+  // all x-breaks must refer to the same column, check
+  if (xcolbreak < 0) {
+    xcolbreak = xcolbr;
+  } else if (xcolbreak != xcolbr) {
+    Message::message(Message_fatal("TableGraphPlot::SetXbreak: different xcolbreak"));
+  }
+  xbreaks.push_back(xbreak);
+}
+//--------------------------------------------------------------
+void TableGraphPlot::SetXbreak(const int& xcolbr,
+			       const std::vector<scala::Range>& xbreak)
+{
+  // all x-breaks must refer to the same column, check
+  if (xcolbreak < 0) {
+    xcolbreak = xcolbr;
+  } else if (xcolbreak != xcolbr) {
+    Message::message(Message_fatal("TableGraphPlot::SetXbreak: different xcolbreak"));
+  }
+  if (xbreak.size() > 0) {
+    for (size_t i=0;i<xbreak.size();++i) {
+      xbreaks.push_back(xbreak[i]);
+    }}
+}
+//--------------------------------------------------------------
+void TableGraphPlot::SetYaxis(const std::string& label,
+			      const bool& ZeroY,
+			      const scala::Range& range,
+			      const bool& integral)
+// Define Y-axis:
+//  label    for axis, "" to get from data table
+//  ZeroY    true to run y from zero
+//  range    axis range, null for auto determination
+//  integral true if axis values are integral
+{
+  if (label != "") {
+    ylabel = label;
+  }
+  if (range.Valid()) {
+    yrange = range;
+    if (ZeroY) {yrange.first() = 0.0;}
+  }
+  yintegral = integral;
+  zeroy = ZeroY;
+  axistypes.SetYaxis(yrange, zeroy);
+}
+//--------------------------------------------------------------
+// Add a line to the plot
+void TableGraphPlot::AddLine(const TableGraphPlotline& pltline)
+{
+  plotlines.push_back(pltline);
+}
+//--------------------------------------------------------------
+std::string TableGraphPlot::formatXbreaks() const
+{
+  std::string s = "<xbreaks>\n";
+  for (size_t i=0;i<xbreaks.size();++i) {
+    std::string symin;
+    std::string symax;
+    if (xintegral) {
+      symin = StringUtil::itos(Nint(xbreaks[i].min()));
+      symax = StringUtil::itos(Nint(xbreaks[i].max()));
+    } else {
+      symin = StringUtil::ftos(xbreaks[i].min());
+      symax = StringUtil::ftos(xbreaks[i].max());
+    }
+    s += "<break min=\""+symin+"\" max=\""+symax+"\"/>\n";
+  }
+  s += "</xbreaks>\n";
+  return s;
+}
+//--------------------------------------------------------------
+// XML format for Pimple
+std::string TableGraphPlot::XMLformat() const
+{
+  std::string s = "<plot>\n";
+  if (title != "") {
+    s += StringUtil::MakeXMLtag("title", title)+"\n";
+  }
+  if (xlabel != "") {
+    s += StringUtil::MakeXMLtag("xlabel", xlabel)+"\n";
+  }
+  if (ylabel != "") {
+    s += StringUtil::MakeXMLtag("ylabel", ylabel)+"\n";
+  }
+  if (xinvresolsq) {
+    s += StringUtil::MakeXMLtag("xscale", "oneoversqrt")+"\n";
+  }
+  if (xrange.Valid()) {
+    // <xrange min="xmin" max="xmax"\>    
+    std::string sxmin = StringUtil::ftos(xrange.min());
+    std::string sxmax = StringUtil::ftos(xrange.max());
+    s += "<xrange min=\""+sxmin+"\" max=\""+sxmax+"\"/>\n";
+  }
+  
+  if (zeroy) {
+    // <yrange min="0" max="None"\>    
+    s += "<yrange min=\"0\" max=\"None\"/>\n";
+  } else if (yrange.Valid()) {
+    // <yrange min="ymin" max="ymax"\>    
+    double ymin = yrange.min();
+    std::string symin = StringUtil::ftos(ymin);
+    std::string symax = StringUtil::ftos(yrange.max());
+    s += "<yrange min=\""+symin+"\" max=\""+symax+"\"/>\n";
+  }
+  if (xbreaks.size() > 0) {
+    s += formatXbreaks();
+  }
+  if (xintegral) {
+    s += StringUtil::MakeXMLtag("xintegral", "true");
+  }
+  if (yintegral) {
+    s += StringUtil::MakeXMLtag("yintegral", "true");
+  }
+  for (size_t i=0;i<plotlines.size();++i) {
+    s += plotlines[i].XMLformat(xcolbreak);
+  }
+  s += "</plot>\n";
+  return s;
+}
+//--------------------------------------------------------------
+std::string TableGraphPlot::format(const bool& first) const
+// format a graph for loggraph
+// first  true for first graph
+{
+  std::string text;
+  // Check type
+  //  if (axistypes != "A" && axistypes != "N" &&
+  //      (axistypes.find("|") == std::string::npos)) {
+  //    Message::message(Message_fatal("TableGraph::Graph: invalid graph type:"+
+  //				   Graphtype));
+  //  }
+  if (first) {text += "$GRAPHS";}
+  text += ":"+title+":"+axistypes.FormatType()+":";
+  if (plotlines.size() <= 0) {
+    Message::message(Message_fatal("TableGraph::Graph: no lines"));
+  }
+  std::vector<int> columnNumbers;
+  int xcol = plotlines[0].Xcol();
+  for (size_t i=0;i<plotlines.size();++i) {
+    if (plotlines[i].Xcol() != xcol) {
+      Message::message(Message_fatal
+		       ("TableGraph::Graph: all lines must have same x column"));
+    }
+    if (i==0) {columnNumbers.push_back(xcol);}
+    columnNumbers.push_back(plotlines[i].Ycol());
+  }
+  std::string numbers;
+  for (size_t i=0;i<columnNumbers.size();++i) {
+    numbers += clipper::String(columnNumbers[i]);
+    if (int(i)<int(columnNumbers.size())-1) {numbers+=",";}  // comma separated
+  }
+  text += StringUtil::Strip(numbers)+":\n";
+  return text;
+}
+//--------------------------------------------------------------
 const std::string TableGraph::LABELLEADER  = "$$\n";
 const std::string TableGraph::LABELTRAILER = "  $$";
 const std::string TableGraph::LABELFINAL   = " $$\n";
 //--------------------------------------------------------------
 TableGraph::TableGraph(const std::string& Title)
 // construct & store title
-  : title(Title), ngraphs(0)  {}
+  : title(Title), ngraphs(0), id("")  {}
 //--------------------------------------------------------------
 // Store title
 void TableGraph::init(const std::string& Title)
 {
   title = Title;
   ngraphs = 0;
+  id = "";
+  sdatatable.clear();
 }
 //--------------------------------------------------------------
-std::string TableGraph::formatTitle() const
-{ 
-  return "\n$TABLE: "+title+":\n";
-}
-//--------------------------------------------------------------
-//! Add a graph, return graph header
+// Add a graph, return graph header
 std::string TableGraph::Graph(const std::string& GraphTitle,
 			      const GraphAxesType& Graphaxestype,
 			      const std::vector<int>& columnNumbers)
@@ -132,6 +480,13 @@ std::string TableGraph::Graph(const std::string& GraphTitle,
   }
   text += StringUtil::Strip(numbers)+":\n";
   return text;
+}
+//--------------------------------------------------------------
+void TableGraph::AddGraph(const TableGraphPlot& tgplot)
+// Add and store a graph
+{
+  graphs.push_back(tgplot);
+  ngraphs = graphs.size();
 }
 //--------------------------------------------------------------
 std::string TableGraph::AddInLabel(const std::string& label,
@@ -171,9 +526,30 @@ std::string TableGraph::ColumnFields(const std::vector<std::string>& Labels,
 // if lastmark true [default] add final "$$" after headers
 //   
 {
+  StoreColumnFields(Labels, ZeroMark, pformat);
+  return GetLabels(lastmark);
+}
+//--------------------------------------------------------------
+std::string TableGraph::GetLabels(const bool& lastmark) const
+// format label string for loggraph
+{
+  std::string lglabels = LABELLEADER+labels+LABELTRAILER;
+  if (lastmark) lglabels += LABELFINAL; // optional final "$$" mark
+  else lglabels += "\n";
+  return lglabels;
+}
+//--------------------------------------------------------------
+void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
+				   const std::vector<bool>& ZeroMark,
+				   const std::string& pformat)
+// Define format for data table
+// ZeroMark = true to replace zero value with "-"
+//   
+{
   ASSERT (Labels.size() == ZeroMark.size());
   ncolumns = Labels.size();
   labels = "";
+  labelarray = Labels;
   prtf_format = pformat;
   //  char bs = '\\';
   //^    std::cout << pformat << "\n"; //^
@@ -228,16 +604,13 @@ std::string TableGraph::ColumnFields(const std::vector<std::string>& Labels,
 		     ("TableGraph: wrong number of fields in format"));
   }
   lablen = labels.size();
-  labels = LABELLEADER+labels+LABELTRAILER;
-  if (lastmark) labels += LABELFINAL; // optional final "$$" mark
-  else labels += "\n";
-  return labels;
 }
 //--------------------------------------------------------------
-//! Column labels string, omitting the leader and trailer (if present)
+// Column labels string, omitting the leader and trailer (if present)
 std::string TableGraph::RawLabels() const
 {
-  return labels.substr(LABELLEADER.size(), lablen);
+  return labels;
+  ///  return labels.substr(LABELLEADER.size(), lablen);
 }
 //--------------------------------------------------------------
 std::string TableGraph::NumberLine(const int nc, ...) const
@@ -255,6 +628,7 @@ std::string TableGraph::NumberLine(const int nc, ...) const
   vsprintf(temp,prtf_format.c_str(),arglist);
   va_end(arglist);
   assert(temp[temp_size-1] == '\0');
+  sdatatable.push_back(std::string(temp));
   return std::string(temp);
 }
 //--------------------------------------------------------------
@@ -302,13 +676,14 @@ std::string TableGraph::Line(const int nc, ...) const
     line += sfld;
   }
   va_end(arglist);
+  sdatatable.push_back(line); // store without lf
   line += "\n";
   return line;
 }
 //--------------------------------------------------------------
 std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) const
 // Write nc numbers, then vector val
-// using predefined format, replacing zeroes by "-"
+// using predefined format, optionally replacing zeroes by "-"
 // This will probably fail if the number of arguments doesn't match
 // the format
 {
@@ -362,6 +737,7 @@ std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) 
     line += sfld;
   }
   va_end(arglist);
+  sdatatable.push_back(line);
   line += "\n";
   return line;
 }
@@ -417,13 +793,66 @@ void TableGraph::AddToLine(const float& v)
 std::string TableGraph::GetLine()
 // return line assembled in AddToLine calls
 {
+  sdatatable.push_back(line);
   line += "\n";
   return line;
 }
 //--------------------------------------------------------------
-std::string TableGraph::CloseTable() const
-// Terminate the table
+std::string TableGraph::XMLformat() const
 {
+  // Title
+  std::string s = "\n<CCP4Table ";
+  // Always label as a Graph
+  s += "groupID=\"Graph\" ";
+  if (id != "") {
+    s += "id=\""+id+"\" ";
+  }
+  s += "title=\""+StringUtil::XMLstring(title)+"\">\n";
+  // graph headers
+  for (int igr=0;igr<ngraphs;++igr) {
+    s += graphs[igr].XMLformat();
+  }
+  // Column labels
+  s += "<headers separator=\" \">\n";
+  s += StringUtil::XMLstring(labels)+"\n";
+  s += "</headers>\n";
+  // Data lines
+  s += "<data>\n";
+  for (size_t i=0;i<sdatatable.size();++i) {
+    s += sdatatable[i]+"\n";
+  }
+  s += "</data>\n";
+  // Terminate the table for XML
+  return s+"</CCP4Table>\n";
+}
+//--------------------------------------------------------------
+std::string TableGraph::formatTitle() const
+{
+  std::string s = "\n$TABLE: "+title+":\n";
+  return s;
+}
+//--------------------------------------------------------------
+std::string TableGraph::format() const
+{
+  std::string s = "\n$TABLE: "+title+":\n";
+  // graph headers
+  for (int igr=0;igr<ngraphs;++igr) {
+    bool first = (igr == 0);
+    s += graphs[igr].format(first);
+  }
+  s += " $$\n";
+  // Column labels
+  s += labels+"   $$ $$\n";
+  // Data lines
+  for (size_t i=0;i<sdatatable.size();++i) {
+    s += sdatatable[i]+"\n";
+  }
+  return s+CloseTable();
+}
+//--------------------------------------------------------------
+std::string TableGraph::CloseTable() const
+{
+  // Terminate the table
   return "$$\n";
 }
 //--------------------------------------------------------------

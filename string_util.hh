@@ -42,14 +42,39 @@ static std::vector<std::string> split(const std::string& str,
 static std::vector<std::string> split(const std::string& str,
 			   const std::string& sep1, const std::string& sep2);
 //--------------------------------------------------------------
-//! make XML tag <tag><data</tag>
-  static std::string MakeXMLtag(const std::string& tag, const std::string& data);
+//! make XML tag <tag>data</tag>
+//  If edit true [default] then replace characters such as "<" with html versions 
+  static std::string MakeXMLtag(const std::string& tag, const std::string& data,
+				const bool& edit=true);
+//--------------------------------------------------------------
+//! make XML tag <tag>value</tag>
+  static std::string MakeXMLtag(const std::string& tag, const int& value,
+				const int& w=10);
+//--------------------------------------------------------------
+//! make XML tag <tag>value</tag>
+  static std::string MakeXMLtag(const std::string& tag, const double& value,
+				const int& w=12, const int& d=6);
+//--------------------------------------------------------------
+//! return string modified to replace non-X/HTML characters &<>
+  static std::string XMLstring(const std::string& s0);
+//--------------------------------------------------------------
+//! format a cross-correlation score table as XML
+  static std::string FormatXMLcrossTable(const std::string& tableid,
+					 const std::vector<std::string>& names,
+					 const std::string& valTag,
+					 const std::vector<std::pair<double,int> >& valCount);
 //--------------------------------------------------------------
 //! int to string conversion (%wd)
   static std::string itos(const int f, const int w);
 //--------------------------------------------------------------
+//! general int to string conversion (%wd)
+  static std::string itos(const int f);
+//--------------------------------------------------------------
 //! fixed point float to string conversion (%w.df)
    static std::string ftos(const float f, const int w, const int d);
+//--------------------------------------------------------------
+//! general float to string conversion (%w.df)
+  static std::string ftos(const float f);
 //--------------------------------------------------------------
 //! floating point float to string conversion (%w.df)
    static std::string etos(const float f, const int w, const int d);
@@ -59,6 +84,9 @@ static std::vector<std::string> split(const std::string& str,
 //--------------------------------------------------------------
 //! floating point double to string conversion (%w.df)
    static std::string etos(const double f, const int w, const int d);
+//--------------------------------------------------------------
+//! general double to string conversion (%w.df)
+  static std::string ftos(const double f);
 //--------------------------------------------------------------
 //! returns wrapped line with indent
 /*! 
@@ -147,5 +175,27 @@ void init(const bool& IntType, const float& MaxValue,
   std::string label2;
 };
 
+//======================================================================
+class Citation {
+public:
+  Citation(){}
+  //! construct with one citation
+  Citation(const std::string& citation,
+	   const std::string& link);
+
+  //! add a citation
+  void AddCitation(const std::string& citation,
+		   const std::string& link);
+
+  //! make citation string for log file, with html link
+  std::string MakeLogCitation() const;
+
+  //! make citation string for XML file, with html link
+  std::string MakeXMLCitation() const;
+
+private:
+  std::vector<std::string> citations;
+  std::vector<std::string> links;
+};
 
 #endif

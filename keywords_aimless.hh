@@ -11,6 +11,7 @@
 #include "observationflags.hh"
 #include "globalcontrols.hh"
 #include "scaletypes.hh"
+#include "weighttype.hh"
 
 using scala::ResoRange;
 
@@ -47,7 +48,7 @@ namespace phaser_io {
     // [SECONDARY  [<Lmax>]]
     // [ABSORPTION [<Lmax>] [POLE [h|k|l]]]
     // [CONSTANT]
-    // [TILE [<Ntilex> [<Ntiley>]] [CCD | FLAT | PIXEL]] DO NOT USE!
+    // [[NO]TILE [<Ntilex> [<Ntiley>]] [CCD[x] | FLAT | PIXEL]]
   {
   public:
     SCALES();
@@ -58,11 +59,14 @@ namespace phaser_io {
 
     std::vector<scala::ScaleSpecification> getScaleSpecifications() const
     {return specs;}
+
+    bool noTile() const {return notile;}  // true if explicit NOTILE is given
     
   private:
     int nspecs;
     // 1st specification is always the default one (run -1)
     std::vector<scala::ScaleSpecification> specs;
+    bool notile;  // true if explicit NOTILE is given
   };
   //--------------------------------------------------------------
   class RUNSET : public InputBase, virtual public CCP4base
@@ -261,7 +265,7 @@ namespace phaser_io {
     float tiesd_rotation; // sd for ROTATION, < 0.0 for no restraint
     float tiesd_bfactor;  // sd for BFACTOR, < 0.0 for no restraint
     float tiesd_zerob;    // sd for ZEROB, < 0.0 for no restraint
-   // sds for TILE, < 0.0 for no restraint, 4 values for CCD tiles
+   // sds for TILE, < 0.0 for no restraint, 5 values for CCD tiles
     std::vector<double> tiesd_tile;
   };
   //--------------------------------------------------------------
@@ -382,6 +386,12 @@ namespace phaser_io {
     //     DAMP <dampfactor>
     //     TIE [<parameter> <value> <sd>] | NOTIE
     //  <parameter> is "SdFac" "SdB" or "SdAdd" (case insensitive)
+    //     SIMILAR <sd1> [<sd2>] <sd3>   for SDfac, [SDb,] SDadd 
+    //     WEIGHT VARIANCE | UNIT | SQRTSCALE  set weighting scheme
+    //        for averaging Ih in calculating deviations
+    //        VARIANCE  w = 1/var(I)  [default]
+    //        UNIT      w = 1
+    //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
   {
   public:
     SDCORRECTION();
@@ -409,9 +419,14 @@ namespace phaser_io {
     //! Return damp factor
     double SDCdamp() const {return damp;}
 
-    //! return tietype, target & SDs, = 0 no tie, = -1 defaults, = +1 set here
+    //! return tietype, target & SDs, = 0 no tie, = -1 defaults, = +1 set here,
+    //   = +2 similarity
     int SDCties(std::vector<double>& Targets,
 		std::vector<double>& SDtarget) const;
+
+    //! return weight type
+    scala::WeightType::AverageWeightType SDCweightType() const
+      {return weighttype;}
     
   private:
     bool refine;  // true to refine
@@ -422,10 +437,10 @@ namespace phaser_io {
     std::vector<std::pair<scala::SDcorrection,scala::SDcorrection> > sdinput;
     std::vector<int> runnumbers;       // corresponding run numbers, = -1 all  
     double damp;
-    int tietype;     // = 0 no tie, = -1 defaults, = +1 set here
+    int tietype;     // = 0 no tie, = -1 defaults, = +1 set here, = +2 similar
     std::vector<double> targets;   // 3 targets
     std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
-
+    scala::WeightType::AverageWeightType weighttype;
   };
   //--------------------------------------------------------------
   class INTENSITIES : public InputBase, virtual public CCP4base
@@ -599,6 +614,23 @@ namespace phaser_io {
 
   private:
     bool unity;
+  };
+  //--------------------------------------------------------------
+  class XMLOUT : public InputBase, virtual public CCP4base
+  {
+    // Syntax: XMLOUT <filename>
+  public:
+    XMLOUT();
+    virtual ~XMLOUT() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setXMLOUT(const std::string& Name) {name = Name;}
+    std::string getXMLOUT() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
   };
   //--------------------------------------------------------------
 } // phaser_io

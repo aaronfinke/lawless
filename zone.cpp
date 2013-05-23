@@ -1523,6 +1523,5 @@ namespace scala
     return (std::find(zonesingroup.begin(), zonesingroup.end(), iz) !=
 	    zonesingroup.end());
   }
-  //--------------------------------------------------------------
 
-}
+} // namespace scala

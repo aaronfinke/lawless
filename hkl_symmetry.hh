@@ -11,7 +11,7 @@ using clipper::Message_fatal;
 using clipper::Message_info;
 
 #include "hkl_datatypes.hh"
-#include "lattice.hh"
+#include "crystaltype.hh"
 
 namespace scala {
   //--------------------------------------------------------------
@@ -103,7 +103,10 @@ namespace scala {
 
     //! Change basis, reindex
     void ChangeBasis(const scala::ReindexOp& reindex);
-    
+  
+    // true if "C 1" etc
+    static bool isNameCentredTriclinic(const std::string& name);
+
   private:
     int Nsymp;
     char lattype;  // 'H' for hexagonal-setting rhombohedral
@@ -264,7 +267,6 @@ namespace scala {
     std::vector<clipper::Symop> RotSymopsInElement(const int& kelement) const;
     //! return all primitive rotational symops
     std::vector<clipper::Symop> PrimRotSymops() const;
-
 
     //! return crystal system
     CrystalSystem CrysSys() const {return cryssys;}

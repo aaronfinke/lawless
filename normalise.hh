@@ -211,6 +211,9 @@ namespace scala
       return (Is.I() < E2max);
     }
 
+    //! Return use run flags
+    std::vector<bool> UseRun() const {return userun_;}
+
   private:
     bool validRun; // true for valid normalisation by run & batch (function "apply")
     bool validAll; // true for valid overall normalisation (no run/batch dependence)(function "applyAvg")
@@ -218,6 +221,7 @@ namespace scala
     float bcmin;    // minimum spline correction
     int Nbins;
     int Nruns;
+    std::vector<bool> userun_;  // use flag for each run
     std::vector<LinearLSQ> RunFactor;    // linear fit for each run
     std::vector<BfactorModel> Bfactors;  // B-factors etc for each run
     float SclCorr;  // Average constant term

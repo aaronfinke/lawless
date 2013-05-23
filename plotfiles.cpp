@@ -98,11 +98,18 @@ void NormalProbPlot::init(const std::string& FileName,
 			  const std::string& title1,
 			  const std::string& title2)
 {
-  file = OpenFile(FileName, true);  // open write file
-  xmgrplot.Header(file, title1, title2, -4, +4, -5, +5,
+  // Initialise file for XMgrace
+  file = OpenFile(FileName, true);  // open write file for xmgrace
+  xmax = 4.0;
+  ymax = 5.0;
+  xmgrplot.Header(file, title1, title2, -xmax, xmax, -ymax, ymax,
 		  0.6, 0.7,
 		  1.0, 1.0, true,
 		  "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
+  // Initialise XML output
+  xmlplot.Header(title1, -xmax, xmax, -ymax, ymax,
+		 1.0, 1.0, true,
+		 "Delta(expected)", "Delta(observed)", 0.6, 0.0, true);
 }
 //--------------------------------------------------------------
 void NormalProbPlot::SetSample(const int& Npoints)
@@ -128,10 +135,12 @@ void NormalProbPlot::NewLine(const std::string& legend)
 {
   //  Colours: (maximum 15 in xmgr) 6 & 7 are not very good
   int lcol[] = {1,2,3,4,5,8,9,10,11,12,13,14,15,6,7};
-  std::vector<int> lcolor(lcol, lcol+15);
-  int maxlin = lcolor.size();
+  std::vector<int> lcolour(lcol, lcol+15);
+  int maxlin = lcolour.size();
   int icol = Nlines%maxlin;  // wrap round after maxlin
-  xmgrplot.Line(legend, lcolor[icol], +2, false);
+  xmgrplot.Line(legend, lcolour[icol], +2, false);
+  // start XML line, with a legend, not connected
+  xmlplot.StartLine(legend, 0, 1, lcolour[icol]);
 }
 
 //--------------------------------------------------------------
@@ -140,6 +149,7 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
   if (std::abs(x) < limit && std::abs(y) < limit) {
     if (sample.Keep(Max(std::abs(x), std::abs(y)))) {
       xmgrplot.Point("%10.4f %9.4f\n", x, y);
+      xmlplot.Point(x, y, 9, 4);
     }
   }
 }
@@ -147,16 +157,27 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
 void NormalProbPlot::EndLine()
 {
   xmgrplot.EndLine();
+  xmlplot.EndLine();
   Nlines++;  // increment line number
 }
 //--------------------------------------------------------------
-void NormalProbPlot::ClosePlot(const float& range)
+void NormalProbPlot::ClosePlot()
 // Draw diagonal line
 {
+  float range = xmax;
   xmgrplot.ClosePlot(range, true);
+  // XML
+  xmlplot.DrawLine(-range, +range, -range, +range, 9,4,
+		   1,1,7); // black
+  xmlplot.DrawLine(-range, +range, 0.0, 0.0, 9,4,
+		   1,1,7); // black
+  xmlplot.DrawLine(0.0, 0.0, -ymax, +ymax, 9,4,
+		   1,1,7); // black
+
+  xmlplot.ClosePlot();
 }
-  // ------------------------------------------------------------
-  // ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
 CorrelPlot::CorrelPlot(const std::string& Title, const std::string& Pxd_title,
 		       const int& NresBins,
 		       const float& UnitValue,
@@ -220,9 +241,11 @@ void CorrelPlot::AddPoint(const int& mres, const float& I1, const float& I2)
   }
 }
 // ------------------------------------------------------------
-void CorrelPlot::Plot(FILE* plotfile) const
+std::string CorrelPlot::Plot(FILE* plotfile) const
+// returns XML representation
 {
-  if (x.size() <= 0) return;
+  if (x.size() <= 0) return "";
+  XMLplot xmlplot;
   XMGRACE xmgr;
   // Limits on axes
   float lowlimit = valrange.min();
@@ -233,7 +256,11 @@ void CorrelPlot::Plot(FILE* plotfile) const
 	      lowlimit, limit, lowlimit, limit,
 	      0.6, 0.7,
 	      2.0, 2.0, true,
-	      "", "", 0.0, 0.0, false);
+	      "", "", 0.6, 0.0, true);
+  xmlplot.Header(title,
+	      lowlimit, limit, lowlimit, limit,
+	      2.0, 2.0, true,
+	      "", "", 0.6, 0.0, true);
   // Split into nres parts by resolution bin
   int nres = 2;
   //  Colours: (maximum 15 in xmgr) 6 & 7 are not very good
@@ -250,6 +277,7 @@ void CorrelPlot::Plot(FILE* plotfile) const
       }
     }
     xmgr.Line(legend, lcolour[iset], +3, false);
+    xmlplot.StartLine(legend, 0, 1, lcolour[iset]);
     int iresmin = iset*(nresbin/nres);
     int iresmax = (iset+1)*(nresbin/nres);
     if (iset == nres-1) {iresmax = nresbin;}  // last set
@@ -257,13 +285,25 @@ void CorrelPlot::Plot(FILE* plotfile) const
     for (size_t i=0;i<x.size();++i) {
       if (resbin[i] >= iresmin && resbin[i] < iresmax) {
 	xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);
+	xmlplot.Point( x[i], y[i], 8, 3);
 	np++;
       }
     }
     if (np > 0) iline++;
     xmgr.EndLine();
+    xmlplot.EndLine();
   }
   xmgr.ClosePlot(limit, true);
+
+  // XML
+  xmlplot.DrawLine(-limit, +limit, -limit, +limit, 9,4,
+		   1,1,7); // black
+  xmlplot.DrawLine(-limit, +limit, 0.0, 0.0, 9,4,
+		   1,1,7); // black
+  xmlplot.DrawLine(0.0, 0.0, -limit, +limit, 9,4,
+		   1,1,7); // black
+    xmlplot.ClosePlot();
+  return xmlplot.format();
 }
 // ------------------------------------------------------------
 // ------------------------------------------------------------
@@ -293,11 +333,16 @@ RoguePlot::RoguePlot(const std::string& FileName,
 		  0.6, 0.75,
 		  radius, radius, false,
 		  "", "", legx, legy, true);
+  xmlplot.Header("Outliers on detector (horizontal rotation axis)",
+		 -radius, +radius, -radius, +radius,
+		 radius, radius, false,
+		 "", "", legx, legy, true);
   
   // Resolution ring
   int npoint = 96;  // sampling of circle
   int lcol = 1;     // black
   DrawCircle(xmgrplot, lcol, "", radius, npoint);
+  xmlplot.DrawCircle(0.0, 0.0, radius, 8, 4, 1, 1, lcol);
   
   // Draw ice rings
   scala::Rings icerings;
@@ -313,6 +358,7 @@ RoguePlot::RoguePlot(const std::string& FileName,
 	first = false;
       }
       DrawCircle(xmgrplot, lcol, label, rad, npoint);
+      xmlplot.DrawCircle(0.0, 0.0, rad, 8, 4, 1, 1, lcol);
     }
   }
   // Axis lines
@@ -325,6 +371,8 @@ RoguePlot::RoguePlot(const std::string& FileName,
   xmgrplot.Point("%8.4f %8.4f\n", 0.0, -radius);
   xmgrplot.Point("%8.4f %8.4f\n", 0.0, +radius);
   xmgrplot.EndLine();
+  xmlplot.DrawLine(-radius, +radius, 0.0, 0.0, 8,4);
+  xmlplot.DrawLine(0.0, 0.0, -radius, +radius, 8,4);
 }
 // ------------------------------------------------------------
 void RoguePlot::Start()
@@ -332,12 +380,15 @@ void RoguePlot::Start()
   // Start points, symbols, no line
   int lcol = 1;
   xmgrplot.Line("", lcol, -1, false);
+  xmlplot.StartLine("", 0, 0, lcol);
 }
 // ------------------------------------------------------------
 void RoguePlot::End()
 {
   xmgrplot.EndLine();
   xmgrplot.ClosePlot(0.0, false);
+  xmlplot.EndLine();
+  xmlplot.ClosePlot();
 }
 // ------------------------------------------------------------
 void RoguePlot::PlotOutlier(const FVect3& s)
@@ -351,7 +402,208 @@ void RoguePlot::PlotOutlier(const FVect3& s)
   float ydn = sc * s[1];  // y
   float zdn = sc * s[2];  // z
   xmgrplot.Point("%10.4f %10.4f\n", zdn, ydn);
+  xmlplot.Point(zdn, ydn, 10, 4);
 }
+//--------------------------------------------------------------
+void XMLplot::Header(const std::string& title,
+		     const float& xmin, const float& xmax,
+		     const float& ymin, const float& ymax,
+		     const float& xtick, const float& ytick, const bool& ticklabel,
+		     const std::string& xlabel, const std::string& ylabel,
+		     const float& xlegend, const float& ylegend, 
+		     const bool& WriteLegend)
+// title           title
+// xmin, xmax      range of coordinates
+// ymin, ymax      range of coordinates
+// xtick, ytick    tick intervals (not used)
+// ticklabel       true to label ticks (not used)
+// xlabel, ylabel  axis labels
+// xlegend, ylegend position of legends
+// WriteLegend     true to write legend
+{
+  datastring = "<headers separator=\" \">\n";
+  datastring += " X Y\n";
+  datastring += "</headers>\n";
+
+  dataIDs.clear();
+
+  // Title
+  headerstring = "<CCP4Table title=\""+title+"\">\n";
+  headerstring += "<plot>\n";  // start plot
+
+  symbolSize = 2;
+
+  // Axes
+  headerstring += "<xrange min=\""+StringUtil::ftos(xmin,8,4)+
+    "\" max=\""+StringUtil::ftos(xmax,8,4)+"\"/>\n";
+  headerstring += "<yrange min=\""+StringUtil::ftos(ymin,8,4)+
+    "\" max=\""+StringUtil::ftos(ymax,8,4)+"\"/>\n";
+  headerstring += "<fixaspectratio>true</fixaspectratio>\n";
+
+  if (xlabel != "") {headerstring += StringUtil::MakeXMLtag("xlabel", xlabel)+"\n";}
+  if (ylabel != "") {headerstring += StringUtil::MakeXMLtag("ylabel", ylabel)+"\n";}
+
+  // legends
+  if (WriteLegend) {
+    headerstring += StringUtil::MakeXMLtag("showlegend","true")+"\n";
+    headerstring += "<legendposition x=\""+StringUtil::ftos(xlegend,8,3)+
+      "\" y=\""+StringUtil::ftos(ylegend,8,3)+"\"/>\n";
+  } else {
+    headerstring += StringUtil::MakeXMLtag("showlegend","false")+"\n";
+  }
+}
+//--------------------------------------------------------------
+void XMLplot::StartLine(const std::string& legend,
+			const int& linestyle,
+			const int& linesize,
+			const int& lcolour,
+			const int& Symbol)
+// legend    also used as ID for associated dataset
+// linestyle <= 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+// linesize  line width, default = 1
+// lcolour    <= 0 use default, else colour number
+// Symbol    !=0 draw symbols, if < 0 use default symbol,
+//            >0 use specified symbol
+{
+  // If legend is blank don't add a dataid
+  if (legend == "") {
+    headerstring += "<plotline xcol=\"1\" ycol=\"2\">\n";
+  } else {
+    headerstring += "<plotline dataid=\""+legend+
+    "\" xcol=\"1\" ycol=\"2\">\n";
+    headerstring += StringUtil::MakeXMLtag("label", legend)+"\n";
+  }
+  int symbolsize = symbolSize;
+  if (Symbol == 0) { // no symbol
+    symbolsize = 0;
+  }
+  if (Symbol > 0) { // use chosen symbol
+    std::string symbols[] = {"o","s","d","^",">","<","p","h","*"};
+    const int nsymbols = 9;  // number in list
+    int index = (Symbol-1)%nsymbols;  // wrap around
+    headerstring += StringUtil::MakeXMLtag("symbol", symbols[index])+"\n";
+  }
+  headerstring += StringUtil::MakeXMLtag("symbolsize",
+					StringUtil::itos(symbolsize,2))+"\n";
+  if (lcolour > 0) { // colour
+    headerstring += StringUtil::MakeXMLtag("colour", Colour(lcolour))+"\n";
+  }
+  headerstring += StringUtil::MakeXMLtag("markeredgewidth","0.0")+"\n"; // no symbol border
+  // linestyle = no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+  headerstring += StringUtil::MakeXMLtag("linestyle",LineStyle(linestyle))+"\n";
+  if (linesize > 1) {
+    headerstring += StringUtil::MakeXMLtag("linesize", StringUtil::itos(linesize,3));
+  }
+  if (legend == "") {
+    datastring += "<data>\n";
+  } else {
+    datastring += "<data id=\""+legend+"\">\n";
+  }
+  headerstring += "</plotline>\n";
+}
+//--------------------------------------------------------------
+void XMLplot::Point(const float& x, const float& y, const int& fw, const int& fd)
+{
+  datastring += StringUtil::ftos(x, fw, fd) + " " + StringUtil::ftos(y, fw, fd)+"\n";
+}
+//--------------------------------------------------------------
+void XMLplot::EndLine()
+{ 
+  datastring += "</data>\n";
+}
+//--------------------------------------------------------------
+void XMLplot::ClosePlot()
+{
+    headerstring += "</plot>\n";
+}
+//--------------------------------------------------------------
+// Draw a line
+// linestyle = 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+// lcolour    <= 0 use default, else colour number
+void XMLplot::DrawLine(const float& xmin, const float& xmax,
+		       const float& ymin, const float& ymax,
+		       const int& fw, const int& fd,
+		       const int& linestyle,
+		       const int& linesize,
+		       const int& lcolour)
+{
+  headerstring += "<line x1=\"" + StringUtil::ftos(xmin,fw,fd)+"\"" +
+    " x2=\"" + StringUtil::ftos(xmax,fw,fd)+"\"" +
+    " y1=\"" + StringUtil::ftos(ymin,fw,fd)+"\"" +
+    " y2=\"" + StringUtil::ftos(ymax,fw,fd)+"\"";
+  headerstring += " linestyle=\""+LineStyle(linestyle)+"\"";
+  if (linesize > 1) {
+    headerstring += " linesize=\""+StringUtil::itos(linesize,3)+"\"";
+  }
+  if (lcolour > 0) {
+    headerstring += " linecolour=\""+Colour(lcolour)+"\"";
+  }
+  headerstring += "/>\n";
+}
+//--------------------------------------------------------------
+// Draw a circle
+void XMLplot::DrawCircle(const float& xcen, const float& ycen,
+			 const float& radius,
+			 const int& fw, const int& fd,
+			 const int& linestyle,
+			 const int& linesize,
+			 const int& lcolour,
+			 const int& fillcolour)
+{
+  headerstring += "<circle xpos=\"" + StringUtil::ftos(xcen,fw,fd)+"\"" +
+    " ypos=\"" + StringUtil::ftos(ycen,fw,fd)+"\"" +
+    " radius=\"" + StringUtil::ftos(radius,fw,fd)+"\"";
+  if (linestyle > 1) {
+    headerstring += " linestyle=\""+LineStyle(linestyle)+"\"";
+  }
+  if (linesize > 1) {
+    headerstring += " linesize=\""+StringUtil::itos(linesize,3)+"\"";
+  }
+  if (lcolour > 0) {
+    headerstring += " linecolour=\""+Colour(lcolour)+"\"";
+  }
+  if (fillcolour > 0) {
+    headerstring += " fillcolour=\""+Colour(fillcolour)+"\"";
+  }
+  headerstring += "/>\n";
+}
+//--------------------------------------------------------------
+std::string XMLplot::Colour(const int& lcolour) const
+// return colour string
+{
+  std::string s = "";
+  if (lcolour > 0) { // colour
+    std::string colours[] = {"red", "green", "blue", "yellow",
+			     "magenta", "cyan", "black"};
+    const int ncol = 7;
+    int index = (lcolour-1)%ncol;
+    s = colours[index];
+  }
+  return s;
+}
+//--------------------------------------------------------------
+std::string XMLplot::LineStyle(const int& linestyle) const
+// return linestyle string
+{
+  // linestyle = no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
+    std::string s = "";
+  if (linestyle <= 0) {
+    s = ".";
+  } else {
+    std::string styles[] = {"-","--","-.",":"};
+    const int nstyles = 4;
+    int index = (linestyle-1)%nstyles;
+    s = styles[index];
+  }
+  return s;
+}
+//--------------------------------------------------------------
+std::string XMLplot::format() const
+// return formatted XML
+{
+  return headerstring + datastring + "\n</CCP4Table>\n";
+}
+//--------------------------------------------------------------
 //--------------------------------------------------------------
 void XMGRACE::Header(FILE* File, const std::string& title1, const std::string& title2,
 		     const float& xmin, const float& xmax,
@@ -434,7 +686,7 @@ void XMGRACE::Header(FILE* File, const std::string& title1, const std::string& t
 }
 //--------------------------------------------------------------
 void XMGRACE::Line(const std::string& legend,
-		   const int& lcolor,
+		   const int& lcolour,
 		   const int& Symbol, const bool& Join)
 // Symbol    !=0 draw symbols, if < 0 fill symbol, >1 scale symbol size
 // Join = true to draw line as well as points
@@ -450,7 +702,7 @@ void XMGRACE::Line(const std::string& legend,
     // symbol
     fprintf(file, "@  %s  symbol 2\n", set.c_str());
     // Colour
-    fprintf(file, "@  %s  symbol color %3d\n", set.c_str(), lcolor);
+    fprintf(file, "@  %s  symbol color %3d\n", set.c_str(), lcolour);
   }
   if (Join) {
     fprintf(file, "@  %s  linestyle 1\n", set.c_str());
@@ -458,7 +710,7 @@ void XMGRACE::Line(const std::string& legend,
     fprintf(file, "@  %s  linestyle 0\n", set.c_str());
   }
   // Colour
-  fprintf(file, "@  %s  color %3d\n", set.c_str(), lcolor);
+  fprintf(file, "@  %s  color %3d\n", set.c_str(), lcolour);
   // Legend
   if (legend.size() > 0) {
     fprintf(file, "@  legend string %3d \"%s\"\n", objectNumber,
