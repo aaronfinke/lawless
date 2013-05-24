@@ -21,7 +21,7 @@ aimless_SOURCES = \
         columnlabels.cpp controls.cpp eprob.cpp fileread.cpp \
         getsubgroups.cpp hash.cpp hkl_controls.cpp hkl_datatypes.cpp \
         hkl_merged_list.cpp hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp \
-        interpretcommandline.cpp jiffy.cpp latsym.cpp lattice.cpp \
+        interpretcommandline.cpp jiffy.cpp latsym.cpp \
         linearlsq.cpp matvec_utils.cpp \
         mtz_merge_io.cpp mtz_unmerge_io.cpp mtz_utils.cpp normalise.cpp \
         numbercomplete.cpp observationflags.cpp \
@@ -51,7 +51,7 @@ aimless_SOURCES = \
         controls.hh eprob.hh fileread.hh getsubgroups.hh hash.hh \
         hkl_controls.hh hkl_datatypes.hh hkl_merged_list.hh hkl_symmetry.hh \
         hkl_unmerge.hh icering.hh interpretcommandline.hh jiffy.hh latsym.hh \
-        lattice.hh linearlsq.hh matvec_utils.hh mtz_merge_io.hh \
+        linearlsq.hh matvec_utils.hh mtz_merge_io.hh \
         mtz_unmerge_io.hh mtz_utils.hh normalise.hh numbercomplete.hh \
         observationflags.hh openinputfile.hh phaser_types.hh pointgroup.hh \
         probfunctions.hh range.hh rotation.hh runthings.hh scala.hh \

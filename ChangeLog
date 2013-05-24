@@ -1,3 +1,10 @@
+0.2.1
+some major reorganisations. Added XML output. SCALES TILE option. Handling of multilattice data. 
+SDCORRECTION SIMILAR
+
+0.1.30 
+allow TIE with negative sd to turn off tie, as documented. Also fixed bug in ABSORPTION<br>
+
 0.1.29 
 small change to Result table to work with Baubles arcane (and undocumented) rules for Magic Tables
 
