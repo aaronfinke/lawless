@@ -13,7 +13,7 @@ set(MINLIB_SOURCES
 # Unique to Aimless
 set(AIMLESS_SOURCES
     InputAll_aimless.cpp aimless.cpp analyseanom.cpp analysesd.cpp
-    anomdistribution.cpp applyscales.cpp
+    analyseoverlaps.cpp anomdistribution.cpp applyscales.cpp
     cumulativecompleteness.cpp  file_util.cpp foxholmes.cpp
     fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp
     initialscales.cpp intensitybin.cpp keywords_aimless.cpp
@@ -33,13 +33,13 @@ set(AIMLESS_SOURCES
 set(SHARED_SOURCES
     CCP4base.cpp Errors.cpp Output.cpp Preprocessor.cpp
     cctbx_utils.cpp cellgroup.cpp checkcompatiblesymmetry.cpp
-    columnlabels.cpp controls.cpp eprob.cpp fileread.cpp
-    getsubgroups.cpp hash.cpp hkl_controls.cpp hkl_datatypes.cpp
+    columnlabels.cpp controls.cpp crystaltype.cpp dataset.cpp eprob.cpp
+    fileread.cpp getsubgroups.cpp hash.cpp hkl_controls.cpp hkl_datatypes.cpp
     hkl_merged_list.cpp hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp
     interpretcommandline.cpp jiffy.cpp latsym.cpp
     linearlsq.cpp matvec_utils.cpp
     mtz_merge_io.cpp mtz_unmerge_io.cpp mtz_utils.cpp normalise.cpp
-    numbercomplete.cpp observationflags.cpp
+    numbercomplete.cpp observationflags.cpp observationstatuscontrol.cpp
     openinputfile.cpp pointgroup.cpp probfunctions.cpp range.cpp
     rotation.cpp runthings.cpp scala_util.cpp score_datatypes.cpp
     spacegroupreindex.cpp spline.cpp string_util.cpp timer.cpp
