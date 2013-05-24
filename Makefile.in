@@ -115,7 +115,9 @@ am_aimless_OBJECTS = aimless.$(OBJEXT) InputAll_aimless.$(OBJEXT) \
 	spline.$(OBJEXT) string_util.$(OBJEXT) timer.$(OBJEXT) \
 	zone.$(OBJEXT) tablegraph.$(OBJEXT) optimisecombine.$(OBJEXT) \
 	tile.$(OBJEXT) imagearray.$(OBJEXT) restore.$(OBJEXT) \
-	anisotropy.$(OBJEXT) intensity_scale.$(OBJEXT)
+	anisotropy.$(OBJEXT) intensity_scale.$(OBJEXT) \
+	analyseoverlaps.$(OBJEXT) crystaltype.$(OBJEXT) \
+	dataset.$(OBJEXT) observationstatuscontrol.$(OBJEXT)
 aimless_OBJECTS = $(am_aimless_OBJECTS)
 am__DEPENDENCIES_1 =
 aimless_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -354,6 +356,7 @@ aimless_SOURCES = \
         spacegroupreindex.cpp spline.cpp string_util.cpp timer.cpp \
         zone.cpp tablegraph.cpp optimisecombine.cpp tile.cpp imagearray.cpp \
         restore.cpp anisotropy.cpp intensity_scale.cpp \
+	analyseoverlaps.cpp crystaltype.cpp dataset.cpp observationstatuscontrol.cpp \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
@@ -382,7 +385,8 @@ aimless_SOURCES = \
         scala_util.hh score_datatypes.hh spacegroupreindex.hh spline.hh \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
 	optimisecombine.hh tile.hh imagearray.hh restore.hh \
-        anisotropy.hh intensity_scale.h
+        anisotropy.hh intensity_scale.h analyseoverlaps.hh crystaltype.hh \
+	dataset.hh observationstatuscontrol.hh weighttype.hh
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
 aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) $(FCLIBS) ./MinLib/libbfgs.a
@@ -482,6 +486,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Preprocessor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aimless.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/analyseanom.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/analyseoverlaps.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/analysesd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/anisotropy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/anomdistribution.Po@am__quote@
@@ -491,7 +496,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/checkcompatiblesymmetry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/columnlabels.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controls.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/crystaltype.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cumulativecompletenes.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dataset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eprob.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fileread.Po@am__quote@
@@ -526,6 +533,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/normprobfunc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/numbercomplete.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/observationflags.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/observationstatuscontrol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openinputfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/optimisecombine.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/optimisesdcorr.Po@am__quote@
