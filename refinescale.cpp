@@ -80,8 +80,7 @@ namespace scala {
   private(jref, jr, myid,						\
 	  invresolsq, index, this_refl,					\
 	  obs_used, ghl,						\
-	  this_obs, sd, nused, sumwgI, sumwg2, w, g, mnI, l, di, d, ip,	\
-	  jp, ip1)
+	  this_obs, sd, nused, sumwgI, sumwg2, w, g, mnI, l, di)
 
       for (jref=0;jref<jcount;++jref) { // ---- loop reflections
 	this_refl = hkl_list->get_reflection(jref_array[jref]); // jr is accepted reflection index
