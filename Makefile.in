@@ -77,7 +77,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_aimless_OBJECTS = aimless.$(OBJEXT) InputAll_aimless.$(OBJEXT) \
 	analyseanom.$(OBJEXT) analysesd.$(OBJEXT) \
 	anomdistribution.$(OBJEXT) applyscales.$(OBJEXT) \
-	cumulativecompletenes.$(OBJEXT) file_util.$(OBJEXT) \
+	cumulativecompleteness.$(OBJEXT) file_util.$(OBJEXT) \
 	foxholmes.$(OBJEXT) fracdevanal.$(OBJEXT) \
 	globalcontrols_aimless.$(OBJEXT) halfdataset.$(OBJEXT) \
 	initialscales.$(OBJEXT) intensitybin.$(OBJEXT) \
@@ -330,7 +330,7 @@ aimless_SOURCES = \
         aimless.cpp \
         InputAll_aimless.cpp analyseanom.cpp analysesd.cpp \
         anomdistribution.cpp applyscales.cpp \
-        cumulativecompletenes.cpp  file_util.cpp foxholmes.cpp \
+        cumulativecompleteness.cpp  file_util.cpp foxholmes.cpp \
         fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp \
         initialscales.cpp intensitybin.cpp keywords_aimless.cpp  \
         mergedlist.cpp normalprobanal.cpp normprobfunc.cpp optimisesdcorr.cpp \
@@ -497,7 +497,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/columnlabels.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controls.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/crystaltype.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cumulativecompletenes.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cumulativecompleteness.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dataset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eprob.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_util.Po@am__quote@

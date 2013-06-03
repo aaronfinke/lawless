@@ -4,7 +4,7 @@ aimless_SOURCES = \
         aimless.cpp \
         InputAll_aimless.cpp analyseanom.cpp analysesd.cpp \
         anomdistribution.cpp applyscales.cpp \
-        cumulativecompletenes.cpp  file_util.cpp foxholmes.cpp \
+        cumulativecompleteness.cpp  file_util.cpp foxholmes.cpp \
         fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp \
         initialscales.cpp intensitybin.cpp keywords_aimless.cpp  \
         mergedlist.cpp normalprobanal.cpp normprobfunc.cpp optimisesdcorr.cpp \
