@@ -122,8 +122,7 @@ aimless_OBJECTS = $(am_aimless_OBJECTS)
 am__DEPENDENCIES_1 =
 aimless_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) ./MinLib/libbfgs.a
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) ./MinLib/libbfgs.a
 aimless_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(aimless_LDFLAGS) \
 	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -232,9 +231,6 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-FC = @FC@
-FCFLAGS = @FCFLAGS@
-FCLIBS = @FCLIBS@
 FFTW_CXXFLAGS = @FFTW_CXXFLAGS@
 FFTW_LIBS = @FFTW_LIBS@
 GREP = @GREP@
@@ -273,7 +269,6 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_FC = @ac_ct_FC@
 aimless_LDFLAGS = @aimless_LDFLAGS@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
@@ -389,7 +384,7 @@ aimless_SOURCES = \
 	dataset.hh observationstatuscontrol.hh weighttype.hh
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
-aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) $(FCLIBS) ./MinLib/libbfgs.a
+aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) ./MinLib/libbfgs.a
 EXTRA_DIST = macros/ccp4.m4 macros/cctbx.m4 macros/clipper.m4 aimless.html
 all: all-recursive
 

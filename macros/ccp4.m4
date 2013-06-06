@@ -39,7 +39,7 @@ for ac_dir in $ac_ccp4_dirs; do
 for ac_dir in $ac_ccp4_dirs; do
   for ac_extension in a so sl dylib; do
   if test -r "$ccp4_prefix/$ac_dir/libccp4c.$ac_extension"; then
-    ac_CCP4_LDOPTS="-L$ccp4_prefix/$ac_dir -lccp4f -lccp4c"
+    ac_CCP4_LDOPTS="-L$ccp4_prefix/$ac_dir -lccp4c"
     break 2
     fi
   done
@@ -62,11 +62,11 @@ for ac_dir in $ac_ccp4_dirs; do
   done
 else
  ac_CCP4_CXXFLAGS=""
- ac_CCP4_LDOPTS="-lccp4f -lccp4c -lccif -lmmdb"
+ ac_CCP4_LDOPTS="-lccp4c -lccif -lmmdb"
 fi
 
 
-LIBS="$ac_CCP4_LDOPTS $saved_LIBS $FCLIBS"
+LIBS="$ac_CCP4_LDOPTS $saved_LIBS"
 CXXFLAGS="$ac_CCP4_CXXFLAGS $saved_CXXFLAGS"
 #
 # AC_TRY_LINK uses the c compiler (set by AC_LANG), so we will

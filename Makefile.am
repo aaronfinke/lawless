@@ -67,6 +67,6 @@ bin_PROGRAMS = aimless
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
 
-aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) $(FCLIBS) ./MinLib/libbfgs.a
+aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) ./MinLib/libbfgs.a
 
 EXTRA_DIST = macros/ccp4.m4 macros/cctbx.m4 macros/clipper.m4 aimless.html

@@ -14,7 +14,7 @@ AC_CONFIG_SRCDIR([aimless.cpp])
 
 AM_MAINTAINER_MODE
 
-AC_FC_LIBRARY_LDFLAGS
+#AC_FC_LIBRARY_LDFLAGS
 
 AC_LANG(C++)
 
@@ -52,12 +52,12 @@ AM_PATH_CCP4(,
         esac
         ac_CCP4_LDOPTS=`echo "$ac_CCP4_LDOPTS" | sed s#-I#-L#`
         CCP4_CXXFLAGS="$ac_CCP4_CXXFLAGS" 
-        CCP4_LIBS="$ac_CCP4_LDOPTS -lccp4f -lccp4c $ac_CCP4_LDOPTS/../ccif -lccif -lmmdb"
+        CCP4_LIBS="$ac_CCP4_LDOPTS -lccp4c $ac_CCP4_LDOPTS/../ccif -lccif -lmmdb"
         AC_MSG_WARN([assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS])
         have_ccp4=yes
       else
         CCP4_CXXFLAGS="-I$ccp4_prefix/include"
-        CCP4_LIBS="-L$ccp4_prefix/lib -lccp4f -lccp4c -lccif -lmmdb"
+        CCP4_LIBS="-L$ccp4_prefix/lib -lccp4c -lccif -lmmdb"
         AC_MSG_WARN([assuming library $CCP4_LIBS headers $CCP4_CXXFLAGS])
         have_ccp4=yes
       fi
