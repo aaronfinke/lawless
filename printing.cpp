@@ -118,6 +118,7 @@ FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
   bsloperun.assign(RunList.size(), 0.0);     // for each run
   b0run.assign(RunList.size(), 0.0);         // for each run
   scales.assign(RunList.size(), 0.0);         // for each run
+  std::vector<int> batch0run(RunList.size(),-1);
 
   for (size_t irun=0;irun<RunList.size();++irun) { // loop runs
     if (RunList[irun].DatasetIndex() == datasetIndex) { // is run in this dataset?
@@ -130,9 +131,14 @@ FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
       Range phirange;          // range of phi in this run
 
       for (size_t i=0;i<batches.size();++i) {  // loop batches
-	if (batches[i].RunIndex() == int(irun)) { // in this run
-	  linefit.add(float(i), bfacbatch[i], w); // x = batch serial, y = B
-	  batchserialrange.update(float(i));
+	if (batches[i].Accepted() && (batches[i].RunIndex() == int(irun))) { // in this run
+	  if (batch0run[irun] < 0) {  // 1st batch in run
+	    batch0run[irun] = i;
+	  }
+	  float x = i - batch0run[irun];
+	  // x = batch serial in run, y = B
+	  linefit.add(x, bfacbatch[i], w);
+	  batchserialrange.update(x);
 	  phirange.update(batches[i].MidPhi());
 	}
       }
@@ -149,17 +155,32 @@ FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
     // this dataset & accepted
     if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) {
       int irun = batches[i].RunIndex();
-      bfdecaybatch[i] = float(i) * bsloperun[irun] + b0run[irun];  // from straight line
+      bfdecaybatch[i] = float(i-batch0run[irun]) * bsloperun[irun] + b0run[irun];  // from straight line
     }
   } // end loop batches
 }
 //--------------------------------------------------------------
-std::vector<Range> FindXbreaks(const PxdName& dataset_pxd,
-			       const std::vector<Batch>& batches,
-			       const int& datasetIndex)
+class Xbreaks {
+public:
+  Xbreaks(){}
+  Xbreaks(const PxdName& dataset_pxd,
+	  const std::vector<Batch>& batches,
+	  const int& datasetIndex);
+
+  std::vector<Range> get_breaks() const {return breaks;}
+  IntRange get_batchnumberrange() const {return validbatchnumbers;}
+
+private:
+  std::vector<Range> breaks;
+  IntRange validbatchnumbers;  // 1st and last actual accepted batch numbers, for x-axis range
+};
+
+Xbreaks::Xbreaks(const PxdName& dataset_pxd,
+		 const std::vector<Batch>& batches,
+		 const int& datasetIndex)
 // Find all breaks in batch number list, for X axis in plots
 {
-  std::vector<Range> breaks;
+  validbatchnumbers.clear();
   int lastbatchnum = -1;
   int mingap = 2; // don't break with fewer than mingap missing
   for (size_t i=0;i<batches.size();++i) {  // even batches that have no reflections
@@ -172,9 +193,9 @@ std::vector<Range> FindXbreaks(const PxdName& dataset_pxd,
 	}
       }
       lastbatchnum = batches[i].num();
+      validbatchnumbers.update(batches[i].num());
     }
   }
-  return breaks;
 }
 //--------------------------------------------------------------
 void PrintScalesByBatch(const PxdName& dataset_pxd,
@@ -218,14 +239,19 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   graph.SetYaxis("", true);  // Y from zero
   // Breaks in X axis
   int xcolbr = 4;  // column for real batch number
-  std::vector<Range> xbreaks = FindXbreaks(dataset_pxd, batches, datasetIndex);
-  graph.SetXbreak(xcolbr, xbreaks);
+  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  std::vector<Range> xbreaklist = xbreaks.get_breaks();
+  graph.SetXbreak(xcolbr, xbreaklist);
+
+  Range xrange(xbreaks.get_batchnumberrange());  // overall batch number range
+  graph.SetXaxis("", false, xrange, true);
   table.AddGraph(graph);
 
   graph.init("Relative Bfactor & Decay v. batch");
   graph.AddLine(TableGraphPlotline(1,8,"red"));  // Mn(k)
   graph.AddLine(TableGraphPlotline(1,9,"blue"));  // 0k
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", false);  // Y not from zero
   table.AddGraph(graph);
 
@@ -339,7 +365,6 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
       nb++;
     } // count actual batches
   }
-  scala::Range xrange(1,nb);
   scala::Range yrange(res1, res2);
 
   TableGraph table
@@ -356,15 +381,19 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   graph.SetYaxis("", true);  // Y from zero
   // Breaks in X axis
   int xcolbr = 2;  // column for real batch number
-  std::vector<Range> xbreaks = FindXbreaks(dataset_pxd, batches, datasetIndex);
-  graph.SetXbreak(xcolbr, xbreaks);
+  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  std::vector<Range> xbreaklist = xbreaks.get_breaks();
+  graph.SetXbreak(xcolbr, xbreaklist);
+  Range xrange(xbreaks.get_batchnumberrange());  // overall batch number range
+  graph.SetXaxis("", false, xrange, true);
   table.AddGraph(graph);
 
   graph.init("Cumulative %completeness & Anom%cmpl v Batch");
   graph.AddLine(TableGraphPlotline(1,9,"red"));  // completeness
   graph.AddLine(TableGraphPlotline(1,10,"blue"));  // anomalous completeness
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   std::string s = "Maximum resolution limit, I/sigma > "+StringUtil::ftos(MinimumIoverSigma,5,1);
@@ -377,32 +406,36 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   }
   graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", false, yrange);
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   graph.init("Cumulative multiplicity");
   graph.AddLine(TableGraphPlotline(1,12,"red"));
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   graph.init("Imean & RMS Scatter");
   graph.AddLine(TableGraphPlotline(1,3,"red"));
   graph.AddLine(TableGraphPlotline(1,4,"blue"));
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   graph.init("Imean/RMS scatter");
   graph.AddLine(TableGraphPlotline(1,5,"red"));
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   graph.init("Number of rejects");
   graph.AddLine(TableGraphPlotline(1,8,"red"));
+  graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaks);
+  graph.SetXbreak(xcolbr, xbreaklist);
   table.AddGraph(graph);
 
   std::vector<std::string> collabels;

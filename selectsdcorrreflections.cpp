@@ -72,7 +72,8 @@ namespace scala {
     // From Wilson statistics p(E^2 > Q) = exp(-Q)
     double E2min = -log(float(Nbintarget)/float(nvrefl));
     // E2min shouldn't be too large
-    E2min = Min(E2min, 1.5);
+    //    E2min = Min(E2min, 1.5);
+    E2min = Min(E2min, 0.5);
     int nreflarge = Nint(float(nvrefl)* exp(-E2min)); // rough number > E2min
     nreflarge = nreflarge;
     // bin at E^2 = 1 (Emidbin) is NintBin/2
@@ -83,7 +84,7 @@ namespace scala {
     double frac = Min(1.0, float(Nbintarget)/float(nrefbin)); // average fraction to accept
     //^
     //    std::cout << "nvrefl, Nbintarget, nreflarge, nrefbin "
-    //    	      << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
+    //	      << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
     //    std::cout << "Iav, Jmax " << Iav <<" "<<Jmax <<"\n";
     //    std::cout << "Frac "<< frac  << "\n"; 
     //^-
@@ -141,12 +142,12 @@ namespace scala {
 
     //^
     //    std::cout << "\n *** Number rejected in ice rings " << inring <<"\n";
-    //
+    //    
     //    std::cout << "\n *** Number rejected on frac " << rejf <<"\n";
     //    //^
     //    for (int i=0;i<countsa.size();++i) {
     //      std::cout <<"Count  Ibin acc rej " << i
-    //    		<< " " << countsa[i]<< " " << countsr[i] <<"\n";
+    //		<< " " << countsa[i]<< " " << countsr[i] <<"\n";
     //    }
     //^-
     return refAccepted;

@@ -47,16 +47,17 @@ namespace scala {
     {deviations.assign(This_Refl.num_observations(), 0.0);}  // clear deviation list
     
     // Check for outliers in specified class, flags with status, accumulate flags
-    void Check(const AnomalousClass& selclass, const int& Dts_Index, const int& status);
+    void Check(const AnomalousClass& selclass, const int& Dts_Index,
+	       const ObservationStatus& status);
 
     // Check all observations against Emax test
     // Accumulate indices to outlier rejects from vector "selected" into vectors
     // "rejected " and "statusflags". Status for rejects is in "status"
     void CheckEmax(const Normalise& NormRes, const EProb& eprobtest,
-		   const bool& Centric, const int& status);
+		   const bool& Centric, const ObservationStatus& status);
 
     const std::vector<int>& Rejected() const  {return rejected;}
-    const std::vector<int>& Statusflags() const {return statusflags;}
+    const std::vector<ObservationStatus>& Statusflags() const {return statusflags;}
     std::vector<float> Deviations() const {return deviations;}
     //! Return true if outliers found even if not rejected
     bool Discrepant() const {return discrepant;}
@@ -69,13 +70,13 @@ namespace scala {
     const OutlierControl* outliercontrol;
 
     std::vector<int> rejected;
-    std::vector<int> statusflags;
+    std::vector<ObservationStatus> statusflags;
     std::vector<float> deviations;
     bool discrepant;
   };
   // ------------------------------------------------------------
   void RejectList::Check(const AnomalousClass& selclass, const int& dts_index, 
-			 const int& status)
+			 const ObservationStatus& status)
   // Select observations according to dataset index dts_index and anomalous class
   // Accumulate indices to outlier rejects from vector "selected" into vectors
   // "rejected " and "statusflags". Status for rejects is in "status"
@@ -106,7 +107,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void RejectList::CheckEmax(const Normalise& NormRes, const EProb& eprobtest,
-			     const bool& Centric, const int& status)
+			     const bool& Centric, const ObservationStatus& status)
   // Check all observations against Emax test
   // Accumulate indices to outlier rejects from vector "selected" into vectors
   // "rejected " and "statusflags". Status for rejects is in "status"
@@ -212,8 +213,8 @@ namespace scala {
       //   list of rejected observations ...
       std::vector<int> rejected(rejlist.Rejected().begin(), rejlist.Rejected().end());
       //   ... and their status
-      std::vector<int> statusflags(rejlist.Statusflags().begin(),
-				   rejlist.Statusflags().end());
+      std::vector<ObservationStatus> statusflags(rejlist.Statusflags().begin(),
+						 rejlist.Statusflags().end());
 
       ASSERT (rejected.size() == statusflags.size());
       if (rejlist.Discrepant() > 0) {
@@ -264,7 +265,9 @@ namespace scala {
 
     hkl_list.rewind();
 
-    while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
+    // loop all reflections unconditionally
+    for (int jref=0;jref<hkl_list.num_reflections();++jref) {
+      this_refl = hkl_list.get_reflection(jref);
       bool rejref = false;
       // loop all observations, ignoring accept flag
       for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
@@ -336,11 +339,13 @@ namespace scala {
   // ------------------------------------------------------------
   // ------------------------------------------------------------
   WriteRogues::WriteRogues(const bool& Start, const bool& Plot,
+			   const bool& multilattice,
 			   const std::string& title, const float& dstarMax,
 			   const float& wavelength,
 			   const OutlierControl& outliercontrol)
   // Open ROGUES file & write header if Start true
   // Open ROGUESPLOT file & write header if Plot true
+  // multilattice = true is there are multiple lattices
   // title & maximum resolution d* = lambda/d
   //  outliercontrol   parameters for rejection
   {
@@ -348,14 +353,25 @@ namespace scala {
       rogues = OpenFile("ROGUES", true);  // open ROGUES file
       fprintf(rogues,
 	      "The ROGUES file contains all rejected reflections ");
-      fprintf(rogues,
-  "\nRej = '*', '@' for I+- rejects, '#' for Emax rejects, 'x' for accepted flagged observation\n");
+      std::string rs = 
+	std::string("\nRej = '*', '@' for I+- rejects, '#' for Emax rejects, ")+
+	"'x' for accepted flagged observation";
+      if (multilattice) {
+	rs += ",\n      'M' for multiple lattice overlaps";
+      }
+      rs += "\n";
+      fprintf(rogues, rs.c_str());
       fprintf(rogues,
 	      "TotFrc = total fraction, fulls (f) or partials (p),");
       fprintf(rogues,
 	      " Bijv I+ or I- for Bijvoet classes\n");
       fprintf(rogues,
 	      "DelI/sd = (Ihl - Mn(I)others)/sqrt[sd(Ihl)**2 + sd(Mn(I))**2]\n\n");
+      if (multilattice) {
+	rs = std::string("Note that multilattice overlapped observations are not used in outlier calculation nor in means,\n")+
+	  "  and are listed here only under one of their hkl indices\n\n";
+ 	fprintf(rogues, rs.c_str());
+      }
       fprintf(rogues,
  "Flagged observations kept are labelled as: B BGratio; P PKratio; N TooNeg; G BGgradient; O Overload; E Edge\n");
       fprintf(rogues,
@@ -420,6 +436,10 @@ namespace scala {
 	  PlusMinus = "I-";	
 	} else {
 	  PlusMinus = "I+";
+	}
+	if (!obs.IsSingleton()) {
+	  // multiple lattice overlap
+	  reject = 'M';
 	}
 	float scale = obs.Gscale();
 	if (scale != 0.0) scale = 1./scale;

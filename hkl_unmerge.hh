@@ -569,6 +569,10 @@ namespace scala {
     Scell cell(const PxdName& PXDsetName = PxdName()) const;
     Scell Cell() const {return cell(PxdName());}  //!< returns average cell
 
+    //! set symmetry
+    void setSymmetry(const hkl_symmetry& symmetry)
+    {refl_symm = symmetry;}
+
     //! returns symmetry
     hkl_symmetry symmetry() const {return refl_symm;}
 
@@ -642,7 +646,7 @@ namespace scala {
     void AppendFileName(const std::string& Name);
     std::string Filename() const {return filename;} //!< returns filename list
 
-    //! return one reflection for index jref, unconditional, no checks
+    //! return one reflection for index lref, unconditional, no checks
     reflection get_reflection(const int& lref) const;
     //! Return reflection for given (reduced) hkl in refl. Returns index number or -1 if missing
     /*! Records current reflection */
@@ -702,6 +706,9 @@ namespace scala {
     /*!  return number of partials */
     /*! If forcesum is true, sum them even if already summed */
     int sum_partials(const bool& forcesum=false);
+
+    //! Returns true if OK, false if not OK eg some batch does not have valid Umat
+    bool validOrientation() const;
 
     //! Calculate all secondary beam directions, in chosen frame
     /*! On entry:

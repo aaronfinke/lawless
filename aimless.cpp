@@ -678,7 +678,10 @@ int main(int argc, char* argv[])
     for (int i=0;i<hkl_list.num_datasets();++i) {
       wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
-    WriteRogues RoguesList(true, true,
+    // doRouguePlot true as long as we have geometric data for all batches
+    // to calculate detector position
+    bool doRouguePlot = hkl_list.validOrientation();  // false if no orientation
+    WriteRogues RoguesList(true, doRouguePlot, multilattice,
 			   runTitle, hkl_list.Srange().max(), wavelength,
 			   controls.outlierMerge);
     //  hkl_list is updated for status, but SDs are not changed
@@ -840,6 +843,13 @@ int main(int argc, char* argv[])
   }
 
   if (output.doXmlout()) output.logTab(0, LXML,"</AIMLESS>");
+
+  Citation citation
+    ("P.R.Evans and G.N.Murshudov, 'How good are my data and what is the resolution?'"+
+		    std::string(" Acta Cryst. D69, 1204-1214  (2013)."),
+     "http://journals.iucr.org/d/issues/2013/07/00/ba5190/index.html");
+  output.logTab(0,LOGFILE, "\n"+citation.MakeLogCitation());
+
 
   output.logTab(0, LOGFILE,
 		"\nEnd of aimless job, total time: "+overalltime.format(true)+"\n\n");

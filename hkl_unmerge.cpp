@@ -1303,7 +1303,9 @@ namespace scala {
 	// First batch, start run, store dataset index in run
 	ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
 	// Store run index in dataset
-	datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
+	if (batch(ib).Accepted()) {
+	  datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
+	}
 	offset  = batch(ib).BatchNumberOffset();
 	filenum = batch(ib).FileNumber();
 	phioffset = 0.0;
@@ -1369,7 +1371,9 @@ namespace scala {
 	  // Start new group, store dataset index
 	  ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
 	  // Store run index
-	  datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
+	  if (batch(ib).Accepted()) {
+	    datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
+	  }
 	  offset  = batch(ib).BatchNumberOffset();
 	  filenum = batch(ib).FileNumber();
 	  phioffset = 0.0;
@@ -2632,6 +2636,20 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
+  bool hkl_unmerge_list::validOrientation() const
+  // Returns true if OK, false if not OK eg some batch does not have valid Umat
+  {
+    // Check that all batches have valid orientation
+    bool OK = true;
+    for (int i = 0; i < nbatches; i++)  {
+      if (!batches[i].ValidOrientation()) {
+	OK = false;
+	break;
+      }
+    }
+    return OK;
+  }
+  //--------------------------------------------------------------
   bool hkl_unmerge_list::CalcSecondaryBeams(const int& pole)
   // Calculate all secondary beam directions, in chosen frame, also
   // diffraction vectors d*vec
@@ -2644,15 +2662,7 @@ namespace scala {
   // Returns true if OK, false if not OK eg some batch does not have valid Umat
   {
     SetPoles(pole);
-    // Check that all batches have valid orientation
-    bool OK = true;
-    for (int i = 0; i < nbatches; i++)  {
-      if (!batches[i].ValidOrientation()) {
-	OK = false;
-	break;
-      }
-    }
-    if (!OK) return OK;
+    if(!validOrientation()) {return false;}
 
     reflection this_refl;
     observation this_obs;

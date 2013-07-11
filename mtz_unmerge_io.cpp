@@ -329,6 +329,7 @@ namespace MtzIO
       std::vector<clipper::Symop> ops = ClipperSymopsFromMtzSYMGRP(mtzsym);
       spacegroup_.init(ops);
     } else {
+      // Empty list, maybe containing symmetry
       mtzsym.spcgrp = -1;  // set to null
     }
 
@@ -398,8 +399,27 @@ namespace MtzIO
     if (hkl_list.IsEmpty()) {
       // Empty list, initialise
       // Initialise hkl_unmerge_list object
+      // Is there symmetry in the "empty" list?
+      hkl_symmetry symmset = hkl_list.symmetry();
+      if (symmset.IsNull()) {
+	symmset = hkl_symmetry(spacegroup_);
+      } else {
+	// Check for compatible symmetry
+	if (! (symmset.CrysSys() == hkl_symmetry(spacegroup_).CrysSys())) {
+	  std::string errormsg = FormatOutput::logTab(0, 
+	     "**** ERROR: cannot combine files beloging to different crystal systems");
+	  Message::message(Message_fatal
+			   (errormsg+"\n**** Incompatible symmetries ****"));
+	}
+	if (spacegroup_.Symbol_hm() != symmset.symbol_xHM()) {
+	  // Changing symmetry for this file
+	  output += "\nChanging spacegroup on input from "+
+	    spacegroup_.Symbol_hm()+" to "+symmset.symbol_xHM()+
+	    +" to match first file\n";
+	}
+      }
       hkl_list.init(title, Nrecl_file,
-		    hkl_symmetry(spacegroup_), controls);
+		    symmset, controls);
       offsets.assign(runs.size(),0);  // clear offsets
       hkl_list.SetMtzSym(mtzsym);
     } else {
@@ -415,6 +435,14 @@ namespace MtzIO
       // Apply batch offsets if any
       offsets = CompareRunRanges(hkl_list.RunList(), runs);
       ASSERT (offsets.size() == runs.size());
+
+      if (hkl_symmetry(spacegroup_) != hkl_list.symmetry()) {
+	// Changing symmetry for this file
+	output += "\nFor file "+mtzname+
+	  "\n   change spacegroup on input from "+
+	  spacegroup_.Symbol_hm()+" to "+hkl_list.symmetry().symbol_xHM()+
+	  +" to match first file\n";
+      }
     }
 
     // Read all observations into hkl_list, subject to selection flags

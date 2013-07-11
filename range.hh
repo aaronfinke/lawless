@@ -13,6 +13,7 @@ typedef std::pair<float,float> RPair;
 
 namespace scala
 {
+  class IntRange;
   //========================================================================
   class Range
   {
@@ -24,6 +25,8 @@ namespace scala
     //  unless Ascending == false
     Range(const double& Rfirst, const double& Rlast,
 	  const bool& Ascending=true, const int& Nbin=0);
+
+    Range(const IntRange& intrange); // construct from an IntRange
 
     virtual ~Range(){}
     

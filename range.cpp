@@ -25,6 +25,14 @@ namespace scala
     init();
   }
   //--------------------------------------------------------------
+  Range::Range(const IntRange& intrange) // construct from an IntRange
+    : first_(double(intrange.min())), last_(double(intrange.max())),
+      Nbin_(0), ascending(true),
+      valid(true)
+  {
+    init();
+  }
+  //--------------------------------------------------------------
   void Range::SetRange(const double& Rfirst, const double& Rlast,
 		       const bool& Ascending, const int& Nbin)
   {

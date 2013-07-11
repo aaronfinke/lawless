@@ -17,17 +17,18 @@ namespace scala{
   // Fails (fatal) if this is not so
   // Return true if same Laue group
   {  
-    if (! TestSym.CrysSys() == RefSym.CrysSys()) {
+    if (! (TestSym.CrysSys() == RefSym.CrysSys())) {
       std::string
 	error("Test dataset (HKLIN) has different lattice symmetry to reference set");
       Message::message(Message_fatal
 		       (error+"\n**** Incompatible symmetries ****"));
     }
+    if (!TestDataMerged) {return true;}
     
+    // Only test Laue group if merged
     bool SameLaueGroup = RefSym.GetSpaceGroup().PattersonGroup() ==
       TestSym.GetSpaceGroup().PattersonGroup();
-
-    if (!SameLaueGroup && TestDataMerged) {
+    if (!SameLaueGroup) {
       // Merged test data must have same Laue group as reference set
 	std::string
 	  error("Merged test dataset (HKLIN) has different Laue symmetry to reference set");

@@ -228,12 +228,13 @@ namespace scala
 	  
 	  OutlierControl outliercontrol(0);
 	  outliercontrol.Combine() = false; // don't check between datasets
-	  float sdrej = 30.0;
+	  //	  float sdrej = 30.0;
+	  float sdrej = 10.0;
 	  float sdrej2 = sdrej;
 	  //./	  scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::KEEP;
 	  scala::RejectFlags::Reject2Policy Rej2policy = scala::RejectFlags::REJECT;
 	  if (!initialpass) { // values for finalanalysis
-	    sdrej = 30.0;
+	    sdrej = 10.0;
 	    sdrej2 = sdrej;
 	    //./	    Rej2policy = scala::RejectFlags::KEEP;
 	    Rej2policy = scala::RejectFlags::REJECT;
