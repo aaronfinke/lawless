@@ -123,7 +123,7 @@ private:
 class XMGRACE
 {
 public:
-  XMGRACE(){}
+  XMGRACE() : file(NULL) {}
 
   // Return true if plotting is turned on
   bool IsPlot() const {return (file != NULL);}
@@ -259,7 +259,7 @@ private:
 class RoguePlot {
   // Rogue plot
 public:
-  RoguePlot(){}
+  RoguePlot() : file(NULL) {}
 
   // Smax  maximum 4(sin theta/lambda)**2
   //                      = (d*max)**2 = 1/dmin**2
