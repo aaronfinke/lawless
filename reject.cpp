@@ -116,16 +116,19 @@ namespace scala {
     SelectedObservations sel(*this_refl, -1, ALL);
     std::vector<int> outlierindexlist =
       EmaxRejectIndexList(sel, NormRes, eprobtest, Centric);
-    if (rejected.size() == 0) {
-      rejected.assign(outlierindexlist.begin(),
-		      outlierindexlist.end());
-      statusflags.assign(outlierindexlist.size(), status);
-    } else {
-      rejected.insert(rejected.end(),
-		      outlierindexlist.begin(),
-		      outlierindexlist.end());
-      statusflags.insert(statusflags.end(), outlierindexlist.size(),
-			 status);
+    if (outlierindexlist.size() > 0) {
+      if (rejected.size() == 0) {
+	rejected.assign(outlierindexlist.begin(),
+			outlierindexlist.end());
+	statusflags.assign(outlierindexlist.size(), status);
+      } else {
+	rejected.insert(rejected.end(),
+			outlierindexlist.begin(),
+			outlierindexlist.end());
+	statusflags.insert(statusflags.end(), outlierindexlist.size(),
+			   status);
+      }
+      discrepant = true;
     }
   }
   // ------------------------------------------------------------
@@ -141,6 +144,32 @@ namespace scala {
       }
     }
   }
+  // ------------------------------------------------------------
+  std::vector<int> RejectList::EmaxRejectIndexList
+  (const SelectedObservations& selobs,
+   const Normalise::RobustNormalise& NormRes,
+   const EProb& eprobtest,
+   const bool& Centric) const
+  // Return list of index numbers for each Emax outlier observation, if any
+  {
+
+    reflection this_ref = selobs.Reflection();
+    Rtype invresolsq = this_ref.invresolsq();
+    observation this_obs;
+
+    std::vector<int> idxlist;
+    int i;
+    while ((i = selobs.next_observation(this_obs)) >= 0) {
+      this_obs =this_ref.get_observation(i);
+      float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+      if (eprobtest.TooBig(E2, Centric)) {
+	// reject
+	idxlist.push_back(i);
+      }
+    }
+    return idxlist;
+  }
+
   // ------------------------------------------------------------
   // ------------------------------------------------------------
   void RejectOutlier(hkl_unmerge_list& hkl_list,

@@ -8,17 +8,18 @@
 namespace scala {
 
 // ------------------------------------------------------------
-void SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
+int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
 //  Set or unset multi-lattice overlap status flags for all observations
 //  Other flags are left unaltered
 // if Exclude == true, then set flag to exclude all multiple observations
 // if Exclude == false, then set flag to include multiple observations
   {
-    if (!hkl_list.MultiLattice()) {return;}  // ignore unless multilattice
+    if (!hkl_list.MultiLattice()) {return 0;}  // ignore unless multilattice
 
     reflection this_refl;
     observation this_obs;
     hkl_list.rewind();
+    int nrej = 0;
 
     // loop all reflections unconditionally
     for (int jref=0;jref<hkl_list.num_reflections();++jref) {
@@ -28,8 +29,9 @@ void SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
 	this_obs = this_refl.get_observation(lobs);
 	ObservationStatus status = this_obs.ObsStatus();
 	if (Exclude && !this_obs.IsSingleton()) {
+	  nrej++;
 	  // reject multiples if Exclude 
-	    status.SetRejectOverlap();
+	  status.SetRejectOverlap();
 	} else { // else keep
 	  status.UnsetRejectOverlap();  // keep
 	}
@@ -38,6 +40,7 @@ void SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
       }
       hkl_list.replace_reflection(this_refl);
     }
+    return nrej;
   }
 // ------------------------------------------------------------
   void SetRunsToUse(const std::vector<bool>& userun,

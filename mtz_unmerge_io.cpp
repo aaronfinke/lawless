@@ -217,6 +217,26 @@ namespace MtzIO
     return ok;
   }
   //--------------------------------------------------------------
+  // return batch list for all batches in file
+  std::vector<Batch> MtzUnmrgFile::BatchList()
+  {
+    if (batches.size() > 0) return batches; // list already filled (in AddHklList)
+    // store all batches unconditionally
+    batches.clear();
+    CMtz::MTZBAT this_batch;
+    bool accept = true;
+    int idataset;
+    int j = 0;
+    while (get_batch(j, this_batch)) {
+      idataset = this_batch.nbsetid;
+      Batch batch(this_batch, accept, idataset);
+      // store batch with "accept" flag
+      batches.push_back(batch);
+      ++j;
+    }
+    return batches;
+  }
+  //--------------------------------------------------------------
   void MtzUnmrgFile::Rewind()
   // reset to beginning of file for RRefl
   {
@@ -407,7 +427,9 @@ namespace MtzIO
 	// Check for compatible symmetry
 	if (! (symmset.CrysSys() == hkl_symmetry(spacegroup_).CrysSys())) {
 	  std::string errormsg = FormatOutput::logTab(0, 
-	     "**** ERROR: cannot combine files beloging to different crystal systems");
+	     "**** ERROR: cannot combine files belonging to different crystal systems");
+	  errormsg += "\n   Systems: "+symmset.formatCrysSys()+" : "+
+	    hkl_symmetry(spacegroup_).formatCrysSys();
 	  Message::message(Message_fatal
 			   (errormsg+"\n**** Incompatible symmetries ****"));
 	}

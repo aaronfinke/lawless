@@ -19,6 +19,17 @@ using phaser_io::LOGFILE;
 namespace scala
 {
   //--------------------------------------------------------------
+  void LinearFit::clear()
+  {
+    sumw = 0.0;
+    sumwx = 0.0;
+    sumwy = 0.0;
+    sumwxx = 0.0;
+    sumwxy = 0.0;
+    np = 0;
+    maxy=0.0;miny=0.0;
+  }
+  //--------------------------------------------------------------
   void LinearFit::add(const float& x, const float& y, const float& w)
   {
     sumw   += w;

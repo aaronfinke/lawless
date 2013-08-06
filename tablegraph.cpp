@@ -87,14 +87,18 @@ void GraphAxesType::FixYrange(const bool& ZeroY)
 std::string GraphAxesType::FormatType() const
   // return formatted for loggraph
 {
-  if (graphtype == AUTO_Y) {
+  GraphType graphtype1 = graphtype;
+  if (xrange.Valid() && yrange.Valid()) {
+    graphtype1 = XY_SPECIFIED;
+  }
+  if (graphtype1 == AUTO_Y) {
     if (zeroy) {
       return "N";
     }
     return "A";
-  } else if (graphtype == NOUGHT_Y) {
+  } else if (graphtype1 == NOUGHT_Y) {
     return "N";
-  } else if (graphtype ==  XY_SPECIFIED) {
+  } else if (graphtype1 ==  XY_SPECIFIED) {
     std::string s =
       clipper::String(xrange.min())+"|"+clipper::String(xrange.max())+
       "x"+

@@ -151,6 +151,12 @@ namespace MVutil
 	  first = false;
 	}
       }
+      // Translations if any
+      int t = Nint(op.trn()[i]);
+      if (t != 0) {
+	if (t > 0) {s += "+";}
+	s += StringUtil::itos(t,4);
+      }
       if (i<2) s += ",";
     }
     return StringUtil::Strip(brackets[0]+s+brackets[1]);

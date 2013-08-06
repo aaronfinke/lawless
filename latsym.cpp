@@ -214,13 +214,12 @@ namespace CCtbxSym{
     // but if the rhombohedral setting is really rhombohedral,
     // then it needs to be treated as P here, otherwise the z2p_op
     // is wrong
-    if (lattice_type_ == 'R')
-      {
-	// Hexagonal setting has angles 90,90,120
-	// Rhombohedral has alpha=beta=gamma
-	if(RhombohedralAxes(unit_cell_dimensions))
-	  lattice_type_ = 'P';
-      }
+    if (lattice_type_ == 'R') {
+      // Hexagonal setting has angles 90,90,120
+      // Rhombohedral has alpha=beta=gamma
+      if(RhombohedralAxes(unit_cell_dimensions))
+	{lattice_type_ = 'P';}
+    }
 
     input_symmetry_ = crystal::symmetry(uctbx::unit_cell(dcell),
 					sgtbx::space_group(std::string(1,lattice_type_)+" 1"));
@@ -237,6 +236,14 @@ namespace CCtbxSym{
     z2p_op = red_op * z2p_op;
     crystal::symmetry primitive_symmetry = input_symmetry_.change_basis(z2p_op);
 
+    //^
+    //    std::cout <<"lattype "  << lattice_type << " max_delta " << max_delta<<"\n";
+    //    std::cout <<"Input cell ";
+    //    for (int i=0;i<6;++i){std::cout <<" "<<dcell[i];}
+    //    std::cout <<"\n";
+    //    std::cout << "primitive_symmetry.unit_cell() "<<
+    //      UcellFormat(primitive_symmetry.unit_cell()) <<"\n";
+    //^-
     // Get highest symmetry compatible with lattice
     // (note the group_search overloads operator()
     //   to create spacegroup)
@@ -270,7 +277,8 @@ namespace CCtbxSym{
     best_symmetry_ = adjust_sym.change_basis(cb_op_ref);
 
     //^
-    //    std::cout << "BestSymmetry " << best_symmetry_.space_group().type().hall_symbol() << "\n";
+    //    std::cout << "\nLatticeSymmetry::BestSymmetry "
+    //	      << best_symmetry_.space_group().type().hall_symbol() << "\n";
     //    std::cout << "Cell: " <<  UcellFormat(best_symmetry_.unit_cell()) << "\n";
     //^-
     //  Select "best" orthorhombic or monoclinic cell

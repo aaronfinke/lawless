@@ -126,6 +126,8 @@ namespace MtzIO {
       bool Merged() const {return merged;}
       //! return spacegroup
       scala::SpaceGroup Spacegroup() const {return spacegroup_;}
+      //! return batch list for all batches in file
+      std::vector<Batch> BatchList();
       //! return cell
       scala::Scell Cell() const {return averagecell;}
 

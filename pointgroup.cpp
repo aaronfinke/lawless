@@ -1165,15 +1165,15 @@ namespace CCtbxSym
     uccell_ref = cb_op_best.apply(uccell_chb);
 
     //^
-    //    std::cout << "Reindex original->constructor ChBasis_cell): "
-    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
-    //    	      << "Reindex original->reference ChBasis): "
-    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
-    //    	      << "Reindex constructor->reference ChBasis_ref): "
-    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
-    //    	      << "CellIn:  " << UcellFormat(uccell) << "\n"
-    //    	      << "CellChB: " << UcellFormat(uccell_chb) << "\n"
-    //    	      << "CellRef: " << UcellFormat(uccell_ref) << "\n";
+    //    std::cout << "\nPointGroup::SetCell\nReindex original->constructor ChBasis_cell): "
+    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
+    //	      << "Reindex original->reference ChBasis): "
+    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
+    //	      << "Reindex constructor->reference ChBasis_ref): "
+    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
+    //	      << "CellIn:  " << UcellFormat(uccell) << "\n"
+    //	      << "CellChB: " << UcellFormat(uccell_chb) << "\n"
+    //	      << "CellRef: " << UcellFormat(uccell_ref) << "\n";
     //-!
 
     // Test for change of symmetry, C2 to I2
@@ -1188,7 +1188,7 @@ namespace CCtbxSym
       LatType = CentringSymbol(LaueGrp_ref);
       //^
       //      std::cout << "\n==== SetCell: updated groups " << LatType << " "
-      //		<< LaueGrp_ref_type.hall_symbol() << "\n";
+      //      		<< LaueGrp_ref_type.hall_symbol() << "\n";
       //      std::cout << "Cell_ref: " << UcellFormat(uccell_ref) << "\n";
       //      std::cout << "ChBasis:\n";
       //      PrintChBOp(ChBasis);
@@ -1216,8 +1216,8 @@ namespace CCtbxSym
     }
     //^
     //    std::cout << "End of SetCell:\n"
-    //    	      << "  Reindex original->reference ChBasis): "
-    //    	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
+    //	      << "  Reindex original->reference ChBasis): "
+    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
     //^-
     // Maximum angular deviation of cell from that
     // required by rotation group
@@ -1802,35 +1802,44 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   std::vector<scala::ReindexOp>
-  AlternativeIndexing(const PointGroup& PG,
+  AlternativeIndexing(const PointGroup& PG, const PointGroup& TG,
 		      const bool& strict,
 		      const scala::Scell target_cell,
 		      const float& max_delta,
 		      const int& AllowI2)
-    // Return list of possible alternative indexing schemes
-    // compatible with cell or with lattice symmetry
-    //
-    // (1) If strict = true
-    //   return symmetry operators from symmetry elements 
-    //   present in lattice group but not in pointgroup
-    //   (max_delta & target_cell are ignored)
-    //   This can only happen for symmetries > orthorhombic
-    // else (2) strict = false
-    //   find accidental alternatives arising from special
-    //   cell dimension relationships
-    //   max_delta is tolerance for cell similarity
-    //    to target_cell
-    //
-    //  Returns:-
-    //   List of reindex operators, including:-
-    //     strict flag: true if "strict"
-    //     deviations - cell deviations from target cell
-    //                  (maximum angle in degrees)
-    //                  = 0.0 for strict settings
-    //
-    // Friend of class PointGroup
+  //  PG is reference group, with a unit cell
+  //  TG is test group, with a unit cell
+  // Return list of possible alternative indexing schemes
+  // compatible with cell or with lattice symmetry
+  //
+  // (1) If strict = true
+  //   return symmetry operators from symmetry elements 
+  //   present in lattice group but not in pointgroup
+  //   (max_delta & target_cell are ignored)
+  //   This can only happen for symmetries > orthorhombic
+  // else (2) strict = false
+  //   find accidental alternatives arising from special
+  //   cell dimension relationships
+  //   max_delta is tolerance for cell similarity
+  //    to target_cell
+  //
+  //  Returns:-
+  //   List of reindex operators, including:-
+  //     strict flag: true if "strict"
+  //     deviations - cell deviations from target cell
+  //                  (maximum angle in degrees)
+  //                  = 0.0 for strict settings
+  //
+  // Friend of class PointGroup
   {
     std::vector<scala::ReindexOp> ReindexList;
+    //^
+    //    std::cout << "AlternativeIndexing\n* * * PG\n";
+    //    PG.dump();
+    //    std::cout << "\n* * * TG\n";
+    //    TG.dump();
+    //    std::cout << "\n* * * END\n";
+    //^-
 
     if (strict) {
       if (LatticeGroup(PG.LaueGrp_ref).crystal_system() <= ORTHORHOMBIC)
@@ -1865,30 +1874,44 @@ namespace CCtbxSym
 	  {StrictOps.push_back(SetReindexOp(StrictCB[i]));}
       }
       // Maximum lattice symmetry 
-      CCtbxSym::LatticeSymmetry lat(PG.input_cell, PG.LatType, AllowI2, max_delta);
+      CCtbxSym::LatticeSymmetry lat(TG.TransformedCell(), TG.LatType, AllowI2, max_delta);
+      ///      CCtbxSym::LatticeSymmetry lat(PG.input_cell, PG.LatType, AllowI2, max_delta);
+      //^
+	//      lat.print();
+      //^-
       // Reindexing operator for "best" spacegroup
       //  from original -> lattice (best), inverse operator for hkl
       scala::ReindexOp reindex_op = MVutil::SetCMat33(lat.best_sg_reindex_op());
+      //^
+      //      std::cout << "reindex_op " << reindex_op.as_hkl() <<"\n";  //^-
       // All subgroups
       std::vector<PointGroup> subgroups =
 	scala::GetSubGroups(scala::hkl_symmetry(lat.best_spacegroup_symbol()));
       if (subgroups.size() > 0) {
 	// Loop subgroups to find any which are the same as this
 	for (size_t k=0;k<subgroups.size();k++) {
+	  //^
+	  //	  std::cout << "AlternativeIndexing "
+	  //		    << " subgroups[k].LaueGrp_ref " <<
+	  //	    subgroups[k].LaueGrp_ref.type().hall_symbol()
+	  //		    << " PG.LaueGrp_ref " <<
+	  //	    PG.LaueGrp_ref.type().hall_symbol() <<"\n";
+	  //^-1
 	  if (subgroups[k].LaueGrp_ref == PG.LaueGrp_ref) {
 	    // Yes it is
-	    double celldiff = subgroups[k].SetCell(PG.input_cell,reindex_op, AllowI2);
+	    double celldiff = subgroups[k].SetCell(TG.TransformedCell(),
+						   reindex_op, AllowI2);
 	    celldiff = celldiff;
 	    //^ debug
-	    /*		    std::cout << "\nAlternative found: reindex "
-	      << subgroups[k].RefSGreindexFormat() << "\n";
-	      std::cout << "Cell: ";
-	      std::vector<double> tcell =
-	      subgroups[k].TransformedCell();
-	      for (int i=0;i<6;i++) std:: cout << " " << tcell[i];
-	      std::cout << "\nInput Cell: ";
-	      for (int i=0;i<6;i++) std:: cout << " " << PG.input_cell[i];
-	      std::cout << "\n";*/
+	    //	    std::cout << "\nAlternative found: reindex "
+	    //		      << subgroups[k].RefSGreindexFormat() << "\n";
+	    //	    std::cout << "Cell: ";
+	    //	    std::vector<double> tcell =
+	    //	      subgroups[k].TransformedCell();
+	    //	    for (int i=0;i<6;i++) std:: cout << " " << tcell[i];
+	    //	    std::cout << "\nInput Cell: ";
+	    //	    for (int i=0;i<6;i++) std:: cout << " " << PG.input_cell[i];
+	    //	    std::cout << "\n"; 
 	    //^
 	    
 	    std::vector<double> cell_diffs;

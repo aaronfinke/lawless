@@ -315,7 +315,7 @@ public:
   //! This will probably fail if the number of arguments doesn't match
   //! the format
   std::string Line(const int nc, ...) const;
-  //!  Return formatted line, with zeroes by '-' if requested, vector first
+  //!  Return formatted line, with zeroes by '-' if requested, nc numbers then vector
   std::string Line(const std::vector<double>& val, const int nc, ...) const;
   //!  Return formatted line, with zeroes by '-' if requested
   //! Note that NumberLine, Line & GetLine all append the line

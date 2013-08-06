@@ -111,7 +111,7 @@ namespace scala {
       if (nsingle == 0) { // no singletons
 	numbernosingletonsres[mres]++;
       }
-      if (!Centric && ((nsingle_minus == 0) || (nsingle_plus = 0))) {
+      if (!Centric && ((nsingle_minus == 0) || (nsingle_plus == 0))) {
 	numbernoanomsingletonsres[mres]++;  // not singletons for both I+ and I-
       }
     } // end loop reflections

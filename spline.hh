@@ -15,6 +15,8 @@ namespace scala
     Spline() : n(0) {}
     // construct from set of x,y pairs
     Spline(const std::vector<RPair>& xyin);
+    // initialise from set of x,y pairs
+    void init(const std::vector<RPair>& xyin);
 
     float Interpolate(const float& xx) const;
 

@@ -221,6 +221,13 @@ namespace scala {
     bool IsElementIdent(const int& kelement) const;
     //! return axis direction for kelement'th symmetry element
     clipper::Vec3<int>  AxisDirection(const SymElement& elmt) const;
+    //! return axis direction for symop
+    static clipper::Vec3<int>  AxisDirection(const clipper::Symop& csymop);
+    //! axis direction, "h", "k" or "l" if along principle axis, else " "
+    static std::string AxisString(const clipper::Symop& csymop);
+    //! axis direction, "h", "k" or "l" if along principle axis, else " ", also set Iaxis
+    std::string AxisString(const int& kelement,
+			   clipper::Vec3<int>& Iaxis) const;
     //! make formatted version of symmetry element
     std::string format_element(const int& kelement) const;
     //! make XML version of symmetry element
@@ -270,6 +277,8 @@ namespace scala {
 
     //! return crystal system
     CrystalSystem CrysSys() const {return cryssys;}
+    //! return formatted crystal system
+    std::string formatCrysSys() const;
     //! return cell constraint flags, vector(6)
     /*!  = -1  anything, = 0 constrained angle (=90 or 120)
       > 0 = j, same as j'th parameter */

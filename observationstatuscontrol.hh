@@ -13,7 +13,8 @@ namespace scala {
   //  Other flags are left unaltered
   // if Exclude == true, then set flag to exclude all multiple observations
   // if Exclude == false, then set flag to include multiple observations
-  void SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list);
+  // return number of overlapped rejections
+  int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list);
 
   // Set to use runs flagged in userun
   void SetRunsToUse(const std::vector<bool>& userun, hkl_unmerge_list& hkl_list);

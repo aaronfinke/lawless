@@ -323,7 +323,7 @@ namespace scala {
       //^      std::cout <<"ChangeBasis Symop in:  " << csymops[js].format() <<"\n";
       // If [H] is the reindex operator,
       //  [S'] = [H]^-1 [S] [H]
-      csymops[js] = H.Symop(csymops[js]);
+      csymops[js] = H.Symop(csymops[js]);  // now done in ReindexOp class
       //      clipper::Mat33<double> S = csymops[js].rot();
       //      clipper::Vec3<double>  t = csymops[js].trn();
       //      clipper::RTop<double> Sp(HR.inverse()*S*HR, HR.inverse() * t);
@@ -767,6 +767,44 @@ namespace scala {
     return MVutil::IntVec(axis);
   }
   //--------------------------------------------------------------
+  clipper::Vec3<int>  hkl_symmetry::AxisDirection(const clipper::Symop& csymop)
+  // Axis direction for symop
+  {
+    clipper::Mat33<double> RecSymOpM = csymop.rot();
+    clipper::Vec3<double> axis = MVutil::AxisDirection(RecSymOpM);
+    // Make integral version of vector
+    return MVutil::IntVec(axis);
+  }
+  //--------------------------------------------------------------
+  std::string hkl_symmetry::AxisString(const clipper::Symop& csymop)
+  {
+    std::string s = " ";
+    clipper::Vec3<int> Iaxis = AxisDirection(csymop);
+    // Along principle axis?
+    if ((abs(Iaxis[0])+abs(Iaxis[1])+abs(Iaxis[2])) == 1) {
+      if (Iaxis[0] == 1) s = "h";
+      if (Iaxis[1] == 1) s = "k";
+      if (Iaxis[2] == 1) s = "l";
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+    std::string hkl_symmetry::AxisString(const int& kelement,
+					 clipper::Vec3<int>& Iaxis) const
+  {
+    std::string s = " ";
+    // Get axis direction from sample (first) symop belonging
+    // to this element
+    Iaxis = AxisDirection(elements[kelement]);
+    // Along principle axis?
+    if ((abs(Iaxis[0])+abs(Iaxis[1])+abs(Iaxis[2])) == 1) {
+      if (Iaxis[0] == 1) s = "h";
+      if (Iaxis[1] == 1) s = "k";
+      if (Iaxis[2] == 1) s = "l";
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
   std::string hkl_symmetry::format_element(const int& kelement) const
     // make formatted version of symmetry element
     //  kelement (0 - Nelement-1)
@@ -783,15 +821,8 @@ namespace scala {
 
     // Get axis direction from sample (first) symop belonging
     // to this element
-    clipper::Vec3<int> Iaxis = AxisDirection(elements[kelement]);
-    // Along principle axis?
-    if ((abs(Iaxis[0])+abs(Iaxis[1])+abs(Iaxis[2])) == 1) {
-      if (Iaxis[0] == 1) s = s+"h ";
-      if (Iaxis[1] == 1) s = s+"k ";
-      if (Iaxis[2] == 1) s = s+"l ";
-    } else {
-      s = s+"  ";
-    }
+    clipper::Vec3<int> Iaxis;
+    s += AxisString(kelement, Iaxis)+" ";
     s = s+"("+clipper::String(Iaxis[0], 2)+clipper::String(Iaxis[1], 2)
       +clipper::String(Iaxis[2], 2)+") ";
 
@@ -1000,6 +1031,12 @@ namespace scala {
   std::string hkl_symmetry::symbol_xHM(const char& HorR) const
   {
     return SGnameHtoR(spaceGroup.Symbol_hm(), HorR);
+  }
+  //--------------------------------------------------------------
+  //! return formatted crystal system
+  std::string hkl_symmetry::formatCrysSys() const
+  {
+    return CrystalType(cryssys, LatType).format(false);
   }
   //--------------------------------------------------------------
   std::vector<int> hkl_symmetry::CellConstraint() const

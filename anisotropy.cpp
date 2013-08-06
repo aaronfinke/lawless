@@ -7,8 +7,6 @@
 using clipper::Message;
 using clipper::Message_fatal;
 
-
-
 namespace scala {
 //-------------------------------------------------------------------------------
   OrthogonalAnisotropy::OrthogonalAnisotropy
@@ -46,7 +44,7 @@ void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isig
 }
 //--------------------------------------------------------------------------
 void OrthogonalAnisotropy::SortEigenVectorsOrth()
-//! Sort eigenvectorsas closest to a*, b*, c*, and eigenvalues
+//! Sort eigenvectors as closest to a*, b*, c*, and eigenvalues
 {
   std::vector<DVect3> eigvecsrt(3);
   DVect3 eigvalsrt;

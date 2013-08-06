@@ -209,7 +209,7 @@ namespace CCtbxSym
     //    {return (!(a.LaueGrp_ref == b.LaueGrp_ref) && (a.ChBasis_ref.c() == b.ChBasis_ref.c()));}
 
     friend std::vector<scala::ReindexOp>
-        AlternativeIndexing(const PointGroup& PG,
+        AlternativeIndexing(const PointGroup& PG, const PointGroup& TG,
 			    const bool& strict,
 			    const scala::Scell target_cell,
 			    const float& max_delta,
@@ -371,7 +371,7 @@ namespace CCtbxSym
   //
   // Friend of class PointGroup
   std::vector<scala::ReindexOp> 
-  AlternativeIndexing(const PointGroup& PGz1,
+  AlternativeIndexing(const PointGroup& PGz1, const PointGroup& TGz1,
 		      const bool& strict,
 		      const scala::Scell target_cell,
 		      const float& max_delta,
