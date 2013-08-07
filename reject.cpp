@@ -145,32 +145,6 @@ namespace scala {
     }
   }
   // ------------------------------------------------------------
-  std::vector<int> RejectList::EmaxRejectIndexList
-  (const SelectedObservations& selobs,
-   const Normalise::RobustNormalise& NormRes,
-   const EProb& eprobtest,
-   const bool& Centric) const
-  // Return list of index numbers for each Emax outlier observation, if any
-  {
-
-    reflection this_ref = selobs.Reflection();
-    Rtype invresolsq = this_ref.invresolsq();
-    observation this_obs;
-
-    std::vector<int> idxlist;
-    int i;
-    while ((i = selobs.next_observation(this_obs)) >= 0) {
-      this_obs =this_ref.get_observation(i);
-      float E2 = NormRes.apply(this_obs.kI(), invresolsq);
-      if (eprobtest.TooBig(E2, Centric)) {
-	// reject
-	idxlist.push_back(i);
-      }
-    }
-    return idxlist;
-  }
-
-  // ------------------------------------------------------------
   // ------------------------------------------------------------
   void RejectOutlier(hkl_unmerge_list& hkl_list,
 		     const SDmodel& SDM,
