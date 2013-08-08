@@ -20,6 +20,8 @@ namespace scala
 
     float Interpolate(const float& xx) const;
 
+    void dump() const;  // for debugging
+    
   private:
     int n;
     std::vector<double> x; 

@@ -34,6 +34,8 @@ namespace scala
   //! replace 1st character of name with L if both are 'R' or 'H'
   std::string SetRlatticetype(const std::string& name, const char& L);
   //--------------------------------------------------------------
+  //! return True if near trigonal, a ~= b, angles 90,90,120
+  bool TrigonalCell(const Scell& cell);
   //================================================================
   class CrystalType
   //! Crystal system + lattice centring

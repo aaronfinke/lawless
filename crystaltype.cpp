@@ -187,4 +187,17 @@ namespace scala
     return true;
   }
   //--------------------------------------------------------------
+  bool TrigonalCell(const Scell& cell)
+  // True if near trigonal, a ~= b, angles 90,90,120
+  {
+    double tol =  0.2;  // tolerance on angles
+    if (Close<double,double>(cell[0], cell[1], tol*5.0)) { // tolerance on a=b
+      if (Close<double,double>(cell[3], 90.0, tol)) {
+	if (Close<double,double>(cell[4], 90.0, tol)) {
+	  if (Close<double,double>(cell[5], 120.0, tol)) {
+	    return true;
+	  }}}}
+    return false;
+  }
+  //--------------------------------------------------------------
 }

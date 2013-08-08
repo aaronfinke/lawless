@@ -1936,7 +1936,7 @@ namespace scala {
 	if (Nfound == 1) { // potential FULL
 	  if (Npart == 1) { // yes it is
 	    partial_status = FULL;
-	    if (dataflags.is_fractioncalc) {
+	    if (dataflags.is_Mpart) {  // only check for Mosflm output
 	      if (total_fraction > 0.99) { // should be > 1 for full
 		check_ok = true;  // OK
 	      }
