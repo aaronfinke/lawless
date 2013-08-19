@@ -749,6 +749,7 @@ int main(int argc, char* argv[])
       nbatchsmooth = (Nint(smoothwidth/width)/2)*2 + 1; // force to be odd
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
+    double resrangewidth;
 
     // Gather & print all statistics
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
@@ -757,11 +758,17 @@ int main(int argc, char* argv[])
       // Store summary statistics for this dataset
       // Resolution range for this dataset
       ResoRange resrangedataset = hkl_list.dataset(idts).ResRange();
+
       // For statistics, reset range to go from same "infinite" resolution
       float lowres = 10000.;
       resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
-      // Use same resolution bin width for all datasets
-      resrangedataset.SetWidth(resrangeanom.Width());
+      if (idts == 0) { // 1st dataset
+	resrangedataset.SetNbins(nresbin);
+	resrangewidth = resrangedataset.Width();
+      } else if (idts > 0) {
+	// Use same resolution bin width for all datasets
+	resrangedataset.SetWidth(resrangewidth);
+      }
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
       float aslope = anomProbSlopes[idts];

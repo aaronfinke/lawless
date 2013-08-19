@@ -226,8 +226,15 @@ namespace scala
   {
     // Force width irrespective of Nobservations
     delta_sSqr = width;
+    
     Nobservations = 0;
-    init();
+    Nbin = sSqrmax/delta_sSqr;
+    Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
+    set = true;
+    //^
+    //    std::cout << "ResoRange::SetWidth " << width
+    //	      << " " << Range::format() <<"\n"; //^-
+
   }
   //--------------------------------------------------------------
   void ResoRange::init_bins()
@@ -395,6 +402,7 @@ namespace scala
 
     s +=  "MinNbin, MaxNbin "+clipper::String(MinNbin)+" "+clipper::String(MaxNbin)+"\n";
     s +=  "MinNrefBin, MaxNrefBin "+clipper::String(MinNrefBin)+" "+clipper::String(MaxNrefBin)+"\n";
+    s += "Nbin "+clipper::String(Nbin)+"\n";
     s += "Nobservations "+clipper::String(Nobservations)+"\n";
     s += "delta_sSqr "+clipper::String(delta_sSqr)+"\n";
     return s;
