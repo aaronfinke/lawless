@@ -40,7 +40,11 @@ namespace scala {
     // reset batchgroup to something sensible (~1 degree) if not set
     if (batchgroup <= 0) {
       double delphi = thisrun.PhiRange().AbsRange()/double(nbatches);
-      batchgroup = Nint(phibinsize/delphi);
+      if (delphi > 0.0001) {
+	batchgroup = Max(1, Nint(phibinsize/delphi));
+      } else {
+	batchgroup = 1;
+      }
     }
 
     ntimebin = (nbatches+batchgroup-1)/batchgroup;
