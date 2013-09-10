@@ -23,6 +23,7 @@ using clipper::Message_fatal;
 #include "tile.hh"
 #include "anisotropy.hh"
 #include "timer.hh"
+#include "radiationdamageanalysis.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -920,6 +921,13 @@ namespace scala {
     if (controls.analysis.DetectorAnalysis()) {
       detectoranalysis.WriteImages("DETECTORIMAGE");  // write out analyses as images
     }
+
+    // Radiation damage analysis
+    if (runlist.size() == 1) {
+      RadiationDamageAnalysis radiationdamageanalysis(hkl_list, 0, -1);
+      radiationdamageanalysis.plot(batchcompleteness, output);
+    }
+
     // Other things for summary
     summaryStatistics.StoreAverageCell(hkl_list.cell(dataset_pxd));
     summaryStatistics.StoreSpaceGroupName(hkl_list.symmetry().symbol_xHM());

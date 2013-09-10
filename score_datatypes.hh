@@ -57,8 +57,11 @@ namespace scala
     // Return number of points
     int Number() const {return np;}
 
+    //  sd(slope), sd(intercept)
+    RPair uncertainties() const;
+
   private:
-    double sumw, sumwx, sumwy, sumwxx, sumwxy;
+    double sumw, sumwx, sumwy, sumwxx, sumwyy, sumwxy;
     float  miny,maxy;
     int np;
   };
@@ -167,6 +170,8 @@ namespace scala
  
     // Calculate correlation coefficient from sums
     ValCount result() const;
+
+    double CC() const {return result().val;}
 
     void dump() const;
 

@@ -585,9 +585,9 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
       }
       int ifww = ifw+overhang;  // add previous overhang
       // Store label
-      labels += AddInLabel(Labels[ifield], ifw, ifd, overhang);
       //^
-      //^	std::cout << ifield << " " << ifw << " " << ifd << " " << overhang << "\n"; //^
+      //      std::cout << ifield << " " << ifw << " " << ifd << " " << overhang << "\n"; //^
+      labels += AddInLabel(Labels[ifield], ifw, ifd, overhang);
       // Store field information
       //   field width
       //   position for "-" character: right-justified for integer

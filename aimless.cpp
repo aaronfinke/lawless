@@ -678,10 +678,10 @@ int main(int argc, char* argv[])
     for (int i=0;i<hkl_list.num_datasets();++i) {
       wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
-    // doRouguePlot true as long as we have geometric data for all batches
+    // doRoguePlot true as long as we have geometric data for all batches
     // to calculate detector position
-    bool doRouguePlot = hkl_list.validOrientation();  // false if no orientation
-    WriteRogues RoguesList(true, doRouguePlot, multilattice,
+    bool doRoguePlot = hkl_list.validOrientation();  // false if no orientation
+    WriteRogues RoguesList(true, doRoguePlot, multilattice,
 			   runTitle, hkl_list.Srange().max(), wavelength,
 			   controls.outlierMerge);
     //  hkl_list is updated for status, but SDs are not changed
@@ -812,9 +812,7 @@ int main(int argc, char* argv[])
     }
 
     if (multilattice && !onlyUseSingletons) {
-      // Analyse overlaps
-      SetOverlapFlags(true, hkl_list); // include overlaps
-      //# AnalyseOverlaps(hkl_list)
+      SetOverlapFlags(false, hkl_list); // include overlaps
     }
     if (outputcontrols.UnMerged()) {
       // Output unmerged reflections file(s), including overlaps
