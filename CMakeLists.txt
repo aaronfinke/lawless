@@ -3,6 +3,15 @@ project(aimless C CXX)
 find_package(CCP4 REQUIRED mmdb ccp4c clipper-core clipper-mmdb clipper-minimol
                            clipper-contrib clipper-ccp4 cctbx)
 
+#OpenMP
+
+FIND_PACKAGE( OpenMP )
+if(OPENMP_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
+
 include_directories(${CCP4_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/MinLib)
 

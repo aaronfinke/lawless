@@ -117,7 +117,8 @@ am_aimless_OBJECTS = aimless.$(OBJEXT) InputAll_aimless.$(OBJEXT) \
 	tile.$(OBJEXT) imagearray.$(OBJEXT) restore.$(OBJEXT) \
 	anisotropy.$(OBJEXT) intensity_scale.$(OBJEXT) \
 	analyseoverlaps.$(OBJEXT) crystaltype.$(OBJEXT) \
-	dataset.$(OBJEXT) observationstatuscontrol.$(OBJEXT)
+	dataset.$(OBJEXT) observationstatuscontrol.$(OBJEXT) \
+	radiationdamageanalysis.$(OBJEXT)
 aimless_OBJECTS = $(am_aimless_OBJECTS)
 am__DEPENDENCIES_1 =
 aimless_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -352,6 +353,7 @@ aimless_SOURCES = \
         zone.cpp tablegraph.cpp optimisecombine.cpp tile.cpp imagearray.cpp \
         restore.cpp anisotropy.cpp intensity_scale.cpp \
 	analyseoverlaps.cpp crystaltype.cpp dataset.cpp observationstatuscontrol.cpp \
+	radiationdamageanalysis.cpp \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
@@ -381,7 +383,7 @@ aimless_SOURCES = \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
 	optimisecombine.hh tile.hh imagearray.hh restore.hh \
         anisotropy.hh intensity_scale.h analyseoverlaps.hh crystaltype.hh \
-	dataset.hh observationstatuscontrol.hh weighttype.hh
+	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.h 
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
 aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) ./MinLib/libbfgs.a
@@ -536,6 +538,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pointgroup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/printing.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/probfunctions.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/radiationdamageanalysis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/range.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/refinescale.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/refinesdcorrection.Po@am__quote@

@@ -31,6 +31,7 @@ aimless_SOURCES = \
         zone.cpp tablegraph.cpp optimisecombine.cpp tile.cpp imagearray.cpp \
         restore.cpp anisotropy.cpp intensity_scale.cpp \
 	analyseoverlaps.cpp crystaltype.cpp dataset.cpp observationstatuscontrol.cpp \
+	radiationdamageanalysis.cpp \
         aimless.hh \
         InputAll.hh InputAll_aimless.hh ProtocolSDref.hh ProtocolScale.hh \
         analyseanom.hh analysesd.hh anomdistribution.hh \
@@ -60,7 +61,7 @@ aimless_SOURCES = \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
 	optimisecombine.hh tile.hh imagearray.hh restore.hh \
         anisotropy.hh intensity_scale.h analyseoverlaps.hh crystaltype.hh \
-	dataset.hh observationstatuscontrol.hh weighttype.hh
+	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.h 
 
 
 bin_PROGRAMS = aimless
