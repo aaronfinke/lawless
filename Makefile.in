@@ -383,7 +383,7 @@ aimless_SOURCES = \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
 	optimisecombine.hh tile.hh imagearray.hh restore.hh \
         anisotropy.hh intensity_scale.h analyseoverlaps.hh crystaltype.hh \
-	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.h 
+	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.hh
 
 INCLUDES = -I@srcdir@/MinLib $(PTHREAD_CFLAGS) $(CLIPPER_CXXFLAGS) $(CCTBX_CXXFLAGS) $(CCP4_CXXFLAGS) $(FFTW_CXXFLAGS)
 aimless_LDADD = $(PTHREAD_CFLAGS) $(CLIPPER_LIBS) $(CCTBX_LIBS) $(CCP4_LIBS) $(FFTW_LIBS) $(PTHREAD_LIBS) ./MinLib/libbfgs.a

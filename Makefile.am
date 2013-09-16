@@ -61,7 +61,7 @@ aimless_SOURCES = \
         string_util.hh timer.hh util.hh zone.hh tablegraph.hh \
 	optimisecombine.hh tile.hh imagearray.hh restore.hh \
         anisotropy.hh intensity_scale.h analyseoverlaps.hh crystaltype.hh \
-	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.h 
+	dataset.hh observationstatuscontrol.hh weighttype.hh radiationdamageanalysis.hh
 
 
 bin_PROGRAMS = aimless
