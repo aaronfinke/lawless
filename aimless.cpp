@@ -694,9 +694,10 @@ int main(int argc, char* argv[])
 			nrejs[0], nrejs[1], nrejs[2]);
     output.logTab(0,LXML,CountOutliersXML(nrejs));
     output.logFlush();
-    // ROGUEPLOT to XML
-    output.logTab(0,LXML, RoguesList.formatXML());
-
+    if (doRoguePlot) {
+      // ROGUEPLOT to XML
+      output.logTab(0,LXML, RoguesList.formatXML());
+    }
 
     // for each dataset
     std::vector<Analyseoverlaps>  analyseoverlaps(hkl_list.num_datasets());
