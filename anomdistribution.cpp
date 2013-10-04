@@ -165,12 +165,31 @@ namespace scala {
   // At present, anomalous scattering is considered to be present if any one of
   // the following is true (defaults in brackets):
   //  1) Anomplot slope > anomslopethreshold (1.3)
-  //  2) CCanom > anomCCthreshold (0.3) in more than anomNbinthreshold bins (2)
-  //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2)
+  //  2) CCanom > anomCCthreshold (0.3) in more than anomNbinthreshold bins (2), or overall,
+  //     or interdataset CCanom
+  //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2), or overall
   //
   // It should be possible to estimate probabilities, but this will do for now
   {
     bool isanomalous = false;
+    
+    for (size_t k=0; k<cca.size(); k++) {  // loop cross-correlation CCanom
+      // Interdataset CCs
+      int nccanom  = 0; // ... CCanom
+      correl_coeff cc;
+      for (size_t mres=0;mres<cca[k].size();++mres) {
+	if (cca[k][mres].result().val >
+	    controls.anomalouscontrol.anomCCthreshold) {
+	  nccanom++;
+	}
+	cc += cca[k][mres];
+      }    // resolution bin loop
+      if (nccanom > controls.anomalouscontrol.anomNbinthreshold ||
+	  cc.result().val > controls.anomalouscontrol.anomCCthreshold) {
+	  isanomalous = true;   // overall value above threshold
+      }
+    }   // end loop cross terms
+
     for (int id=0;id<ndatasets;id++) { // loop datasets
       if (anomdistributions[id].Slope() >
 	  controls.anomalouscontrol.anomslopethreshold) {
@@ -180,6 +199,15 @@ namespace scala {
       int nccanom  = 0; // ... CCanom
       int nrcranom = 0; // ... RCRanom
       int nbin = anomdistributions[id].Halfdataset().NresBin();
+      if (anomdistributions[id].Halfdataset().CCanom().result().val >
+	    controls.anomalouscontrol.anomCCthreshold) {
+	isanomalous = true;   // overall value above threshold
+      }
+      if (anomdistributions[id].Halfdataset().RMScorrelRatio() >
+	  controls.anomalouscontrol.anomRCRthreshold) {
+	isanomalous = true;   // overall value above threshold
+      }
+
       for (int mres=0;mres<nbin;++mres) {
 	if (anomdistributions[id].Halfdataset().CCanom(mres).result().val >
 	    controls.anomalouscontrol.anomCCthreshold) {
@@ -437,7 +465,8 @@ namespace scala {
       valCount[k] = std::pair<double,int>(allcc[k].result().val, allcc[k].result().count);
     }
     output.logTab(0,LXML,
-		  StringUtil::FormatXMLcrossTable(tableid, ldf, "CC", valCount));
+		  StringUtil::FormatXMLcrossTable("crosstable",
+						  tableid, ldf, "CC", valCount));
   }
   // ------------------------------------------------------------
   // ------------------------------------------------------------

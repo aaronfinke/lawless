@@ -355,7 +355,7 @@ std::string StringUtil::FormatSaveVector(const std::vector<double> vec)
   return s+line+"\n";
 }
 //--------------------------------------------------------------
-std::string StringUtil::FormatXMLcrossTable(const std::string& tableid,
+std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const std::string& tableid,
 					    const std::vector<std::string>& names,
 					    const std::string& valTag,
 					    const std::vector<std::pair<double,int> >& valCount)
@@ -363,39 +363,42 @@ std::string StringUtil::FormatXMLcrossTable(const std::string& tableid,
 //   ab, ac, ad, ...
 //       bc, bd, ...
 //           cd, ...
-// but write out in order, eg for a,b,c,d:
-//   ba
-//   ca, cb
-//   da, db, dc
 {
-  std::string s = "\n<table id=\""+tableid+"\">";
+  std::string s = "\n<"+Strip(elementid)+" id=\""+tableid+"\">\n";
   int nval = names.size();
   int npairs = nval*(nval-1)/2;
   ASSERT (int(valCount.size()) == npairs);
 
-  // column headers, names 0 -> nval-2
-  s += "<th></th>";
-  for (int i=0;i<nval-1;++i) {
-    s += StringUtil::MakeXMLtag("th", names[i]);
+  // column headers, names from 1
+  s += "<columnheaders>";
+  for (int i=1;i<nval;++i) {
+    s += StringUtil::MakeXMLtag("label", names[i]);
   }
+  s += "\n</columnheaders>\n";
+  std::string v;
 
-  for (int j=1;j<nval;++j) { // loop rows from 1
+  int k = 0;  // index to valCount
+  for (int j=0;j<nval-1;++j) { // loop rows from 0 -> nval-2
     // row header
-    s += "\n<tr><th>"+names[j]+"</th>";
-    int k = j-1;  // 1st item in row
-    for (int i=0;i<j;++i) { // loop columns
-      ///     std::cout <<"i,j,k " <<i<<" "<<j<<" "<<k<<"\n";
-      // values
-      std::string v = StringUtil::MakeXMLtag
-	(valTag, StringUtil::ftos(valCount[k].first,7,3));
-      v += StringUtil::MakeXMLtag("Number", StringUtil::itos(valCount[k].second,5));
-      s += StringUtil::MakeXMLtag("td", v, false);
-      k += nval-i-2;
+    s += "<row><label>"+names[j]+"</label>";
+    for (int i=1;i<nval;++i) { // loop columns
+      if (i <= j) {
+	// blank (redundant) entry
+	v = StringUtil::MakeXMLtag(valTag, " ");
+	v += StringUtil::MakeXMLtag("Number", " ");
+      } else {
+	//	std::cout <<"i,j,k " <<i<<" "<<j<<" "<<k<<"\n";
+	// values
+	v = StringUtil::MakeXMLtag
+	  (valTag, StringUtil::ftos(valCount[k].first,7,3));
+	v += StringUtil::MakeXMLtag("Number", StringUtil::itos(valCount[k].second,5));
+	k++;
+      }
+      s += v;
     } // end column loop
-    s += "</tr>";
+    s += "</row>\n";
   } // end row loop
-
-  s += "\n</table>";
+  s += "</"+Strip(elementid)+">";
   return s;
 }
 //======================================================================

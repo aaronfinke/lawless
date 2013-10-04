@@ -69,6 +69,8 @@ public:
   void SetXaxis(const scala::Range& Xrange, const bool& isinvresolsq);
   //! Y-axis range and ZeroY true to start Y at 0
   void SetYaxis(const scala::Range& Yrange, const bool& ZeroY);
+  //! Right Y-axis range and ZeroY true to start Y at 0
+  void SetRightYaxis(const scala::Range& Yrange, const bool& ZeroY);
 
   //! return type
   GraphType Graphtype() const {return graphtype;}
@@ -82,10 +84,13 @@ private:
   bool xinvresolsq;  // true if x axis is 1/d^2
   scala::Range yrange;
   bool zeroy;  // true if Y axis should start at zero
+  scala::Range yrange_RH;  // RH axis
+  bool zeroy_RH;  // true if Y axis should start at zero
 
   // Fix Yrange to be "sensible"
   // If ZeroY true, then y range should start at 0
   void FixYrange(const bool& ZeroY);
+  void FixYrangeRH(const bool& ZeroY);
 };
 
 // Definitions in TableGraphPlotline & TableGraphPlot follow Pimple,
@@ -127,6 +132,7 @@ public:
 		     const std::string& colour="",
 		     const std::string& symbol="",
 		     const int& symbolsize=-1,
+		     const bool& symboledge=true,
 		     const std::string& linestyle="",
 		     const int& linewidth=-1);
 
@@ -136,14 +142,20 @@ public:
 	    const std::string& colr="",
 	    const std::string& symbol="",
 	    const int& symbolsize=-1,
+	    const bool& symboledge=true,
 	    const std::string& linestyle="",
 	    const int& linewidth=-1);
   //! Set line symbol type
-  void SetSymbol(const std::string& symb, const int& size=-1);
+  void SetSymbol(const std::string& symb, const int& size=-1,
+		 const bool& edge=true);
   //! Set line type
   void SetLine(const std::string& linestyle, const int& width=-1);
   //! Set colour
   void SetColour(const std::string& col);
+  //! Set right-hand axis
+  void SetRHaxis() {rhaxis = true;}
+  //! True if RH axis specified
+  bool IsRHaxis() const {return rhaxis;}
 
   int Xcol() const {return xcol;} //!< return x-column
   int Ycol() const {return ycol;} //!< return y-column
@@ -165,6 +177,7 @@ private:
   // 'Bow tie','Circle arrow left','Clubs (as in playing cards)','Tick'. 
   std::string symbol;
   int symbolsize;
+  bool symboledge;  // false for no black edge
 
   std::string slinestyle; // 'Solid','Dashed','Dash-dot','Dotted','Blank'
   // The style of the line, allowed values:
@@ -180,6 +193,8 @@ private:
   std::string colour; 
   std::string label; // for legend
   bool showinlegend; // show line in legend, not used yet
+
+  bool rhaxis;  // true if line belongs to RH axis
 
   // convert string to LineStyle
   static std::string Style(const std::string& style);
@@ -228,6 +243,18 @@ public:
 		const scala::Range& range=scala::Range(),
 		const bool& integral=false);
 
+  //! Define right-hand Y-axis properties
+
+  //! \param  label    for axis, "" to get from data table
+  //! \param  ZeroY    true to run y from zero
+  //! \param  range    axis range, null for auto determination
+  //! \param  integral true if axis values are integral
+  //! Must call before AddLine for a RH axis line
+  //
+  void SetRightYaxis(const std::string& label, const bool& ZeroY,
+		     const scala::Range& range=scala::Range(),
+		     const bool& integral=false);
+
   //! Add a line to the plot
   void AddLine(const TableGraphPlotline& pltline);
 
@@ -239,17 +266,20 @@ public:
 private:
   std::string plottype; // "xy"
   std::string title;
-  std::string xlabel, ylabel;  // axis labels, if specified
+  std::string xlabel, ylabel, ylabel_RH;  // axis labels, if specified
   std::string xscale; // blank or "oneoversqrt" (mostly not needed);
   std::string yscale; // not used
-  scala::Range xrange, yrange; // axis ranges
+  scala::Range xrange, yrange, yrange_RH; // axis ranges
+  bool isRHyaxis;     // true if a RH Y-axis has been specified
   std::vector<scala::Range> xbreaks; // breaks in x axis  
   int xcolbreak;      // x column for breaks
   bool xinvresolsq;
   bool zeroy;  // true if Y axis should start at zero
+  bool zeroy_RH;  // true if Y axis should start at zero
   std::vector<scala::Range> ybreaks; // breaks in y-axis, not used
   bool xintegral; // true if x-axis is integral
   bool yintegral; // true if y-axis is integral
+  bool yintegral_RH; // true if y-axis is integral
   GraphAxesType axistypes;  // for both x & y
 
   std::vector<TableGraphPlotline> plotlines;  // plotlines

@@ -430,6 +430,7 @@ void XMLplot::Header(const std::string& title,
   // Title
   headerstring = "<CCP4Table title=\""+title+"\">\n";
   headerstring += "<plot>\n";  // start plot
+  headerstring += "<title>"+title+"</title>\n";
 
   symbolSize = 2;
 

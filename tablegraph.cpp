@@ -74,6 +74,13 @@ void GraphAxesType::SetYaxis(const scala::Range& Yrange, const bool& ZeroY)
   FixYrange(ZeroY);
 }
 //--------------------------------------------------------------
+// Right Y-axis range and ZeroY true to start Y at 0
+void GraphAxesType::SetRightYaxis(const scala::Range& Yrange, const bool& ZeroY)
+{
+  yrange_RH = Yrange;
+  FixYrangeRH(ZeroY);
+}
+//--------------------------------------------------------------
 void GraphAxesType::FixYrange(const bool& ZeroY)
 // Fix Yrange to be "sensible"
 // If ZeroY true, then y range should start at 0
@@ -82,6 +89,16 @@ void GraphAxesType::FixYrange(const bool& ZeroY)
     yrange.first() = 0.0;
   }
   zeroy = ZeroY;
+}
+//--------------------------------------------------------------
+void GraphAxesType::FixYrangeRH(const bool& ZeroY)
+// Fix Yrange to be "sensible"
+// If ZeroY true, then y range should start at 0
+{
+  if (ZeroY) {
+    yrange_RH.first() = 0.0;
+  }
+  zeroy_RH = ZeroY;
 }
 //--------------------------------------------------------------
 std::string GraphAxesType::FormatType() const
@@ -115,10 +132,11 @@ TableGraphPlotline::TableGraphPlotline() {
 //--------------------------------------------------------------
 TableGraphPlotline::TableGraphPlotline
 (const int& Xcol, const int& Ycol, const std::string& colr,
- const std::string& symb, const int& symbsize,
+ const std::string& symb, const int& symbsize, const bool& symbedge,
  const std::string& linestyle, const int& linewidth)
 {
-  init(Xcol, Ycol, colr, symb, symbsize, linestyle, linewidth);
+  init(Xcol, Ycol, colr, symb, symbsize, symbedge,
+       linestyle, linewidth);
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::init() {
@@ -129,20 +147,25 @@ void TableGraphPlotline::init() {
 void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
 			      const std::string& colr,
 			      const std::string& symb, const int& symbsize,
+			      const bool& symbedge,
 			      const std::string& linestyle,
 			      const int& linewidth)
 {
   xcol = Xcol;
   ycol = Ycol;
   SetColour(colr);
-  SetSymbol(symb, symbsize);
+  SetSymbol(symb, symbsize, symbedge);
   SetLine(linestyle, linewidth);
+  rhaxis = false;
 }
 //--------------------------------------------------------------
-void TableGraphPlotline::SetSymbol(const std::string& symb, const int& size) {
+void TableGraphPlotline::SetSymbol(const std::string& symb,
+				   const int& size,
+				   const bool& edge) {
   // size default = -1 ie unspecified
   symbol = symb;
-  symbolsize = size; 
+  symbolsize = size;
+  symboledge = edge;
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::SetLine(const std::string& linestyle,
@@ -181,12 +204,19 @@ std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
   if (xcolbreak >= 0) {xc = xcolbreak;}
   std::string sxcol = StringUtil::itos(xc,3);
   std::string sycol = StringUtil::itos(ycol,3);
-  s += "<plotline xcol=\""+sxcol+"\" ycol=\""+sycol+"\">\n";
+  s += "<plotline xcol=\""+sxcol+"\" ycol=\""+sycol+"\"";
+  if (rhaxis) {
+    s += " rightaxis=\"true\"";
+  }
+  s += " >\n";
   if (symbol != "") {
     s += StringUtil::MakeXMLtag("symbol", symbol)+"\n";
   }
   if (symbolsize >= 0) {
     s += StringUtil::MakeXMLtag("symbolsize",StringUtil::itos(symbolsize,3))+"\n";
+  }
+  if (!symboledge) {
+    s += StringUtil::MakeXMLtag("markeredgewidth",StringUtil::ftos(0.0,4,1))+"\n";
   }
   if (linestylevalue != "") {
     s += StringUtil::MakeXMLtag("linestyle", linestylevalue)+"\n";
@@ -247,13 +277,17 @@ void TableGraphPlot::init(const std::string& ptitle) {
   yscale = "";
   xrange.clear();
   yrange.clear();
+  yrange_RH.clear();
+  isRHyaxis = true;
   xbreaks.clear();
   xcolbreak = -1;
   xinvresolsq = false;
   zeroy = false;
+  zeroy_RH = false;
   ybreaks.clear();
   xintegral = false;
   yintegral = false;
+  yintegral_RH = false;
   axistypes.init(GraphAxesType::AUTO_Y); // default Y axis type
   plotlines.clear();
 }
@@ -328,9 +362,37 @@ void TableGraphPlot::SetYaxis(const std::string& label,
   axistypes.SetYaxis(yrange, zeroy);
 }
 //--------------------------------------------------------------
+void TableGraphPlot::SetRightYaxis(const std::string& label,
+				   const bool& ZeroY,
+				   const scala::Range& range,
+				   const bool& integral)
+// Define right-hand Y-axis:
+//  label    for axis, "" to get from data table
+//  ZeroY    true to run y from zero
+//  range    axis range, null for auto determination
+//  integral true if axis values are integral
+{
+  if (label != "") {
+    ylabel_RH = label;
+  }
+  if (range.Valid()) {
+    yrange_RH = range;
+    if (ZeroY) {yrange_RH.first() = 0.0;}
+  }
+  yintegral_RH = integral;
+  zeroy_RH = ZeroY;
+  axistypes.SetRightYaxis(yrange_RH, zeroy_RH);
+  isRHyaxis = true;
+}
+//--------------------------------------------------------------
 // Add a line to the plot
 void TableGraphPlot::AddLine(const TableGraphPlotline& pltline)
 {
+  // Check for consistent RH axis specification
+  if (pltline.IsRHaxis() && !isRHyaxis) {
+    Message::message(Message_fatal
+     ("TableGraphPlot::AddLine: must specify RH yaxis to add RH axis line"));
+  }
   plotlines.push_back(pltline);
 }
 //--------------------------------------------------------------
@@ -366,6 +428,9 @@ std::string TableGraphPlot::XMLformat() const
   if (ylabel != "") {
     s += StringUtil::MakeXMLtag("ylabel", ylabel)+"\n";
   }
+  if (ylabel_RH != "") {
+    s += StringUtil::MakeXMLtag("rylabel", ylabel_RH)+"\n";
+  }
   if (xinvresolsq) {
     s += StringUtil::MakeXMLtag("xscale", "oneoversqrt")+"\n";
   }
@@ -381,11 +446,21 @@ std::string TableGraphPlot::XMLformat() const
     s += "<yrange min=\"0\" max=\"None\"/>\n";
   } else if (yrange.Valid()) {
     // <yrange min="ymin" max="ymax"\>    
-    double ymin = yrange.min();
-    std::string symin = StringUtil::ftos(ymin);
+    std::string symin = StringUtil::ftos(yrange.min());
     std::string symax = StringUtil::ftos(yrange.max());
     s += "<yrange min=\""+symin+"\" max=\""+symax+"\"/>\n";
   }
+
+  if (zeroy_RH) {
+    // <yrange min="0" max="None"\>    
+    s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
+  } else if (yrange.Valid()) {
+    // <yrange min="ymin" max="ymax"\>    
+    std::string symin = StringUtil::ftos(yrange_RH.min());
+    std::string symax = StringUtil::ftos(yrange_RH.max());
+    s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
+  }
+
   if (xbreaks.size() > 0) {
     s += formatXbreaks();
   }

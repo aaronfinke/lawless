@@ -263,20 +263,18 @@ namespace scala {
       output.logTabPrintf(0,OUTSTREAM,
 			  "Multiplicity                          %10.1f%10.1f%10.1f\n",
 			  multiplicity[0], multiplicity[1], multiplicity[2]);
-      if (Anom) {
-	output.logTabPrintf(0,OUTSTREAM,
-			    "\nAnomalous completeness                %10.1f%10.1f%10.1f\n",
-			    anomcomplete[0], anomcomplete[1], anomcomplete[2]);
-	output.logTabPrintf(0,OUTSTREAM,
-			    "Anomalous multiplicity                %10.1f%10.1f%10.1f\n",
-			    anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]);
-	output.logTabPrintf(0,OUTSTREAM,
-			    "DelAnom correlation between half-sets %10.3f%10.3f%10.3f\n",
-			    anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]);
-	output.logTabPrintf(0,OUTSTREAM,
-			    "Mid-Slope of Anom Normal Probability  %10.3f       -         -  \n",
-			    anomNPslope);
-      }
+      output.logTabPrintf(0,OUTSTREAM,
+			  "\nAnomalous completeness                %10.1f%10.1f%10.1f\n",
+			  anomcomplete[0], anomcomplete[1], anomcomplete[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Anomalous multiplicity                %10.1f%10.1f%10.1f\n",
+			  anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "DelAnom correlation between half-sets %10.3f%10.3f%10.3f\n",
+			  anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]);
+      output.logTabPrintf(0,OUTSTREAM,
+			  "Mid-Slope of Anom Normal Probability  %10.3f       -         -  \n",
+			  anomNPslope);
       
       // Resolution limit estimates
       output.logTab(0,OUTSTREAM,
@@ -381,19 +379,17 @@ namespace scala {
       output.logTab(1,LXML,
 		    MakeXMLtag3("Multiplicity",8,1,
 				multiplicity[0], multiplicity[1], multiplicity[2]));
-      if (Anom) {
-	output.logTab(1,LXML,
-		      MakeXMLtag3("AnomalousCompleteness",6,1,
-				  anomcomplete[0], anomcomplete[1], anomcomplete[2]));
-	output.logTab(1,LXML,
-		      MakeXMLtag3("AnomalousMultiplicity",8,1,
-				  anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]));
-	output.logTab(1,LXML,
-		      MakeXMLtag3("AnomalousCChalf",8,3,
-				  anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]));
-	output.logTab(1,LXML,
-		      StringUtil::MakeXMLtag("AnomalousNPslope", StringUtil::ftos(anomNPslope, 8,3)));
-      }
+      output.logTab(1,LXML,
+		    MakeXMLtag3("AnomalousCompleteness",6,1,
+				anomcomplete[0], anomcomplete[1], anomcomplete[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("AnomalousMultiplicity",8,1,
+				anommultiplicity[0], anommultiplicity[1], anommultiplicity[2]));
+      output.logTab(1,LXML,
+		    MakeXMLtag3("AnomalousCChalf",8,3,
+				anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]));
+      output.logTab(1,LXML,
+		    StringUtil::MakeXMLtag("AnomalousNPslope", StringUtil::ftos(anomNPslope, 8,3)));
       output.logTab(1,LXML,
 		    MakeXMLresolimit("Overall", "CChalf", overallresolimitCC));
       output.logTab(1,LXML,
@@ -616,40 +612,38 @@ namespace scala {
 			  allsummarystatistics[idts].multiplicity[2]);
     }
     output.logTab(0,OUTSTREAM," ");
-    if (Anom) {
-      output.logTab(0,OUTSTREAM,
-		    "\nAnomalous completeness              ", false);
-      for (int idts=0;idts<ndts;++idts) {
-	output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
-			    allsummarystatistics[idts].anomcomplete[0],
-			    allsummarystatistics[idts].anomcomplete[1],
-			    allsummarystatistics[idts].anomcomplete[2]);
-      }
-      output.logTab(0,OUTSTREAM," ");
-      output.logTabPrintf(0,OUTSTREAM,
-			  "Anomalous multiplicity              ", false);
-      for (int idts=0;idts<ndts;++idts) {
-	output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
-			    allsummarystatistics[idts].anommultiplicity[0],
-			    allsummarystatistics[idts].anommultiplicity[1],
-			    allsummarystatistics[idts].anommultiplicity[2]);
-      }
-      output.logTab(0,OUTSTREAM," ");
-      output.logTab(0,OUTSTREAM, "DAnom correlation between half-sets ",false);
-      for (int idts=0;idts<ndts;++idts) {
-	output.logTabPrintf(0,OUTSTREAM,"  %9.3f%8.3f%8.3f",
-			    allsummarystatistics[idts].anomcorrelation[0],
-			    allsummarystatistics[idts].anomcorrelation[1],
-			    allsummarystatistics[idts].anomcorrelation[2]);
-      }
-      output.logTab(0,OUTSTREAM," ");
-      output.logTab(0,OUTSTREAM, "Mid-Slope of Anom Normal Probability",false);
-      for (int idts=0;idts<ndts;++idts) {
-	output.logTabPrintf(0,OUTSTREAM,"  %9.3f     -       -  ",
-			    allsummarystatistics[idts].anomNPslope);
-      }
-      output.logTab(0,OUTSTREAM," ");
+    output.logTab(0,OUTSTREAM,
+		  "\nAnomalous completeness              ", false);
+    for (int idts=0;idts<ndts;++idts) {
+      output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
+			  allsummarystatistics[idts].anomcomplete[0],
+			  allsummarystatistics[idts].anomcomplete[1],
+			  allsummarystatistics[idts].anomcomplete[2]);
     }
+    output.logTab(0,OUTSTREAM," ");
+    output.logTabPrintf(0,OUTSTREAM,
+			"Anomalous multiplicity              ", false);
+    for (int idts=0;idts<ndts;++idts) {
+      output.logTabPrintf(0,OUTSTREAM, "  %9.1f%8.1f%8.1f",
+			  allsummarystatistics[idts].anommultiplicity[0],
+			  allsummarystatistics[idts].anommultiplicity[1],
+			  allsummarystatistics[idts].anommultiplicity[2]);
+    }
+    output.logTab(0,OUTSTREAM," ");
+    output.logTab(0,OUTSTREAM, "DAnom correlation between half-sets ",false);
+    for (int idts=0;idts<ndts;++idts) {
+      output.logTabPrintf(0,OUTSTREAM,"  %9.3f%8.3f%8.3f",
+			  allsummarystatistics[idts].anomcorrelation[0],
+			  allsummarystatistics[idts].anomcorrelation[1],
+			  allsummarystatistics[idts].anomcorrelation[2]);
+    }
+    output.logTab(0,OUTSTREAM," ");
+    output.logTab(0,OUTSTREAM, "Mid-Slope of Anom Normal Probability",false);
+    for (int idts=0;idts<ndts;++idts) {
+      output.logTabPrintf(0,OUTSTREAM,"  %9.3f     -       -  ",
+			  allsummarystatistics[idts].anomNPslope);
+    }
+    output.logTab(0,OUTSTREAM," ");
     // Resolution limit estimates
     output.logTab(0,OUTSTREAM,
 		  "\nEstimates of resolution limits: overall");

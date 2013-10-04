@@ -59,7 +59,7 @@ static std::vector<std::string> split(const std::string& str,
   static std::string XMLstring(const std::string& s0);
 //--------------------------------------------------------------
 //! format a cross-correlation score table as XML
-  static std::string FormatXMLcrossTable(const std::string& tableid,
+  static std::string FormatXMLcrossTable(const std::string& elementid, const std::string& tableid,
 					 const std::vector<std::string>& names,
 					 const std::string& valTag,
 					 const std::vector<std::pair<double,int> >& valCount);

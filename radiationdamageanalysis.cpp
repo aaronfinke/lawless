@@ -152,14 +152,17 @@ namespace scala {
     int nc0 = 3;
 
     TableGraphPlot graph("Rcp v. batch");
-    graph.AddLine(TableGraphPlotline(2,nc,"red"));  // R
-    graph.AddLine(TableGraphPlotline(2,3,"blue"));  // %completeness
+    graph.AddLine(TableGraphPlotline(2,nc,"red","",-1,false));  // R
+    TableGraphPlotline tgpl(2,3,"blue","",-1,false);  // %completeness
+    tgpl.SetRHaxis();
+    graph.AddLine(tgpl);  // %completeness
     graph.SetYaxis("", true);  // Y from zero
+    graph.SetRightYaxis("", true, Range(0.0, 1.0));  // Y from zero
     table.AddGraph(graph);
 
     graph.init("Rcp v. batch, in shells");
     for (int rbin=0;rbin<nresbin;++rbin) { // for each resolution bin
-      graph.AddLine(TableGraphPlotline(2,rbin+4));   // R
+      graph.AddLine(TableGraphPlotline(2,rbin+4,"","",-1,false));   // R
       graph.SetYaxis("", true);  // Y from zero
     }
     table.AddGraph(graph);
