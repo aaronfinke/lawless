@@ -61,14 +61,15 @@ namespace scala {
     std::vector<int> idxrun(nruns); // index to 1st rotation range for each run
     // Set up rotation ranges for each run
     for (int irun=0;irun<nruns;++irun) {
+      // Store number of rotation ranges
+      //   for batch mode = Nbatches
+      nranges_run[irun] = AllScales.primary_scale(irun).Nintervals();
       if (AllScales.primary_scale(irun).IsBatchScale()) {
 	// Batch scale
 	batch_scale_run[irun] = true;
       }
-      // Store number of rotation ranges
-      //   for batch mode = Nbatches
-      nranges_run[irun] = AllScales.primary_scale(irun).Nintervals();
-      idxrun[irun] = nrotranges;
+      // idxrun is 1st index in list for this run
+      idxrun[irun] = nrotranges;  
       nrotranges += nranges_run[irun];
       runlist[irun].PhiRange().SetNbin(nranges_run[irun]); // set up binning on phi
       //^
@@ -100,13 +101,20 @@ namespace scala {
     }
 
     hkl_list.rewind();
+    int irot;
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
       int ires = resrange.bin(this_refl.invresolsq());
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
 	// loop observations
 	int irun = this_obs.run();
 	Rtype phi = this_obs.phi();
-	int irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
+	if (AllScales.primary_scale(irun).IsBatchScale()) {
+	  // batch scale
+	  int batchserial = hkl_list.batch_serial(this_obs.Batch());
+	  irot = batchserial - runlist[irun].BatchSerial0() + idxrun[irun];
+	} else {
+	  irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
+	}
 	sumI(irot, ires) += this_obs.I(); 
 	nI(irot, ires)++;
       }
