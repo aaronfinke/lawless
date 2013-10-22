@@ -636,10 +636,12 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   //            Only applies to merging step (scaling step checks all anyway)
   //  EMAX <Emax> maximum normalised F accepted
   //            
-  float sdrej = 0.0;
-  float sdrej2 = 0.0;
-  float sdreja = 0.0;
-  float sdrej2a = 0.0;
+
+  // default to current values
+  float sdrej = outliercontrolsmerge.Reject(scala::ALL).sdrej;
+  float sdrej2 = outliercontrolsmerge.Reject(scala::ALL).sdrej2;
+  float sdreja = outliercontrolsmerge.Reject(scala::BOTH).sdrej;
+  float sdrej2a = outliercontrolsmerge.Reject(scala::BOTH).sdrej2;
   float emax = -1.0;
   bool  emaxgiven = false;
   bool combine = false;

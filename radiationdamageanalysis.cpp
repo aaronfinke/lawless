@@ -33,7 +33,9 @@ namespace scala {
 
     Run thisrun = hkl_list.RunList()[irun];
     runnum = thisrun.RunNumber();
-    int nbatches = thisrun.Nbatches();
+    // nbatches is range of batch numbers in run
+    std::pair<int,int> batchrange = thisrun.BatchRange();
+    int nbatches = batchrange.second - batchrange.first + 1;
 
     phibinsize = 1.0; // 1 degree bins
     batchgroup = nbatchgroup;
