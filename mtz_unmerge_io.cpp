@@ -43,6 +43,7 @@
 #include "columnlabels.hh"
 #include "string_util.hh"
 #include "openinputfile.hh"
+#include "timer.hh"
 
 namespace MtzIO 
 {
@@ -469,7 +470,11 @@ namespace MtzIO
 
     // Read all observations into hkl_list, subject to selection flags
     bool ChangeIndex;
+    //^    Timer timer;
     int Nread = get_refs(hkl_list, file_sel, col_select, accepted_cell, ChangeIndex);
+    //^
+    //    std::cout << "XDS::ReadObservations time " << timer.Dtime() << " elapsed " << timer.Etime() << "\n";
+    //^-
     if (Nread <= 0)
       Message::message(Message_fatal
 		       ("hkl_unmerge_list:: No reflections read") );
@@ -1273,19 +1278,19 @@ namespace MtzIO
 	extracolumnlabels.push_back(columnlabels[ic]);
       }
       std::pair<int, int> hkln = 
-	CheckColumnlabelHKL(columnlabels[ic]);
+	CheckColumnlabelHKL(columnlabels.at(ic));
       if (hkln.first == 1) { // column"Hn" found
 	// Sanity check: following columns should be Kn, Ln with same n
 	//  and type = "H"
 	int hn = hkln.second;  // n
 	bool OK = true;
-	if (columntypes[ic] != "H") {OK = false;} // fail
-	hkln = CheckColumnlabelHKL(columnlabels[ic+1]); // Kn
+	if (columntypes.at(ic) != "H") {OK = false;} // fail
+	hkln = CheckColumnlabelHKL(columnlabels.at(ic+1)); // Kn
 	if (hkln.first != 2 || hkln.second != hn) {OK = false;} // fail
-	if (columntypes[ic] != "H") {OK = false;} // fail
-	hkln = CheckColumnlabelHKL(columnlabels[ic+2]); // Ln
+	if (columntypes.at(ic+1) != "H") {OK = false;} // fail
+	hkln = CheckColumnlabelHKL(columnlabels.at(ic+2)); // Ln
 	if (hkln.first != 3 || hkln.second != hn) {OK = false;} // fail
-	if (columntypes[ic] != "H") {OK = false;} // fail
+	if (columntypes.at(ic+2) != "H") {OK = false;} // fail
 	if (!OK) {
 	  Message::message
 	    (Message_fatal
@@ -1293,7 +1298,7 @@ namespace MtzIO
 	}
 	// Store extra column labels
 	for (int i=0;i<3;++i) {
-	  extracolumnlabels.push_back(columnlabels[ic+i]);
+	  extracolumnlabels.push_back(columnlabels.at(ic+i));
 	}
 	nlatticecolumns++;
 	ic += 2; // extra increment over 3 hkl labels
