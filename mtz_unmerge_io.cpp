@@ -1229,7 +1229,7 @@ namespace MtzIO
     }
     char c2 = label[label.size()-1];
     if (isdigit(c2)) {
-      jlat = std::atoi(&c2);
+      jlat = std::atoi(std::string(1,c2).c_str());
     }
     //^
     //    std::cout << "CheckColumnlabelN, " << label << " : " << basestring

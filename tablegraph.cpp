@@ -654,7 +654,7 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
       int tp = 0;
       if (pformat[i] == '.') {    // should be either '.' or 'd'
 	// Assume single digit decimal count
-	ifd = atoi(&pformat[++i]);
+	ifd = atoi(std::string(1,pformat[++i]).c_str());
 	i++;
 	tp = +1;
       }
