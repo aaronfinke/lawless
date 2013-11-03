@@ -1208,7 +1208,7 @@ namespace MtzIO
     else if (c1 == 'K') {jhkl = 2;}
     else if (c1 == 'L') {jhkl = 3;}
     if (jhkl > 0 && isdigit(c2)) {
-      jlat = std::atoi(&c2);
+      jlat = std::atoi(std::string(1,c2).c_str());
     } else {
       jhkl = 0;
     }
