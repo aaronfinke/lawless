@@ -76,6 +76,7 @@ int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
   // Clear all observation status flags back to the ObservationFlag setting
   // ie clear outlier & Emax status flags
   // the ObservationFlag setting is left unaltered
+  // Set reflection status to Accept
   // Don't change RejectOverlap flag
   {
     reflection this_refl;
@@ -97,6 +98,7 @@ int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
 	this_obs.UpdateStatus(status);
 	this_refl.replace_observation(this_obs);
       }
+      this_refl.SetStatus(0);  // accept reflection
       hkl_list.replace_reflection(this_refl);
     }
   }

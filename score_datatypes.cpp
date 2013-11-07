@@ -25,6 +25,7 @@ namespace scala
     sumwx = 0.0;
     sumwy = 0.0;
     sumwxx = 0.0;
+    sumwyy = 0.0;
     sumwxy = 0.0;
     np = 0;
     maxy=0.0;miny=0.0;
@@ -36,35 +37,54 @@ namespace scala
     sumwx  += w*x;
     sumwy  += w*y;
     sumwxx += w*x*x;
+    sumwyy += w*y*y;
     sumwxy   += w*x*y;
     np += 1;
     maxy = Max(y ,maxy);
     miny = Min(y ,miny);
-    //  std::cout << "LF::add "<< x << " " << y << " " << sumwy << "\n";
+    //    std::cout << "LF::add "<< x << " " << y << " " << sumwy << "\n";
   }
   //--------------------------------------------------------------
   RPair LinearFit::result() const
   {
-    if (np > 0)
-      {
-	double d = sumw*sumwxx - sumwx*sumwx;
-	double slope = (sumw*sumwxy - sumwx*sumwy)/d;
-	double intercept = (sumwxx*sumwy - sumwx*sumwxy)/d;
-	return RPair(slope, intercept);
-      }
-    else
+    if (np > 0) {
+      double d = sumw*sumwxx - sumwx*sumwx;
+      double slope = (sumw*sumwxy - sumwx*sumwy)/d;
+      double intercept = (sumwxx*sumwy - sumwx*sumwxy)/d;
+      return RPair(slope, intercept);
+    } else
       {return RPair(0.0,0.0);}
   }
   //--------------------------------------------------------------
   double LinearFit::slope(const float& b) const
     // Return slope only, fixed intercept b (eg = 0)
   {
-    if (np > 0)
-      {
+    if (np > 0) {
 	return (sumwxy - b * sumwx)/sumwxx;
-      }
-    else
+    } else
       {return 0.0;}
+  }
+  //--------------------------------------------------------------
+  RPair LinearFit::uncertainties() const
+  //  sd(slope), sd(intercept)
+  //  http://www.am.ub.edu/~robert/Documents/linear_fit.pdf
+  {
+    if (np <= 0) {return RPair(0.0, 0.0);}
+    double slope2 = result().first * result().first;
+    double meanx = sumwx/sumw;  // <x>
+    // Var(x) = <x^2> - <x>^2
+    double varx = sumwxx/sumw - meanx * meanx;
+    double meany = sumwy/sumw;  // <y>
+    // Var(y) = <y^2> - <y>^2
+    double vary = sumwyy/sumw - meany * meany;
+    // SD(slope) = (1/Sqrt(n)) * Sqrt(Vary/Varx - slope^2)
+    double recsqrtn = 1.0/sqrt(double(np));
+    double sdslope = recsqrtn * sqrt((vary/varx) - slope2);
+    // SD(intercept) =
+    //   (1/Sqrt(n)) * Sqrt(Vary - Varx * slope^2)(1 + <x>^2/Varx)
+    double sdintercept = recsqrtn *
+      sqrt((vary - varx * slope2) * (1.0 + (meanx * meanx)/varx));
+    return RPair(sdslope, sdintercept);
   }
   //--------------------------------------------------------------
   bool operator < (const IKode& a,const IKode& b)

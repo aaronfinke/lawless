@@ -22,6 +22,7 @@ namespace scala {
   // Clear all observation status flags back to the ObservationFlag setting
   // ie clear outlier & Emax status flags
   // the ObservationFlag setting is left unaltered
+  // Set reflection status to Accept
   // Don't change RejectOverlap flag
   void ClearObsStatus(hkl_unmerge_list& hkl_list);
 }

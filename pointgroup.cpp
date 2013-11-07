@@ -1874,11 +1874,9 @@ namespace CCtbxSym
 	  {StrictOps.push_back(SetReindexOp(StrictCB[i]));}
       }
       // Maximum lattice symmetry 
-      CCtbxSym::LatticeSymmetry lat(TG.TransformedCell(), TG.LatType, AllowI2, max_delta);
+      CCtbxSym::LatticeSymmetry lat(TG.input_cell, TG.LatType, AllowI2, max_delta);
+      ///      CCtbxSym::LatticeSymmetry lat(TG.TransformedCell(), TG.LatType, AllowI2, max_delta);
       ///      CCtbxSym::LatticeSymmetry lat(PG.input_cell, PG.LatType, AllowI2, max_delta);
-      //^
-	//      lat.print();
-      //^-
       // Reindexing operator for "best" spacegroup
       //  from original -> lattice (best), inverse operator for hkl
       scala::ReindexOp reindex_op = MVutil::SetCMat33(lat.best_sg_reindex_op());
@@ -1899,7 +1897,9 @@ namespace CCtbxSym
 	  //^-1
 	  if (subgroups[k].LaueGrp_ref == PG.LaueGrp_ref) {
 	    // Yes it is
-	    double celldiff = subgroups[k].SetCell(TG.TransformedCell(),
+	    //	    double celldiff = subgroups[k].SetCell(TG.TransformedCell(),
+	    //						   reindex_op, AllowI2);
+	    double celldiff = subgroups[k].SetCell(TG.input_cell,
 						   reindex_op, AllowI2);
 	    celldiff = celldiff;
 	    //^ debug

@@ -167,7 +167,7 @@ namespace scala {
     std::vector<clipper::String> history(1,"from Aimless");
     mtzout.set_history(history);
 
-    // FIXME clipper update    mtzout.set_spacegroup_confidence(spg_status);
+    mtzout.set_spacegroup_confidence(spg_status);
 
     mtzout.export_crystal(datasetdata[idx].cxtl,
 			  datasetdata[idx].mtzpath);

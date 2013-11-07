@@ -33,6 +33,10 @@ namespace scala {
   //     Phi(z) = 1/2*[1 + erf(z/Sqrt2)]
   //                     ie the cumulative distribution function
   //--------------------------------------------------------------
+  // Phi(z) = 1/2*[1 + erf(z/Sqrt2)]
+  //   ie the Gaussian cumulative distribution function
+  double PhiCDF(const double& z);
+  //--------------------------------------------------------------
   double TruncatedLorentzianProb(const double& val,
 				 const double& mean,
 				 const double& sd,
