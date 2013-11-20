@@ -168,14 +168,14 @@ namespace MtzIO {
     bool NoSigI = (labelthings.label2 == "");  // true if no sigma column
 
     // Now construct hkl_list
-    std::string title;
+    std::string title = mtzin.title();
     int Nref = hkl_info_list.num_reflections();
 
     // Construct dataset (clipper doesn't give us a project)
     std::vector<scala::Dataset> DataSets;
     PxdName pxdname("", labelthings.xname, labelthings.dname);
     DataSets.push_back(scala::Dataset(scala::Xdataset(pxdname,
-						      Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
+		      Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
     // One batch
     std::vector<Batch> Batches(1);
     Batches[0].PXDname() = pxdname; 
@@ -184,9 +184,15 @@ namespace MtzIO {
 
     hkl_list.init(title, Nref,
 		  hkl_symmetry(spacegroup), all_controls(),
-		  ///		  hkl_symmetry(mtzin.spacegroup()), all_controls(),
 		  DataSets, Batches);
     hkl_list.SetSpaceGroupStatus(spg_status); 
+
+    std::vector<clipper::String> chistory = mtzin.history();
+    std::vector<std::string> history;
+    for (size_t i=0; i<chistory.size(); i++) { 
+      history.push_back(chistory[i]); // clipper:String to std::string
+    }
+    hkl_list.addHistory(history);
 
     int isym = 1;
     int batch = 1;

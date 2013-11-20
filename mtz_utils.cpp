@@ -126,5 +126,48 @@ namespace MtzIO
 	mtzout->mtzsymm.sym[i][j][3] = sg.symop(i).trn()[j];
     }
   }
-
+  //--------------------------------------------------------------
+  //! Append to oldhistory
+  //  uses version.hh to get program information
+  #include "version.hh"
+  std::vector<clipper::String> addToHistory
+  (const std::vector<std::string> oldhistory)
+  {
+    char date[11];
+    char time[9];
+    CCP4::ccp4_utils_date(date);
+    CCP4::ccp4_utils_time(time);
+    clipper::String text = "From "+
+      clipper::String(PROGRAM_NAME)+", version "+
+      clipper::String(PROGRAM_VERSION)+
+      ", run on "+clipper::String(date)+" at "+
+      clipper::String(time);
+    // History so far: NB new line goes at the beginning
+    std::vector<clipper::String> historylines(1,text);
+    for (size_t i=0; i<oldhistory.size(); i++) { 
+      historylines.push_back(oldhistory[i]);
+    }
+    return historylines;
+  }
+  //--------------------------------------------------------------
+  //! Append to oldhistory and write to MTZ
+  void MTZaddHistory(const std::vector<std::string> oldhistory,
+		     CMtz::MTZ* mtzout)
+  {
+    // Make new history
+    std::vector<clipper::String> historylines = addToHistory(oldhistory);
+    // Add to MTZ
+    int nlines = historylines.size();
+    int Nhist;
+    char line[MTZRECORDLENGTH];
+    // Add in reverse order as MtzAddHistory reverses them
+    for (int i=nlines-1;i>=0;--i) {
+      if (historylines[i] != "") {
+	strncpy(line, historylines[i].c_str(), MTZRECORDLENGTH-1); 
+	Nhist = MtzAddHistory(mtzout, &line, 1);
+      }
+    }
+    Nhist = Nhist;
+  }
+  //--------------------------------------------------------------
 }

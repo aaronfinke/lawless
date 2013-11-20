@@ -663,6 +663,7 @@ namespace scala {
 
     filename = "";
     FileTitle = Title;
+    historylines.clear();
 
     // store controls
     run_flags = controls.runs;
@@ -678,6 +679,12 @@ namespace scala {
   {
     status = EMPTY;
     init("Empty list",0,hkl_symmetry(),all_controls());
+  }
+  //--------------------------------------------------------------
+  //! append to MTZ history
+  void hkl_unmerge_list::addHistory(const std::vector<std::string>& history)
+  {
+    historylines.insert(historylines.end(), history.begin(), history.end());
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::SetBatchList()  // private

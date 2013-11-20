@@ -642,6 +642,12 @@ namespace scala {
     //! Title from file
     std::string Title() const {return FileTitle;}
 
+    //! append to MTZ history
+    void addHistory(const std::vector<std::string>& history);
+
+    //! return MTZ history
+    std::vector<std::string> getHistory() const {return historylines;}
+
     //! Append filename to list of names
     void AppendFileName(const std::string& Name);
     std::string Filename() const {return filename;} //!< returns filename list
@@ -695,8 +701,8 @@ namespace scala {
       observations after reindexing, otherwise this is a fatal error
       Returns number of fractional index reflections discarded */
     int change_symmetry(const hkl_symmetry& new_symm,
-			 const ReindexOp& reindex_op,
-			 const bool& AllowFractIndex = false);
+			const ReindexOp& reindex_op,
+			const bool& AllowFractIndex = false);
 
     //! Prepare list for reflection processing
     /*!  if required, sort, organise, partials
@@ -871,6 +877,9 @@ namespace scala {
 
     std::string FileTitle;
     std::string filename;
+
+    // MTZ history if any
+    std::vector<std::string> historylines;
 
     // Flags for which data items are actually present
     data_flags dataflags;

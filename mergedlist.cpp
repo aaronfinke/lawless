@@ -6,6 +6,7 @@
 #include "file_util.hh"
 #include "string_util.hh"
 #include "cellgroup.hh"
+#include "mtz_utils.hh"
 
 using clipper::Message;
 using clipper::Message_fatal;
@@ -41,6 +42,9 @@ namespace scala {
     }
     maxintensity = -1000.;
     title = Title;
+
+    historylines = hkl_list.getHistory();
+
     // First construct the hkl list for all unique reflections
     reflection this_refl;
     std::vector<clipper::HKL> hkls;
@@ -164,7 +168,11 @@ namespace scala {
     mtzout.open_write(outfilename);
 
     mtzout.set_title(title);
-    std::vector<clipper::String> history(1,"from Aimless");
+
+    // Update history
+    std::vector<clipper::String>  history =
+      MtzIO::addToHistory(historylines);
+
     mtzout.set_history(history);
 
     mtzout.set_spacegroup_confidence(spg_status);

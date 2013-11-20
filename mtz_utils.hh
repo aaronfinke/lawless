@@ -40,7 +40,16 @@ namespace MtzIO
   //                               X => flag not set
   void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const clipper::Spacegroup& sg,
 			     const char& spg_status);
-
+  //--------------------------------------------------------------
+  //! Append to oldhistory
+  //  uses version.hh to get program information
+  std::vector<clipper::String> addToHistory
+     (const std::vector<std::string> oldhistory);
+  //--------------------------------------------------------------
+  //! Append to oldhistory and write to MTZ file
+  //  uses version.hh to get program information
+  void MTZaddHistory(const std::vector<std::string> oldhistory,
+		     CMtz::MTZ* mtzout);
 }
 
 #endif

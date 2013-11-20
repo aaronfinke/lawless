@@ -8,7 +8,7 @@ LXX=g++
 
 #OPT = -g -Wreturn-type
 #OPT = -g -Wall
-OPT = -O2 
+OPT = -O2
 #OPT = -O2 -Wall
 
 CFLAGS= ${OPT}
@@ -23,6 +23,7 @@ STATIC=  -static-libgcc  -static-libstdc++
 
 # Point to source-build CCP4
 CCP4=/usr/local/CCP4versions/Current
+#CCP4=/usr/local/CCP4versions/ccp4-6.3.0
 CLIB=${CCP4}/lib
 CLIBS=${CLIB}/libccp4
 
@@ -44,8 +45,10 @@ CLPR=${CLIB}/clipper
 ICCP4=-I${CLIBS}
 
 #ICLPR=-I${CLPR}
-ICLPR=-I${CLPR}/clipper/ccp4
-#ICLPR=
+#ICLPR=-I${CLPR}/clipper/ccp4
+
+ICLPR=-I${CCP4}/include  -I${CCP4}/../checkout/clipper/clipper/core
+
 
 #*# version before 6.1.24
 #*#ITBX=\
@@ -54,10 +57,15 @@ ICLPR=-I${CLPR}/clipper/ccp4
 #*#-I${CCTBX_sources}/cctbx/include
 #*#-I${CCTBX_sources}/scitbx/include
 
+# 6.4.0
 ITBX=\
--I${CCTBX_sources}/boost \
--I${CCP4}/include \
--I${CCTBX_sources}/cctbx_project
+-I${CCP4}/include/cctbx
+
+# 6.3.0
+#ITBX=\
+#-I${CCTBX_sources}/boost \
+#-I${CCP4}/include \
+#-I${CCTBX_sources}/cctbx_project
 
 MINLIB = ./MinLib
 ILIB = -I${MINLIB}
@@ -80,7 +88,8 @@ LCLPR=-L${CLIB} -lclipper-ccp4 -lclipper-contrib -lclipper-minimol -lclipper-mmd
 LTBX= -L${CLIB} -lcctbx 
 #LTBX= -L${CCTBX_build}/libtbx -L${CCTBX_sources}/libtbx -lcctbx  -lm
 
-LDLIBS=${LMIN} ${LTBX} ${LCLPR} ${LCCP4}  ${STATIC}
+#LDLIBS=${LMIN} ${LTBX} ${LCLPR} ${LCCP4}  ${STATIC}
+LDLIBS=  ${LMIN} ${LTBX} ${LCLPR} ${LCCP4}  ${STATIC}
 
 CPPFLAGS=${XCPPFLAGS}  ${INCLUDE}
 
@@ -104,6 +113,7 @@ OBJ =   \
 	restore.o anisotropy.o intensity_scale.o \
 	dataset.o observationstatuscontrol.o analyseoverlaps.o \
 	histogram.o radiationdamageanalysis.o
+##	symop.o clipper_types.o
 
 COBJ = \
 	CCP4base.o Errors.o Output.o Preprocessor.o \

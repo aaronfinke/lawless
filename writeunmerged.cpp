@@ -204,16 +204,7 @@ namespace MtzIO
     MtzSetSortOrder(mtzout, col);
     
     // History    
-    char history[MTZRECORDLENGTH];
-    char date[11];
-    char time[9];
-    CCP4::ccp4_utils_date(date);
-    CCP4::ccp4_utils_time(time);
-    std::string text = "AIMLESS, "+std::string(date)+" "+
-      std::string(time);
-    strcpy(history, text.c_str()); 
-    int Nhist = MtzAddHistory(mtzout, &history, 1);
-    Nhist = Nhist;
+    MtzIO::MTZaddHistory(hkl_list.getHistory(), mtzout);
 
     std::vector<int> nobsbatch;
     hkl_list.rewind();

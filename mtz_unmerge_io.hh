@@ -176,7 +176,8 @@ namespace MtzIO {
       scala::SpaceGroup spacegroup_;
       CMtz::SYMGRP mtzsym;  // symmetry from MTZ file
       std::string title;
-
+      std::vector<std::string> historylines;
+      
       std::vector<Dataset> fdatasets;  // list of datasets in file
       std::vector<CMtz::MTZBAT*> mtzbatches;       // list of batches in file
 

@@ -84,6 +84,7 @@ namespace scala {
     std::vector<float> resmaxdts;  // maximum resolution (1/d^2) in each dataset    
     std::string title;
     double maxintensity;
+    std::vector<std::string> historylines;
 
     char spg_status; // aka spg_confidence in MTZ
 

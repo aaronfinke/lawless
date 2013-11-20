@@ -154,6 +154,16 @@ namespace MtzIO
     // Title
     title = std::string(mtzin->title);
 
+    // History
+    int nhistlines = mtzin->histlines;
+    historylines.clear();
+    char * phist = mtzin->hist;
+    for (int i=0;i<nhistlines;++i) {
+      std::string hline(phist, MTZRECORDLENGTH);
+      historylines.push_back(hline);
+      phist += MTZRECORDLENGTH;
+    }
+
     // Is the file sorted?
     sorted = FileSorted();
 
@@ -467,6 +477,9 @@ namespace MtzIO
 	  +" to match first file\n";
       }
     }
+
+    // Append to history
+    hkl_list.addHistory(historylines);
 
     // Read all observations into hkl_list, subject to selection flags
     bool ChangeIndex;
