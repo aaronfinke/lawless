@@ -57,6 +57,7 @@ void GraphAxesType::init(const scala::Range& Xrange,
   xinvresolsq = false;
   yrange = Yrange;
   FixYrange(ZeroY);
+  zeroy_RH = false;
 }
 //--------------------------------------------------------------
   // X-axis range and type flag (true for 1/d^2)
@@ -452,13 +453,15 @@ std::string TableGraphPlot::XMLformat() const
   }
 
   if (zeroy_RH) {
-    // <yrange min="0" max="None"\>    
-    s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
-  } else if (yrange.Valid()) {
-    // <yrange min="ymin" max="ymax"\>    
-    std::string symin = StringUtil::ftos(yrange_RH.min());
-    std::string symax = StringUtil::ftos(yrange_RH.max());
-    s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
+    if (yrange.Valid()) {
+      // <yrange min="ymin" max="ymax"\>    
+      std::string symin = StringUtil::ftos(yrange_RH.min());
+      std::string symax = StringUtil::ftos(yrange_RH.max());
+      s += "<yrange min=\""+symin+"\" max=\""+symax+"rightaxis=\"true\"/>\n";
+    } else {
+      // <yrange min="0" max="None"\>    
+      s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
+    }
   }
 
   if (xbreaks.size() > 0) {
