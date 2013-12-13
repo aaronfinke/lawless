@@ -841,6 +841,14 @@ int main(int argc, char* argv[])
                         + message.text() + "\n");
     } 
 
+  catch (std::bad_alloc const& err) {
+    output.logWarning(LOGFILE,
+		      std::string("\nERROR: ")
+		      + std::string(err.what())+"\n"+
+		      " You have run out of memory to store the data\n"+
+		      "  you may need more memory or a 64-bit machine.\n");
+  }
+
   catch (std::exception const& err) {
     output.logWarning(LOGFILE, "\nUNHANDLED EXCEPTION: " + std::string(err.what())+"\n");
   }
