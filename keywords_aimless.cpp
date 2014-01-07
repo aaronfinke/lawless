@@ -732,7 +732,8 @@ void REJECT::analyse()
   // Check that rejects between anomalous related reflections is not
   // more stringent that within
   if (outliercontrolsscale.Reject(scala::BOTH).sdrej != 0.0) {
-    if (outliercontrolsscale.Reject(scala::BOTH).sdrej < outliercontrolsscale.Reject(scala::ALL).sdrej) {
+    if (outliercontrolsscale.Reject(scala::BOTH).sdrej <
+	std::abs(outliercontrolsscale.Reject(scala::ALL).sdrej)) {
       Message::message(Message_warn
 		       (std::string("\nWARNING: on REJECT command\n")+
 			" Scaling outlier rejection limit for all data is "+
@@ -741,7 +742,8 @@ void REJECT::analyse()
     }
   }
   if (outliercontrolsmerge.Reject(scala::BOTH).sdrej != 0.0) {
-    if (outliercontrolsmerge.Reject(scala::BOTH).sdrej < outliercontrolsmerge.Reject(scala::ALL).sdrej) {
+    if (outliercontrolsmerge.Reject(scala::BOTH).sdrej <
+	std::abs(outliercontrolsmerge.Reject(scala::ALL).sdrej)) {
       Message::message(Message_warn
 		       (std::string("\nWARNING: on REJECT command\n")+
 			" Merging outlier rejection limit for all data is "+

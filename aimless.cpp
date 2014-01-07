@@ -557,6 +557,8 @@ int main(int argc, char* argv[])
     } else {
       nresbin =  ResRange.Nbins();
     }
+    double resrangewidth = ResRange.Width(); // bin width for maximum resolution
+
 
     // Overall Normalisation 
     double MinIsigRatio = -1.0;  // no resolution cutoff
@@ -614,7 +616,8 @@ int main(int argc, char* argv[])
     //  hkl_list is const
     anomOn = controls.anomalouscontrol.Anomalous;  // from input
     ResoRange resrangeanom = ResRange;
-    // For statistics, reset range to go from same "infinite" resolution
+    // For statistics, reset range to go from same "infinite" resolution,
+    //  to the maximum resolution over all datasets
     float lowres = 10000.;
     resrangeanom.SetRange(lowres, ResRange.ResHigh());
     resrangeanom.SetNbins(nresbin);
@@ -750,7 +753,6 @@ int main(int argc, char* argv[])
       nbatchsmooth = (Nint(smoothwidth/width)/2)*2 + 1; // force to be odd
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
-    double resrangewidth;
 
     // Gather & print all statistics
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
@@ -763,12 +765,11 @@ int main(int argc, char* argv[])
       // For statistics, reset range to go from same "infinite" resolution
       float lowres = 10000.;
       resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
-      if (idts == 0) { // 1st dataset
+      // Use same resolution bin width for all datasets
+      resrangedataset.SetWidth(resrangewidth);
+      // and check the number of bins is not > nresbin
+      if (resrangedataset.Nbins() > nresbin) {
 	resrangedataset.SetNbins(nresbin);
-	resrangewidth = resrangedataset.Width();
-      } else if (idts > 0) {
-	// Use same resolution bin width for all datasets
-	resrangedataset.SetWidth(resrangewidth);
       }
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
