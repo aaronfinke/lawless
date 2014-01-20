@@ -44,7 +44,7 @@ set(SHARED_SOURCES
     cctbx_utils.cpp cellgroup.cpp checkcompatiblesymmetry.cpp
     columnlabels.cpp controls.cpp crystaltype.cpp dataset.cpp eprob.cpp
     fileread.cpp getsubgroups.cpp hash.cpp hkl_controls.cpp hkl_datatypes.cpp
-    hkl_merged_list.cpp hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp
+    hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp
     interpretcommandline.cpp jiffy.cpp latsym.cpp
     linearlsq.cpp matvec_utils.cpp
     mtz_merge_io.cpp mtz_unmerge_io.cpp mtz_utils.cpp normalise.cpp

@@ -18,12 +18,6 @@
 #include "string_util.hh"
 #include "cctbx_utils.hh"
 
-/*
-#include "lattice.hh"
-#include "pgscore.hh"
-#include "hkl_merged_list.hh"
-*/
-
 using namespace cctbx;
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -1450,11 +1444,12 @@ namespace CCtbxSym
 	if (OutputXML)
 	  {output.logTabPrintf(0,LXML,"<Alternative Number=\"%3d\">\n", k+1);}
 	if (uccell_ref.is_similar_to(uccell_alt, 0.005, 0.1)) {
-	  output.logTab(0,LOGFILE,"  Same cell");
-	  for (int i=0;i<6;i++) output.logTab(0,LOGFILE,"      ");
-	  output.logTab(0,LOGFILE,"         ");
+	  std::string s = "  Same cell";
+	  for (int i=0;i<6;i++) {s += "      ";}
+	  s += "         ";
+	  output.logTabPrintf(0,LOGFILE,"%s", s.c_str());
 	} else {
-	  output.logTab(0,LOGFILE," Other cell");
+	  output.logTabPrintf(0,LOGFILE," Other cell");
 	  std::vector<double> acell(6);
 	  for (int i=0;i<6;i++) {
 	    output.logTabPrintf(0,LOGFILE,"%6.1f",uccell_alt.parameters()[i]);

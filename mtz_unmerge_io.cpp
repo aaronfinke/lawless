@@ -43,7 +43,7 @@
 #include "columnlabels.hh"
 #include "string_util.hh"
 #include "openinputfile.hh"
-#include "timer.hh"
+//#include "timer.hh"
 
 namespace MtzIO 
 {

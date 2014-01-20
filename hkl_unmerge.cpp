@@ -101,6 +101,38 @@ namespace scala {
     n_latinfo = maxNoverlap;
     is_latscale = scalecolumn;
   }
+  // -------------------------------------------------------------
+  void data_flags::combineFlags(const data_flags& other)
+  // set each flag to true if either are true
+  {
+    is_h |= other.is_h;
+    is_k |= other.is_k;
+    is_l |= other.is_l;
+    is_misym |= other.is_misym;
+    is_batch |= other.is_batch;
+    is_I |= other.is_I;
+    is_sigI |= other.is_sigI;
+    // Optional
+    is_Ipr |= other.is_Ipr;
+    is_sigIpr |= other.is_sigIpr;
+    is_fractioncalc |= other.is_fractioncalc;
+    is_Xdet |= other.is_Xdet;
+    is_Ydet |= other.is_Ydet;
+    is_Rot |= other.is_Rot;
+    is_Width |= other.is_Width;
+    is_LP |= other.is_LP;
+    is_Mpart |= other.is_Mpart;
+    is_ObsFlag |= other.is_ObsFlag;
+    is_BgPkRatio |= other.is_BgPkRatio;
+    is_scale |= other.is_scale;
+    is_sigscale |= other.is_sigscale;
+    is_time |= other.is_time;
+    is_latnum |= other.is_latnum;
+    is_lathkl |= other.is_lathkl;
+    is_latinfo |= other.is_latinfo;
+    is_latscale |= other.is_latscale;
+    n_latinfo = Max(n_latinfo, other.n_latinfo);
+  }
   // ------------------------------------------------------------------
   // ******************************************************************
   //--------------------------------------------------------------
@@ -1033,6 +1065,10 @@ namespace scala {
     // Set up run definitions
     run_set = 0;
     SetUpRuns();
+
+    // Flag column present if in either file
+    dataflags.combineFlags(OtherList.dataflags);
+
     return istat;
   }
   //--------------------------------------------------------------

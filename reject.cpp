@@ -385,7 +385,7 @@ namespace scala {
       fprintf(rogues,
 	      "   h   k   l     h   k   l  Batch      I  sigI    E  TotFrc ");
       fprintf(rogues,
-	      "Bijv  Scale DelI/sd d(A)   Xdet   Ydet    Phi Rej Flag\n");
+	      "Bijv  Scale DelI/sd d(A)   Xdet   Ydet    Phi   LP   Rej Flag\n");
       fprintf(rogues,
 	      "   (measured)     (unique)\n");
     } else {
@@ -454,13 +454,13 @@ namespace scala {
 	std::string flagtype = obs.Observationflag().format();
 	
 	fprintf(rogues,
-		"%4d%4d%4d  %4d%4d%4d%6d%8d%6d%6.2f%6.1f%c   %2s%7.3f%7.1f%6.2f%7.1f%7.1f%7.1f %c  %s\n",
+	"%4d%4d%4d  %4d%4d%4d%6d%8d%6d%6.2f%6.1f%c   %2s%7.3f%7.1f%6.2f%7.1f%7.1f%7.1f %5.4f %c  %s\n",
 		obs.hkl_original()[0],obs.hkl_original()[1],obs.hkl_original()[2],
 		this_refl.hkl()[0],this_refl.hkl()[1],this_refl.hkl()[2],
 		obs.Batch(), Nint(obs.kI()), Nint(obs.ksigI()),
 		E, obs.TotalFraction(),
 		partial,  PlusMinus.c_str(), scale, deviations[lobs],
-		d, XY.first, XY.second, obs.phi(), reject, flagtype.c_str());
+		d, XY.first, XY.second, obs.phi(), obs.LP(), reject, flagtype.c_str());
 	// ROGUEPLOT?
 	if (rogueplot.IsPlot() && outlier) {
 	  rogueplot.PlotOutlier(obs.GetS());  // diffraction vector (rlu)

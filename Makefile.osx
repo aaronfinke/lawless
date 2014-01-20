@@ -120,7 +120,7 @@ COBJ = \
 	cctbx_utils.o cellgroup.o checkcompatiblesymmetry.o \
 	columnlabels.o controls.o eprob.o fileread.o \
 	getsubgroups.o hash.o hkl_controls.o hkl_datatypes.o \
-	hkl_merged_list.o hkl_symmetry.o hkl_unmerge.o icering.o \
+	hkl_symmetry.o hkl_unmerge.o icering.o \
 	interpretcommandline.o jiffy.o latsym.o crystaltype.o \
 	linearlsq.o matvec_utils.o \
 	mtz_merge_io.o mtz_unmerge_io.o mtz_utils.o normalise.o \
@@ -155,7 +155,7 @@ CSOURCE = \
 	cctbx_utils.cpp cellgroup.cpp checkcompatiblesymmetry.cpp \
 	columnlabels.cpp controls.cpp eprob.cpp fileread.cpp \
 	getsubgroups.cpp hash.cpp hkl_controls.cpp hkl_datatypes.cpp \
-	hkl_merged_list.cpp hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp \
+	hkl_symmetry.cpp hkl_unmerge.cpp icering.cpp \
 	interpretcommandline.cpp jiffy.cpp latsym.cpp crystaltype.cpp \
 	linearlsq.cpp matvec_utils.cpp \
 	mtz_merge_io.cpp mtz_unmerge_io.cpp mtz_utils.cpp normalise.cpp \
@@ -193,7 +193,7 @@ CHDR = \
 	cctbx_utils.hh cellgroup.hh checkcompatiblesymmetry.hh \
 	columnlabels.hh controls.hh eprob.hh fileread.hh \
 	getsubgroups.hh hash.hh hkl_controls.hh hkl_datatypes.hh \
-	hkl_merged_list.hh hkl_symmetry.hh hkl_unmerge.hh icering.hh \
+	hkl_symmetry.hh hkl_unmerge.hh icering.hh \
 	interpretcommandline.hh jiffy.hh latsym.hh crystaltype.hh \
 	linearlsq.hh matvec_utils.hh \
 	mtz_merge_io.hh mtz_unmerge_io.hh mtz_utils.hh normalise.hh \
@@ -276,7 +276,7 @@ UOBJ= simulate.o hkl_datatypes.o  hkl_unmerge.o \
 	getsubgroups.o samplegaussian.o eprob.o file_util.o \
 	sdmodel.o sdctypes.o selectedobservations.o normalise.o \
 	keywords_aimless.o CCP4base.o Errors.o  Preprocessor.o controls.o \
-	linearlsq.o hkl_merged_list.o spline.o mtz_merge_io.o \
+	linearlsq.o spline.o mtz_merge_io.o \
 	globalcontrols_aimless.o \
 	columnlabels.o 
 

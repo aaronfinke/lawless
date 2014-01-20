@@ -1509,9 +1509,12 @@ namespace scala
 	}
       }
     }
-    ASSERT (best >= 0);
+    if (best < 0) {
+      // zones but no scores (eg only 2 observations)
+      return std::string("axis order "+clipper::String(order,1));
+    }
     if (best == 0) {
-      return std::string("rotation axis "+clipper::String(order,1));
+      return std::string("rotation axis order "+clipper::String(order,1));
     }
     return std::string("screw axis "+clipper::String(order,1)+
 		       "("+clipper::String(order/ngrid[best],1)+")");

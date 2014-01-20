@@ -37,6 +37,9 @@ namespace scala {
     // if scalecolumn true, include a column for the scale
     void SetMultilatticeFlags(const int& maxNoverlap,
 			      const bool& scalecolumn=false);
+
+    // set each flag to true if either are true
+    void combineFlags(const data_flags& other);
     
     bool is_h, is_k, is_l, is_misym, is_batch,
       is_I, is_sigI, is_Ipr, is_sigIpr, is_fractioncalc,

@@ -4,7 +4,6 @@
 #ifndef SCALA_NORMALISE
 #define SCALA_NORMALISE
 
-#include "hkl_merged_list.hh"
 #include "hkl_unmerge.hh"
 #include "spline.hh"
 #include "icering.hh"
@@ -258,17 +257,6 @@ Normalise SetNormalise(const hkl_unmerge_list& ref_list,
 		       ResoRange& ResRange,
 		       Rings& Icerings,
 		       const int PrintLevel);
-
-// Set up intensity normalisation object NormRes from merged data
-//
-// Use binned <I> to get normalisation object
-// Optionally, if MinIsigRatio > 0.0
-//   return updated ResoRange, setting resolution cutoffs and bins
-//
-// MinIsigRatio   minimum I/sigI ratio on unaveraged data
-Normalise SetNormaliseMerged(const hkl_merged_list& ref_list,
-			     const double& MinIsigRatio,
-			     ResoRange& ResRange);
 
 }
 
