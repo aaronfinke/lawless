@@ -396,7 +396,6 @@ namespace scala
     Vec3<Dtype> orth(const Scell& cell) const
     {return (cell.Bmat() * real());}
     std::string format() const;  //!< return formatted String representation
-  
     //! returned packed form as index code
     //  Note that this uses 10-bit packing, so is not guaranteed to
     //  produce a unique code, but it is good enough for some purposes
@@ -730,6 +729,11 @@ namespace scala
     //! for sorting on batch number
     friend bool operator < (const Batch& a,const Batch& b);
 
+    //! set lattice number (default = 0)
+    void SetLatticeNumber(const int& latticenumber);
+    //! return lattice number
+    int LatticeNumber() const {return latnum;}
+
   private:
     // initialise batchinfo to zeroes
     void initBatchInfo();
@@ -774,6 +778,7 @@ namespace scala
 		    // 3-axis system, else [I]
 
     Scell bcell;
+    int latnum;         // lattice number, = 0 for single lattice
   };
   //======================================================================
   // Return true if dataset setid is in datasets list

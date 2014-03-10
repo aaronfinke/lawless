@@ -40,6 +40,7 @@ int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
       }
       hkl_list.replace_reflection(this_refl);
     }
+    hkl_list.SetExcludeOverlaps(Exclude);  // store record
     return nrej;
   }
 // ------------------------------------------------------------

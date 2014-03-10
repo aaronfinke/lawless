@@ -425,7 +425,6 @@ namespace MtzIO
     MakeRuns();   // Runs for these batches
     bool first = true;
 
-
     // Is hkl_list empty?
     if (hkl_list.IsEmpty()) {
       // Empty list, initialise
@@ -484,7 +483,7 @@ namespace MtzIO
     // Read all observations into hkl_list, subject to selection flags
     bool ChangeIndex;
     //^    Timer timer;
-    int Nread = get_refs(hkl_list, file_sel, col_select, accepted_cell, ChangeIndex);
+    int Nread = get_refs(hkl_list, file_sel, col_select, accepted_cell, ChangeIndex, output);
     //^
     //    std::cout << "XDS::ReadObservations time " << timer.Dtime() << " elapsed " << timer.Etime() << "\n";
     //^-
@@ -736,7 +735,8 @@ namespace MtzIO
 			     file_select& file_sel, 
 			     const column_select& col_sel,
 			     const Scell& averagecell,
-			     bool& ChangeIndex)
+			     bool& ChangeIndex,
+			     std::string& output)
   //
   // Read all (selected) reflections from MTZ file into hkl_unmerge object
   //
@@ -753,6 +753,7 @@ namespace MtzIO
   // On exit:
   //  hkl_list        filled list  
   //  ChangeIndex     true if index changed
+  //  output          warning messages if any
   //
   // Returns number of observation parts read
   {
@@ -795,7 +796,10 @@ namespace MtzIO
     }
 
     // MAXNLATTICES is maximum number of lattices allowed
-    numberinlattice.assign(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
+    // +1 as lattices are numbered from 1
+    numberinlattice.assign(MAXNLATTICES+1,0);
+    latticenumberrange.clear();
+    mainlatticenumberrange.clear();
 
     int nread = 0;
 
@@ -900,6 +904,15 @@ namespace MtzIO
       int latnum = 0;
       if (col_select.col_latnum > 0) {
 	latnum = Nint(check_column(cols, col_mnf, col_select.col_latnum, StatusFlag));
+	if (latnum <= 0) {
+	  output += "WARNING: observation with LATTNUM <= 0 rejected: "+
+	    hkl.format()+" Batch:"+StringUtil::itos(batch,5)+
+	    " ISYM "+StringUtil::itos(isym,3)+
+	    " LATTNUM: "+StringUtil::itos(latnum,2)+"\n";
+	  continue;
+	}
+	// Store lattice number in batch
+	batches[batch_lookup.lookup(batch)].SetLatticeNumber(latnum);
 	flag = flag || StatusFlag;
 	// read extra hkl into lathkl, and lattnum, scale if scheme2
 	Hkl hkln;
@@ -928,6 +941,7 @@ namespace MtzIO
 	    if ((latn != latnum) ||
 		(hkln != FileSym.get_from_asu(hkl,isym))) {
 	      lathkl.push_back(LatticeIndexInfo(latn, hkln, scale));
+	      latticenumberrange.update(latn);
 	    }
 	  }
 	} // end loop lattices
@@ -938,7 +952,9 @@ namespace MtzIO
 	}
 	// count entries for each lattice
 	numberinlattice.at(latnum)++;
-      }
+	latticenumberrange.update(latnum);
+	mainlatticenumberrange.update(latnum);
+      }  // end multilattice
 
       if (changeSymmetry) {
 	//  reduce hkl to asymmetric unit
@@ -1001,6 +1017,8 @@ namespace MtzIO
 	  nlattices++;
 	}
       }
+      hkl_list.SetLatticeNumberRange(latticenumberrange); 
+      hkl_list.SetMainLatticeNumberRange(mainlatticenumberrange);
     }
 
     // Store accepted resolution range for this file

@@ -5,6 +5,8 @@
 #ifndef SCALA_RANGE
 #define SCALA_RANGE
 
+#include <cstdlib>
+
 #include "clipper/clipper.h"
 
 #include "util.hh"
@@ -201,6 +203,9 @@ namespace scala
     IntRange MaxRange(const IntRange& other) const;
 
     int midrange() const {return (min_+max_)/2;}
+
+    // Return absolute value of range (max - min)
+    int AbsRange() const {return std::abs(max_ - min_);}
 
     // test equality
     bool operator == (const IntRange& other)

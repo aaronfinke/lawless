@@ -692,10 +692,22 @@ namespace scala {
     int MaxHKLoverlap() const {return maxhkloverlap;}
     //! return true if multilattice data
     bool MultiLattice() const {return (nlatticesall > 0);}
+    //! Set flag to exclude or use overlaps
+    void SetExcludeOverlaps(const bool& excludeOverlaps) {excludeoverlaps = excludeOverlaps;}
+    //! Return flag to exclude use exclude overlaps
+    bool ExcludeOverlaps() const {return excludeoverlaps;}
     //! Apply offset to lattice numbers
     void OffsetLatticeNumbers(const int& latticeoffset);
     //! store lattice numbers for each run FIXME
     void SetLatticeforRuns(const std::vector<int> latnumrun);
+    //! set range of lattice numbers either as main lattice or secondary
+    void SetLatticeNumberRange(const IntRange& latticenumberRange);
+    //! range of lattice numbers as main lattice
+    void SetMainLatticeNumberRange(const IntRange& mainlatticenumberRange);
+    //! range of lattice numbers either as main lattice or secondary
+    IntRange LatticeNumberRange() const {return latticenumberrange;}
+    //! range of lattice numbers as main lattice
+    IntRange MainLatticeNumberRange() const {return mainlatticenumberrange;}
 
     // Do things             -------------------------------
 
@@ -703,8 +715,11 @@ namespace scala {
     /*! If AllowFractIndex true, allow discarding of fractional index
       observations after reindexing, otherwise this is a fatal error
       Returns number of fractional index reflections discarded */
+    // reindexSecondaryLattices true if secondary lattices from multilattice overlaps
+    //  should be reindexed as well
     int change_symmetry(const hkl_symmetry& new_symm,
 			const ReindexOp& reindex_op,
+			const bool& reindexSecondaryLattices = true,
 			const bool& AllowFractIndex = false);
 
     //! Prepare list for reflection processing
@@ -892,8 +907,14 @@ namespace scala {
     int nlattices;  
     // total number of lattices mentioned, may be > nlattices if some are not present here
     int nlatticesall;
-    int maxhkloverlap;  // maximum number of overlapped hkl on any one observation (excluding itself)
+    // maximum number of overlapped hkl on any one observation (excluding itself)
+    int maxhkloverlap;
     int maxlatnum;
+    bool excludeoverlaps;
+    // range of lattice numbers either as main lattice or secondary
+    IntRange latticenumberrange;
+    // range of lattice numbers as main lattice
+    IntRange mainlatticenumberrange;
 
     // ****  Private member functions
     void initialise(const int NreflReserve, 

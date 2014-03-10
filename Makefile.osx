@@ -6,9 +6,9 @@ CXX=g++
 LXX=g++
 #LXX=gcc
 
-#OPT = -g -Wreturn-type
+OPT = -g -Wreturn-type
 #OPT = -g -Wall
-OPT = -O2
+#OPT = -O2
 #OPT = -O2 -Wall
 
 CFLAGS= ${OPT}

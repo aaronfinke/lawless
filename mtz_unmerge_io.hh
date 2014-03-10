@@ -167,6 +167,11 @@ namespace MtzIO {
       //! return lattice number, = 0 for single lattice, = -1 for mixed lattices
       int LatticeNumber() const;
 
+      //! range of lattice numbers either as main lattice or secondary
+      IntRange LatticeNumberRange() const {return latticenumberrange;}
+      //! range of lattice numbers as main lattice
+      IntRange MainLatticeNumberRange() const {return mainlatticenumberrange;}
+
     private:
       enum MTZmode { NONE, READ, WRITE, APPEND };
       //! mtz object
@@ -197,6 +202,10 @@ namespace MtzIO {
       // including lattice zero (ie from non-multilattice crystal)
       std::vector<int> numberinlattice;
       int nlattices;  // number of lattices
+      // range of lattice numbers either as main lattice or secondary
+      IntRange latticenumberrange;
+      // range of lattice numbers as main lattice
+      IntRange mainlatticenumberrange;
 
       int IrefCnt;
       int Ncolumns;
@@ -229,7 +238,8 @@ namespace MtzIO {
 		   file_select& file_sel, 
 		   const column_select& col_sel,
 		   const Scell& averagecell,
-		   bool& ChangeIndex);
+		   bool& ChangeIndex,
+		   std::string& output);
 
       bool IsCompatible(const hkl_unmerge_list& hkl_list,
 			const double& cellTolerance) const;

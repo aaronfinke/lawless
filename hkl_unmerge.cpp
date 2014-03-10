@@ -866,6 +866,7 @@ namespace scala {
     if (!MultiLattice()) {return;}  // ignore unless multilattice
     if (latticeoffset == 0) {return;} // don't bother if 0
 
+    //std::cout <<"OffsetLatticeNumbers " << latticeoffset <<std::endl; //^
     if (!run_flags.Set()) {
       Message::message(Message_fatal
 		       ("hkl_unmerge_list::OffsetLatticeNumbers - no runs set"));
@@ -897,6 +898,20 @@ namespace scala {
     for (size_t irun=0; irun<latnumrun.size(); irun++) { 
       runlist[irun].SetLatticeNumber(latnumrun[irun]);
     }
+  }
+  //--------------------------------------------------------------
+  //! set range of lattice numbers either as main lattice or secondary
+  void hkl_unmerge_list::SetLatticeNumberRange(const IntRange& latticenumberRange) 
+  {
+    latticenumberrange = latticenumberRange;
+    nlatticesall = latticenumberrange.AbsRange()+1;
+  }
+  //--------------------------------------------------------------
+  //! range of lattice numbers as main lattice
+  void hkl_unmerge_list::SetMainLatticeNumberRange(const IntRange& mainlatticenumberRange)
+  {
+    mainlatticenumberrange = mainlatticenumberRange;
+    nlattices = mainlatticenumberrange.AbsRange()+1;
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::RejectBatch(const int& ibatch)
@@ -1152,7 +1167,7 @@ namespace scala {
     N_part_list++;
     if (latnum > 0) {
       // get maximum lattice number
-      maxlatnum = Max(obs_part_list.back().latnum(), maxlatnum);
+      maxlatnum = Max(latnum, maxlatnum);
     }
   } // store_part
   //--------------------------------------------------------------
@@ -1190,9 +1205,6 @@ namespace scala {
     // List is already sorted if sorted in input file & no change of asu
     if (Sorted) status = SORTED;
     ChangeIndex = false;
-    nlattices = maxlatnum;
-    nlatticesall = nlattices;  // for now, may be reset later
-
     return  N_part_list;
   } // close_part
   //--------------------------------------------------------------
@@ -1408,6 +1420,8 @@ namespace scala {
 	    ThisRun.FileNumber() = filenum;
 	    ThisRun.SortList();
 	    ThisRun.RunNumber() = runlist.size()+1;
+	    Batch bat = batch(ib-1);
+	    latnum = batch(ib-1).LatticeNumber();
 	    ThisRun.SetLatticeNumber(latnum);
 	    runlist.push_back(ThisRun);
 	  }
@@ -1465,6 +1479,7 @@ namespace scala {
       ThisRun.FileNumber() = filenum;
       ThisRun.SortList();
       ThisRun.RunNumber() = runlist.size()+1;
+      latnum = batches[batch_lookup.lookup(ThisRun.BatchList()[0])].LatticeNumber();
       ThisRun.SetLatticeNumber(latnum);
       runlist.push_back(ThisRun);
     }
@@ -1586,6 +1601,7 @@ namespace scala {
 	  ThisRun.SortList();
 	  ThisRun.RunNumber() = runnum;
 	  // No	  ThisRun.RunNumber() = runlist.size()+1;
+	  latnum = batches[batch_lookup.lookup(ThisRun.BatchList()[0])].LatticeNumber();
 	  ThisRun.SetLatticeNumber(latnum);
 	  runlist.push_back(ThisRun);
 	}
@@ -2094,6 +2110,7 @@ namespace scala {
     } // reflection loop
 
     nlattices = 0;
+    excludeoverlaps = true; // default for single lattice
     if (dataflags.is_latnum) {
       // count lattices with non-zero entries
       ASSERT (numberinlattice.size() == numberinlatticeall.size());
@@ -2105,6 +2122,7 @@ namespace scala {
 	  nlatticesall++;
 	}
       }
+      excludeoverlaps = false;
     }
 
     // Set flags into runs for only||few fulls||partials
@@ -2169,7 +2187,7 @@ namespace scala {
 	//	  std::cout << "Lathkl " << lathkl[i].latnum 
 	//		    <<" "<< lathkl[i].hkl.format() <<"\n"; //^
 	//	}
-	//^-
+	//^
 	lathkl.push_back(newlathkl[j]);
       }
     }
@@ -2521,14 +2539,18 @@ namespace scala {
   }
   //--------------------------------------------------------------
   int hkl_unmerge_list::change_symmetry(const hkl_symmetry& new_symm,
-                                         const ReindexOp& reindex_op,
-					 const bool& AllowFractIndex)
-    // Change symmetry in all internal lists to new_spgp,
-    // ie
-    // 1. for each obs_part, get original indices 
-    // 2. reindex (change basis)
-    // 3. rereduce to new asymmetric unit
-    // 4. flag as RAWLIST (unsorted)
+					const ReindexOp& reindex_op,
+					const bool& reindexSecondaryLattices,
+					const bool& AllowFractIndex)
+  // Change symmetry in all internal lists to new_spgp,
+  // ie
+  // 1. for each obs_part, get original indices 
+  // 2. reindex (change basis)
+  // 3. rereduce to new asymmetric unit
+  // 4. flag as RAWLIST (unsorted)
+  //
+  // reindexSecondaryLattices true if secondary lattices from multilattice overlaps
+  //  should be reindexed as well
   //
   // If AllowFractIndex true, allow discarding of fractional index
   // observations after reindexing, otherwise this is a fatal error
@@ -2584,7 +2606,7 @@ namespace scala {
 	}
 	hkl_new = new_symm.put_in_asu(hkl_reindex, new_isym);
 	// Multilattice
-	if (dataflags.is_latnum) {
+	if (dataflags.is_latnum && reindexSecondaryLattices) {
 	  observation_part& part = find_part(i);
 	  std::vector<LatticeIndexInfo> lathkl = part.lathkl();
 	  for (int j=0;j<nlattices;++j) {

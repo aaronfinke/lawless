@@ -1143,6 +1143,7 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   float cumposs;
   float anomcmpl;
   float anomfrc;
+  float anommult;
   float poss0, possN, mult0, multN, anomcmpl0, anomcmplN, anommult0, anommultN;
 
   int n=1;
@@ -1157,10 +1158,11 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
     cumposs = FractionN(100., NrefSphere, Nrefcmpl);  // cumulative completeness
     anomcmpl = FractionN(100., NumAnomSphere[i], Nrefacen[i]);
     anomfrc = FractionN(100., NumAnom[i], NumACentric[i]);
+    anommult = FractionN(1.0, SNumAnomPairs[i], NumAnom[i]);
     table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
 	       NumObs[i], NumRef[i], NumCentric[i], poss, cumposs,
 	       FractionN(1.0, NumObs[i], NumRef[i]),
-	       anomcmpl, anomfrc, FractionN(1.0, SNumAnomPairs[i], NumACentric[i]));
+	       anomcmpl, anomfrc, anommult);
     // Totals
     Ncen += NumCentric[i];
     Nanom += NumAnom[i];
@@ -1173,12 +1175,12 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
       poss0 = poss;
       mult0 = FractionN(1.0, NumObs[i], NumRef[i]);
       anomcmpl0 = anomcmpl;
-      anommult0 = FractionN(1.0, SNumAnomPairs[i], NumACentric[i]);
+      anommult0 = FractionN(1.0, SNumAnomPairs[i], NumAnom[i]);
     } else if (i==ResRange.Nbins()-1) {
       possN = poss;
       multN = FractionN(1.0, NumObs[i], NumRef[i]);
       anomcmplN = anomcmpl;
-      anommultN = FractionN(1.0, SNumAnomPairs[i], NumACentric[i]);
+      anommultN = FractionN(1.0, SNumAnomPairs[i], NumAnom[i]);
     }
 
   }
@@ -1193,7 +1195,7 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   fmt = leader+fmt;
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
 		      Nobs, Nref, Ncen, cumposs, cumposs, FractionN(1.0, Nobs, Nref),
-		      anomcmpl, FractionN(100., Nanom, Nacen), FractionN(1.0, SNumanompairs, Nacen));
+		      anomcmpl, FractionN(100., Nanom, Nacen), FractionN(1.0, SNumanompairs, Nanom));
   int lab1 = leader.size(); // 1st character in column to use labels 
   leader.assign(lab1,' ');
   output.logTab(0,LOGFILE, leader+table.RawLabels().substr(lab1, table.RawLabels().size()-lab1));

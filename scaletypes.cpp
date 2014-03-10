@@ -736,7 +736,7 @@ namespace scala {
   // Store B-factor vector
   {
     ASSERT (int(Bfacs.size()) == nbfac);
-    if (batchbfac || nbfac == 1) {
+    if (batchbfac) {
       bfactors = Bfacs;
     } else { 
       smoothB.StoreValues(Bfacs);

@@ -946,6 +946,7 @@ namespace scala
     file_num = 1;
     phiscan = false;
     pole = 0;
+    latnum = 0;
     initBatchInfo();
   } // Batch constructor
   //--------------------------------------------------------------
@@ -970,7 +971,7 @@ namespace scala
   //! constructor from MTZ batch, accept flag, dataset index
   Batch::Batch(const CMtz::MTZBAT& batch,
                const bool& accept, const int& idataset)
-    :   batchinfo(batch), dataset_index(idataset), accepted(accept)
+    :   batchinfo(batch), dataset_index(idataset), accepted(accept), latnum(0)
   {
     offset = 0;
     file_num = 1;
@@ -1436,6 +1437,10 @@ namespace scala
   {
     return (a.batchinfo.num < b.batchinfo.num);
   }
+  //--------------------------------------------------------------
+  //! set lattice number (default = 0)
+  void Batch::SetLatticeNumber(const int& latticenumber) 
+  {latnum = latticenumber;}
   //--------------------------------------------------------------
   BatchSelection::BatchSelection()
   {clear();}
