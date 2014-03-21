@@ -35,7 +35,10 @@ set(AIMLESS_SOURCES
     sphericalharmonic.cpp statistics.cpp summarystatistics.cpp
     tie.cpp writeoutputfiles.cpp writeunmerged.cpp
     simplex-lib.cpp optimisecombine.cpp tile.cpp imagearray.cpp
-    restore.cpp anisotropy.cpp intensity_scale.cpp radiationdamageanalysis.cpp
+    restore.cpp anisotropy.cpp intensity_scale.cpp
+    radiationdamageanalysis.cpp
+    anisotropicmodel.cpp histogram.cpp hkl_merge.cpp referencelist.cpp 
+    referencescalemodel.cpp refinereferencescale.cpp refinetargets.cpp 
 )
 
 # Shared (duplicated) with Pointless
