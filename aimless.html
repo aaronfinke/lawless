@@ -23,7 +23,7 @@
 and merges multiple observations into an average intensity: it is a successor program to SCALA </p>
 <p> Various scaling models can be used. The scale factor is a function
 of the primary beam direction, either as a smooth function of Phi (the
-rotation angle ROT), or expressed as BATCH (image) number (deprecated).
+rotation angle ROT), or expressed as BATCH (image) number (strongly deprecated).
 In addition,
 the scale may be a function of the secondary beam direction, acting
 principally as an absorption correction expanded as spherical
@@ -81,7 +81,8 @@ SCALE BATCH option if every image is different from every other one, <em>i.e.</e
 off-line detectors (including film), or rapidly or
 discontinuously changing incident beam flux. This is
 rarely the
-case for synchrotron data. </li>
+case for synchrotron data. This mode may be VERY slow if there are many batches.<br>
+ </li>
   <li>If there is a discontinuity between one set of images and another
 (<em>e.g.</em> change of exposure time), then flag them as different
 RUNs. This will be done automatically if no runs are specified.</li>
@@ -148,21 +149,21 @@ TBD<h2><a name="keywords"></a>KEYWORDED INPUT - DESCRIPTION</h2>
 case-insensitive, but are listed below in upper-case. Anything after
 "!" or "#" is treated as comment. The available
 keywords are:</p>
-<p><b><a href="#analysis">ANALYSIS</a>, <a href="#anomalous">ANOMALOUS</a></b>,
-<a href="#bins"><b>BINS</b></a>,
-<a href="#dump"><b>DUMP</b></a>,
-<a href="#exclude"><b>EXCLUDE</b></a>, <a style="font-weight: bold;" href="#initial">INITIAL</a>, <a href="#intensities"><b>INTENSITIES</b></a>,
-<a href="#name"><b>NAME</b></a>,
-<a href="#onlymerge"><b>ONLYMERGE</b></a>,
-<a href="#output"><b>OUTPUT</b></a>,
-<a href="#partials"><b>PARTIALS</b></a>, <a style="font-weight: bold;" href="#refine">REFINE</a>, <a href="#reject"><b>REJECT</b></a>,
-<a href="#resolution"><b>RESOLUTION</b></a>,
-<a href="#restore"><b>RESTORE</b></a>, <a href="#run"><b>RUN</b></a>,
-<a href="#scales"><b>SCALES</b></a>,
-<a href="#sdcorrection"><b>SDCORRECTION</b></a>,
-<a href="#tie"><b>TIE</b></a>,
-<a href="#title"><b>TITLE</b></a><a href="#xybins"><b> <br>
-</b></a></p>
+<p><a style="font-weight: bold;" href="#analysis">ANALYSIS</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#anomalous">ANOMALOUS</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#bins">BINS</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#dump">DUMP</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#exclude">EXCLUDE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklin">HKLIN</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklout">HKLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklref">HKLREF</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#initial">INITIAL</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#intensities">INTENSITIES</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#labref">LABREF</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#name">NAME</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#onlymerge">ONLYMERGE</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#output">OUTPUT</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#partials">PARTIALS</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#refine">REFINE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#reject">REJECT</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#resolution">RESOLUTION</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#restore">RESTORE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#run">RUN</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#scales">SCALES</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#sdcorrection">SDCORRECTION</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#tie">TIE</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#title">TITLE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xmlout">XMLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xyzin">XYZIN</a><b><br>
+</b></p>
 <h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
 
 <p>Define a "run" : Nrun is the Run number, with an arbitrary
@@ -739,7 +740,7 @@ be assumed if omitted </p>
 &lt;DelMax_xy&gt; </dt>
       <dd>maximum values of normalized squared deviation (del**2/V) to
 include
-a scale [default set automatically, typically 3.</dd></dl></dd></dl><h3><a name="name">NAME</a>&nbsp;
+a scale [default set automatically, typically 3]</dd></dl></dd></dl><h3><a name="name">NAME</a>&nbsp;
 PROJECT &lt;project_name&gt; CRYSTAL &lt;crystal_name&gt; DATASET
 &lt;dataset_name&gt;</h3>&nbsp;<span style="color: rgb(255, 102, 0);"></span>Assign or reassign project/crystal/dataset names, for output file.
 The names given here supersede those in the input file and redefines the single output dataset.<br>
@@ -754,8 +755,48 @@ Differences between other datasets and the base dataset are analysed
 for correlation and ratios, ie for the i'th dataset (I(i) - I(base)).
 By default, the datasets with the shortest wavelength will be chosen
 as the base (or dataset 1 if wavelength is unknown). Typically, the
-CRYSTAL keyword may be omitted.
-</p><h2 align="center"><a name="InputOutput"></a>INPUT AND OUTPUT FILES</h2>
+CRYSTAL keyword may be omitted.</p><span style="font-weight: bold;"></span>
+<h3><a name="hklin"></a>HKLIN &lt;input file name&gt;</h3>
+Filename for the main input file, as an alternative to specifying it on the command line.
+<h3><a name="hklout"></a>HKLOUT &lt;output file name&gt;</h3>
+
+Filename for the output file, as an alternative to specifying it on the command line.<br>
+
+<h3><a name="xmlout"></a>XMLOUT &lt;output XML file name&gt;</h3>
+
+Filename for the XML output file, as an alternative to specifying it on the command line.<br>
+
+<h3><a name="hklref"></a>HKLREF &lt;reference file name&gt;</h3>
+Filename for a reference reflection file, as an alternative to
+specifying it on the command line. This file is used to provide a
+"best" estimate of intensity, and the observed data is analysed for its
+agreement as a function of batch, as R-factors and correlation
+coefficients, so that particularly bad regions of data may be detected.
+This reference data could for example be calculated from the best
+current model, eg the FC_ALL_LS column from Refmac. Column labels may
+be specified with the <a href="#labref">LABREF</a>
+command. Amplitudes are squared to intensities, and intensities are
+scaled to the merged observations with a scale and a anisotropic
+temperature factor. This is an alternative to giving a coordinate file <a href="#xyzin">XYZIN</a> from which structure factors will be calculated.<span style="font-weight: bold;"><br>
+</span>
+<h3><a name="labref"></a>LABREF [F | I =]&lt;columnlabel&gt;]</h3>
+For an HKLREF file, this defines the column label for intensity or
+amplitude (which will be squared to an intensity). If this command is
+omitted, the first intensity column (or if no intensities, the first
+amplitude) will be used. The next column is assumed to contain the
+corresponding sigma.<br>
+
+<h3><a name="xyzin"></a>XYZIN &lt;reference coordinate file name&gt;</h3>
+The
+filename for a reference coordinate set. Structure factors will be
+calculated to use as a reference, in the same way as <a href="#hklref">HKLREF</a>. This provides a current "best" estimate of intensity, and the
+observed data is analysed for its agreement as a function of batch, as
+R-factors and correlation coefficients, so that particularly bad
+regions of data may be detected. The file
+should contain a valid space group name (full name with spaces, eg "P
+21
+21 21", "P 1 21 1" etc) and unit cell parameters (ie a CRYST1 line in
+PDB format). <h2 align="center"><a name="InputOutput"></a>INPUT AND OUTPUT FILES</h2>
 <h3>Input</h3>
 <dl compact="compact">
   <dt>HKLIN</dt>
@@ -763,15 +804,23 @@ CRYSTAL keyword may be omitted.
   <p>Compulsory columns: </p>
   <pre>        H K L           indices<br>        M/ISYM          partial flag, symmetry number<br>        BATCH           batch number<br>        I               intensity  (integrated intensity)<br>        SIGI            sd(intensity)   (integrated intensity)<br></pre>
   <p>Optional columns: </p>
-  <pre>        XDET YDET       position on detector of this reflection: these<br>                        may be in any units (<em>e.g.</em> mm or pixels), but the<br>                        range of values must be specified in the<br>                        orientation data block for each batch.<br>        ROT             rotation angle of this reflection ("Phi"). If<br>                        this column is absent, only SCALES BATCH is valid.<br>        IPR             intensity  (profile-fitted intensity)     <br>        SIGIPR          sd(intensity)   (profile-fitted intensity)<br>        SCALE           previously calculated scale factor (<em>e.g.</em> from<br>                        previous run of Scala). This will be applied<br>                        on input<br>        SIGSCALE        sd(SCALE)<br>        TIME            time for B-factor variation (if this is<br>                        missing, ROT is used instead)<br>        MPART           partial flag from Mosflm<br>        FRACTIONCALC    calculated fraction, required to SCALE PARTIALS<br>        LP              Lorentz/polarization correction (already applied)<br>        FLAG            error flag (packed bits) from Mosflm (v6.2.3<br>                        or later). By default, if this column is present, <br>                        observations with a non-zero FLAG will be<br>                        omitted. They may be conditionally accepted<br>                        using the KEEP command (qv)<br>                        Bit flags:<br>                              1         BGRATIO too large<br>                              2         PKRATIO too large<br>                              4         Negative &gt; 5*sigma<br>                              8         BG Gradient too high<br>                             16         Profile fitted overload<br>                             32         Profile fitted "edge" reflection<br>        BGPKRATIOS      packed background &amp; peak ratios, &amp; background<br>                        gradient, from Mosflm, to go with FLAG<br></pre>
+  <pre>        XDET YDET       position on detector of this reflection: these<br>                        may be in any units (<em>e.g.</em> mm or pixels), but the<br>                        range of values must be specified in the<br>                        orientation data block for each batch.<br>        ROT             rotation angle of this reflection ("Phi"). If<br>                        this column is absent, only SCALES BATCH is valid.<br>        IPR             intensity  (profile-fitted intensity)     <br>        SIGIPR          sd(intensity)   (profile-fitted intensity)<br>        SCALE           previously calculated scale factor (<em>e.g.</em> from<br>                        previous run of Scala). This will be applied<br>                        on input<br>        SIGSCALE        sd(SCALE)<br>        TIME            time for B-factor variation (if this is<br>                        missing, ROT is used instead)<br>        MPART           partial flag from Mosflm<br>        FRACTIONCALC    calculated fraction, required to SCALE PARTIALS<br>        LP              Lorentz/polarization correction (already applied)<br>        FLAG            error flag (packed bits) from Mosflm (v6.2.3<br>                        or later). By default, if this column is present, <br>                        observations with a non-zero FLAG will be<br>                        omitted. They may be conditionally accepted<br>                        using the KEEP command (qv)<br>                        Bit flags:<br>                              1         BGRATIO too large<br>                              2         PKRATIO too large<br>                              4         Negative &gt; 5*sigma<br>                              8         BG Gradient too high<br>                             16         Profile fitted overload<br>                             32         Profile fitted "edge" reflection<br>        BGPKRATIOS      packed background &amp; peak ratios, &amp; background<br>                        gradient, from Mosflm, to go with FLAG<br>	LATTNUM         lattice number for multilattice data<br>	Hn, Kn, Ln      hkl indices for overlapped observations with multilattice data<br></pre>
 </dl>
 <span style="font-weight: normal;"></span><span style="font-weight: normal;">
 </span>
+HKLREF&nbsp;&nbsp; reference file for analysis of agreement by batch.
+This may contain intensities or amplitudes (which will be squared), eg
+the FC_ALL_LS column from Refmac. The label is specified on the LABREF
+command<br>
+<br>
+XYZIN&nbsp; as an alternative to HKLREF, a coordinate file may be
+given, from which amplitudes and intensities will be calculated<br>
 <h3>Output</h3>
+
 <h4>Reflection files output </h4>
 
   
-    <br>
+    
 In all cases, separate files
 are written for each dataset:&nbsp; files are named with the base
 HKLOUT name with the dataset name appended, as "_dataset"
@@ -824,7 +873,7 @@ specified then the filename will be taken from SCALEPACK with&nbsp;
 </div>
 
 <br>
-<h4>Other files</h4>
+<h4>Other output files</h4>
 <dl compact="compact">
 
   <dt>XMLOUT</dt><dd>XML output for plotting etc. It includes the NORMPLOT, ANOMPLOT, CORRELPLOT and ROGUEPLOT data, as well as the $TABLE graph data<br>
@@ -1164,7 +1213,10 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.2.20 fix bug for single B-factor/run<br>
+  <h2>RELEASE NOTES</h2>0.3.1&nbsp;
+optional reference data for analysis of agreement by batch, either as
+structure factors (or intensities) HKLREF,LABREF, or coordinates (XYZIN)<br>
+0.2.20 fix bug for single B-factor/run<br>
 0.2.18,19 updates from Pointless for multiple lattices. Corrected calculation of anomalous multiplicity<br>
 0.2.17 fix bug in setting same resolution bin widths for multiple datasets when NBINS is set<br>
 0.2.16 message for std::bad_alloc, running out of memory<br>

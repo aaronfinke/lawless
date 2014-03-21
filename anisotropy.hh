@@ -87,6 +87,9 @@ private:
     //                  return 2 projections on to plane and axis if doplane true
     DVect3 Projection(const Hkl& hkl, const bool& doplane=false) const;
 
+    //! return OrthogonalAnisotropy
+    OrthogonalAnisotropy GetOrthogonalAnisotropy() const
+    {return orthogonalanisotropy;}
 
     //! return eigenvectors (orthogonal frame), sorted as closest to a*,b*,c*
     std::vector<DVect3> PrincipalAxes() const {return principalaxes;}
@@ -109,12 +112,20 @@ private:
     //! return true if cubic
     bool IsCubic() const {return cubic;}
 
+    //! return cell
+    // unit cell in clipper convention
+    clipper::Cell Cell() const {return ccell;}
+
+
     //! format types of analyses done
     std::string formattype() const;
 
     //! return labels for three axes
     std::vector<std::string> Axesformat() const;
-      
+
+    //! return crystal system
+    CrystalSystem crysSys() const {return cryssys;}
+
   private:
     // principal directions for analysis, along a*, b*, c* for higher symmetry
     // along principal components for monoclinic & triclinic

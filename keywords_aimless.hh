@@ -633,6 +633,93 @@ namespace phaser_io {
     std::string name;
   };
   //--------------------------------------------------------------
+  class HKLIN : public InputBase, virtual public CCP4base
+  {
+    // Syntax: HKLIN <filename>
+  public:
+    HKLIN();
+    virtual ~HKLIN() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setHKLIN(const std::string& Name) {name = Name;}
+    std::string getHKLIN() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
+  //--------------------------------------------------------------
+  class HKLOUT : public InputBase, virtual public CCP4base
+  {
+    // Syntax: HKLOUT <filename>
+  public:
+    HKLOUT();
+    virtual ~HKLOUT() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setHKLOUT(const std::string& Name) {name = Name;}
+    std::string getHKLOUT() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
+  //--------------------------------------------------------------
+  class HKLREF : public InputBase, virtual public CCP4base
+  {
+    // Syntax: HKLREF <filename>
+  public:
+    HKLREF();
+    virtual ~HKLREF() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setHKLREF(const std::string& Name) {name = Name;}
+    std::string getHKLREF() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
+  //--------------------------------------------------------------
+  class LABREF : public InputBase, virtual public CCP4base
+  {
+    // Syntax: LABREF [F|I = ] <F|Ilabel> [[SIGF|I = ] <sigF|Ilabel>]
+  public:
+    LABREF();
+    virtual ~LABREF() {}
+    Token_value parse(std::istringstream&);
+
+    void setLABREF_I(const std::string& lab_I) {FIlabel = lab_I;}
+    void setLABREF_sigI(const std::string& lab_sigI) {sigFIlabel = lab_sigI;}
+    std::string getLABREF_I() const {return FIlabel;}
+    std::string getLABREF_sigI() const {return sigFIlabel;}
+    void analyse(){}
+
+  private:
+    std::string FIlabel;
+    std::string sigFIlabel;
+
+  };
+  //--------------------------------------------------------------
+  class XYZIN : public InputBase, virtual public CCP4base
+  {
+    // Syntax: XYZIN <filename>
+  public:
+    XYZIN();
+    virtual ~XYZIN() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setXYZIN(const std::string& Name) {name = Name;}
+    std::string getXYZIN() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
 } // phaser_io
 
 #endif

@@ -43,7 +43,8 @@ namespace scala {
   public:
     MergedList(){}
     //! Fill from unmerged list & SD_model, for given dataset if index >=0
-    //  default all datasets
+    //  default all datasets stored separately
+    // Datasetindex = -2 to combine datasets together
     MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
 	       const std::string& Title, const int& Datasetindex=-1);
     void init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
@@ -64,14 +65,38 @@ namespace scala {
     std::vector<float> InvResMax() const {return resmaxdts;}
     // max(1/d^2) for given dataset, = 0 if unset
     float InvResMax(const int& datasetIndex) const;
+    double resHigh() const;  // for all datasets
 
     // Data access
+    // Reset current reflection pointer to first reflection, for given dataset
+    void start(const int& datasetIndex) const;
+    // Next IsigI, returns false if end of list
+    bool next(IsigI& Is) const;
+    // get hkl for current reflection
+    Hkl  hkl() const;
+    // get clipper hkl for current reflection
+    clipper::HKL HKL() const;
+
     //! return reference to reflection list 
     clipper::HKL_info& HKLinfo() {return hkl_info_list;}
     //! return reference to Imean data for given dataset
+    const clipper::HKL_data<clipper::data32::I_sigI>&
+    ImeanForDataset(const int& datasetindex) const;
+    //! return reference to Imean data for given dataset
     clipper::HKL_data<clipper::data32::I_sigI>&
     ImeanForDataset(const int& datasetindex);
-   
+
+    // resolution of current reflection
+    double invresolsq() const;
+
+    clipper::Spacegroup spacegroup() const;
+    clipper::Cell Cell() const;
+
+    int num_reflections() const
+    {return hkl_info_list.num_reflections();}
+
+    double meanIntensity() const {return meanintensity;}
+
 
   private:
     int ndatasets; // number of datasets
@@ -84,9 +109,15 @@ namespace scala {
     std::vector<float> resmaxdts;  // maximum resolution (1/d^2) in each dataset    
     std::string title;
     double maxintensity;
+    double meanintensity;
     std::vector<std::string> historylines;
 
     char spg_status; // aka spg_confidence in MTZ
+
+    // for access
+    mutable int current_dataset_index;  // internal dataset index
+    mutable clipper::HKL_info::HKL_reference_index hkl_index;
+    mutable bool at_start;
 
     // returns false if I or sigI are Nan or sig = 0
     bool CheckNullImean(const clipper::data32::I_sigI& MIsig) const;
@@ -95,6 +126,7 @@ namespace scala {
 
     // return internal index to dataset datasetIndex
     // If dataset_index >=0, then only this dataset has been stored, so return 0
+    // If dataset_index == -2, then all datasets have been stored together, return 0
     // If dataset_index <0, then all datasets have been stored, so return datasetIndex
     int InternalDTSindex(const int& datasetIndex) const;
   }; // MergedList

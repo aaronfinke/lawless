@@ -87,6 +87,8 @@ namespace MtzIO {
     std::string Spacegroupsymbol() const {return spacegroupsymbol;}
     char SpaceGroupStatus() const {return spg_status;}
 
+    double resHigh() const {return ResMax;}  // actual resolution
+
   private:
     std::string filenamein; // input file name
     bool fileopen;  // open_read has been called

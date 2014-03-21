@@ -29,8 +29,12 @@ namespace phaser_io {
     public RESTORE,
     public ANALYSIS,
     public INITIAL,
-    public XMLOUT
-
+    public XMLOUT,
+    public HKLIN,
+    public HKLOUT,
+    public HKLREF,
+    public LABREF,
+    public XYZIN
   {
   public:
     InputAll(Preprocessor&); 

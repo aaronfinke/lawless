@@ -109,13 +109,13 @@ namespace scala
   // Mean  of numbers
   {
   public:
-    MeanValue() : sum_sc(0.0), count(0) {}
+    MeanValue() : sum_sc(0.0), sum_w(0.0), count(0) {}
     MeanValue(const std::vector<float>& list);
     MeanValue(const std::vector<double>& list);
   
-    void Add(const float& v);
-    void Add(const double& v);
-    void clear() {sum_sc=0.0; count=0;}
+    void Add(const float& v, const float& w = 1.0f);
+    void Add(const double& v, const double& w = 1.0);
+    void clear() {sum_sc=0.0; sum_w=0.0; count=0;}
 
     double Mean() const;
     int Count() const {return count;}
@@ -126,7 +126,7 @@ namespace scala
     friend MeanValue& operator+ (const MeanValue& a, const MeanValue& b);
 
   private:
-    double sum_sc;
+    double sum_sc, sum_w;
     int count;
   };
   //======================================================================

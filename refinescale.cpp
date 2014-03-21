@@ -19,12 +19,14 @@ namespace scala {
   // ---------------------------------------------------------
   RefineScale::RefineScale(const hkl_unmerge_list& Hkl_list,
 			   ScaleModel& Scalemodel,
+			   const SDmodel& SDM,
 			   const int& Nprocs)
   {
     hkl_list = &Hkl_list;     // pointer to data list
     scalemodel = &Scalemodel; // pointer to scales object
     npar = scalemodel->Nparameters();
     params = scalemodel->GetParameters();  // initial parameters
+    sdmodel = &SDM;
     gradient.newsize(npar);
     gradientOK = false;
     nprocs=Nprocs;
@@ -85,6 +87,7 @@ namespace scala {
       for (jref=0;jref<jcount;++jref) { // ---- loop reflections
 	this_refl = hkl_list->get_reflection(jref_array[jref]); // jr is accepted reflection index
 	if (jref_array[jref] >= 0) { 
+	  sdmodel->CorrectReflection(this_refl);
 
 	  myid = 0;
 #if _OPENMP
@@ -273,6 +276,7 @@ namespace scala {
     for (jref=0;jref<jcount;++jref) { // ---- loop reflections
       this_refl = hkl_list->get_reflection(jref_array[jref]); // jr is accepted reflection index
       if (jref_array[jref] >= 0) { 
+	sdmodel->CorrectReflection(this_refl);
 
 	myid = 0;
 #if _OPENMP

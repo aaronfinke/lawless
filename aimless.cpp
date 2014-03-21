@@ -29,6 +29,7 @@
 #include "file_util.hh"
 #include "observationstatuscontrol.hh"
 #include "analyseoverlaps.hh"
+#include "referencelist.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -74,14 +75,18 @@ int main(int argc, char* argv[])
 
   GlobalControls GC;
   std::string hklin_filename = "";
+  std::string hklref_filename = "";
+  std::string xyzref_filename = "";
 
   Timer timer;
 
   try {
     // Input from command line: optional HKLIN filename
     // 
-    phaser_io::InterpretCommandLine CL(argc, argv);
+    phaser_io::InterpretCommandLine CL(argc, argv, output);
     hklin_filename = CL.getHKLIN1();
+    hklref_filename = CL.getHKLREF();
+    xyzref_filename = CL.getXYZIN();
     if (CL.getXMLOUT() != "")
       {output.setXmlout(CL.getXMLOUT());}
 
@@ -89,6 +94,23 @@ int main(int argc, char* argv[])
     phaser_io::InputAll input(IsOnline(), output);
     input.Analyse();
 
+    // Optional HKLIN
+    if (input.getHKLIN() != "") {
+      hklin_filename = input.getHKLIN();
+    }
+
+    // Optional HKLREF
+    if (input.getHKLREF() != "") {
+      hklref_filename = input.getHKLREF();
+    }
+    if (input.getXYZIN()  != "") {
+      xyzref_filename = input.getXYZIN();
+    }
+    if (hklref_filename != "" && xyzref_filename != "") {
+      Message::message(Message_fatal
+       ("Cannot have both HKLREF and XYZIN filenames given"));
+    }
+    
     // XMLOUT command
     if (input.getXMLOUT() != "")
       {output.setXmlout(input.getXMLOUT());}
@@ -135,7 +157,12 @@ int main(int argc, char* argv[])
     OutputControls outputcontrols = input.Outputcontrols();
 
     // set filenames from command line or environment
-    outputcontrols.SetFilenames(CL.getHKLOUT(), CL.getHKLOUTUNMERGED(),
+    std::string hklout_filename = CL.getHKLOUT();
+    if (input.getHKLOUT() != "") {
+      hklout_filename = input.getHKLOUT();
+    }
+
+    outputcontrols.SetFilenames(hklout_filename, CL.getHKLOUTUNMERGED(),
 				CL.getSCAOUT(), CL.getSCAOUTUNMERGED());
 
     //  Setup up controls for reflection & column selection etc
@@ -245,8 +272,53 @@ int main(int argc, char* argv[])
 
     bool onlyUseSingletons = false;
     if (hkl_list.NumberofLattices() != hkl_list.NumberofMainLattices()){
-      // Not all (multi)lattices present in file, set gloabl flag to use singletons only
+      // Not all (multi)lattices present in file, set global flag to use singletons only
       onlyUseSingletons = true;
+    }
+
+    // Read optional reference file for statistics, check for compatibility
+    ReferenceList hklreflist;
+    double toleranceratio = 1.0;
+    // use SF calculation with bulk solvent, do it later so that
+    //  it can be scaled
+    bool SF_BULK_SOLVENT = true;
+    bool referencedata = (hklref_filename != "" || xyzref_filename != "");
+    // true to read reference list here, else later
+    bool readRefFirst = referencedata;
+    if (xyzref_filename != "" && SF_BULK_SOLVENT) {
+      readRefFirst = false;
+    }
+
+    if (readRefFirst) {  // reference from HKLREF or XYZIN with no bulk solvent
+      bool verbose = true;
+      if (hklref_filename != "") {
+	output.logTab(0,LOGFILE, "\nReference file for analysis (HKLREF)");
+	hklreflist.init(hklref_filename,
+			input.getLABREF_I(), input.getLABREF_sigI(),
+			hkl_list.ResRange().ResHigh(), verbose, 
+			output);
+	PrintFileInfoToXML("HKLREF",hklref_filename,
+			   hklreflist.Cell(),
+			   hklreflist.SpaceGroupSymbol(),
+			   output);
+      } else {
+	// xyzref (XYZIN) coordinates given
+	hklreflist.init(xyzref_filename,
+			hkl_list.ResRange().ResHigh(), verbose,
+			output);
+	PrintFileInfoToXML("XYZIN",xyzref_filename,
+			   hklreflist.Cell(),
+			   hklreflist.SpaceGroupSymbol(),
+			   output);
+      }
+      bool refOK =
+	hklreflist.checkCompatible(hkl_list, toleranceratio);
+      if (!refOK) {
+	std::string s = "HKLREF file is incompatible with HKLIN file\n";
+	s += hklreflist.formatError();
+	output.logTab(0,LXML, StringUtil::MakeXMLtag("FatalErrorMessage",s));
+ 	Message::message(Message_fatal(s));
+      }
     }
 
     // Set number of datasets for anomalous outliers 
@@ -438,7 +510,7 @@ int main(int argc, char* argv[])
       AllScales.symmetricTiles(true);
 
       if (controls.refinecontrol.BFGS()) {
-	ScaleRefine(hkl_list, AllScales, controls,
+	ScaleRefine(hkl_list, AllScales, SD_model, controls,
 		    controls.refinecontrol.Ncyc1(), false, output);
       } else {
 	ScaleRefineFH(hkl_list, AllScales, controls,
@@ -531,7 +603,7 @@ int main(int argc, char* argv[])
 			  hkl_list.num_reflections(), E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
       if (controls.refinecontrol.BFGS()) {
-	ScaleRefine(hkl_list, AllScales, controls, Ncyc, true, output);
+	ScaleRefine(hkl_list, AllScales, SD_model, controls, Ncyc, true, output);
       } else {
 	ScaleRefineFH(hkl_list, AllScales, controls, Ncyc, output);
       }
@@ -732,6 +804,30 @@ int main(int argc, char* argv[])
     output.logTab(0,LOGFILE,controls.observationflagcontrol.PrintCounts());
     output.logTab(0,LXML,controls.observationflagcontrol.asXML());
 
+    // Scale optional reference file for statistics to observed data
+    if (referencedata) {
+      bool refOK;
+      int datasetindex = -2;  // combine all datasets together
+      if (xyzref_filename != "" && SF_BULK_SOLVENT) {
+	// calculate SF from atoms with bulk solvent
+	refOK =
+	  hklreflist.SFcalcScaleToObserved(xyzref_filename,
+					   hkl_list, datasetindex,
+					   SD_model, toleranceratio,
+					   true, output);
+	ASSERT (refOK); // checked earlier
+	PrintFileInfoToXML("XYZIN",xyzref_filename,
+			   hklreflist.Cell(),
+			   hklreflist.SpaceGroupSymbol(),
+			   output);
+      }
+      // (re)scale to observed, wherever the F list has come from
+      refOK =
+	hklreflist.scaleToObserved(hkl_list, datasetindex,
+				   SD_model, toleranceratio, output);
+	ASSERT (refOK); // checked earlier
+    }
+
     // Smoothing of batch statistics
     double smoothwidth = input.SmoothStatisticsRange(); // angular range, -1 if unset
     if (smoothwidth <= 0.0) {
@@ -754,7 +850,7 @@ int main(int argc, char* argv[])
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
 
-    // Gather & print all statistics
+    // Gather & print all statistics for each dataset ------------------------------------
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
       //  hkl_list is const
       // NormRes just used for intensity binning
@@ -774,8 +870,10 @@ int main(int argc, char* argv[])
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
       float aslope = anomProbSlopes[idts];
-      SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model, controls, idts,
-					     resrangedataset, NormRes, anomds, aslope, output);
+      SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
+					     controls, idts, resrangedataset,
+					     NormRes, anomds, aslope,
+					     hklreflist, output);
       allsummarystatistics.AddSummaryStatistics(sumstat);
 
       if (multilattice && !onlyUseSingletons) {
@@ -788,10 +886,10 @@ int main(int argc, char* argv[])
 		      "==============================================================\n");
 	Result = false;
       }
-      // Print summary as a Results table if one dataset
+      // Print summary as a Results table if one dataset, otherwise just to logfile
       allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
       output.logFlush();
-    } // end loop datasets
+    } // end loop datasets -----------------------------------------
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,

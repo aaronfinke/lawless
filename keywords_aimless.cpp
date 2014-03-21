@@ -1673,4 +1673,139 @@ Token_value XMLOUT::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+HKLIN::HKLIN() : CCP4base(), InputBase()
+{
+  Add_Key("HKLIN");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);  
+}
+//--------------------------------------------------------------
+Token_value HKLIN::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Trim(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+HKLOUT::HKLOUT() : CCP4base(), InputBase()
+{
+  Add_Key("HKLOUT");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);  
+}
+//--------------------------------------------------------------
+Token_value HKLOUT::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Trim(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+HKLREF::HKLREF() : CCP4base(), InputBase()
+{
+  Add_Key("HKLREF");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);  
+}
+//--------------------------------------------------------------
+Token_value HKLREF::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Trim(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+bool SetLabel(const std::string& lkey,
+	      const std::string& label,
+	      int& nlab,
+	      std::string& Ilabel,
+	      std::string& sigIlabel)
+// return false if error
+{
+  if ((lkey == "F" || lkey == "I") ||
+      (lkey == "" && nlab == 0)) {
+    // store I|F label
+    Ilabel = label;
+  } else if ((lkey == "SIGF" || lkey == "SIGI") ||
+	     (lkey == "" && nlab == 1)) {
+    // store sigI|F label
+    sigIlabel = label;
+  } else {
+    return false;
+  }
+  nlab += 1;
+  return true;
+}
+//--------------------------------------------------------------
+LABREF::LABREF() : CCP4base(), InputBase()
+{
+  Add_Key("LABR");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value LABREF::parse(std::istringstream& input_stream)
+{
+  // Syntax: LABREF [F|I = ] <F|Ilabel> [[SIGF|I = ] <sigF|Ilabel>]
+  int nlab = 0;
+  int proglab = -1; // Initially no "program label" read
+  std::string label;
+  std::string lkey;
+
+  while (get_token(input_stream) != ENDLINE) {
+    if (proglab >= 0) {
+      // Have potential program label, is next field "="?
+      if (curr_tok == ASSIGN) {
+	lkey = label;
+	label = "";
+	proglab = +1;
+      } else {
+	// No, store as actual label
+	if (proglab > 0) label = string_value;
+	if (! SetLabel(lkey, label, nlab, FIlabel, sigFIlabel))
+	  throw SyntaxError(keywords,"Too many column labels");
+	if (proglab > 0) {
+	  // "=" was read, just had label
+	  proglab = -1;
+	} else {
+	  // current string is next key or label
+	  proglab = 0;
+	  label = string_value;
+	  lkey = "";
+	}
+      }
+    } else {
+      label = string_value;
+      lkey = "";
+      proglab = 0;
+    }
+  }
+  if (proglab == 0)
+    if (! SetLabel(lkey, label, nlab, FIlabel, sigFIlabel))
+      throw SyntaxError(keywords,"Too many column labels");
+  if (sigFIlabel != "" && FIlabel == "") {
+      throw SyntaxError(keywords,"Can't specify just SIG");
+  }
+
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
+XYZIN::XYZIN() : CCP4base(), InputBase()
+{
+  Add_Key("XYZIN");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);  
+}
+//--------------------------------------------------------------
+Token_value XYZIN::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Trim(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
 } // phaser_io

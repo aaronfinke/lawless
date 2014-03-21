@@ -16,6 +16,7 @@
 #include "ProtocolScale.hh"
 #include "hkl_unmerge.hh"
 #include "scalemodel.hh"
+#include "sdmodel.hh"
 
 using namespace phaser;
 
@@ -26,6 +27,7 @@ public:
   RefineScale(){}
   RefineScale(const hkl_unmerge_list& Hkl_list,
 	      ScaleModel& Scalemodel,
+	      const SDmodel& SDM,
 	      const int& Nprocs);
 
   floatType    targetFn();  //this is where main body goes
@@ -44,6 +46,7 @@ public:
 
 private:
   ScaleModel* scalemodel;   // all the scales
+  const SDmodel* sdmodel;
   int npar;   // number of parameters
   std::vector<double> params;    // the parameters
   std::vector<int> nrefpar; // number of contributions to each parameter

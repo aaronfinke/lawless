@@ -255,6 +255,8 @@ namespace scala {
   void SmoothStatisticsByBatch(const std::vector<std::vector<MeanSD> >& mnIsdResBatch,
 			       std::vector<double>& maxresbatchsmoothed,
 			       std::vector<Rfactor>& rmergebatch,
+			       std::vector<Rfactor>& rreferencebatchsmoothed,
+			       std::vector<MeanValue>& ccreferencebatchsmoothed,
 			       const std::vector<Batch>& batches,
 			       const std::vector<Run>& runlist,
 			       const ResoRange& ResRange,
@@ -264,12 +266,22 @@ namespace scala {
   // mnIsdResBatch by batch for each resolution bin = Mean(<I>/sd(<I>))
   // maxresbatchsmoothed (returned) "maximum resolution" by batch smoothed over NbatchSmooth batches
   // rmergebatch by batch, replaced by smooth version
+  // rreferencebatchsmoothed  vs. reference, replaced by smooth version
+  // ccreferencebatchsmoothed vs. reference, replaced by smooth version
   // MinimumIoverSigmaBatch     threshold for resolution
   // NbatchSmooth should be odd, if not forced to be odd here
   {
     int nbatches = mnIsdResBatch.size();
     maxresbatchsmoothed.assign(nbatches, 0.0);
     std::vector<Rfactor> Rsmooth(nbatches);
+    bool hklref = false;
+    std::vector<Rfactor> Rrefsmooth;
+    std::vector<MeanValue> ccrefsmooth;
+    if (rreferencebatchsmoothed.size() > 0) {
+      hklref = true;
+      Rrefsmooth.resize(nbatches);
+      ccrefsmooth.resize(nbatches);
+    }
 
     int nbs = (NbatchSmooth/2)*2 + 1; // force odd
 
@@ -305,6 +317,11 @@ namespace scala {
 	  for (int i=0;i<nrbins;++i) { // loop resolution bins
 	    msd[i] += mnIsdResBatch[j][i];
 	  }
+	  // R and CC against reference, if present
+	  if (hklref) {
+	    Rrefsmooth[ib] += rreferencebatchsmoothed[j];
+	    ccrefsmooth[ib] += ccreferencebatchsmoothed[j];
+	  }
 	}
 	//	std::cout <<ib<<" "<< i1 <<" "<<i2
 	//		  <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
@@ -319,8 +336,30 @@ namespace scala {
 	maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 
       }
     } // end loop batches
-    rmergebatch = Rsmooth;
+    rmergebatch = Rsmooth; // return overwriting input
+    rreferencebatchsmoothed = Rrefsmooth;
+    ccreferencebatchsmoothed = ccrefsmooth;
     return;
+  }
+  // ------------------------------------------------------------
+  std::vector<MeanValue> AverageCCoverresolution
+  (const std::vector<std::vector<correl_coeff> >& ccreferencebatch,
+   std::vector<int>& numberinCC)
+  // average of CC over resolution bins, weighted by number of contributions,
+  // also returns numberinCC containing total count in average
+  {
+    std::vector<MeanValue> averageccoverresolution(ccreferencebatch.size());
+    if (ccreferencebatch.size() == 0) return averageccoverresolution;
+    int nresbins = ccreferencebatch[0].size();
+    numberinCC.assign(ccreferencebatch.size(), 0);
+    for (size_t ib=0; ib<ccreferencebatch.size(); ib++) { 
+      for (int mres=0;mres<nresbins;++mres) {
+	double weight = ccreferencebatch[ib][mres].Number();
+	averageccoverresolution[ib].Add(ccreferencebatch[ib][mres].CC(), weight);
+	numberinCC[ib] += ccreferencebatch[ib][mres].Number();
+      }
+    }
+    return averageccoverresolution;
   }
   // ------------------------------------------------------------
   SummaryStatistics Statistics(const ScaleModel& AllScales,
@@ -332,6 +371,7 @@ namespace scala {
 			       const Normalise& NormRes,
 			       const AnomDistribution& anomDistribution,
 			       const float& anomProbSlope,
+			       const ReferenceList& hklreflist,
 			       phaser_io::Output& output)
   //
   // Statistics for within a dataset datasetIndex
@@ -345,6 +385,7 @@ namespace scala {
   //   ResRange     resolution range with bins
   //   NormRes      normalisation object, over all data (no run/batch dependence)
   //   anomProbSlope slope of anomalous normal probability plot
+  //   hklreflist   reference data for analysis, if present
   //   output
   //   
   {
@@ -412,6 +453,22 @@ namespace scala {
     std::vector<MeanSD>  imeanbatch(nbatches);   // Imean (all I+, I-)
     std::vector<MeanSD>  rmsDbatch(nbatches);    // RMS scatter from mean (all I+,I-)
     std::vector<int>     NumObsBatch(nbatches,0);      // Number of observations
+    // statistics relative to reference dataset
+    bool hklref = !(hklreflist.IsEmpty());
+    std::vector<Rfactor> rreferencebatch;    // Rfactor to reference data
+    // CC to reference data by resolution & batch
+    std::vector<std::vector<correl_coeff> > ccreferencebatch;
+    std::vector<MeanValue> meanIrefbatch;
+    std::vector<MeanValue> meanIobsbatch;
+    if (hklref) {      
+      rreferencebatch.resize(nbatches);
+      ccreferencebatch.resize(nbatches);
+      for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
+	ccreferencebatch[i].assign(nresbin,correl_coeff());
+      }
+      meanIrefbatch.resize(nbatches);
+      meanIobsbatch.resize(nbatches);
+    }
 
     // by resolution
     // within I+/I- sets
@@ -636,7 +693,17 @@ namespace scala {
 	avSdInt[mint].Add(this_obs.ksigI());
 	// by resolution for each batch
 	mnIsdResBatch[jbatch][mres].Add(this_obs.kI()/this_obs.ksigI());
-
+	// Analysis against reference data
+	if (hklref) {
+	  // find matching hkl, if present
+	  IsigI Isref = hklreflist.Isig(this_refl.hkl());
+	  if (Isref.sigI() > 0.0) {
+	    rreferencebatch[jbatch].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
+	    ccreferencebatch[jbatch][mres].add(this_obs.kI(), Isref.I(), 1.0);
+	    meanIrefbatch[jbatch].Add(Isref.I());
+	    meanIobsbatch[jbatch].Add(this_obs.kI());
+	  }
+	}
 	if (allobs.Number() > 1) {
 	  rmsDbatch[jbatch].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
 	  AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
@@ -804,9 +871,23 @@ namespace scala {
     std::vector<double> maxresbatchsmoothed = maxresbatch;
     std::vector<Rfactor> rmergebatchsmoothed = rmergebatch;
 
+    std::vector<Rfactor> rreferencebatchsmoothed;    // Rfactor to reference data
+
+    std::vector<int> numberinCC; // number in CC for each batch
+    std::vector<MeanValue> averageccbatch = AverageCCoverresolution(ccreferencebatch,
+								    numberinCC);
+    std::vector<MeanValue> averageccbatchsmoothed;    // CC to reference data
+    if (hklref) {
+      // copy, to be overwritten
+      rreferencebatchsmoothed = rreferencebatch;    // Rfactor to reference data
+      averageccbatchsmoothed  = averageccbatch;     // CC to reference data
+    }
+
     if (controls.analysis.NbatchSmooth() > 1) {
       SmoothStatisticsByBatch(mnIsdResBatch, maxresbatchsmoothed,
 			      rmergebatchsmoothed,
+			      rreferencebatchsmoothed,
+			      averageccbatchsmoothed,
 			      batches,
 			      runlist,
 			      ResRange,
@@ -848,6 +929,15 @@ namespace scala {
 			   maxresbatch, maxresbatchsmoothed,
 			   MinimumIoverSigmaBatch, controls.analysis.NbatchSmooth(),
 			   ResRange, output);
+    // Analysis by batch against reference
+    if (hklref) {
+      PrintComparisonToReferenceByBatch(dataset_pxd, batches, datasetIndex, controls.analysis.NbatchSmooth(),
+					rreferencebatch, averageccbatch, numberinCC,
+					rreferencebatchsmoothed, averageccbatchsmoothed,
+					meanIrefbatch, meanIobsbatch,
+					output);
+    }
+
     // process halfdataset scores, work out resolution "limits"
     halfDatasetScores.Analyse(ResRange,
 			      controls.analysis.MinimumHalfdatasetCC());

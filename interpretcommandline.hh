@@ -5,6 +5,7 @@
 #define INTERPRETCOMMANDLINE_HEADER
 
 #include "CCP4base.hh"
+#include "Output.hh"
 
 namespace phaser_io {
 
@@ -16,22 +17,23 @@ namespace phaser_io {
     // specifically [HKLIN] may be omitted if it is the only file 
   {
   public:
-    InterpretCommandLine(int argc, char* argv[]);
-    InterpretCommandLine(Preprocessor& CommandLine);
+    InterpretCommandLine(int argc, char* argv[], phaser_io::Output& output);
+    InterpretCommandLine(Preprocessor& CommandLine, phaser_io::Output& output);
     Token_value parse(std::istringstream&) {return END;}
     void analyse(void) {}
 
     std::string getHKLIN1();   // return 1st one or ""
-    std::vector<std::string> getHKLIN() const {return HklinNames;}
-    std::string getXDSIN() const {return XDSinName;}
-    std::string getSCAIN() const {return SCAinName;}
-    std::string getHKLREF() const {return HklrefName;}
-    std::string getHKLOUT() const {return HkloutName;}
-    std::string getHKLOUTUNMERGED() const {return HkloutUnmergedName;}
-    std::string getSCAOUT() const {return ScaoutName;}
-    std::string getSCAOUTUNMERGED() const {return ScaoutUnmergedName;}
-    std::string getXMLOUT() const {return XmloutName;}
-    std::string getXYZIN() const {return XyzinName;}
+    std::vector<std::string> getHKLIN();
+    std::string getXDSIN();
+    std::string getSCAIN();
+    std::string getHKLREF();
+    std::string getHKLOUT();
+    std::string getXMLOUT();
+    std::string getXYZIN();
+    std::string getHKLOUTUNMERGED();
+    std::string getSCAOUT();
+    std::string getSCAOUTUNMERGED();
+
     //  copyFlag true to just copy file
     bool CopyFlag() const {return copy;}
   private:
@@ -48,7 +50,11 @@ namespace phaser_io {
 
     bool copy;  // true from option "-c[opy]", just copy file
 
-    void initialise(Preprocessor& CommandLine);
+    void initialise(Preprocessor& CommandLine, phaser_io::Output& output);
+
+    // return true if field is one of the recognised "logical" file names
+    bool otherFiles(const std::string& field) const;
+
   };
 
 } // phaser_io

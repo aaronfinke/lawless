@@ -322,31 +322,34 @@ namespace scala
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   MeanValue::MeanValue(const std::vector<float>& list)
-    : sum_sc(0.0), count(0)
+    : sum_sc(0.0), sum_w(0.0), count(0)
   {
     for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
   }
   //--------------------------------------------------------------
-  MeanValue::MeanValue(const std::vector<double>& list) : sum_sc(0.0), count(0)
+  MeanValue::MeanValue(const std::vector<double>& list)
+    : sum_sc(0.0), sum_w(0.0), count(0)
   {
     for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
   }
   //--------------------------------------------------------------
-  void MeanValue::Add(const float& v)
+  void MeanValue::Add(const float& v, const float& w)
   {
-    sum_sc += v;
+    sum_sc += w * v;
+    sum_w += w;
     count++;
   }
   //--------------------------------------------------------------
-  void MeanValue::Add(const double& v)
+  void MeanValue::Add(const double& v, const double& w)
   {
-    sum_sc += v;
+    sum_sc += w * v;
+    sum_w += w;
     count++;
   }
   //--------------------------------------------------------------
   double MeanValue::Mean() const
   {
-    return (count > 0) ? sum_sc/double(count) : 0.0;
+    return (sum_w > 0) ? sum_sc/sum_w : 0.0;
   }
   //--------------------------------------------------------------
   std::string MeanValue::format() const
@@ -357,6 +360,7 @@ namespace scala
   MeanValue& MeanValue::operator +=(const MeanValue& other)
   {
     sum_sc += other.sum_sc;
+    sum_w += other.sum_w;
     count += other.count;
   
     return *this;
@@ -368,6 +372,7 @@ namespace scala
     MeanValue c = a;
     return c += b;
   }
+  //--------------------------------------------------------------
   //--------------------------------------------------------------
   float Median(const std::vector<float>& f, const int& nuse)
   // returns median, f must be sorted

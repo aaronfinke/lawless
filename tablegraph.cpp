@@ -453,11 +453,11 @@ std::string TableGraphPlot::XMLformat() const
   }
 
   if (zeroy_RH) {
-    if (yrange.Valid()) {
+    if (yrange_RH.Valid()) {
       // <yrange min="ymin" max="ymax"\>    
       std::string symin = StringUtil::ftos(yrange_RH.min());
       std::string symax = StringUtil::ftos(yrange_RH.max());
-      s += "<yrange min=\""+symin+"\" max=\""+symax+"rightaxis=\"true\"/>\n";
+      s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
     } else {
       // <yrange min="0" max="None"\>    
       s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
@@ -473,8 +473,12 @@ std::string TableGraphPlot::XMLformat() const
   if (yintegral) {
     s += StringUtil::MakeXMLtag("yintegral", "true");
   }
-  for (size_t i=0;i<plotlines.size();++i) {
-    s += plotlines[i].XMLformat(xcolbreak);
+  // Reverse order of plotlines so that the first is last and
+  // therefore on top
+  if (plotlines.size() > 0) {
+    for (int i=int(plotlines.size())-1;i>=0;--i) {
+      s += plotlines[i].XMLformat(xcolbreak);
+    }
   }
   s += "</plot>\n";
   return s;

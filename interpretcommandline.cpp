@@ -5,24 +5,28 @@
 #include "jiffy.hh"
 #include "string_util.hh"
 
+using phaser_io::LOGFILE;
 using phaser_io::stoup;
 
 namespace phaser_io {
   //--------------------------------------------------------------
-  InterpretCommandLine::InterpretCommandLine(int argc, char* argv[])
+  InterpretCommandLine::InterpretCommandLine(int argc, char* argv[],
+       phaser_io::Output& output)
     : HklrefName(""), HkloutName(""), XmloutName(""), XyzinName("")
   {
     Preprocessor CommandLine(argc,argv,false);
-    initialise(CommandLine);
+    initialise(CommandLine, output);
   }
   //--------------------------------------------------------------
-  InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine)
+InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
+     phaser_io::Output& output)
     : XDSinName(""), HklrefName(""), HkloutName(""), XmloutName(""), XyzinName("")
   {
-    initialise(CommandLine);
+    initialise(CommandLine, output);
   }
   //--------------------------------------------------------------
-  void InterpretCommandLine::initialise(Preprocessor& CommandLine)
+  void InterpretCommandLine::initialise(Preprocessor& CommandLine,
+     phaser_io::Output& output)
   {
     HklinNames.clear();
     parseCCP4(CommandLine);
@@ -39,6 +43,8 @@ namespace phaser_io {
     
     int ifld = 0;
 
+    std::string s;  // for echoing command line arguments
+
     while (ifld < int(fields.size())) {
       if (fields[ifld][0] == '-')	{
 	// Switch, ie string beginning with '-'	
@@ -46,8 +52,10 @@ namespace phaser_io {
 	//			      << string_value << "\n";
 	if (fields[ifld++].substr(0,2) == "-c") {
 	  copy = true;
+	  s += "-copy\n";
 	}
       } else  {
+	bool fieldpair = true;
 	if (stoup(fields[ifld]) == "HKLIN") {
 	  HklinNames.push_back(fields[++ifld]);
 	} 
@@ -78,11 +86,24 @@ namespace phaser_io {
 	else if (stoup(fields[ifld]) == "XYZIN") {
 	  XyzinName = fields[++ifld];
 	}
+	else if (otherFiles(stoup(fields[ifld]))) {
+	  // Other file name, ignore
+	  ifld++;
+	}	
 	else {
 	  HklinNames.push_back(fields[ifld]);
+	  fieldpair = false;
 	}
+	if (fieldpair && ifld > 0) {
+	  s +=  fields[ifld-1] + " ";
+	}
+	s += fields[ifld] + "\n";
 	ifld++;
       }
+    }
+    if (s != "") {
+      s = ">>>>> Command line arguments <<<<<\n" + s + "\n";
+      output.logTab(0,LOGFILE, s);
     }
     // Add .mtz if needed, ie non-blank and no extension already
     for (size_t i=0;i<HklinNames.size();i++) {
@@ -100,6 +121,52 @@ namespace phaser_io {
     } else {return "";}
   }
   //--------------------------------------------------------------
+  std::vector<std::string> InterpretCommandLine::getHKLIN()
+  {return HklinNames;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getXDSIN()
+  {return XDSinName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getSCAIN()
+  {return SCAinName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getHKLREF()
+  {return HklrefName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getHKLOUT()
+  {return HkloutName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getXMLOUT()
+  {return XmloutName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getXYZIN()
+  {return XyzinName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getHKLOUTUNMERGED()
+  {return HkloutUnmergedName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getSCAOUT()
+  {return ScaoutName;}
+  //--------------------------------------------------------------
+  std::string InterpretCommandLine::getSCAOUTUNMERGED()
+  {return ScaoutUnmergedName;}
+  //--------------------------------------------------------------
+  bool InterpretCommandLine::otherFiles
+  (const std::string& field) const
+  // return true if field is one of the recognised "logical" file names
+  {
+    std::string files[] = {
+      "NORMPLOT", "ANOMPLOT", "ROGUES", "ROGUEPLOT", "CORRELPLOT",
+      "SCALES", "TILEIMAGE"};
+    const int N = 7;  // number of filenames
+    std::vector<std::string> names(files, files+N);
+    for (size_t k=0; k<names.size(); k++) { 
+      if (field == names[k]) {
+	return true;
+      }
+    }
+    return false;
+  }
   //--------------------------------------------------------------
 }  // phaser_io
 

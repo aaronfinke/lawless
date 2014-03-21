@@ -1,4 +1,4 @@
-// aniso.cpp
+// anisotropy.cpp
 
 #include "anisotropy.hh"
 #include "mergedlist.hh"
@@ -109,13 +109,12 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     abplane = false;
     rlattice = false;
 
-    //%/ Always work out anisotropy
+    // Always work out anisotropy
     SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
     // case (1)
     if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
       // Low symmetry, get principal axes from anisotropic U tensor
       lowsymmetry = true;
-      //%/      SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
     // case (2)
     } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));

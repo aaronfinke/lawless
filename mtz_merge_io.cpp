@@ -273,10 +273,12 @@ namespace MtzIO {
     
     // Set hkl list to desired resolution
     // reflections outside limits will be discarded
-    hkl_info_list =
-      ///      clipper::HKL_info(mtzin.spacegroup(), mtzin.cell(),
-      clipper::HKL_info(spacegroup, mtzin.cell(),
-			clipper::Resolution(ResMax));
+    hkl_info_list.init(spacegroup, mtzin.cell(),
+		       clipper::Resolution(ResMax));
+    //    hkl_info_list =
+    //      ///      clipper::HKL_info(mtzin.spacegroup(), mtzin.cell(),
+    //      clipper::HKL_info(spacegroup, mtzin.cell(),
+    //			clipper::Resolution(ResMax));
 
     if (verbose) {
       if (ResoLimit > 0.0 && ResMax > mtzfile_resolution.limit()+0.001) {
@@ -327,7 +329,7 @@ namespace MtzIO {
       clipper::data32::I_sigI Isig;
       double F;
       double sigF = 1.0;
-      const double iscale = 0.01;  // scale down F^2
+      const double iscale = 0.1;  // scale down F^2 by iscale^2
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
 	// OK if

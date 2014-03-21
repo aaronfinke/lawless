@@ -21,6 +21,7 @@ namespace scala {
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
   //   SDM         sd correction model
+  //   AllScales   scale model just used to set Phi bins for I/sd cutoff
   //   IovSDmin    minimum value for  <I>/sd'(<I>), == 0 no test
   //                < 0 negative value from default, to be reset here 
   //   E2min       minimum |E^2|, <= 0 no test

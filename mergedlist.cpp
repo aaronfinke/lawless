@@ -7,6 +7,7 @@
 #include "string_util.hh"
 #include "cellgroup.hh"
 #include "mtz_utils.hh"
+#include "scala_util.hh"
 
 using clipper::Message;
 using clipper::Message_fatal;
@@ -39,8 +40,12 @@ namespace scala {
     if (dataset_index >= 0) {
       ASSERT (dataset_index < ndatasets);
       ndatasets = 1;
-    }
+    } else if (dataset_index == -2) {
+      ndatasets = 1;  // combine datasets
+    }      
+
     maxintensity = -1000.;
+    MeanValue meanI;
     title = Title;
 
     historylines = hkl_list.getHistory();
@@ -113,8 +118,12 @@ namespace scala {
       SDM.CorrectReflection(this_refl);
       for (int idts=0;idts<ndatasets;++idts) {
 	// jdts is global index
-	if (dataset_index < 0) {jdts = idts;} // all datasets
-	else {jdts = dataset_index;} // selected dataset
+	if (dataset_index == -2) 
+	  {jdts = -1;}  // all datasets read together
+	else if (dataset_index < 0) 
+	  {jdts = idts;} // all datasets read separately
+	else
+	  {jdts = dataset_index;} // selected dataset
 	// mean I
       	allobs.init(this_refl, jdts, ALL); // all data for selected dataset
 	if (allobs.Number() > 0) {
@@ -125,6 +134,7 @@ namespace scala {
 	  data[1] = avI.sigI();
 	  datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
 	  maxintensity = Max(maxintensity, avI.I());
+	  meanI.Add(avI.I());
 	  data[2] = 0.0;
 	  data[3] = 0.0;
 	  data[4] = 0.0;
@@ -151,6 +161,7 @@ namespace scala {
 	}
       } // end loop datasets
     } // end loop reflections
+    meanintensity = meanI.Mean();
   }
   // ---------------------------------------------------------
   int MergedList::WriteDatasetToMTZ(const std::string& outfilename,
@@ -308,27 +319,93 @@ namespace scala {
     return resmaxdts.at(idx);
   }
   // ---------------------------------------------------------
-  //! return reference to Imean data for given dataset
-  clipper::HKL_data<clipper::data32::I_sigI>&
-  MergedList::ImeanForDataset(const int& datasetIndex)
-  {
-    int idx = InternalDTSindex(datasetIndex); // allow for one or all datasets stored
-    return datasetdata.at(idx).Imean;
-  }
-  // ---------------------------------------------------------
   int MergedList::InternalDTSindex(const int& datasetIndex) const
   // return internal index to dataset datasetIndex
   // If dataset_index >=0, then only this dataset has been stored, so return 0
+  // If dataset_index == -2, then all datasets have been stored together, return 0
   // If dataset_index <0, then all datasets have been stored, so return datasetIndex
   {
     int idx = datasetIndex;
     if (dataset_index >= 0) {  // only one dataset stored
       ASSERT (dataset_index == datasetIndex); // check that it is this one
       idx = 0; // index to only dataset
+    } else if (dataset_index == -2) {  // combined datasets stored
+      ASSERT (datasetIndex == 0); // check that it is the only one
+      idx = 0; // index to only dataset
     } else { // all datasets stored, check request is for a valid one
       ASSERT ((datasetIndex >= 0) && (datasetIndex < ndatasets));
     }
     return idx;
+  }
+  // ---------------------------------------------------------
+  clipper::Spacegroup MergedList::spacegroup() const
+  {
+    return hkl_info_list.spacegroup();
+  }
+  // ---------------------------------------------------------
+  clipper::Cell MergedList::Cell() const
+  {
+    return hkl_info_list.cell();    
+  }
+  // ---------------------------------------------------------
+  double MergedList::resHigh() const
+  {
+    return hkl_info_list.resolution().limit();
+  }
+  // ---------------------------------------------------------
+  // Reset current reflection pointer to first reflection, for given dataset
+  void MergedList::start(const int& datasetIndex) const
+  {
+    current_dataset_index = InternalDTSindex(datasetIndex);
+    hkl_index = datasetdata[current_dataset_index].Imean.first();
+    at_start = true;
+  }
+  // ---------------------------------------------------------
+  // Next IsigI, returns false if end of list
+  bool MergedList::next(IsigI& Is) const
+  {
+    if (!at_start) {
+      // increment index
+      hkl_index.next();
+    }
+    at_start = false;
+    if (hkl_index.last()) return false;
+    Is = datasetdata[current_dataset_index].Imean[hkl_index];
+    return true;
+  }
+  // ---------------------------------------------------------
+  // get hkl for current reflection
+  Hkl  MergedList::hkl() const
+  {
+    return Hkl(hkl_index.hkl());
+  }
+  // ---------------------------------------------------------
+  // get clipper hkl for current reflection
+  clipper::HKL MergedList::HKL() const
+  {
+    return hkl_index.hkl();
+  }
+  //--------------------------------------------------------------
+  // resolution of current reflection
+  double MergedList::invresolsq() const
+  {
+    return hkl_index.invresolsq();
+  }
+  // ---------------------------------------------------------
+  //! return reference to Imean data for given dataset
+  const clipper::HKL_data<clipper::data32::I_sigI>&
+  MergedList::ImeanForDataset(const int& datasetIndex) const
+  {
+    int idx = InternalDTSindex(datasetIndex); // allow for one or all datasets stored
+    return datasetdata.at(idx).Imean;
+  }
+  // ---------------------------------------------------------
+  //! return reference to Imean data for given dataset
+  clipper::HKL_data<clipper::data32::I_sigI>&
+  MergedList::ImeanForDataset(const int& datasetIndex)
+  {
+    int idx = InternalDTSindex(datasetIndex); // allow for one or all datasets stored
+    return datasetdata.at(idx).Imean;
   }
   // ---------------------------------------------------------
 }

@@ -522,6 +522,154 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   output.logTab(0,LXML,table.XMLformat());
 } 
 //--------------------------------------------------------------
+void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
+				       const std::vector<Batch>& batches,
+				       const int& datasetIndex,
+				       const int& nbatchsmooth,
+				       const std::vector<Rfactor> rreferencebatch,
+				       const std::vector<MeanValue> ccreferencebatch,
+				       const std::vector<int> numberinCC,
+				       const std::vector<Rfactor> rreferencebatchsmoothed,
+				       const std::vector<MeanValue>
+				           ccreferencebatchsmoothed,
+				       const std::vector<MeanValue>& meanIrefbatch,
+				       const std::vector<MeanValue>& meanIobsbatch,
+				       phaser_io::Output& output)
+{
+  output.logTab(0,LOGFILE,
+		std::string("\n\nAgreement with reference data, analysed by batch\n")+
+  			        "================================================\n\n");
+
+  output.logTab(0,LOGFILE,
+		std::string("Rref   is Sum(Iobs - k.Iref) / Sum(Iobs)\n")+
+		"CCref  is mean of CC(Iobs, k.Iref) averaged over resolution ranges\n\n");
+
+  // Smoothed values
+  bool smoothR = false;
+  if (nbatchsmooth > 1) {
+    smoothR = true;
+    output.logTabPrintf(0,LOGFILE,
+			"\n SmRref and SmCCref in table are smoothed over %3d batches\n",
+			nbatchsmooth);
+  }
+
+  int nb = 0;
+  for (size_t i=0;i<batches.size();++i) {
+    if (batches[i].Accepted()) { // ... but not rejected batches
+      nb++;
+    } // count actual batches
+  }
+  
+  TableGraph table
+    (" Comparison to reference data for all Batches for all runs, "+dataset_pxd.dname());
+  table.StoreID("Graph-RefStatsVsBatch");
+  
+  TableGraphPlot graph("Rref and CCref v Batch for all runs");
+  if (smoothR) { // smoothed, 2 lines
+    graph.AddLine(TableGraphPlotline(1,7,"red","",-1,false)); // smoothed
+    graph.AddLine(TableGraphPlotline(1,3,"blue","",-1,false)); // unsmoothed
+    TableGraphPlotline ccline(1,8,"black","",-1,false);
+    TableGraphPlotline ccline2(1,5,"green","",-1,false); // CC unsmoothed
+    ccline.SetRHaxis();
+    graph.AddLine(ccline);
+    ccline2.SetRHaxis();
+    graph.AddLine(ccline2); // CC unsmoothed
+  } else {
+    graph.AddLine(TableGraphPlotline(1,3,"blue")); // unsmoothed
+  }
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetRightYaxis("", true,Range(0.0,1.0));
+  // Breaks in X axis
+  int xcolbr = 2;  // column for real batch number
+  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  std::vector<Range> xbreaklist = xbreaks.get_breaks();
+  graph.SetXbreak(xcolbr, xbreaklist);
+  Range xrange(xbreaks.get_batchnumberrange());  // overall batch number range
+  graph.SetXaxis("", false, xrange, true);
+  table.AddGraph(graph);
+
+  graph.init("<Iobs>, <Iref> v Batch for all runs");
+  int c1 = 7;
+  if (smoothR) {c1 = 9;}
+  graph.AddLine(TableGraphPlotline(1,c1,"red")); // <Iobs>
+  graph.AddLine(TableGraphPlotline(1,c1+1,"blue")); // <Iref>
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXaxis("", false, xrange, true);
+  table.AddGraph(graph);
+
+  std::vector<std::string> collabels;
+  collabels.push_back("N");          // 1
+  collabels.push_back("Batch");      // 2
+  collabels.push_back("Rref");       // 3
+  collabels.push_back("Number");     // 4
+  collabels.push_back("CCref");      // 5
+  collabels.push_back("CCnumber");   // 6
+  if (smoothR) { // if we have smoothed stats as well
+    collabels.push_back("SmRref");   // 7
+    collabels.push_back("SmCCref");  // 8
+  }
+  collabels.push_back("<Iobs>");     // 7, 9
+  collabels.push_back("<Iref>");     // 8, 10
+  int nc = collabels.size();
+
+  bool z[] =
+    {false, false, true, true, true, true, true, true, true, true};
+  std::vector<bool> Zero(z, z+nc);
+  std::string lineformat = "%8.3f %8d %8.3f %8d"; // excluding 1st 2 columns
+  if (smoothR) {lineformat += " %8.3f %8.3f";}
+  lineformat += " %9d %9d\n";
+  table.StoreColumnFields(collabels, Zero, "%5d %7d "+lineformat);
+  
+  // Overall
+  Rfactor Rf;
+  MeanValue CC;
+  int nCC = 0;
+
+  int n=1;
+  for (size_t i=0;i<batches.size();++i) { // print all batches even if they have no observations
+    //  batch in this dataset
+    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
+      if (smoothR) { // smoothed stats
+	table.Line(nc, n, batches[i].num(),
+		   rreferencebatch[i].R(),
+		   rreferencebatch[i].result().count,
+		   ccreferencebatch[i].Mean(),
+		   numberinCC[i],
+		   rreferencebatchsmoothed[i].R(),
+		   ccreferencebatchsmoothed[i].Mean(),
+		   Nint(meanIobsbatch[i].Mean()),
+		   Nint(meanIrefbatch[i].Mean()));
+      } else {
+	table.Line(nc, n, batches[i].num(),
+		   rreferencebatch[i].R(),
+		   rreferencebatch[i].result().count,
+		   ccreferencebatch[i].Mean(),
+		   numberinCC[i],
+		   Nint(meanIobsbatch[i].Mean()),
+		   Nint(meanIrefbatch[i].Mean()));
+      }
+      n++;
+      Rf += rreferencebatch[i];
+      CC += ccreferencebatch[i];
+      nCC += numberinCC[i];
+      //^
+      //      double ratio = meanIobsbatch[i].Mean()/meanIrefbatch[i].Mean();
+      //      std::cout << "<Iref>, <Iobs> " << ratio <<" "<<
+      //	meanIrefbatch[i].Mean() <<" "<<
+      //	meanIobsbatch[i].Mean()<<std::endl;
+      //^-
+    }  // rejected batches
+  } // batch loop
+  table.CloseTable();
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  lineformat = "Overall:      "+lineformat;
+  output.logTabPrintf(0,LOGFILE,lineformat.c_str(),
+		      Rf.R(), Rf.result().count, CC.Mean(), nCC,
+		      Rf.R(), CC.Mean());
+  output.logTab(0,LOGFILE,table.RawLabels());
+  output.logTab(0,LXML,table.XMLformat());
+} 
+//--------------------------------------------------------------
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 const ResoRange& ResRange,const bool& Anom,
 				 const std::vector<Rfactor>& rmergeRes,
