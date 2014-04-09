@@ -51,11 +51,22 @@ namespace scala {
       autoTiles(scaleSpecs, hkl_list, output);
     }
     setup(scaleSpecs, hkl_list, output);
+
+    std::vector<Run> runlist = hkl_list.RunList();
+    // run number for each lattice number-1 (lattices are numbered from 1)
+    // only set to >= 0 for active main lattices corresponding to a run
+    idxrunlattice.assign(hkl_list.NumberofLattices(), -1);
+    for (int irun=0;irun<nruns;irun++) {
+      int latnum = runlist[irun].LatticeNumber();
+      if (latnum > 0) {
+	idxrunlattice.at(latnum-1) = irun;
+      }
+    }
+
     // Scale normalisation  ..............................
     // FIXME set up scale normalisation flags from input if necessary
     scalenormrun = -1;
     bfacnormrun = -1;
-    std::vector<Run> runlist = hkl_list.RunList();
 
     for (int irun=0;irun<nruns;irun++) {
       if (scalenormrun < 0) {
@@ -1076,9 +1087,11 @@ namespace scala {
       for (size_t l=0; l<lathkl.size(); l++) { 
 	int latnum = lathkl[l].latnum;
 	if (latnum > 0) {
-	  // FIXME assume that additional lattices are in successive runs!
-	  int jscale = irun + latnum - mainlatnum; // scale set for latnum
-	  double glat = ScaleFactor(jscale, obs, invresolsq);
+	  double glat = 0.0;
+	  int jscale = idxrunlattice[latnum-1];
+	  if (jscale >= 0) {
+	    glat = ScaleFactor(jscale, obs, invresolsq);
+	  }
 	  lathkl[l].gscale = glat/g;  // relative lattice fraction from scales
 	  //^
 	  //	  std::cout << "  lattice " << latnum << " " <<

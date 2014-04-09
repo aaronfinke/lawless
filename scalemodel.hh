@@ -77,12 +77,6 @@ namespace scala {
 	      hkl_unmerge_list& hkl_list,
 	      phaser_io::Output& output);
 
-    // Setup from scale specifications and reflection list
-    // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
-    void setup(const std::vector<ScaleSpecification>& scaleSpecs,
-	       hkl_unmerge_list& hkl_list,
-	       phaser_io::Output& output);
-
     void SetConstant(hkl_unmerge_list& hkl_list,
 		     phaser_io::Output& output);  // set SCALE CONSTANT for all runs
 
@@ -180,6 +174,12 @@ namespace scala {
     
 
   private:
+    // Setup from scale specifications and reflection list
+    // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
+    void setup(const std::vector<ScaleSpecification>& scaleSpecs,
+	       hkl_unmerge_list& hkl_list,
+	       phaser_io::Output& output);
+
     std::string SetupScale(const int& irun,
 			   const ScaleSpecification& scaleSpec,
 			   const Run& run,
@@ -195,6 +195,8 @@ namespace scala {
 
     // Run information
     std::vector<int> runnumbers;
+    // Index to Run number from lattice number, for multilattice data
+    std::vector<int> idxrunlattice;
 
     // Primary beam things
     int nruns;  // number of runs == number of primary models

@@ -114,9 +114,10 @@ namespace scala {
     const bool DEBUG = false;
     //    const bool DEBUG = true;
     // maximum value of argument to cosh(x) before using approximation
-    const double MAXCOSHARG = 3.0;
+    //   set in refinetargets.cpp
+    //    const double MAXCOSHARG = 3.0;
     // if wd < MINCOSHARG, 2nd derivative = 1
-    const double MINCOSHARG = 0.01;
+    //    const double MINCOSHARG = 0.01;
     bool quadratictarget = false;
     if (targettype == RefineTargets::QUADRATIC) {quadratictarget = true;}
 
@@ -177,7 +178,7 @@ namespace scala {
 	    // ln cosh
 	    meanDi.Add(wdi);
 	    meanDi2.Add(wdi*wdi);
-	    if (wdi > MAXCOSHARG) {
+	    if (wdi > RefineTargets::MAXCOSHARG) {
 	      target += wdi;
 	      nbig++;
 	    } else {
@@ -193,7 +194,7 @@ namespace scala {
 	    // dR/dp =  for parameter p
 	    double dlncdx = 1.0;
 	    if (!quadratictarget) {
-	      if (wdi < MAXCOSHARG) {
+	      if (wdi < RefineTargets::MAXCOSHARG) {
 		dlncdx = tanh(w*di);  // signed
 	      } else if (di < 0.0) {
 		dlncdx = -1.0;
@@ -208,20 +209,25 @@ namespace scala {
 	    }
 	    if (DoHessian) {
 	      double Iref2 = Isref.I() * Isref.I();
-	      for (int ip=0;ip<npar;++ip) {
-		int ip1 = ip*npar;
-		for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
-		  if (quadratictarget) {   // half matrix
+	      if (quadratictarget) { 
+		for (int ip=0;ip<npar;++ip) {
+		  int ip1 = ip*npar;
+		  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
 		    Hv[(ip1+jp)] += 2.0 * w * Iref2 *
 		      dkdp[ip]*dkdp[jp];
-		  } else {
-		    double d2dx = 1.0;
-		    // NB test against MAXCOSHARG already done for dlndx
-		    if (std::abs(wdi) > MINCOSHARG) {
-		      d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
-		      // exact 2nd derivative
-		      //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
-		    }
+		  }
+		}
+	      } else { // ln cosh target
+		double d2dx = 1.0;
+		// NB test against MAXCOSHARG already done for dlncdx
+		if (std::abs(wdi) > RefineTargets::MINCOSHARG) {
+		  d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
+		  // exact 2nd derivative
+		  //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
+		}
+		for (int ip=0;ip<npar;++ip) {
+		  int ip1 = ip*npar;
+		  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
 		    Hv[(ip1+jp)] += w * w * Iref2 *
 		      dkdp[ip]*dkdp[jp] * d2dx;
 		  }

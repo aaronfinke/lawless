@@ -38,6 +38,13 @@ namespace scala {
     enum REFINETARGETTYPES {QUADRATIC, LNCOSH};
 
     static std::string format(const REFINETARGETTYPES& type);
+
+    // maximum value of argument to cosh(x) before using approximation
+    static const double MAXCOSHARG; //  = 3.0;
+    // if wd < MINCOSHARG, 2nd derivative = 1
+    static const double MINCOSHARG; //  = 0.01;
+
+
   };
 }
 #endif

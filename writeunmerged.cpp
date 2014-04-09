@@ -143,8 +143,12 @@ namespace MtzIO
     // Columns, all in base dataset
     data_flags  col_sel = hkl_list.DataFlags();
     //    col_sel.print(); //^ Debug
-    int maxhkloverlap = hkl_list.MaxHKLoverlap();
-    ASSERT (maxhkloverlap == col_sel.n_latinfo);
+    int maxhkloverlap;
+    if (summedpartials) {
+       maxhkloverlap = hkl_list.MaxHKLoverlap();
+    } else {
+       maxhkloverlap = hkl_list.MaxHKLoverlapPart();
+    }
 
     // How many columns?
     MTZCOL* col[MAXNCOLUMNS];  // MAXNCOLUMNS defined in openinputfile.hh

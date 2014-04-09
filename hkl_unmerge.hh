@@ -690,6 +690,7 @@ namespace scala {
     int NumberofMainLattices() const {return nlattices;}
     //! return maximum number of overlapped spots on observation (excluding itself)
     int MaxHKLoverlap() const {return maxhkloverlap;}
+    int MaxHKLoverlapPart() const {return maxhkloverlappart;}
     //! return true if multilattice data
     bool MultiLattice() const {return (nlatticesall > 0);}
     //! Set flag to exclude or use overlaps
@@ -698,8 +699,6 @@ namespace scala {
     bool ExcludeOverlaps() const {return excludeoverlaps;}
     //! Apply offset to lattice numbers
     void OffsetLatticeNumbers(const int& latticeoffset);
-    //! store lattice numbers for each run FIXME
-    void SetLatticeforRuns(const std::vector<int> latnumrun);
     //! set range of lattice numbers either as main lattice or secondary
     void SetLatticeNumberRange(const IntRange& latticenumberRange);
     //! range of lattice numbers as main lattice
@@ -908,7 +907,8 @@ namespace scala {
     // total number of lattices mentioned, may be > nlattices if some are not present here
     int nlatticesall;
     // maximum number of overlapped hkl on any one observation (excluding itself)
-    int maxhkloverlap;
+    int maxhkloverlap;     // in entire observation
+    int maxhkloverlappart; // for any one part
     int maxlatnum;
     bool excludeoverlaps;
     // range of lattice numbers either as main lattice or secondary
@@ -971,6 +971,8 @@ namespace scala {
     void UpdateNumberInLattice(std::vector<int>& numberinlatticeall,
 			       const std::vector<LatticeIndexInfo> lathkl) const;
 
+    // update maxhkloverlappart and latticenumberrange
+    void UpdateLatticeNumberRanges(const std::vector<LatticeIndexInfo>& lathkl);
 
     struct ComparePartOrder
     // This construct seems to be a way of getting pointer-to-function

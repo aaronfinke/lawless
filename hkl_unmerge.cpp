@@ -876,6 +876,11 @@ namespace scala {
     for (size_t irun=0;irun<runlist.size();irun++) {   // Loop runs
       runlist[irun].SetLatticeNumber(runlist[irun].LatticeNumber() + latticeoffset);
     }
+    // Offset lattice numbers in batches
+    for (size_t ib=0; ib<batches.size(); ib++) { 
+      batches[ib].SetLatticeNumber(batches[ib].LatticeNumber() + latticeoffset);
+    }
+
     // Reset all lattice numbers in observation part list
     observation_part part;
     for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations
@@ -888,15 +893,6 @@ namespace scala {
 	}
 	find_part(i).set_lathkl(lathkl);
       }
-    }
-  }
-  //--------------------------------------------------------------
-  void hkl_unmerge_list::SetLatticeforRuns(const std::vector<int> latnumrun)
-  //! store lattice numbers for each run FIXME
-  {
-    ASSERT (latnumrun.size() == runlist.size());
-    for (size_t irun=0; irun<latnumrun.size(); irun++) { 
-      runlist[irun].SetLatticeNumber(latnumrun[irun]);
     }
   }
   //--------------------------------------------------------------
@@ -1884,6 +1880,7 @@ namespace scala {
     MeanSD meanI;
     int latnum;
     std::vector<LatticeIndexInfo> lathkl;
+    maxhkloverlappart = 0;  // maximum number of overlaps for any one part
     // count lattices
     nlattices = 0;
     nlatticesall = 0;
@@ -1896,6 +1893,10 @@ namespace scala {
     std::vector<int> numberinlatticeall(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
 
     std::vector<Range> invresrangebydataset(ndatasets);
+
+    // Update lattice number ranges
+    latticenumberrange.clear();
+    mainlatticenumberrange.clear();
 
     for (size_t j = 0; j < refl_list.size(); j++) {  // loop all reflections
       obs_list.clear();   // clear temporary list
@@ -1919,7 +1920,9 @@ namespace scala {
 	avI = find_part(i).Ic();
 	if (dataflags.is_latnum) {
 	  latnum = find_part(i).latnum();
+	  mainlatticenumberrange.update(latnum);
 	  lathkl = find_part(i).lathkl();
+	  UpdateLatticeNumberRanges(lathkl);
 	  numberinlattice.at(latnum)++;    // count entries for each lattice
 	  numberinlatticeall.at(latnum)++;    // count entries for each lattice
 	}
@@ -1953,10 +1956,12 @@ namespace scala {
 	      // all parts should belong to the same basic lattice
 	      if (latnum != find_part(i).latnum()) {break;}
 	    }
+	    mainlatticenumberrange.update(latnum);
 	    // set flag to add them in, conditional on passing later tests
 	    addingoverlaps = true;
 	    if (lathkl.size() == 0) {
 	      lathkl = find_part(i).lathkl();
+	      UpdateLatticeNumberRanges(lathkl);
 	    }
 	  }
 
@@ -1968,6 +1973,7 @@ namespace scala {
 	  // add in any additional lathkl components
 	  if (addingoverlaps) {
 	    CombineLathkl(lathkl, find_part(i).lathkl());
+	    UpdateLatticeNumberRanges(find_part(i).lathkl());
 	  }
 
 	  // Found another part belonging to this observation
@@ -2068,18 +2074,23 @@ namespace scala {
 			 &obs_part_pointer[i1],
 			 total_fraction, partial_status, obsflag, latnum, lathkl));
 	  //^
+	  //	  bool DEBUG = true;
 	  //	  if (DEBUG) {
 	  //	    std::string s = "singleton";
-	  //	    if (lathkl.size() > 0) {s = "multiple ";}
+	  //	    if (lathkl.size() > 0) {
+	  //	      s = "multiple "+StringUtil::itos(int(lathkl.size()),1);
+	  //	    }
 	  //	    // print all
-	  //	    std::cout << "hkl_unmerge_list::partials, " << s <<" "
+	  //	    std::cout << "\nhkl_unmerge_list::partials, " << s <<" "
 	  //		      << obs_list.back().hkl_original().format()<<" lattice "
 	  //		      << latnum << " I1 = " << find_part(i1).Ic() <<"\n   ";
-	  //	    for (size_t jj=0; jj<lathkl.size(); jj++) { 
-	  //	      std::cout << " lat " <<lathkl[jj].latnum 
-	  //			<< " " <<lathkl[jj].hkl.format();
+	  //	    if (lathkl.size() > 0) {
+	  //	      for (size_t jj=0; jj<lathkl.size(); jj++) { 
+	  //		std::cout << " lat " <<lathkl[jj].latnum 
+	  //			  << " " <<lathkl[jj].hkl.format();
+	  //	      }
+	  //	      std::cout <<"\n";
 	  //	    }
-	  //	    std::cout <<"\n";
 	  //	    std::cout << "i, j, refl_list[j].last_index() "<< i
 	  //		      <<" " << j<<" "<< refl_list[j].last_index() <<"\n";
 	  //	  }
@@ -2148,8 +2159,19 @@ namespace scala {
 
     ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
-  } // end partials
-   //--------------------------------------------------------------
+  } // end ::partials
+  //--------------------------------------------------------------
+  void hkl_unmerge_list::UpdateLatticeNumberRanges(const std::vector<LatticeIndexInfo>& lathkl)
+  // update maxhkloverlappart and latticenumberrange
+  {
+    if (lathkl.size() > 0) {
+      maxhkloverlappart = Max(maxhkloverlappart, lathkl.size());
+      for (size_t j=0;j<lathkl.size();++j) { // loop new lathkl
+	latticenumberrange.update(lathkl[j].latnum);
+      }
+    }
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::UpdateNumberInLattice
   (std::vector<int>& numberinlatticeall,
    const std::vector<LatticeIndexInfo> lathkl) const
