@@ -6,11 +6,17 @@
 #include <clipper/clipper.h>
 using clipper::Message;
 using clipper::Message_fatal;
+using clipper::Message_warn;
 
 #include "tile.hh"
 #include "string_util.hh"
 #include "imagearray.hh"
 #include "hkl_unmerge.hh"
+#include "jiffy.hh"
+
+using phaser_io::itos;
+using phaser_io::dtos;
+using phaser_io::ftos;
 
 namespace scala {
   //--------------------------------------------------------------
@@ -81,6 +87,36 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
+  //! construct from arguments
+  DetectorType::DetectorType(const std::string& TypeLabel,
+			     const std::vector<std::vector<float> >& Detrange)
+    : typestr(TypeLabel), ndet(1)
+  {
+    if (ndet > 1) {
+      Message::message(Message_fatal
+   ("DetectorType: cannot cope with more than one detector, update program"));
+    }
+    // 
+    dettype = TypeFromLabel(typestr);
+    ntilex = ntiley = 1;
+    if (dettype == CCD2x2) {ntilex = ntiley = 2;}
+    if (dettype == CCD3x3) {ntilex = ntiley = 3;}
+
+    // At present, the only detector information we have is the
+    // range of detector pixel coordinates
+    detrange = Detrange;
+    // Usually this contains pixel coordinates from 0
+    // Check if this is so: if not, leave type as Unknown
+    pixelcoords = true;
+    if (Nint(detrange[0][0]) != 0 || Nint(detrange[1][0]) != 0) {
+      pixelcoords = false;
+    }
+    if (((detrange[0][1] - detrange[0][0]) < 127.) ||
+      ((detrange[1][1] - detrange[1][0]) < 127.)) {
+      pixelcoords = false;
+    }
+  }
+  //--------------------------------------------------------------
   //! valid: non-zero detector coordinate range
   bool DetectorType::Valid() const
   {
@@ -117,13 +153,13 @@ namespace scala {
       s = "Unknown";
       break;
     case CCD1:  // one tile CCD
-      s = "CCD 1-tile";
+      s = "CCD-1-tile";
       break;
     case CCD2x2:
-      s = "CCD 2x2-tile";
+      s = "CCD-2x2-tile";
       break;
     case CCD3x3:
-      s = "CCD 3x3-tile";
+      s = "CCD-3x3-tile";
       break;
     case PILATUS6M:
       s = "Pilatus6M";
@@ -135,6 +171,27 @@ namespace scala {
       s = "Unknown";
     }
     return s;
+  }
+  //--------------------------------------------------------------
+  DetectorType::Type DetectorType::TypeFromLabel(const std::string& typelabel) const
+  //! return a detector type corresponding to the string
+  {
+    DetectorType::Type t = UNKNOWN;
+
+    if (typelabel == "Unknown") {
+      t = UNKNOWN;
+    } else if (typelabel == "CCD-1-tile") {  // one tile CCD
+      t = CCD1;
+    } else if (typelabel == "CCD-2x2-tile") {
+      t = CCD2x2;
+    } else if (typelabel == "CCD 3x3-tile") {
+      t = CCD3x3;
+    } else if (typelabel == "Pilatus6M") {
+      t = PILATUS6M;
+    } else if (typelabel == "Pilatus2M") {
+      t = PILATUS2M;
+    }
+    return t;
   }
   //--------------------------------------------------------------
   bool DetectorType::equals(const DetectorType& b) const
@@ -409,6 +466,27 @@ namespace scala {
 	tilescales(i,j)->SetGridCoordinates(i,j);
       }}
     setSymmetric(false);
+  }
+  //--------------------------------------------------------------
+  void DetectorScale::reinit()
+  // reassign parameters and tilescales objects after Restore
+  {
+    for (int i=0;i<ntilex;++i) { // loop x
+      for (int j=0;j<ntiley;++j) { // loop y
+	if (tilescales(i,j) != NULL) {
+	  delete tilescales(i,j);
+	}
+      }
+    }
+    init();
+  }
+  //--------------------------------------------------------------
+  void DetectorScale::clearCounts()
+  {
+    for (int i=0;i<ntilex;++i) { // loop x
+      for (int j=0;j<ntiley;++j) { // loop y
+	tilescales(i,j)->clearCounts();
+      }}
   }
   //--------------------------------------------------------------
   void DetectorScale::setSymmetric(const bool& symmetric)
@@ -725,6 +803,73 @@ namespace scala {
     return tilescales(ntilex/2, ntiley/2)->formatTies();
   }
   //--------------------------------------------------------------
+  std::string DetectorScale::FormatSave() const
+  // return formatted version for save and restore
+  {
+    std::string dump = "DetectorScale V1 {\n";    
+    dump += "DetectorType " + type.TypeLabel() + "\n";
+    dump += "ScaleType " + formatType(detectorscaletype) + "\n";
+    dump += "Ntilex "+itos(ntilex)+"\n";
+    dump += "Ntiley "+itos(ntiley)+"\n";
+    dump += "XDrange "+ftos(xdrange.min())+" "+ftos(xdrange.max()) + "\n";
+    dump += "YDrange "+ftos(ydrange.min())+" "+ftos(ydrange.max()) + "\n";
+    for (int j=0;j<ntiley;++j) { // loop y
+      for (int i=0;i<ntilex;++i) { // loop x
+	dump += "TileXY " + itos(i) + " " + itos(j) + "\n";
+	dump += tilescales(i,j)->FormatSave();
+	dump += "ParameterIndex " +itos(idx_tile(i,j)) + "\n";
+      } // x
+    } // y
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  // restore
+  void DetectorScale::Restore(Fileread& FR)
+  {
+    FR.ReadTag("DetectorScale"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("DetectorScale::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    std::string typelabel;
+    FR.ReadTag("DetectorType"); typelabel = FR.GetTag();
+    std::string detectorscaletypelabel;
+    FR.ReadTag("ScaleType"); detectorscaletypelabel = FR.GetTag();
+    detectorscaletype = Type(detectorscaletypelabel);
+    FR.ReadTag("Ntilex"); ntilex = FR.Int();
+    FR.ReadTag("Ntiley"); ntiley = FR.Int();
+    double a1, a2;
+    FR.ReadTag("XDrange"); a1 = FR.Double(); a2 = FR.Double();
+    xdrange = Range(a1, a2);
+    FR.ReadTag("YDrange"); a1 = FR.Double(); a2 = FR.Double();
+    ydrange = Range(a1, a2);
+    tilescales.resize(ntilex, ntiley);
+    idx_tile.resize(ntilex, ntiley);
+    reinit(); // recreate tilescales objects
+    int ix, jy;
+    for (int j=0;j<ntiley;++j) { // loop y
+      for (int i=0;i<ntilex;++i) { // loop x
+	FR.ReadTag("TileXY"); ix = FR.Int(); jy = FR.Int();
+	ASSERT ((ix == i) && (jy == j));
+	tilescales(i,j)->Restore(FR);
+	FR.ReadTag("ParameterIndex"); idx_tile(i,j) = FR.Int();
+      } // x
+    } // y
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("DetectorScale::Restore unexpected tag "+FR.Tag()));
+    }
+    std::vector<std::vector<float> > detrange(2);
+    detrange[0].resize(2);
+    detrange[1].resize(2);
+    detrange[0][0] = xdrange.min();
+    detrange[0][1] = xdrange.max();
+    detrange[1][0] = ydrange.min();
+    detrange[1][1] = ydrange.max();
+    type = DetectorType(DetectorType::UNKNOWN, typelabel, detrange);
+  }
+  //--------------------------------------------------------------
   void DetectorScale::WriteImage(const std::string& imagefilename) const
   //! write output image of correction factors
   // as ADSC format image
@@ -744,6 +889,30 @@ namespace scala {
     imagearray.SetScale(1000.);
     imagearray.init(image);
     imagearray.Write(imagefilename);
+  }
+  //--------------------------------------------------------------
+  std::string DetectorScale::formatType(const  DetectorScaleType& type)
+  {
+    if (type == NONE) {return "NONE";}
+    if (type == FLAT) {return "FLAT";}
+    if (type == CCD1) {return "CCD1";}
+    if (type == CCD2) {return "CCD2";}
+    if (type == CCD3) {return "CCD3";}
+    if (type == PIXEL) {return "PIXEL";}
+    if (type == AUTOMATIC) {return "AUTOMATIC";}
+    return "";
+  }
+  //--------------------------------------------------------------
+  DetectorScale::DetectorScaleType DetectorScale::Type(const std::string& scaletypelabel)
+  {
+    if (scaletypelabel == "NONE") {return NONE;}
+    if (scaletypelabel == "FLAT") {return FLAT;}
+    if (scaletypelabel == "CCD1") {return CCD1;}
+    if (scaletypelabel == "CCD2") {return CCD2;}
+    if (scaletypelabel == "CCD3") {return CCD3;}
+    if (scaletypelabel == "PIXEL") {return PIXEL;}
+    if (scaletypelabel == "AUTOMATIC") {return AUTOMATIC;}
+    return NONE;
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
@@ -782,6 +951,11 @@ namespace scala {
     ncorners.resize(2,2,0); // counts in corners, initialise to 0
     // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
     dcrnmin = (sqrt(0.5*0.25*(xmax*xmax + ymax*ymax)))/rad0;
+  }
+  //--------------------------------------------------------------
+  void CCDTile3::clearCounts()
+  {
+    ncorners.resize(2,2,0); // counts in corners, initialise to 0
   }
   //--------------------------------------------------------------
   //! symmetric = false to allow A to vary around the tile
@@ -937,9 +1111,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void CCDTile3::ScaleDeriv(const bool& Deriv,
-				 const double& Xt, const double& Yt,
-				 double& scale,
-				 std::vector<double>& dgdp) const
+			    const double& Xt, const double& Yt,
+			    double& scale,
+			    std::vector<double>& dgdp) const
   {
     // Xt, Yt in pixels
     double x = (Xt-xc0)/rad0;
@@ -1069,6 +1243,57 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+  // Format all information into a labelled save format for later restoration
+  std::string CCDTile3::FormatSave() const
+  {
+    std::string dump = "CCDTile3 V1 {\n"; // with version number
+    dump += "XYmax " + ftos(xmax) + " " + ftos(ymax) + "\n";
+    dump += "Rad0 " + ftos(rad0) + "\n";
+    if (circularlysymmetric) {
+      dump += "Symmetric\n";
+    } else {
+      dump += "Nonsymmetric\n";
+    }
+    dump += "Nparams " + itos(nparams) + " " + itos(nparams_smooth) + "\n";
+    dump += "XYc0 " + ftos(xc0) + " " + ftos(yc0) + "\n";
+    dump += "XY0 " + ftos(x0) + " " + ftos(y0) + "\n";
+    dump += "Parameters\n" + StringUtil::FormatSaveVector(Parameters());
+    dump += "Ncorners " + itos(ncorners(0,0)) + " " + itos(ncorners(0,1))
+      + " " + itos(ncorners(1,0)) + " " + itos(ncorners(1,1)) + "\n";
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  void CCDTile3::Restore(Fileread& FR)
+  // restore
+  {
+    FR.ReadTag("CCDTile3"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("CCDTile3::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    FR.ReadTag("XYmax"); xmax = FR.Double(); ymax = FR.Double();
+    FR.ReadTag("Rad0"); rad0 = FR.Double();
+    std::string symm = FR.GetTag();
+    circularlysymmetric = true;
+    if (symm == "Nonsymmetric") {
+      circularlysymmetric = false;
+    }
+    FR.ReadTag("Nparams"); nparams = FR.Int(); nparams_smooth = FR.Int();
+    FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
+    FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
+    FR.ReadTag("Parameters"); 
+    std::vector<double> parameters = FR.DoubleVec(nparams);
+    StoreParameters(parameters);
+    FR.ReadTag("Ncorners");
+    ncorners(0,0) = FR.Int(); ncorners(0,1) = FR.Int();
+    ncorners(1,0) = FR.Int(); ncorners(1,1) = FR.Int();
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("CCDTile3::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
   CCDTile1::CCDTile1(const double& Xmax, const double& Ymax)
   {
     init(Xmax, Ymax);
@@ -1097,6 +1322,11 @@ namespace scala {
     ncorners.resize(2,2,0); // counts in corners, initialise to 0
     // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
     dcrnmin = 0.5*0.25*(xmax*xmax + ymax*ymax)/(rad0*rad0);
+  }
+  //--------------------------------------------------------------
+  void CCDTile1::clearCounts()
+  {
+    ncorners.resize(2,2,0); // counts in corners, initialise to 0
   }
   //--------------------------------------------------------------
   // Parameter order: r,w,A,x0,y0,
@@ -1331,6 +1561,47 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+  // Format all information into a labelled save format for later restoration
+  std::string CCDTile1::FormatSave() const
+  {
+    std::string dump = "CCDTile1 V1 {\n"; // with version number
+    dump += "XYmax " + ftos(xmax) + " " + ftos(ymax) + "\n";
+    dump += "Rad0 " + ftos(rad0) + "\n";
+    dump += "Nparams " + itos(nparams) + "\n";
+    dump += "XYc0 " + ftos(xc0) + " " + ftos(yc0) + "\n";
+    dump += "XY0 " + ftos(x0) + " " + ftos(y0) + "\n";
+    dump += "Parameters\n" + StringUtil::FormatSaveVector(Parameters());
+    dump += "Ncorners " + itos(ncorners(0,0)) + " " + itos(ncorners(0,1))
+      + " " + itos(ncorners(1,0)) + " " + itos(ncorners(1,1)) + "\n";
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  void CCDTile1::Restore(Fileread& FR)
+  // restore
+  {
+    FR.ReadTag("CCDTile1"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("CCDTile1::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    FR.ReadTag("XYmax"); xmax = FR.Double(); ymax = FR.Double();
+    FR.ReadTag("Rad0"); rad0 = FR.Double();
+    FR.ReadTag("Nparams"); nparams = FR.Int();
+    FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
+    FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
+    FR.ReadTag("Parameters"); 
+    std::vector<double> parameters = FR.DoubleVec(nparams);
+    StoreParameters(parameters);
+    FR.ReadTag("Ncorners");
+    ncorners(0,0) = FR.Int(); ncorners(0,1) = FR.Int();
+    ncorners(1,0) = FR.Int(); ncorners(1,1) = FR.Int();
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("CCDTile1::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
   //--------------------------------------------------------------
   CCDTile2::CCDTile2(const double& Xmax, const double& Ymax)
   {
@@ -1361,6 +1632,11 @@ namespace scala {
     ncorners.resize(2,2,0); // counts in corners, initialise to 0
     // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
     dcrnmin = (sqrt(0.5*0.25*(xmax*xmax + ymax*ymax)))/rad0;
+  }
+  //--------------------------------------------------------------
+  void CCDTile2::clearCounts()
+  {
+    ncorners.resize(2,2,0); // counts in corners, initialise to 0
   }
   //--------------------------------------------------------------
   //! symmetric = false to allow A to vary around the tile
@@ -1568,19 +1844,17 @@ namespace scala {
     scale = radfunc.value(z, A);
 
     //*    scale = 0.5 * A * erfz + 1.0 - A;
-
-    // Count observations in each corner
-    if (d > dcrnmin) { // in a corner
-      int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
-      int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
-      ncorners(i,j)++;
-    }
-
     //^
     //    std::cout <<"\nXt,x0,Yt,y0 "<<Xt<<" "<<x0<<" "<<Yt<<" "<<y0<<"\n";
     //    std::cout <<"d,z,erfz "<<d<<" "<<z<<" "<<erfz<<"\n"; //^-
 
     if (Deriv) {
+      // Count observations in each corner, only if calculating derivatives
+      if (d > dcrnmin) { // in a corner
+	int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
+	int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
+	ncorners(i,j)++;
+      }
       dgdp = radfunc.deriv(nparams, w);  // fills 1st 3 slots in dgdp
       /*
 	dgdp.resize(nparams);
@@ -1710,6 +1984,58 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+  // Format all information into a labelled save format for later restoration
+  std::string CCDTile2::FormatSave() const
+  {
+    std::string dump = "CCDTile2 V1 {\n"; // with version number
+    dump += "XYmax " + ftos(xmax) + " " + ftos(ymax) + "\n";
+    dump += "Rad0 " + ftos(rad0) + "\n";
+    if (circularlysymmetric) {
+      dump += "Symmetric\n";
+    } else {
+      dump += "Nonsymmetric\n";
+    }
+    dump += "Nparams " + itos(nparams) + " " + itos(nparams_smooth) + "\n";
+    dump += "XYc0 " + ftos(xc0) + " " + ftos(yc0) + "\n";
+    dump += "XY0 " + ftos(x0) + " " + ftos(y0) + "\n";
+    dump += "Parameters\n" + StringUtil::FormatSaveVector(Parameters());
+    dump += "Ncorners " + itos(ncorners(0,0)) + " " + itos(ncorners(0,1))
+      + " " + itos(ncorners(1,0)) + " " + itos(ncorners(1,1)) + "\n";
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  void CCDTile2::Restore(Fileread& FR)
+  // restore
+  {
+    FR.ReadTag("CCDTile2"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("CCDTile2::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    FR.ReadTag("XYmax"); xmax = FR.Double(); ymax = FR.Double();
+    FR.ReadTag("Rad0"); rad0 = FR.Double();
+    std::string symm = FR.GetTag();
+    circularlysymmetric = true;
+    if (symm == "Nonsymmetric") {
+      circularlysymmetric = false;
+    }
+    FR.ReadTag("Nparams"); nparams = FR.Int(); nparams_smooth = FR.Int();
+    FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
+    FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
+    FR.ReadTag("Parameters"); 
+    std::vector<double> parameters = FR.DoubleVec(nparams);
+    StoreParameters(parameters);
+    FR.ReadTag("Ncorners");
+    ncorners(0,0) = FR.Int(); ncorners(0,1) = FR.Int();
+    ncorners(1,0) = FR.Int(); ncorners(1,1) = FR.Int();
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("CCDTile2::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
+  //--------------------------------------------------------------
   double RadialFunctionGompertzCDF::value(const double& z, const double& A)
   //! calculate the value of the function and store intermediates 
   {
@@ -1755,7 +2081,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! derivatives ds/dp0, for r,w,A, must follow a call to value
   std::vector<double> RadialFunctionErfc::deriv(const int& nparams,
-						       const double& w) const
+						const double& w) const
   {
     std::vector<double> dsdp(nparams); // nparams >= 3
     // df/dz = -(1/sqrt(pi))exp(-z^2); ds/dz = A df/dz
@@ -1834,6 +2160,32 @@ namespace scala {
   {
     std::vector<std::string> s(1,"  Tile scale: "+StringUtil::ftos(scale,8,3));
     return s;
+  }
+  //--------------------------------------------------------------
+  // Format all information into a labelled save format for later restoration
+  std::string FlatTile::FormatSave() const
+  {
+    std::string dump = "FlatTile V1 {\n"; // with version number
+    dump += "Nparams " + itos(nparams) + "\n";
+    dump += "Scale " + ftos(scale) + "\n";
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  void FlatTile::Restore(Fileread& FR)
+  // restore
+  {
+    FR.ReadTag("FlatTile"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("FlatTile::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    FR.ReadTag("Nparams"); nparams = FR.Int();
+    FR.ReadTag("Scale"); scale = FR.Double();
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("FlatTile::Restore unexpected tag "+FR.Tag()));
+    }
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
@@ -1938,7 +2290,41 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
-//=======================================================================
+  // Format all information into a labelled save format for later restoration
+  std::string TilePixel::FormatSave() const
+  {
+    std::string dump = "TilePixel V1 {\n"; // with version number
+    dump += "XYmax " + ftos(xmax) + " " + ftos(ymax) + "\n";
+    dump += "Nparams " + itos(nparams) + "\n";
+    dump += "NgpxlXY " + itos(ngpxlX) + " " + itos(ngpxlY) + "\n";
+    dump += "NjXY " + itos(njx) + " " + itos(njy) + "\n";
+    dump += "Parameters\n" + StringUtil::FormatSaveVector(Parameters());
+    return dump+"}\n";
+  }
+  //--------------------------------------------------------------
+  void TilePixel::Restore(Fileread& FR)
+  // restore
+  {
+    FR.ReadTag("TilePixel"); // fails if tag does not match
+    if (FR.GetTag() != "V1") {  // version check
+      clipper::Message::message(Message_fatal
+        ("TilePixel::Restore incompatible version in "+FR.Filename()));
+    }
+    FR.Skip();
+    FR.ReadTag("XYmax"); xmax = FR.Double(); ymax = FR.Double();
+    FR.ReadTag("Nparams"); nparams = FR.Int();
+    FR.ReadTag("NgpxlXY"); ngpxlX = FR.Int(); ngpxlY = FR.Int();
+    FR.ReadTag("NjXY"); njx = FR.Int(); njy = FR.Int();
+    FR.ReadTag("Parameters"); 
+    std::vector<double> parameters = FR.DoubleVec(nparams);
+    StoreParameters(parameters);
+    if (!FR.CheckEnd()) {
+      clipper::Message::message(Message_warn
+        ("TilePixel::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
+  //=======================================================================
   //! construct or initialise from constant value
   FourierSmooth::FourierSmooth(const double& flatlevel,
 			       const bool& isconstant)

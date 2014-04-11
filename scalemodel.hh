@@ -101,6 +101,8 @@ namespace scala {
     // get "large shift" value for parameter, depending on type
     double GetLargeShift(const int& Ipar) const;
 
+    // Clear observation counts at beginning of cycle, mainly relevant for tiles
+    void clearCounts();
 
     // Set all parameters from vector and count of number of contributions
     void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs);
@@ -219,7 +221,7 @@ namespace scala {
 
     // Scaling by tile (or other detector scale)
     //   typically only one scale set, unless different runs are from different detectors
-    std::vector<DetectorType> detectortypes;
+    std::vector<DetectorType> detectortypes;   // for each run
     std::vector<DetectorScale> detector_scales;    // the tile scales
     std::vector<int> detector_scale_index_run; // which scale for each run?
     int ndetscales;  // number of detector scales

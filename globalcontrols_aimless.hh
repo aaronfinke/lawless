@@ -18,7 +18,8 @@ public:
   FlowControl() // Set sensible defaults
     : initialScale(true),
       roughScale(true),
-      mainScale(true) {}
+      mainScale(true),
+      sdcorrectionsinput(false) {}
 
   void SetOnlyMerge() { // No scaling
     initialScale = false;
@@ -45,6 +46,7 @@ public:
   bool mainScale;      // true to do main scaling
   bool restore;        // true to restore from dump file
   bool sdoptimise;      // true to optimise SD correction
+  bool sdcorrectionsinput;  // true if SD correction parameters explicitly given
 };
   //=================================================================
 

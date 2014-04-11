@@ -77,6 +77,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 // [ABSORPTION [<Lmax> [<LmaxOdd>]] [POLE [h|k|l]]]
 // [CONSTANT]
 // [[NO]TILE [<Ntilex> [<Ntiley>]] [CCD[n] | FLAT | PIXEL]]
+//    CCD1, CCD2, CCD3 are 3 different tile models, default CCD2 if just CCD
 {
   // Read one SCALES specification
   int irun = -1;
@@ -1135,6 +1136,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
       } else if (keyIs("RUN")) {
 	expectingNumber = +1;
 	irun = 0;
+	k = 0;
       } else if (keyIs("FULL")) {
 	expectingNumber = +1; // should be followed by 2 or 3 numbers
 	fullpart = +1;
@@ -1213,6 +1215,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
       } else if (irun == 0) {
 	// Run number
 	irun = Nint(number_value);
+	expectingNumber = -1;
       } else if (similarset >= 0) {
 	// target sd values
 	sdtargets[similarset] = number_value;

@@ -400,7 +400,10 @@ int main(int argc, char* argv[])
       overallmeankI = ApplyScales(AllScales, hkl_list, onlyUseSingletons);
 
       // Restore SD correction
-      if (!input.SDC_RefineSet()) {
+      if (input.SDC_NumberInput() != 0) {
+	FC.sdcorrectionsinput = true;
+      }
+      if (!input.SDC_RefineSet() && !FC.sdcorrectionsinput) {
 	SD_model.Restore(input.RestoreFileName(),
 			 hkl_list.RunList());
       }
@@ -661,9 +664,15 @@ int main(int argc, char* argv[])
     } else {
       // No optimisation
       if (FC.restore) {
-	output.logTab(0,LOGFILE,
-      "\nSD correction parameters restored from SCALES file\n"+
+	if (FC.sdcorrectionsinput) {
+	  output.logTab(0,LOGFILE,
+			"\nSD correction parameters input\n"+
+			SD_model.format());
+	} else {
+	  output.logTab(0,LOGFILE,
+		"\nSD correction parameters restored from SCALES file\n"+
 		      SD_model.format());
+	}
 	output.logTab(0,LXML,SD_model.asXML());
       } else {
 	output.logTab(0,LOGFILE,

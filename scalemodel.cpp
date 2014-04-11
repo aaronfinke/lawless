@@ -983,6 +983,27 @@ namespace scala {
     NormaliseParameters();
   }
   //--------------------------------------------------------------
+  // 
+  void ScaleModel::clearCounts()
+    // Clear observation counts at beginning of cycle, mainly relevant for tiles
+  {
+    for (int irun=0;irun<nruns;irun++) {
+      primary_scales[irun].StoreNobservations(std::vector<int>(primary_scales[irun].Number(), 0));
+    }
+    for (int irun=0;irun<nruns;irun++) {
+      relative_bfactors[irun].StoreNobservations(std::vector<int>(relative_bfactors[irun].Number(), 0));
+    }
+    for (int i=0;i<nsecscales;++i) {
+      // Secondary
+      secondary_scales[i].StoreNobservations(std::vector<int>(secondary_scales[i].Number(), 0));
+    }
+    for (int i=0;i<ndetscales;++i) {
+      // Detector
+      detector_scales[i].StoreNobservations(std::vector<int>(detector_scales[i].Number(), 0));
+      detector_scales[i].clearCounts();
+    }
+  }
+  //--------------------------------------------------------------
   void ScaleModel::SetInitialScales(const std::vector<double>& gscales,
 				    const std::vector<int>& numobsrotrange)
   // Set initial primary scales, eg from InitialScales
@@ -1464,7 +1485,16 @@ namespace scala {
       ds += "Sec_scale_index_run\n"+
 	StringUtil::FormatSaveVector(sec_scale_index_run);
     }
-    //t  // save tile parameters
+    // save tile parameters
+    ds += "Ndetscales "+ clipper::String(ndetscales)+"\n";
+    if (ndetscales > 0) {
+      for (int i=0;i<ndetscales;++i) {
+	ds += detector_scales[i].FormatSave();
+      }
+      ASSERT (int(detector_scale_index_run.size()) == nruns);
+      ds += "Detector_scale_index_run\n"+
+	StringUtil::FormatSaveVector(detector_scale_index_run);
+    }
 
     // sds
     ds += "sd_rotation "+ clipper::String(sd_rotation)+"\n";
@@ -1569,7 +1599,21 @@ namespace scala {
 				  ("RESTORE number of Sec_scale_index_runs != number of runs"));
       }
     }
-    //t  tile
+    
+    FR.ReadTag("Ndetscales");
+    int ndsc = FR.Int();
+    if (ndsc != ndetscales) {
+	clipper::Message::message(Message_fatal
+	  ("RESTORE incompatible detector models"));
+    }
+    if (ndetscales > 0) {
+      for (int i=0;i<ndetscales;++i) {
+	detector_scales[i].Restore(FR);
+      }
+      FR.ReadTag("Detector_scale_index_run");
+      ASSERT (int(detector_scale_index_run.size()) == nruns);
+      detector_scale_index_run = FR.IntVec(nruns);
+    }
 
     // sds
     FR.ReadTag("sd_rotation"); sd_rotation = FR.Double();

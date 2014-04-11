@@ -31,6 +31,9 @@ namespace scala {
     DetectorType(const Type& Dtype, const std::string& TypeLabel,
     		 const std::vector<std::vector<float> >& Detrange);
 
+    //! construct from arguments
+    DetectorType(const std::string& TypeLabel,
+		 const std::vector<std::vector<float> >& Detrange);
 
     //! valid: non-zero detector coordinate range
     bool Valid() const;
@@ -53,6 +56,9 @@ namespace scala {
 
     //! return a string corresponding to the detector type
     std::string TypeLabel(const DetectorType::Type& dtype) const;
+
+    //! return a detector type corresponding to the string
+    Type TypeFromLabel(const std::string& typelabel) const;
 
     //! test for equality on type and detector range (not on number of tiles)
     bool equals(const DetectorType& b) const;
@@ -152,6 +158,9 @@ namespace scala {
 
     void init();
 
+    // reassign parameters and tilescales objects after Restore
+    void reinit();
+
     void setSymmetric(const bool& symmetric=false);
 
     ~DetectorScale();
@@ -181,6 +190,9 @@ namespace scala {
     void StoreNobservations(const std::vector<int>& Nobs);
     // Retrieve number of contributions (length nparams)
     std::vector<int> Nobservations() const {return nobsPar;}
+
+    // clear all counts, eg tile corners
+    void clearCounts();
 
     //! number of parameters
     int Number() const {return nparams;}
@@ -226,6 +238,10 @@ namespace scala {
 
     // restore
     void Restore(Fileread& FR);
+
+    static std::string formatType(const  DetectorScaleType& type);
+    static DetectorScaleType Type(const std::string& scaletypelabel);
+
 
   private:
     DetectorType type;
@@ -317,6 +333,8 @@ namespace scala {
 
     virtual void init(const double& Xmax, const double& Ymax) = 0;
 
+    virtual void clearCounts() = 0;
+
     //! symmetric = false to allow A to vary around the tile
     virtual void setSymmetric(const bool& symmetric) {} // dummy
 
@@ -370,10 +388,10 @@ namespace scala {
     {return "";}
 
     // Format all information into a labelled save format for later restoration
-    std::string FormatSave() const;
+    virtual std::string FormatSave() const {return "";}
 
     // restore
-    void Restore(Fileread& FR);
+    virtual void Restore(Fileread& FR) {}
 
     //! number of smoothing parameters for each of r,w,A, CCD only
     virtual int NparamsSmooth() const {return 0;}
@@ -394,7 +412,7 @@ namespace scala {
 //==================================================================
 class FourierSmooth {
   // A four- or five parameter Fourier class,
-  //    like Hendricksen-Lattman coefficients
+  //    like Hendrickson-Lattman coefficients
   // No constant term if 4 parameters
   // for angle p,
   //   v = A cos(p) + B sin(p) + C cos(2p) + D sin(2p)
@@ -436,7 +454,12 @@ private:
   int nparams;
   std::vector<double> parameters;
 };
-
+  // Note there are 3 CCDTile classes, default is CCD2
+  //  CCD1  r, w, A all radially symmetric
+  //  CCD2  just A varies with azimuthal angle around tile centre
+  //         (unless circularlysymmetric is set, default off)
+  //  CCD3  r,w, and A all vary with azimuthal angle around tile centre
+  //         (unless circularlysymmetric is set, default off)
   //--------------------------------------------------------------
   class CCDTile3 : public TileBase {
     //! A CCD tile, correct for fall-off in the corners
@@ -458,6 +481,8 @@ private:
     CCDTile3(){}
     CCDTile3(const double& Xmax, const double& Ymax);
     void init(const double& Xmax, const double& Ymax);
+
+    void clearCounts();
 
     //! symmetric = false to allow A to vary around the tile
     void setSymmetric(const bool& symmetric);
@@ -557,6 +582,8 @@ private:
     CCDTile1(const double& Xmax, const double& Ymax);
     void init(const double& Xmax, const double& Ymax);
 
+    void clearCounts();
+
     int Nparams() const {return nparams;} //!< number of parameters
 
     // Parameter order: r,w,A,x0,y0
@@ -646,6 +673,8 @@ private:
     CCDTile2(){}
     CCDTile2(const double& Xmax, const double& Ymax);
     void init(const double& Xmax, const double& Ymax);
+
+    void clearCounts();
 
     //! symmetric = false to allow A to vary around the tile
     void setSymmetric(const bool& symmetric);
@@ -738,6 +767,8 @@ private:
     FlatTile(const double& Xmax, const double& Ymax):scale(1.0){nparams=1;}
     void init(const double& Xmax, const double& Ymax) {nparams=1;}
 
+    void clearCounts(){}
+
     int Nparams() const {return nparams;} //!< number of parameters
 
     // Store parameters
@@ -788,6 +819,8 @@ private:
     TilePixel(){}
     TilePixel(const double& Xmax, const double& Ymax);
     void init(const double& Xmax, const double& Ymax);
+
+    void clearCounts(){}
 
     int Nparams() const {return nparams;} //!< number of parameters
 
