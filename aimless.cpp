@@ -791,7 +791,8 @@ int main(int argc, char* argv[])
       // Now the data are scaled, these overlap set can be combined into a pseudo-singleton
       // Also accumulate overlap statistics etc
       SetOverlapFlags(false, hkl_list); // include overlaps
-      bool verbose = true;
+      //      bool verbose = true;
+      bool verbose = false;
       for (int idts=0;idts<hkl_list.num_datasets();++idts) {
 	// Project/Crystal/Dataset for this dataset
 	PxdName dataset_pxd = hkl_list.dataset(idts).pxdname();
