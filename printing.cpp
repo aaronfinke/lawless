@@ -687,18 +687,18 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 phaser_io::Output& output)
 {
   output.logTab(0,LOGFILE,
-		std::string("\n Rmrg    :- conventional Rmerge = Sum(|Ihl - <Ih>|)/Sum(<Ih>)\n")+
+		std::string("\n Rmrg    :- conventional Rmerge = Sum(|Ihl - < Ih >|)/Sum(< Ih >)\n")+
 		" Rcum    :- Rmrg up to this range\n"+
 		" Rfull   :- Rmrg for fully-recorded observations only\n"+
-		" Rmeas   :- multiplicity-independent R = Sum(Sqrt(N/(N-1))(|Ihl - <Ih>|))/Sum(<Ih>)\n"+
-		" Rpim    :- Precision-indicating R = Sum(Sqrt(1/(N-1))(|Ihl - <Ih>|))/Sum(<Ih>)\n"+
+		" Rmeas   :- multiplicity-independent R = Sum(Sqrt(N/(N-1))(|Ihl - < Ih >|))/Sum(< Ih >)\n"+
+		" Rpim    :- Precision-indicating R = Sum(Sqrt(1/(N-1))(|Ihl - < Ih >|))/Sum(< Ih >)\n"+
 		" Nmeas   :- Number of observations used in statistics\n"+
-		" Av_I    :- unmerged Ihl averaged in bin <Ihl>\n"+
-		" RMSdev  :- rms scatter of observations from mean <Ih>\n"+
-		" I/RMS   :- <Ihl> / rms scatter  = Av_I/RMSdev\n"+
+		" Av_I    :- unmerged Ihl averaged in bin < Ihl >\n"+
+		" RMSdev  :- rms scatter of observations from mean < Ih >\n"+
+		" I/RMS   :- < Ihl > / rms scatter  = Av_I/RMSdev\n"+
 		" sd      :- average standard deviation derived from experimental SDs, after\n"+
 		"             application of SdFac SdB SdAdd 'correction' terms\n"+
-		" Mn(I/sd):- average < merged<Ih>/sd(<Ih>) > ~= signal/noise\n"+
+		" Mn(I/sd):- average < merged< Ih >/sd(< Ih >) > ~= signal/noise\n"+
 		" Frcbias :- partial bias = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
 		"             for mixed sets only (If is a full if present, else the\n"+
 		"             partial with the smallest number of parts)\n\n");

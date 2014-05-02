@@ -730,7 +730,7 @@ namespace scala
 
     std::vector<std::string> collabels;
     collabels.push_back("Range");         // 1
-    collabels.push_back("<I>");           // 2
+    collabels.push_back("Mn(I)");           // 2
     for (int i=0;i<nanalsets;++i) {
       std::string ctyp;
       if (both) {
