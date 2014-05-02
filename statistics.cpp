@@ -236,17 +236,20 @@ namespace scala {
     int minparts = 1000000;
     // Find smallest width (fulls if present)
     while ((idx=allobs.next_observation(this_obs)) >= 0) {
-      minparts = Min(minparts, this_obs.num_parts());
+      minparts = Min(minparts, this_obs.num_parts_mpart());
     }
     while ((idx=allobs.next_observation(this_obs)) >= 0) {
-      if (this_obs.num_parts() == minparts) {
+      if (this_obs.num_parts_mpart() == minparts) {
 	AvIsmall.Add(this_obs.kI());
       }
     }
     float Ifull = AvIsmall.Mean();
+    //^
+    //    std::cout << "minparts, Ifull " <<minparts<<" "<< Ifull <<"\n"; //^-
     while ((idx=allobs.next_observation(this_obs)) >= 0) {
-      if (this_obs.num_parts() > minparts) {
+      if (this_obs.num_parts_mpart() > minparts) {
 	biasRes.Add(Ifull - this_obs.kI());
+	//	std::cout <<"bias " << Ifull - this_obs.kI() <<"\n"; //^
 	biasIRes.Add(AvI.I());
       }
     }

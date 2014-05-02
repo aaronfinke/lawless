@@ -298,6 +298,12 @@ namespace scala {
     bool IsAccepted() const {return obs_status.IsAccepted();} //!< return "accepted" flag
 
     int num_parts() const;  //!< return number of parts
+
+    //! Return number of parts as recorded in the MPART column of the first part
+    // This will get the number of parts from observations where the parts have already
+    // been summed
+    int num_parts_mpart() const;
+
     observation_part get_part(const int& kpart) const; //!< return kpart'th part
     void replace_part(const int& kpart, const observation_part& obs_part); //!< replace kpart'th part
 

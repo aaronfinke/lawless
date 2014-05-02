@@ -300,8 +300,24 @@ namespace scala {
   }
 
   //--------------------------------------------------------------
-  int observation::num_parts() const {return Npart_;}
+  int observation::num_parts() const
   //               ^^^^^^^^
+  {
+    return Npart_;
+  }
+  //--------------------------------------------------------------
+  int observation::num_parts_mpart() const
+  //               ^^^^^^^^
+  // Return number of parts as recorded in the MPART column of the first part
+  // This will get the number of parts from observations where the parts have already
+  // been summed
+  {
+    int npart = Npart_;
+    if (npart == 1) {
+      npart = get_part(0).Npart();
+    }
+    return npart;
+  }
   //--------------------------------------------------------------
   observation_part observation::get_part(const int& kpart) const
     //                         ^^^^^^^
