@@ -82,6 +82,8 @@ namespace scala {
 
     std::string formatAllSymops_as_xyz() const; //!< real-space symops
     std::string formatAllSymops_as_hkl() const; //!< reciprocal symops
+    //! reciprocal symops as ISYM table
+    std::string formatISYM_as_hkl() const;
 
     //! Space group name
     std::string Symbol_hm() const {return spacegroupname;}

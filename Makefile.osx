@@ -246,12 +246,7 @@ t: ${TTOBJ}
 	${CXX} $(LFLAGS) -o ${TTEXE} ${TTOBJ}   ${LDLIBS}
 
 ## - - -
-TESTOBJ= test.o string_util.o range.o fileread.o tablegraph.o file_util.o \
-	scala_util.o hkl_datatypes.o rotation.o matvec_utils.o dataset.o \
-	columnlabels.o hkl_unmerge.o hkl_merge.o hash.o mtz_merge_io.o \
-	runthings.o hkl_symmetry.o Output.o observationflags.o crystaltype.o \
-	controls.o globalcontrols_aimless.o jiffy.o probfunctions.o \
-	icering.o eprob.o
+TESTOBJ= test.o  ${OBJ} ${COBJ}
 
 TESTEXE= test
 

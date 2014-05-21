@@ -517,6 +517,7 @@ namespace MtzIO
       output += FormatOutput::logTabPrintf(0,
 			  "   Space group from HKLIN file : %s\n",
 			  spacegroup_.Symbol_hm().c_str());
+      output += "\n"+spacegroup_.formatISYM_as_hkl()+"\n";
       output += FormatOutput::logTabPrintf(0, "   Cell: ");
       for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.2f",
 						   accepted_cell[i]);

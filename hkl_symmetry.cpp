@@ -353,10 +353,50 @@ namespace scala {
   //!< reciprocal symops
   {
     std::string s;
-   for (int i=0;i<num_symops();++i) { 
-     s += MVutil::FormatSymop_as_hkl(symop(i), "[]")+"\n";
+    for (int i=0;i<num_symops();++i) { 
+      s += MVutil::FormatSymop_as_hkl(symop(i), "[]")+"\n";
     }
-   return s;
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string SpaceGroup::formatISYM_as_hkl() const
+  //!< reciprocal symops as ISYM table
+  {
+    clipper::RTop_frac rtf(clipper::String("-x,-y,-z"));
+    clipper::Symop friedel(rtf);
+
+    std::string s = "   Reciprocal space symmetry operators:\n";
+    s += "    original indices for unique reflection hkl with symmetry number ISYM\n";
+    for (int j=0;j<2;++j) { // loop +, -
+      if (j == 0) {
+	s +=
+	  "\n                              Bijvoet positive \n";
+      } else {
+	s +=
+	  "\n                              Bijvoet negative \n";
+      }
+      int nh = std::min(Nsymp,4);
+      for (int k=0;k<nh;++k) {
+	s += "   ISYM";
+	if (k < nh-1) {s += "              ";}
+      }
+      s += "\n";
+      for (int i=0;i<Nsymp;++i) {    // loop primitive operators
+	int isym = 2*i + 1;
+	clipper::Symop sop = invrotsymops[i];
+	if (j == 1) { // Bijvoet negative
+	  sop = clipper::Symop(friedel * sop);
+	  isym += 1;
+	}
+	s += "  " + StringUtil::itos(isym, 4) + " " +
+	  StringUtil::LeftString(MVutil::FormatSymop_as_hkl(sop, "[]"), 14);
+	if (i < Nsymp-1 && (i+1)%4 == 0) {
+	  s += "\n";
+	}
+      }
+      s += "\n";
+    }
+    return s;
   }
   //--------------------------------------------------------------
   void SpaceGroup::SetLatType()

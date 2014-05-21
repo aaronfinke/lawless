@@ -71,20 +71,22 @@ namespace scala
     if (nparams == 0) return dsddp;
     dsddp.resize(numintbins);
     for (int inb=0;inb<numintbins;++inb) {
-      double meanDelta = mndelta[inb].Mean();
-      double sigDel = mndelta[inb].SD();
-      std::vector<double>  dsddpk(nparams, 0.0); // for each parameter      
-      for (int k=0;k<nparams;++k) {
-	double ninb = nsumddeltadp[k][inb]; // N(inb) 
-	// d(Var(delta(inb)))/dp = (1/N)Sum(d(delta[inb]^2) / d(p(k))) -
-	//     (2/N) <delta[inb]> Sumd(delta[inb]) / d(p(k))
-	if (ninb > 0.0) {
-	  double dvar = (1./ninb)*(sumddelta2dp[k][inb] -
-				   2.*meanDelta*sumddeltadp[k][inb]);
-	  // dsigma/dp = (1/2sigma)dVar/dp
-	  dsddpk[k] = 0.5*dvar/sigDel;
-	}
-      } // end loop parameters
+      std::vector<double>  dsddpk(nparams, 0.0); // for each parameter
+      if (mndelta[inb].Count() > 2) {
+	double meanDelta = mndelta[inb].Mean();
+	double sigDel = mndelta[inb].SD();
+	for (int k=0;k<nparams;++k) {
+	  double ninb = nsumddeltadp[k][inb]; // N(inb) 
+	  // d(Var(delta(inb)))/dp = (1/N)Sum(d(delta[inb]^2) / d(p(k))) -
+	  //     (2/N) <delta[inb]> Sumd(delta[inb]) / d(p(k))
+	  if (ninb > 0.0) {
+	    double dvar = (1./ninb)*(sumddelta2dp[k][inb] -
+				     2.*meanDelta*sumddeltadp[k][inb]);
+	    // dsigma/dp = (1/2sigma)dVar/dp
+	    dsddpk[k] = 0.5*dvar/sigDel;
+	  }
+	} // end loop parameters
+      }
       dsddp[inb] = dsddpk;
     } // end loop intensity bins
     return dsddp;
@@ -389,8 +391,6 @@ namespace scala
     for (int jpc=0;jpc<numparametergroups;++jpc) { // loop parameter groups
       dsdp = sdparametergroup[jpc].dSigmaDeltaDp(); // for each local parameter
       if (dsdp.size() > 0) dsigDeldp.push_back(dsdp);
-      //      std::cout << "SDA Derivatives dsdpsize " << dsdp.size()
-      //		<<" dsigDeldp " <<dsigDeldp.size() <<"\n";
     }    
     ASSERT (int(dsigDeldp.size()) == numparametergroups);
     return dsigDeldp;

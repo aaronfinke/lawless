@@ -183,7 +183,10 @@ namespace scala {
   // Uses vector p = (p1,[p2,]p3) not sdfac etc
   {
     std::vector<double> dp;
-    double var = sigma*sigma;
+    // very large (silly) values of sigma cause problems on squaring
+    const double MAXSIG = 1.0e20;
+    double sig = Min(sigma, MAXSIG);
+    double var = sig*sig;
     double Ih = Iav;
     // s'^2 = p1 s^2 + p2 Ih + p3 Ih^2
     double sd2 = p[0] * var;

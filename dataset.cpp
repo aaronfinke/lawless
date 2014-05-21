@@ -290,9 +290,9 @@ namespace scala {
     // We have 2 or more, concatenate
     std::vector<int> runindexlist;
     for (size_t k=0; k<xdatasets.size(); k++) {
+      std::vector<int> ril = xdatasets[k].RunIndexList();
       runindexlist.insert(runindexlist.end(),
-			  xdatasets[k].RunIndexList().begin(),
-			  xdatasets[k].RunIndexList().end());
+			  ril.begin(), ril.end());
     }
     return runindexlist;
   }

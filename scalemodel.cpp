@@ -892,7 +892,7 @@ namespace scala {
   {
     if (Ipar < 0 || Ipar >= nparameters) {
       clipper::Message::message(Message_fatal
-				("GetLowerBound: parameter number out of range"+
+				("GetParameterType: parameter number out of range"+
 				 clipper::String(Ipar)));
     }
     // Order of parameters:
@@ -1377,7 +1377,7 @@ namespace scala {
       Lower = 0.01;
       return true;
     case ScaleModel::BFACTOR:
-      // A relative B-factor, leave unbounded
+      // A relative B-factor unbounded
       return false;
     case ScaleModel::SECONDARY:
       // A secondary beam parameter, leave unbounded

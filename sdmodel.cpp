@@ -600,15 +600,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     }
     ties.targets = newtargets;
     //^
-    std::cout << "Updating SDcorrection targets "
-	      << " " << newtargets[0]
-	      << " " << newtargets[1]
-	      << " " << newtargets[2] <<"\n";
-    std::cout << "SDmodel::SetTies " <<
-      " " << ties.targets[0]<< " " << ties.targets[1]
-	      << " " << ties.targets[2] <<"\n" 
-	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
-	      << " " << ties.sdtargets[2] <<"\n";
+    //    std::cout << "Updating SDcorrection targets "
+    //	      << " " << newtargets[0]
+    //	      << " " << newtargets[1]
+    //	      << " " << newtargets[2] <<"\n";
+    //    std::cout << "SDmodel::SetTies " <<
+    //      " " << ties.targets[0]<< " " << ties.targets[1]
+    //	      << " " << ties.targets[2] <<"\n" 
+    //	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
+    //	      << " " << ties.sdtargets[2] <<"\n";
     //^-
   }
 //-------------------------------------------------------------

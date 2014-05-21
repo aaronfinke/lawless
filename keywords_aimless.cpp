@@ -733,22 +733,28 @@ void REJECT::analyse()
   // Check that rejects between anomalous related reflections is not
   // more stringent that within
   if (outliercontrolsscale.Reject(scala::BOTH).sdrej != 0.0) {
-    if (outliercontrolsscale.Reject(scala::BOTH).sdrej <
-	std::abs(outliercontrolsscale.Reject(scala::ALL).sdrej)) {
+    float sdrejALL = outliercontrolsscale.Reject(scala::ALL).sdrej;    // within I+ or I-
+    float sdrejBOTH = std::abs(outliercontrolsscale.Reject(scala::BOTH).sdrej);  // between I+ and I-
+    if (sdrejALL > sdrejBOTH) {
       Message::message(Message_warn
 		       (std::string("\nWARNING: on REJECT command\n")+
-			" Scaling outlier rejection limit for all data is "+
-			"tighter than that within I+|I- sets\n"+
+			" Scaling outlier rejection limit for all data ("+
+			StringUtil::Strip(StringUtil::ftos(sdrejBOTH, 6, 2)) +
+			") is tighter than that within I+|I- sets ("+
+			StringUtil::Strip(StringUtil::ftos(sdrejALL, 6, 2))+")\n"+
 			" ==== This is not sensible"));
     }
   }
   if (outliercontrolsmerge.Reject(scala::BOTH).sdrej != 0.0) {
-    if (outliercontrolsmerge.Reject(scala::BOTH).sdrej <
-	std::abs(outliercontrolsmerge.Reject(scala::ALL).sdrej)) {
+    float sdrejALL = outliercontrolsmerge.Reject(scala::ALL).sdrej;    // within I+ or I-
+    float sdrejBOTH = std::abs(outliercontrolsmerge.Reject(scala::BOTH).sdrej);  // between I+ and I-
+    if (sdrejALL > sdrejBOTH) {
       Message::message(Message_warn
 		       (std::string("\nWARNING: on REJECT command\n")+
-			" Merging outlier rejection limit for all data is "+
-			"tighter than that within I+|I- sets\n"+
+			" Merging outlier rejection limit for all data ("+
+			StringUtil::Strip(StringUtil::ftos(sdrejBOTH, 6, 2)) +
+			") is tighter than that within I+|I- sets ("+
+			StringUtil::Strip(StringUtil::ftos(sdrejALL, 6, 2))+")\n"+
 			" ==== This is not sensible"));
     }
   }

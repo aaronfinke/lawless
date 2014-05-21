@@ -585,7 +585,8 @@ namespace scala {
     // Count outliers/batch
     std::vector<int> outliercount = CountOutliers(hkl_list, rejectedbatch, rejecteddataset);
     double maxinvresolsq = 0.0; // actual maximum resolution
-    // number of symmetry operators including lattice centering
+    // number of symmetry operators including lattice centering (since epsilon allows
+    // for lattice centering)
     float NumSymm = hkl_list.symmetry().Nsym();  
     hkl_list.rewind();
 

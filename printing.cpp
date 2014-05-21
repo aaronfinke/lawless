@@ -1231,7 +1231,7 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(2);   // for each graph
-  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't nned to do this)
+  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   for (int i=0;i<ResRange.Nbins();++i) {
     yranges[1].update(FractionN(1.0, NumObs[i], NumRef[i]));
     yranges[1].update(FractionN(1.0, SNumAnomPairs[i], NumACentric[i]));
