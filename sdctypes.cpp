@@ -184,7 +184,7 @@ namespace scala {
   {
     std::vector<double> dp;
     // very large (silly) values of sigma cause problems on squaring
-    const double MAXSIG = 1.0e20;
+    const double MAXSIG = 1.0e10;
     double sig = Min(sigma, MAXSIG);
     double var = sig*sig;
     double Ih = Iav;
