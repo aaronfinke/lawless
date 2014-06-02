@@ -88,18 +88,18 @@ namespace scala
 			 const int w, const int p)
   {
     clipper::String line;
-    for (int i=0;i<3;i++) line += clipper::String(cell[i],w,p);
+    for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i],w,p);
     line += "   ";
-    for (int i=0;i<3;i++) line += clipper::String(cell[i+3],w,p);
+    for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i+3],w,p);
     return line;
   } 
   //--------------------------------------------------------------
   std::string FormatCell(const Scell& cell, const int w, const int p)
   {
     clipper::String line;
-    for (int i=0;i<3;i++) line += clipper::String(cell[i],w,p);
+    for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i],w,p);
     line += "   ";
-    for (int i=0;i<3;i++) line += clipper::String(cell[i+3],w,p);
+    for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i+3],w,p);
     return line;
   } 
   //--------------------------------------------------------------

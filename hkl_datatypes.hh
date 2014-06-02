@@ -275,13 +275,13 @@ namespace scala
     //! change basis: apply reindex operator
     /*! if [H] is reindex operator (ignoring translations)
       [B] current orthogonalisation matrix
-      new [UB]' = [B] [H]T^-1
-      new reciprocal metric tensor [B']T[B] = [UB]'T [UB]' -> new cell
+      new [B]' = [B] [H]T^-1
+      new reciprocal metric tensor [B']T[B] -> new cell
     */
     Scell change_basis(const ReindexOp& reindex_op) const;
 
     //! format cell
-    std::string format(const int w=7, const int p=4) const;
+    std::string format(const int w=7, const int p=2) const;
     //! return XML representation
     std::string xml() const;
     //! return clipper::Cell

@@ -46,7 +46,8 @@ namespace MtzIO
 			  const char& spg_status)
   {
     CMtz::SYMGRP mtzsym;
-    mtzsym.spcgrp = cspgp.spacegroup_number();
+    //    mtzsym.spcgrp = cspgp.spacegroup_number();
+    mtzsym.spcgrp = cspgp.CCP4_Spacegroup_number();
     strcpy(mtzsym.spcgrpname, scala::SGnameHtoR(cspgp.symbol_hm(),HorR).c_str());
     mtzsym.nsym = cspgp.num_symops();
     mtzsym.nsymp = cspgp.num_primops();

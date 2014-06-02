@@ -317,7 +317,7 @@ namespace scala {
       }
       
       output.logTab(0,OUTSTREAM,
-		    "\nAverage unit cell: "+averageCell.format());
+		    "\nAverage unit cell: "+averageCell.formatPrint());
       output.logTab(0,OUTSTREAM,
 		    "Space group: "+spacegroupname);
       output.logTabPrintf(0,OUTSTREAM,

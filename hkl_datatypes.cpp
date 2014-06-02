@@ -481,11 +481,11 @@ namespace scala
   {
     // H reindex operator (ignores translations)
     // B current orthogonalisation matrix
-    // new (UB)' = B H(T)^-1
-    Mat33<Dtype> UBp = Bmat_ * reindex_op.transpose().inverse();
-    // Reciprocal metric tensor = (UB)'(T) (UB)'
+    // new (B)' = B H(T)^-1
+    Mat33<Dtype> Bp = Bmat_ * reindex_op.transpose().inverse();
+    // Reciprocal metric tensor = (B)'(T) (B)'
     // construct new cell object from reciprocal metric tensor
-    return Scell(UBp.transpose() * UBp, false);
+    return Scell(Bp.transpose() * Bp, false);
   }
   //--------------------------------------------------------------
   std::string Scell::format(const int w, const int p) const
@@ -1150,6 +1150,7 @@ namespace scala
         // [D][U][B]
         DUB = DU * bcell.Bmat();
       }
+      SetCell(newcell);
     }
   }
   //--------------------------------------------------------------

@@ -708,6 +708,8 @@ namespace scala {
     // Initialise reflection list with number of reflections and spacegroup
     int Nobspart = NreflReserve;
     initialise(Nobspart, symmetry);
+    nlattices = 0;
+    nlatticesall = 0;
 
     filename = "";
     FileTitle = Title;
