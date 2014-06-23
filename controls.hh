@@ -115,6 +115,10 @@ namespace scala
     void IncrementNrejFractionTooLarge() {nrejfractionlarge++;}
     int NrejFractionTooLarge() const {return nrejfractionlarge;}
 
+    // nopartials true if we know there are no partials
+    void setNoPartials(const bool& noPartials);
+    bool noPartials() const {return nopartials;}
+
   private:
     Rtype accept_fract_min_, accept_fract_max_;
     Rtype correct_fract_min_;
@@ -123,6 +127,7 @@ namespace scala
     int nrejgap;               //  rejections because of gaps
     int nrejfractionsmall;     //  rejections because total fraction too small
     int nrejfractionlarge;     //  rejections because total fraction too large
+    bool nopartials;           // true if we know there are no partials
   }; // partial_controls
   //------------------------------------------------------------
 class col_controls
@@ -206,8 +211,10 @@ public:
 
   RejectFlags(){}
   RejectFlags(const float& Sdrej, const float& Sdrej2,
-	      const Reject2Policy& Rej2policy)
-    : sdrej(Sdrej), sdrej2(Sdrej2), rej2policy(Rej2policy) {}
+	      const Reject2Policy& Rej2policy,
+	      const float& batchRejectFactor=-1.0)
+    : sdrej(Sdrej), sdrej2(Sdrej2), rej2policy(Rej2policy),
+      batchrejectfactor(batchRejectFactor) {}
 
   std::string format() const;
 
@@ -217,6 +224,11 @@ public:
   float sdrej2;       //  special for two observations
   //  enum Reject2Policy {REJECT, KEEP, REJECTLARGER, REJECTSMALLER};
   Reject2Policy rej2policy;  // what to do with 2 deviant observations
+
+  // For Batch mode rejection, valid only for batch scaling eg for serial data:
+  //  if > 0, reject batches with scales > batchrejectfactor * medianscale
+  //  ( and negatives)
+  float batchrejectfactor;
 
 };
 //------------------------------------------------------------

@@ -530,6 +530,9 @@ namespace scala {
                         = +1  different symmetry (point group) */
     int append(const hkl_unmerge_list& OtherList);
 
+    //! set NoPartial flag
+    void setNoPartials(const bool& nopartials);
+
     //----
     //! Copy constructor throws exception unless object is EMPTY
     hkl_unmerge_list(const hkl_unmerge_list& List);
@@ -611,7 +614,7 @@ namespace scala {
 
     //! Actual batch number for batch serial
     Batch batch(const int& jbat) const {return batches.at(jbat);}
-    //! Batch serial for given batch
+    //! Batch serial for given batch, note rejected batches may be included
     int batch_serial(const int& batch) const {return batch_lookup.lookup(batch);}
 
     // Return batch serial number for batch batchnum, or if this one is
@@ -632,15 +635,14 @@ namespace scala {
     std::vector<bool> UseRun() const
     {return run_flags.UseRun();}
 
-
     //! Apply offset to batch numbers, one offset for each run
     void OffsetBatchNumbers(const std::vector<int>& runOffsets);
-    //! Mark batch number ibatch as not accepted
+    //! Mark batch number ibatch as not accepted, flag in run if fromrun true
     /*! Data records are not changed */
-    void RejectBatch(const int& batch);
-    //! Mark batch with serial number jbat as not accepted
+    void RejectBatch(const int& batch, const bool& fromrun=false);
+    //! Mark batch with serial number jbat as not accepted, flag in run if fromrun true
     /*! Data records are not changed */
-    void RejectBatchSerial(const int& jbat);
+    void RejectBatchSerial(const int& jbat, const bool& fromrun=false);
 
     //! Remove all observation parts belonging to rejected batches: returns number of parts rejected
     int PurgeRejectedBatches();
@@ -930,6 +932,8 @@ namespace scala {
     int organise();   // returns number of reflections
     // assemble partials into observations, returns number of observations
     int partials();
+    // make observation lists if there are no partials
+    int nopartials();
     void MakeHklLookup() const;
 
     void SetBatchList();

@@ -55,6 +55,10 @@ namespace scala {
     correl_coeff CC_Imean(const int& mres) const {return ccIreso.at(mres);}
     correl_coeff CC_Imean() const;  // overall
 
+    Rfactor rsplit(const int& mres) const;
+    Rfactor rsplit() const; // overall
+
+
     double RMScorrelRatio(const int& mres) const;
     double RMScorrelRatio() const;  // overall
 
@@ -98,6 +102,8 @@ namespace scala {
     std::vector<correl_coeff> ccanomresoCen;
     // MeanI correlations by resolution
     std::vector<correl_coeff> ccIreso;
+    // Rsplit by resolution
+    std::vector<Rfactor> rsplitreso;
     // RMS DelAnom for each resolution bin
     std::vector<float> rmsdelanom;
     float rmsdelanomOverall;  // overall value

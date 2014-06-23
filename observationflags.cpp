@@ -276,6 +276,22 @@ namespace scala
   }
 //--------------------------------------------------------------
   const unsigned int ObservationStatus::wordmask;  //  = 0xFFFF
+  //--------------------------------------------------------------
+  void ObservationStatus::ResetStatus()
+  // Clear all flags except ObsFlag & resolution flag,
+  //   overlap, run & batch rejections
+  {
+    unsigned int mask =  OBSSTAT_FLAG | OBSSTAT_RESOLUTION |
+      OBSSTAT_OVERLAP | OBSSTAT_RUN | OBSSTAT_BATCH;
+    bitflags &= mask;
+  }
+  //--------------------------------------------------------------
+  void ObservationStatus::ResetStatusAll()
+  // Clear all flags except ObsFlag
+  {
+    unsigned int mask =  OBSSTAT_FLAG;
+    bitflags &= mask;
+  }
 //--------------------------------------------------------------
   // true is OK or outlier or > Emax (ie suitable for Rogues file)
   bool ObservationStatus::IsOKforRogues() const {
@@ -285,7 +301,7 @@ namespace scala
       OBSSTAT_STRONG & OBSSTAT_WEAK;
     return (bitflags & ROGUES_FLAG) == 0;
   }
-//--------------------------------------------------------------
+  //--------------------------------------------------------------
   // Format for debugging
   std::string ObservationStatus::format() const
   {
@@ -303,6 +319,7 @@ namespace scala
     if (TestTooWeak()) {s += "|OBSSTAT_WEAK";}
     if (TestRejectOverlap()) {s += "|OBSSTAT_OVERLAP";}
     if (TestRejectRun()) {s += "|OBSSTAT_RUN";}
+    if (TestRejectBatch()) {s += "|OBSSTAT_BATCH";}
     return s;
   }
 //--------------------------------------------------------------

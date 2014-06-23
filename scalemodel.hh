@@ -84,6 +84,10 @@ namespace scala {
     // if false, force to be radially symmetric
     void symmetricTiles(const bool& symmetric);
 
+    // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
+    void setBatchReject(const std::vector<bool>& usebatch,
+			const std::vector<int>& batchnumbers);
+
     // Get vector of parameters
     std::vector<double> GetParameters() const;
     // get type for all parameters
@@ -126,6 +130,12 @@ namespace scala {
     int NBfactors() const {return nbfactors;}
     // Number of secondary scale parameters
     int Nsecondary() const {return nsecondaryscale;}
+
+    // Return true if BATCH scales for all runs
+    bool isAllBatch() const;
+
+    // return vector of batch scale factors, empty if not batch
+    std::vector<double> getBatchScales() const;
 
     // Return primary scale for specified run
     PrimaryScale primary_scale(const int& irun) const {return primary_scales.at(irun);}

@@ -394,7 +394,8 @@ namespace MtzIO
     //   transfer the actual column numbers  into col_select for file reading
     col_select = column_select(column_label_list, column_selection);
     // Fudge for blank ROT column: if so flag to replace by batch number
-    if (column_label_list.CNL("ROT").valuerange.AbsRange() < 0.001) {
+    //if (column_label_list.CNL("ROT").valuerange.AbsRange() < 0.001) {
+    if (column_label_list.CNL("ROT").number == 0) {
       col_select.col_Rot = -1;
     }
     if (col_select.col_Rot < 0) {
@@ -425,6 +426,16 @@ namespace MtzIO
     MakeRuns();   // Runs for these batches
     bool first = true;
 
+    //^      std::cout << "COLLAB " << column_label_list.format() <<"\n";
+    //      std::cout <<"Max M_ISYM "<<
+    //      column_label_list.CNL("M_ISYM").valuerange.max() <<"\n";
+    
+    all_controls newcontrols = controls;
+    if (column_label_list.CNL("M_ISYM").valuerange.max() < 256) {
+      // no partials
+      newcontrols.partials.setNoPartials(true);
+    }
+
     // Is hkl_list empty?
     if (hkl_list.IsEmpty()) {
       // Empty list, initialise
@@ -450,8 +461,9 @@ namespace MtzIO
 	    +" to match first file\n";
 	}
       }
+
       hkl_list.init(title, Nrecl_file,
-		    symmset, controls);
+		    symmset, newcontrols);
       offsets.assign(runs.size(),0);  // clear offsets
       hkl_list.SetMtzSym(mtzsym);
     } else {
@@ -474,6 +486,11 @@ namespace MtzIO
 	  "\n   change spacegroup on input from "+
 	  spacegroup_.Symbol_hm()+" to "+hkl_list.symmetry().symbol_xHM()+
 	  +" to match first file\n";
+      }
+
+      if (newcontrols.partials.noPartials() != controls.partials.noPartials()) {
+	// update partial controls
+	hkl_list.setNoPartials(newcontrols.partials.noPartials());
       }
     }
 

@@ -89,7 +89,6 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   int secabs = 0;         // SECONDARY or ABSORPTION given
 			  // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
   int tile = -1;
-
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
       if (expectingNumber > 0) {ReportSyntaxError
@@ -646,12 +645,14 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   float emax = -1.0;
   bool  emaxgiven = false;
   bool combine = false;
+  float batchrejectfactor = -1.0;  // no batch rejection
 
   int merge = 0;  // expecting values for MERGE && SCALE, = +1 for MERGE, = -1 for SCALE
   // enum Reject2Policy {REJECT, KEEP, REJECTLARGER, REJECTSMALLER};
   scala::RejectFlags::Reject2Policy rej2policy = scala::RejectFlags::KEEP;
   bool anom = false;
   bool first = true;  // first of pair
+  bool batchreject = false; // REJECT BATCH
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
@@ -678,6 +679,8 @@ Token_value REJECT::parse(std::istringstream& input_stream)
 	first = true;
       } else if (keyIs("EMAX")) {
 	emaxgiven = true;
+      } else if (keyIs("BATCH")) {
+	batchreject = true;
       } else {
 	ReportSyntaxError
 	  (keywords, "REJECT: unrecognised keyword");
@@ -694,6 +697,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
       } else if (emaxgiven) {
 	emax = number_value;
 	emaxgiven = false;
+      } else if (batchreject) {
+	batchrejectfactor = number_value;
+	batchreject = false;
       } else {
 	if (first) {
 	  sdrej = number_value;
@@ -714,14 +720,18 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   outliercontrolsmerge.Combine() = combine;
   //  SCALE or both
   if (merge <= 0) {
-    outliercontrolsscale.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy), scala::ALL);
-    outliercontrolsscale.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy), scala::BOTH);
+    outliercontrolsscale.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy,
+						      batchrejectfactor), scala::ALL);
+    outliercontrolsscale.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
+						      batchrejectfactor), scala::BOTH);
     if (emax > 0.0) outliercontrolsscale.SetEmax(emax);
   }
   //  MERGE or both
   if (merge >= 0) {
-    outliercontrolsmerge.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy), scala::ALL);
-    outliercontrolsmerge.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy), scala::BOTH);
+    outliercontrolsmerge.SetReject(scala::RejectFlags(sdrej, sdrej2, rej2policy,
+						      batchrejectfactor), scala::ALL);
+    outliercontrolsmerge.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
+						      batchrejectfactor), scala::BOTH);
     if (emax > 0.0) outliercontrolsmerge.SetEmax(emax);
   }
   
@@ -1076,7 +1086,7 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   targets.assign(3,0.0);
   sdtargets.assign(3,0.0);
   weighttype = scala::WeightType::VARIANCE;
-
+  sampleSD = false;
 }
 //--------------------------------------------------------------
 Token_value SDCORRECTION::parse(std::istringstream& input_stream)
@@ -1093,6 +1103,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 //        VARIANCE  w = 1/var(I)  [default]
 //        UNIT      w = 1
 //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
+//     SAMPLESD use sample SD in final averaging
 {
   int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
 			   // = -1 maybe expecting number
@@ -1197,6 +1208,8 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 	weighttype = scala::WeightType::UNIT;
       } else if (keyIs("SQRTSCALE")) {
 	weighttype = scala::WeightType::SQRTSCALE;
+      } else if (keyIs("SAMPLESD")) {
+	sampleSD = true;
       } else {
 	ReportSyntaxError
 	  (keywords, "unrecognised keyword");

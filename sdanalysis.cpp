@@ -309,6 +309,14 @@ namespace scala
 
       for (size_t i=0;i<delta2.size();++i) {
 	if (delta2[i] != 0.0) { // valid delta
+	  //^
+	  //	  std::cout <<"AddSelobsDelta2 " << selobs.hkl().format()
+	  //		    <<" " << mint << " " << delta2[i]
+	  //		    <<" run "<<selobs.Run(i) <<" full "<<selobs.Full(i)
+	  //		    <<" "<<selobs.Reflection().get_observation(i).I()
+	  //		    <<" "<<selobs.Reflection().get_observation(i).sigI()
+	  //		    <<" "<<i<<std::endl;
+	  //	  }
 	  AddDelta(delta2[i],
 		   mint, selobs.Run(i), selobs.Full(i));
 	  //^
@@ -565,6 +573,9 @@ namespace scala
     int fullpartialall = -1000;
 
     int kr=0;
+
+    std::vector<bool> whichones(4, false);  // for full1, partial1, full2, partial2
+
     for (int ir=0;ir<numruns;++ir) {   // Loop all runs
       int irun = ir;
       if (allsamerun) irun = 0;
@@ -598,16 +609,20 @@ namespace scala
 	std::vector<std::vector<MeanSD> > msddata;
 	if (fulls) {	// fulls for 1st object
 	  msddata.push_back(sdanal1.GetMeanSD(irun, true));
+	  whichones[0] = true;
 	}  
 	if (partials) { // partials for 1st object
 	  msddata.push_back(sdanal1.GetMeanSD(irun, false));
+	  whichones[1] = true;
 	}
 	if (secondsdanal) {
 	  if (fulls2) {	// fulls for 2nd object
 	    msddata.push_back(sdanal2.GetMeanSD(irun, true));
+	    whichones[2] = true;
 	  }  
 	  if (partials2) { // partials for 2nd object
 	    msddata.push_back(sdanal2.GetMeanSD(irun, false));
+	    whichones[3] = true;
 	  }
 	}
 	std::string ttitle = " Run "+clipper::String(runlist[irun].RunNumber(),3)+
@@ -616,9 +631,14 @@ namespace scala
 
 	PrintSDanalysisTable(rejflags, Irange, ttitle, fullpartial, secondsdanal,
 			     msddata, output);
-	nsd = Max(nsd, int(msddata.size()));
       }
     }  // end loop runs
+
+    nsd = 0; // count objects
+    for (size_t i=0; i<whichones.size(); i++) { 
+      if (whichones[i]) {nsd++;}
+    }
+
     if (kr > 1 && fullprint) {
       // > 1 run in this dataset, print totals over all relevant runs
       std::vector<std::vector<MeanSD> > msddata(nsd);

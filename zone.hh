@@ -346,7 +346,6 @@ namespace scala
     PossibleSpaceGroup PossibleSG;
     std::vector<int> zonesingroup;   // list of zone numbers in this group
   };  // SysAbsScore
-
 }
 
 #endif

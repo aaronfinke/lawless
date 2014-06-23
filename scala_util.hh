@@ -23,10 +23,10 @@ namespace scala
   //--------------------------------------------------------------
   // Return formatted unit cell
   std::string FormatCell(const std::vector<double>& cell,
-			 const int w=7, const int p=4);
+			 const int w=7, const int p=2);
   //--------------------------------------------------------------
   // Return formatted unit cell
-  std::string FormatCell(const Scell& cell, const int w=7, const int p=4); 
+  std::string FormatCell(const Scell& cell, const int w=7, const int p=2);
   //--------------------------------------------------------------
   RPair MnSd(const std::vector<double>& val);
   // Return mean & SD of vector elements
@@ -73,7 +73,7 @@ namespace scala
   //======================================================================
   //======================================================================
   class MeanSD
-  // Mean & SD of numbers
+  // Mean & SD of numbers (SD of distribution, not of mean), unit weights
   {
   public:
     MeanSD() : sum_sc(0.0), sum_sc2(0.0), count(0) {}
@@ -127,6 +127,41 @@ namespace scala
 
   private:
     double sum_sc, sum_w;
+    int count;
+  };
+  //======================================================================
+  class MeanVariance
+  // Weighted mean & variance of mean
+  {
+  public:
+    MeanVariance() : sum_sc(0.0), sum_w(0.0), sum_w2(0.0),
+		     sum_sc2(0.0), count(0) {}
+    MeanVariance(const std::vector<float>& list);
+    MeanVariance(const std::vector<double>& list);
+  
+    void Add(const float& v, const float& w = 1.0f);
+    void Add(const double& v, const double& w = 1.0);
+    void clear();
+
+    double Mean() const;
+    // Variance of mean
+    double Variance() const;
+    double SD() const;
+
+    // Variance of distribution
+    double SampleVariance() const;
+    double SampleSD() const;
+
+    int Count() const {return count;}
+
+    std::string format() const;
+
+    MeanVariance& operator+=(const MeanVariance& other);
+    friend MeanVariance& operator+ (const MeanVariance& a, const MeanVariance& b);
+
+  private:
+    double sum_sc, sum_w, sum_w2;
+    double sum_sc2;
     int count;
   };
   //======================================================================

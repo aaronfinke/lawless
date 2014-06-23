@@ -26,9 +26,6 @@ void PrintFileInfoToXML(const std::string& StreamName,
 //--------------------------------------------------------------
 void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& output);
 //--------------------------------------------------------------
-// Print scale factors
-void PrintScales(const ScaleModel& AllScales, phaser_io::Output& output);
-//--------------------------------------------------------------
   // Fit straight line to B factors within each run
 
 class FitBfactorLines {

@@ -36,6 +36,14 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   SDM.SetRefine(input.SDC_Refine());
   SDM.SetDamp(input.SDCdamp());
 
+  const int MINIMUMSAMPLE = 6; // minimum number for sample SD
+  SDM.SetSampleSD(input.SampleSD(), MINIMUMSAMPLE);
+  // If SampleSD, switch off refinement unless explicit
+  if(SDM.SampleSD()) {
+    if (!input.SDC_RefineSet()) {
+      SDM.SetRefine(false);
+    }}
+
   std::vector<std::pair<SDcorrection,SDcorrection> > 
     sdcval = input.SDC_SDcorrections();
   std::vector<int> runnumbers = input.SDC_RunNumbers();
@@ -159,6 +167,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     ties.targets.assign(3,0.0);
     ties.sdtargets.assign(3,0.0);
     SetVarianceWeights();    // default weighting scheme
+    sampleSD = false;
+    minimumsample = 10;
 }
 //-------------------------------------------------------------
   void SDmodel::ResetRange()
@@ -341,8 +351,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   void SDmodel::SetIdxParam()
   {
     int nparams = 0;
-    idxfullparam.resize(Nruns());
-    idxpartialparam.resize(Nruns());
+    idxfullparam.assign(Nruns(), 0);
+    idxpartialparam.assign(Nruns(), 0);
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // use parameters for fulls
 	idxfullparam[irun] = nparams; // index to first parameter in run
@@ -874,18 +884,20 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       fullpart = -1;
     }
 
-    if (nsets > 0) {
-      if (fullpart != 0) both = false;
-      for (int irun=1;irun<nsets;++irun) { // loop sets
-	if (usetype[irun] == +1) { // fulls only
-	  if (fullpart < 0) {both = true;}
-	} else if (usetype[irun] == -1) { // partials only
-	  if (fullpart > 0) {both = true;}
-	} else if (usetype[irun] == 0) { // both
-	  both = true;
-	}
-      }  // end loop run sets
-    }
+
+    both = false;
+    bool somefulls = false;
+    bool somepartials = false;
+    for (int irun=0;irun<nsets;++irun) { // loop sets
+      if (usetype[irun] > 0) { // some fulls
+	somefulls = true;
+      } else if (usetype[irun] < 0) { // partials
+	somepartials = true;
+      } else if (usetype[irun] == 0) { // both
+	both = true;
+      }
+    }  // end loop run sets
+    if (somefulls && somepartials) {both = true;}
 
     std::string label;
     if (both) {
@@ -896,8 +908,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     } else {
       label = (fullpart > 0) ? "Fulls" : "Partials";
       ss += FormatOutput::logTab(0,
-	 std::string("                                ")+label+"\n"+
-                     "    Run                  SdFac    SdB    SdAdd\n");
+	 std::string("                                    ")+label+"\n"+
+                     "    Run                      SdFac    SdB    SdAdd\n");
     }
 
     for (int irun=0;irun<nsets;++irun) { // loop runs
@@ -930,14 +942,14 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 					 sdap, sdbp, sdcp);
       } else if (fullpart > 0) {
 	// Fulls
-	label = (usetype[irun] == +1) ? " OnlyFulls  " : " FewPartials";
+	label = formatUseFlag(irun);
 	ss += FormatOutput::logTabPrintf(0,"%s  %s  %7.2f  %6.2f  %7.4f\n",
 					 runnum.c_str(), label.c_str(),
 					 sdc_full_run[irun].SDfac(),
 					 sdc_full_run[irun].SDb(),
 					 sdc_full_run[irun].SDadd());
       } else {
-	label = (usetype[irun] == -1) ? "OnlyPartials" : "  FewFulls  ";
+	label = formatUseFlag(irun);
 	ss += FormatOutput::logTabPrintf(0,"%s %s  %7.2f  %6.2f  %7.4f\n",
 					 runnum.c_str(),label.c_str(),
 					 sdc_partial_run[irun].SDfac(),
@@ -945,6 +957,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 					 sdc_partial_run[irun].SDadd());
       }
     }  // end loop runs
+
+    // sample SD stuff
+    if (sampleSD) {
+      ss += std::string("\nFinal sigma(I) estimates will be calculated from the sample")+
+      " variance of each reflection,\n"+
+      "instead of from the individual SD(I), for those reflections with more than "+
+	StringUtil::itos(minimumsample) + " observations\n";
+    }
+
     return ss;
   }
   //-------------------------------------------------------------

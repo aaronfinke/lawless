@@ -29,6 +29,7 @@ namespace scala {
       //  Loop all observations
       for (int i=0;i<this_refl.num_observations();++i) {
 	this_obs = this_refl.get_observation(i);
+
 	// apply scale to observation
 	AllScales.ScaleObs(this_obs, invresolsq, onlyUseSingletons);
 	this_refl.replace_observation(this_obs);

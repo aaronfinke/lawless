@@ -134,7 +134,19 @@ namespace MtzIO {
     start();
     while (pcl != columns.end()) {
       s += pcl->second.loglabel + " : " + pcl->second.label +
-	clipper::String(pcl->second.number) + "\n";
+	clipper::String(pcl->second.number);
+      if (pcl->second.number == 0) {
+	s += " Absent column";
+      } else {
+	Range range = pcl->second.valuerange;
+	if (range.Valid()) {
+	  s += " Range: " + clipper::String(range.min()) 
+	    + " - " + clipper::String(range.max());
+	} else {
+	  s += " Invalid value range";
+	}
+      }
+      s += "\n";
       pcl++;
     }
     return s;

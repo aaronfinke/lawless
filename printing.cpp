@@ -103,11 +103,6 @@ void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& outpu
   output.logTab(0,LOGFILE,"\n");
 }
 //--------------------------------------------------------------
-// Print scale factors
-void PrintScales(const ScaleModel& AllScales, phaser_io::Output& output)
-{
-}
-//--------------------------------------------------------------
 //--------------------------------------------------------------
 FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
 				 const std::vector<Run>& RunList,
@@ -278,13 +273,15 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   for (size_t i=0;i<batches.size();++i) {  // print even batches that have no reflections
     //  batch in this dataset
     if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
-      table.Line(nc, n,
-		 RunList[batches[i].RunIndex()].RunNumber(),
-		 batches[i].MidPhi(), batches[i].num(),
-		 scalebatch[i].Mean(),
-		 scale0batch[i], scalebatch[i].Count(),
-		 bfacbatch[i], bfdecaybatch[i]);
-      n++;
+      if (scalebatch[i].Count() > 0) {
+	table.Line(nc, n,
+		   RunList[batches[i].RunIndex()].RunNumber(),
+		   batches[i].MidPhi(), batches[i].num(),
+		   scalebatch[i].Mean(),
+		   scale0batch[i], scalebatch[i].Count(),
+		   bfacbatch[i], bfdecaybatch[i]);
+	n++;
+      }
     }
   }
   table.CloseTable();
@@ -472,48 +469,50 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   for (size_t i=0;i<batches.size();++i) { // print all batches even if they have no observations
     //  batch in this dataset
     if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
-      float r = 0.0;
-      if (rmsDbatch[i].Count() > 0) {
-	r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
+      if (rmergebatch[i].result().count > 0) {
+	float r = 0.0;
+	if (rmsDbatch[i].Count() > 0) {
+	  r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
+	}
+	if (nbatchsmooth == 1) { // no smoothed stats
+	  table.Line(nc, n, batches[i].num(),
+		     imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		     r,
+		     rmergebatch[i].R(),
+		     rmergebatch[i].result().count,
+		     rejectedbatch[i],
+		     100.*batchcompleteness[i],
+		     100.*batchanomcompleteness[i],
+		     maxresbatch[i],
+		     batchmultiplicity[i]);
+	} else if (smoothMaxRes) {
+	  table.Line(nc, n, batches[i].num(),
+		     imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		     r,
+		     rmergebatch[i].R(), 
+		     rmergebatch[i].result().count,
+		     rejectedbatch[i],
+		     100.*batchcompleteness[i],
+		     100.*batchanomcompleteness[i],
+		     maxresbatch[i],
+		     batchmultiplicity[i],
+		     rmergebatchsmoothed[i].R(),
+		     maxresbatchsmoothed[i]);
+	} else{
+	  table.Line(nc, n, batches[i].num(),
+		     imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
+		     r,
+		     rmergebatch[i].R(), 
+		     rmergebatch[i].result().count,
+		     rejectedbatch[i],
+		     100.*batchcompleteness[i],
+		     100.*batchanomcompleteness[i],
+		     maxresbatch[i],
+		     batchmultiplicity[i],
+		     rmergebatchsmoothed[i].R());
+	}
+	n++;
       }
-      if (nbatchsmooth == 1) { // no smoothed stats
-	table.Line(nc, n, batches[i].num(),
-		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-		   r,
-		   rmergebatch[i].R(),
-		   rmergebatch[i].result().count,
-		   rejectedbatch[i],
-		   100.*batchcompleteness[i],
-		   100.*batchanomcompleteness[i],
-		   maxresbatch[i],
-		   batchmultiplicity[i]);
-      } else if (smoothMaxRes) {
-	table.Line(nc, n, batches[i].num(),
-		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-		   r,
-		   rmergebatch[i].R(), 
-		   rmergebatch[i].result().count,
-		   rejectedbatch[i],
-		   100.*batchcompleteness[i],
-		   100.*batchanomcompleteness[i],
-		   maxresbatch[i],
-		   batchmultiplicity[i],
-		   rmergebatchsmoothed[i].R(),
-		   maxresbatchsmoothed[i]);
-      } else{
-	table.Line(nc, n, batches[i].num(),
-		   imeanbatch[i].Mean(), sqrt(rmsDbatch[i].Mean()),
-		   r,
-		   rmergebatch[i].R(), 
-		   rmergebatch[i].result().count,
-		   rejectedbatch[i],
-		   100.*batchcompleteness[i],
-		   100.*batchanomcompleteness[i],
-		   maxresbatch[i],
-		   batchmultiplicity[i],
-		   rmergebatchsmoothed[i].R());
-      }
-      n++;
     }  // rejected batches
   } // batch loop
   table.CloseTable();
@@ -1374,16 +1373,22 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
 " with slope = 1 ('correlation') with the RMS value perpendicular to this ('error').\n"+
 " This ratio will be > 1 if there is a significant anomalous signal\n");
 
+  output.logTab(0,LOGFILE,
+    "\n Rsplit = (1/Sqrt(2)) Sum (|I1 - I2|)/0.5*Sum(I1 + I2) where I1,I2 are the half-dataset intensities as for CC(1/2)");
+  output.logTab(0,LOGFILE,
+		" Note that internal R-factors of any sort are deprecated as metrics for assessment of effective resolution\n");
+
   TableGraph table(" Correlations CC(1/2) within dataset, "+dataset_pxd.dname());
   table.StoreID("Graph-CChalf");
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
-  std::vector<Range> yranges(2);   // for each graph
+  std::vector<Range> yranges(3);   // for each graph
   // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   for (int i=0;i<ResRange.Nbins();++i) {
     yranges[1].update(halfDatasetScores.RMScorrelRatio(i));
     //    yranges[1].update(halfDatasetScores.RMScorrelRatioCen(i));
+    yranges[2].update(halfDatasetScores.rsplit(i).result().val);
   }
   yranges[0].first() = 0.0;  // CC
   yranges[0].last() = 1.0;  // CC
@@ -1401,6 +1406,12 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
   table.AddGraph(graph);
 
+  graph.init(" Rsplit ");
+  graph.AddLine(TableGraphPlotline(2,9));
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  graph.SetYaxis("", true, yranges[2]);  // y axis from 0 to maximum
+  table.AddGraph(graph);
+
   std::vector<std::string> collabels;
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
@@ -1410,9 +1421,10 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   collabels.push_back("RCRanom");   // 6
   collabels.push_back("CC1/2");     // 7
   collabels.push_back("NCC1/2");    // 8
-  bool z[] = {false, false, false, true, false, true, true, false};
-  std::vector<bool> Zero(z, z+8);
-  std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d\n"; // excluding 1st 3 columns
+  collabels.push_back("Rsplit");    // 9
+  bool z[] = {false, false, false, true, false, true, true, false, true};
+  std::vector<bool> Zero(z, z+9);
+  std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d %8.3f\n"; // excluding 1st 3 columns
   table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
   int nc = collabels.size();
 
@@ -1426,7 +1438,8 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
 	       halfDatasetScores.RMScorrelRatio(i),
 	       //			   halfDatasetScores.RMScorrelRatioCen(i),
 	       halfDatasetScores.CC_Imean(i).result().val,
-	       halfDatasetScores.CC_Imean(i).result().count);
+	       halfDatasetScores.CC_Imean(i).result().count,
+	       halfDatasetScores.rsplit(i).result().val);
   }
   table.CloseTable();
 
@@ -1445,7 +1458,8 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
 	       halfDatasetScores.RMScorrelRatio(),
 		      //	       halfDatasetScores.RMScorrelRatioCen(),
 	       halfDatasetScores.CC_Imean().result().val,
-	       halfDatasetScores.CC_Imean().result().count);
+	       halfDatasetScores.CC_Imean().result().count,
+	       halfDatasetScores.rsplit().result().val);
   int lab1 = leader.size(); // 1st character in column to use labels 
   leader.assign(lab1,' ');
   output.logTab(0,LOGFILE, leader+table.RawLabels().substr(lab1, table.RawLabels().size()-lab1));

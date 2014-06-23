@@ -53,13 +53,17 @@ namespace scala {
 
     for (int ib=0;ib<nbatches;++ib) {
       // Is it this dataset?
-      if (batches[ib].datasetindex() == datasetIndex) {
+      if ((datasetIndex < 0) || (batches[ib].datasetindex() == datasetIndex)) {
 	if (batches[ib].Accepted()) {
 	  int irun = batches[ib].RunIndex();
 	  if (irun >= 0) {
 	    PrimaryScale pscale = AllScales.primary_scale(irun);
 	    if (pscale.IsBatchScale()) {
-	      ps = pscale.Scale(batches[ib].num());
+	      if (pscale.ValidScale(batches[ib].num())) {
+		ps = pscale.Scale(batches[ib].num());
+	      } else {
+		ps = 0.0;
+	      }
 	    } else {
 	      ps = pscale.Scale(batches[ib].MidPhi());
 	    }
@@ -541,6 +545,11 @@ namespace scala {
 	 "\nTime for determination of anisotropic axes: "+anisotime.format(true));
     // ----
 
+    // Sample SD option
+    if (SDM.SampleSD()) {
+      SelectedObservations::SetSampleSD(SDM.MinimumSample());
+    }
+
     // Half dataset correlations etc, by resolution
     HalfDataset halfDatasetScores(nresbin, dataset_pxd);
     // Store relevant anomalous statistics
@@ -1017,7 +1026,8 @@ namespace scala {
     }
 
     // Radiation damage analysis
-    if (runlist.size() == 1) {
+    //  only if one run, and not Batch scaling
+    if (runlist.size() == 1 && !AllScales.isAllBatch()) {
       RadiationDamageAnalysis radiationdamageanalysis(hkl_list, 0, -1);
       radiationdamageanalysis.plot(batchcompleteness, output);
     }

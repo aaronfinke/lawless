@@ -467,6 +467,25 @@ namespace scala {
     SetupTies();  // reset tie list
   }
   //--------------------------------------------------------------
+  void ScaleModel::setBatchReject(const std::vector<bool>& usebatch, 
+				  const std::vector<int>& batchnumbers)
+  // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
+  {
+    if (!isAllBatch()) {
+      Message::message(Message_fatal
+       ("Cannot use REJECT BATCH unless BATCH scaling is used"));
+    }
+    ASSERT (usebatch.size() == batchnumbers.size());
+    for (int irun=0;irun<nruns;irun++) {
+      primary_scales[irun].setBatchReject(usebatch, batchnumbers);
+      if (relative_bfactors[irun].Number() > 0) {
+	relative_bfactors[irun].setBatchReject(usebatch, batchnumbers);
+      }
+    }
+    // Fix up things that may have changed
+    CountParameters();
+  }
+  //--------------------------------------------------------------
   std::string ScaleModel::ScaleParameterTypeString(const ScaleParameterType& type)
   // types of parameter
   //  enum ScaleParameterType {NONE, SCALE, BFACTOR, SECONDARY, TILE};
@@ -1082,6 +1101,25 @@ namespace scala {
   {
     return (nprimaryscale > 1) || (nbfactors > 1) ||
       (nsecondaryscale > 0) || (ntilescale > 0);
+  }
+  //--------------------------------------------------------------
+  bool ScaleModel::isAllBatch() const
+  // Return true if BATCH scales for all runs
+  {
+    bool allbatch = true;
+    for (int irun=0;irun<nruns;irun++) {
+      if (!primary_scales[irun].IsBatchScale()) {
+	allbatch = false;
+	break;
+      }
+      if (relative_bfactors[irun].Number() > 0) {
+	if (!relative_bfactors[irun].IsBatchBfactor()) {
+	  allbatch = false;
+	  break;
+	}
+      }
+    }
+    return allbatch;
   }
   //--------------------------------------------------------------
   double ScaleModel::ScaleObs(observation& obs, const Rtype& invresolsq,

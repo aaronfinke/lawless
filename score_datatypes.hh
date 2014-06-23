@@ -246,6 +246,9 @@ namespace scala
     Rfactor& operator+=(const Rfactor& other);
     friend Rfactor& operator+ (const Rfactor& a, const Rfactor& b);
 
+    // Scale numerator
+    void scale(const double& scale) {sum_df *= scale;}
+
   private:
     double sum_df, sum_f;
     int n_f;

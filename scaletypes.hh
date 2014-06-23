@@ -163,7 +163,7 @@ namespace scala {
     // Retrieve scales (length nscales)
     std::vector<double> Scales() const;
     // Retrieve number of contributions (length nscales)
-    std::vector<int> Nobservations() const {return nobsPar;}
+    std::vector<int> Nobservations() const;
 
     // Number of scales, == 0 if null
     int Number() const {return nscales;}
@@ -190,6 +190,16 @@ namespace scala {
 
     // true if Batch mode
     bool IsBatchScale() const {return batchscale;}
+
+    // valid scale at batch number batchnum
+    bool ValidScale(const int& batchnum) const;
+
+    // index number in this batch list for batch number batchnum, omitting rejects
+    int batchSerialIndex(const int& batchnum) const;
+
+    // set ib'th batch if Usebatch[ib] false, batchnumbers corresponding
+    void setBatchReject(const std::vector<bool>& Usebatch,
+			const std::vector<int>& batchnumbers);
 
     // Format layout for printing
     std::string format() const;
@@ -225,7 +235,11 @@ namespace scala {
 
     SmoothedValue smoothscale;  //S for smoothed scales
     std::vector<double> batchscales;  //B batch scales
-    std::vector<int> nobsPar;  // BS number of observations for each scale
+    std::vector<int> nobsPar;   // BS number of observations for each scale
+    bool allbatches;            // true if all batches are used
+    std::vector<bool> usebatch; // flag to use this batch
+    std::vector<int> batchscaleindex; // if !allbatches, index into scale list for this batch
+    std::vector<int> scalebatchindex; // if !allbatches, index into batch list for this scale
 
     static int navgscale;   //S  Number of points in moving average, 3, 4 or 5
     static double sdwz;     //S "SD" for weighting
@@ -301,7 +315,7 @@ namespace scala {
     // Retrieve B-factors
     std::vector<double> Bfactors() const;
     // Retrieve number of contributions (length nbfac)
-    std::vector<int> Nobservations() const {return nobsPar;}
+    std::vector<int> Nobservations() const;
 
     // Number of B-factors, == 0 if null
     int Number() const {return nbfac;}
@@ -335,6 +349,16 @@ namespace scala {
     // true if Batch mode
     bool IsBatchBfactor() const {return batchbfac;}
 
+    // valid B-factor at batch number batchnum
+    bool ValidBfactor(const int& batchnum) const;
+
+    // index number in this batch list for batch number batchnum, omitting rejects
+    int batchSerialIndex(const int& batchnum) const;
+
+    // set ib'th batch if Usebatch[ib] false, batchnumbers corresponding
+    void setBatchReject(const std::vector<bool>& Usebatch,
+			const std::vector<int>& batchnumbers);
+
     std::string format() const;
 
     // Format all information into a labelled save format for later restoration
@@ -366,6 +390,10 @@ namespace scala {
     SmoothedValue smoothB;        // smooth Bfactors
     std::vector<double> bfactors;  // batch B-factors
     std::vector<int> nobsPar;  // number of observations for each Bfactors
+    bool allbatches;            // true if all batches are used
+    std::vector<bool> usebatch; // flag to use this batch
+    std::vector<int> batchbfacindex; // if !allbatches, index into scale list for this batch
+    std::vector<int> bfacbatchindex; // if !allbatches, index into batch list for this scale
 
     static int navgbfac;  //  Number of points in moving average, 3, 4 or 5
     static double sdwt;    // "SD" for weighting

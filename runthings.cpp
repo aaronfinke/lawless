@@ -47,37 +47,63 @@ namespace scala {
   //--------------------------------------------------------------
   void Run::AddBatch(const int& Batch, const bool& accept)
   {
-    batch_number_list.push_back(Batch);
-    batch_accepted.push_back(accept);
+    batch_number_list.push_back(std::pair<int,bool>(Batch,accept));
   }
   //--------------------------------------------------------------
-  bool Run::IsInList(const int& Batch) const
+  int Run::indexInList(const int& Batchnum) const
+  // returns index into list if found, else -1
+  {
+    int jb = -1;
+    for (size_t ib=0;ib<batch_number_list.size();++ib) {
+      if (batch_number_list[ib].first == Batchnum) {
+	jb = ib;
+	break;
+      }
+    }
+    return jb;
+  }
+  //--------------------------------------------------------------
+  bool Run::IsInList(const int& Batchnum) const
   // true if Batch is in list
   {
-    return
-      (std::find(batch_number_list.begin(),batch_number_list.end(),Batch) !=
-       batch_number_list.end());
+    return (indexInList(Batchnum) >= 0);
   }
   //--------------------------------------------------------------
   std::vector<int> Run::BatchList(const bool& Accepted) const
   // Return batch number list:
   //  if Accepted == true, only return accepted batches
   {
-    if (Accepted) {
-      std::vector<int> bn;
-      for (size_t ib=0;ib<batch_number_list.size();++ib) {
-	if (batch_accepted.at(ib)) bn.push_back(batch_number_list[ib]);
+    std::vector<int> bn;
+    for (size_t ib=0;ib<batch_number_list.size();++ib) {
+      if (Accepted) {
+	if (batch_number_list.at(ib).second) bn.push_back(batch_number_list[ib].first);
+      } else {
+	bn.push_back(batch_number_list[ib].first);
       }
-      return bn;
-    } else {
-      return batch_number_list;
     }
+    return bn;
+  }
+  //--------------------------------------------------------------
+  void Run::SetBatchAccept(const int& Batchnum, const bool& Accepted)
+  // Set batch accept flag
+  {
+    int jb = indexInList(Batchnum);
+    if (jb < 0) {return;} // not found
+    batch_number_list[jb].second = Accepted;
+  }
+  //--------------------------------------------------------------
+  bool Run::IsBatchAccepted(const int& Batchnum) const
+  // return batch accepted flag
+  {
+    int jb = indexInList(Batchnum);
+    if (jb < 0) {return false;} // not found
+    return batch_number_list[jb].second;
   }
   //--------------------------------------------------------------
   void Run::OffsetBatchNumbers(const int& offset)
   {
     for (size_t i=0;i<batch_number_list.size();i++) {
-      batch_number_list[i] += offset;
+      batch_number_list[i].first += offset;
     }
     batch_number_offset += offset;
   }
@@ -90,11 +116,10 @@ namespace scala {
 			 runnumber, dataset_index+1,
 				 datasets[dataset_index].pxdname().format().c_str());
     const int nperline = 15;
-    ASSERT (batch_number_list.size() == batch_accepted.size());
     for (size_t i=0;i<batch_number_list.size();i++)  {
-      if (batch_accepted[i]) {
+      if (batch_number_list[i].second) {
 	if (i%nperline == 0) s += FormatOutput::logTabPrintf(0,"\n");
-	s += FormatOutput::logTabPrintf(0," %6d", batch_number_list[i]);
+	s += FormatOutput::logTabPrintf(0," %6d", batch_number_list[i].first);
       }
     }
     if (latnum > 0) {
@@ -128,15 +153,15 @@ namespace scala {
     int firstbatch = -1;;
     int lastbatch = -1;
     for (size_t i=0;i<batch_number_list.size();++i) {
-      if (batch_accepted[i]) {
-	firstbatch = batch_number_list[i];
+      if (batch_number_list[i].second) {
+	firstbatch = batch_number_list[i].first;
 	break;
       }
     }
     if (firstbatch >= 0) {
       for (int i=int(batch_number_list.size())-1;i>=0;i--) {
-	if (batch_accepted[i]) {
-	  lastbatch = batch_number_list[i];
+	if (batch_number_list[i].second) {
+	  lastbatch = batch_number_list[i].first;
 	  break;
 	}
       }
@@ -175,19 +200,19 @@ namespace scala {
   //--------------------------------------------------------------
   void Run::SortList()  // call this after last AddBatch
   {
-    // sort list
+    // sort list, sorted on batch number (.first), carries along accepted flag
     std::sort(batch_number_list.begin(), batch_number_list.end());
   }
   //--------------------------------------------------------------
   std::pair<int,int> Run::BatchRange() const
   // return minimum & maximum batch number
   {
-    return std::pair<int,int>(batch_number_list[0], batch_number_list.back());
+    return std::pair<int,int>(batch_number_list[0].first, batch_number_list.back().first);
   }
   //--------------------------------------------------------------
   // return first batch number
   int Run::Batch0() const {
-    return batch_number_list[0];
+    return batch_number_list[0].first;
   }
   //--------------------------------------------------------------
   //! Set FullsAndPartials flag based on numbers
@@ -221,9 +246,13 @@ namespace scala {
   {
     std::string dump = "Run V1 {\n"; 
     int nb = batch_number_list.size();
+    std::vector<int> numbers(nb);
+    for (size_t i=0;i<batch_number_list.size();++i) {
+      numbers[i] = batch_number_list[i].first;
+    }
     dump += " Batch_number_list "+
       clipper::String(nb)+"\n"+
-      StringUtil::FormatSaveVector(batch_number_list);
+      StringUtil::FormatSaveVector(numbers);
     return dump+"}\n";
   }
   //--------------------------------------------------------------

@@ -44,6 +44,7 @@ namespace scala
     correct_fract_min_ = 0.0;
     check_ = true;
     maxgap_ = 0;
+    nopartials = false;  // assume partials
   }
   //------------------------------------------------------------
   partial_controls::partial_controls(const double& FrMin, const double& FrMax,
@@ -55,6 +56,7 @@ namespace scala
     correct_fract_min_ = FrCorr;
     check_ = Check;
     maxgap_ = MaxGap;
+    nopartials = false;  // assume partials
   }
   //------------------------------------------------------------
   void partial_controls::Clear()
@@ -64,27 +66,39 @@ namespace scala
     nrejfractionlarge = 0;
   }
   //------------------------------------------------------------
+  // nopartials true if we know there are no partials
+  void partial_controls::setNoPartials(const bool& noPartials)
+  {
+    nopartials = noPartials;
+    if (nopartials) {Clear();}
+  }
+  //------------------------------------------------------------
   std::string partial_controls::format() const
   {
     std::string s;
-    if (check_)
+    if (nopartials) {
       {s += FormatOutput::logTab
-	  (0,"\nHandling of partials:\n  MPART flags are checked\n");}
-    else
-      {s += FormatOutput::logTab
-	  (0,"\nHandling of partials:\n  MPART flags are not checked\n");}
-    s += FormatOutput::logTabPrintf
-      (0,"  Summed partials accepted if total fraction is between %5.2f & %5.2f\n",
-			 accept_fract_min_, accept_fract_max_);
-    if (correct_fract_min_ > 0.001)
-      {s += FormatOutput::logTabPrintf(0,
-    "  Incomplete partials scaled by 1/fraction_calc if fraction is > %5.2f\n",
-			 correct_fract_min_);
-      }
-    if (maxgap_ > 0)
-      {s += FormatOutput::logTabPrintf(0,"  Partials with up to %2d missing parts in the middle will be accepted\n",
-		      maxgap_);
-      }
+	  (0,"\nNo partially recorded reflections\n");}
+    } else {
+      if (check_)
+	{s += FormatOutput::logTab
+	    (0,"\nHandling of partials:\n  MPART flags are checked\n");}
+      else
+	{s += FormatOutput::logTab
+	    (0,"\nHandling of partials:\n  MPART flags are not checked\n");}
+      s += FormatOutput::logTabPrintf
+	(0,"  Summed partials accepted if total fraction is between %5.2f & %5.2f\n",
+	 accept_fract_min_, accept_fract_max_);
+      if (correct_fract_min_ > 0.001)
+	{s += FormatOutput::logTabPrintf(0,
+					 "  Incomplete partials scaled by 1/fraction_calc if fraction is > %5.2f\n",
+					 correct_fract_min_);
+	}
+      if (maxgap_ > 0)
+	{s += FormatOutput::logTabPrintf(0,"  Partials with up to %2d missing parts in the middle will be accepted\n",
+					 maxgap_);
+	}
+    }
     return s;
   }
   //------------------------------------------------------------

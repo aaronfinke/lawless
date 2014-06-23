@@ -23,6 +23,7 @@ namespace scala {
     ccanomreso.resize(nresbin);
     ccanomresoCen.resize(nresbin);
     ccIreso.resize(nresbin);
+    rsplitreso.resize(nresbin);
     rmsCorrel.resize(nresbin);
     rmsError.resize(nresbin);
     rmsCorrelCen.resize(nresbin);
@@ -80,6 +81,7 @@ namespace scala {
     if (allobs.HalfAverages(I1, I2)) {
       // Sample if necessary
       ccIreso[mres].add(I1, I2);
+      rsplitreso[mres].add((I1-I2), 0.5*(I1+I2), 1.0);
     }
   }
   // ------------------------------------------------------------
@@ -155,6 +157,24 @@ namespace scala {
       CC += ccIreso[i];
     }
     return CC;
+  }
+  // ------------------------------------------------------------
+  Rfactor HalfDataset::rsplit(const int& mres) const
+  {
+    Rfactor R = rsplitreso.at(mres);
+    R.scale(1.0/sqrt(2.0));
+    return R;
+  }
+  // ------------------------------------------------------------
+  Rfactor HalfDataset::rsplit() const
+  // Overall
+  {
+    Rfactor rsplit;
+    for (int i=0;i<nresbin;++i) {
+      rsplit += rsplitreso[i];
+    }
+    rsplit.scale(1.0/sqrt(2.0));
+    return rsplit;
   }
   // ------------------------------------------------------------
   double HalfDataset::RMScorrelRatio(const int& mres) const

@@ -77,6 +77,9 @@ namespace scala
     //! Average I, weight as specified
     IsigI Average();
 
+    //! Set sample variance, minimum number of values (<0 to switch off)
+    static void SetSampleSD (const int& minSample=10);
+
     //! Average I, variance weight for part of data
     // If WhichPart >= 0 (0 -> npart-1), use only selected random part
     //              < 0  use all accepted
@@ -161,7 +164,15 @@ namespace scala
     // Deviations delI/sigma  from "others"
     std::vector<float> delta;     // for current list
     WeightType::AverageWeightType weighttype;   // type of weighting for average
+
+    // true to calculate sample SD in avIsigI from values instead of error propagation,
+    // provided that the number is > minimumsample
+    static bool sampleSD;
+    static int minimumsample;
+
     IsigI avIsigI;
+    double sdI;     // SD from weights
+    // state:
     // =  0  observations stored
     // = +1  average calculated
     // = +2  deviations calculated

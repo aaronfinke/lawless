@@ -207,6 +207,17 @@ namespace scala
     //   = -1 only partials = -2 few fulls
     std::vector<int> UseFlags() const {return usetype;}
 
+    //! set true if sample SD is to be used in the final averaging
+    void SetSampleSD(const bool& samplesd,
+		     const int& Minimumsample)
+    {sampleSD = samplesd; minimumsample = Minimumsample;}
+
+    //! return true if sample SD is to be used in the final averaging
+    bool SampleSD() const {return sampleSD;}
+
+    //! return minimum sample
+    int MinimumSample() const {return minimumsample;}
+
     //! return formatted only||few + fulls||partials information for all runs
     std::string formatFullPartialInfo() const;
 
@@ -246,6 +257,8 @@ namespace scala
     bool allrunssame;  // if true use same parameters for all runs
     bool refine; // if true refine parameters
     int nsets;   // number of unique runs, = number of runs or 1 if allrunssame
+    bool sampleSD;  // true if sample SD is to be used in the final averaging
+    int minimumsample;  // ... with more than this number of observations
 
     double damp;  // damp factor for refinement
 

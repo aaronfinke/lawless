@@ -259,9 +259,11 @@ namespace scala {
 	this_obs = this_refl.get_observation(i);
 	if (this_obs.IsAccepted()) {
 	  this_obs.sum_partials();  // with current SelectI settings
-	  double I = this_obs.kI();   // scaled I
-	  int didx = this_obs.datasetIndex();     // dataset
-	  intensities[didx].push_back(I);
+	  if (this_obs.sigI() > 0.0) {
+	    double I = this_obs.kI();   // scaled I
+	    int didx = this_obs.datasetIndex();     // dataset
+	    intensities[didx].push_back(I);
+	  }
 	}
       }
       for (int idts=0;idts<ndatasets;++idts) { // loop datasets for statistics

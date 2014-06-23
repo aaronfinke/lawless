@@ -27,8 +27,8 @@ namespace scala {
 
     void SortList();  // call this after last AddBatch
     
-    // true if Batch is in list
-    bool IsInList(const int& Batch) const;
+    // true if Batch number is in list
+    bool IsInList(const int& Batchnum) const;
     // Return batch number list:
     //  if Accepted == true, only return accepted batches
     std::vector<int> BatchList(const bool& Accepted=false) const;
@@ -38,10 +38,15 @@ namespace scala {
     std::pair<int,int> BatchRange() const;
     // return first batch number
     int Batch0() const;
-    //  First batch serial number
+    //  First batch serial number (from hkl_unmerge_list)
     void SetBatchSerial0(const int& BatchSerial)
       {batchserial0 = BatchSerial;} // set
     int  BatchSerial0() const {return batchserial0;} // get
+    // Set batch accept flag
+    void SetBatchAccept(const int& Batchnum, const bool& Accepted);
+    // return batch accepted flag
+    bool IsBatchAccepted(const int& Batchnum) const;
+
 
     // Number of batches
     int Nbatches() const {return batch_number_list.size();}
@@ -110,7 +115,7 @@ namespace scala {
     //! Store use run flag
     void StoreUse(const bool& userun) {
       use_ = userun;}
-    //! Return use run flags
+    //! Return use run flag
     bool Use() {return use_;}
 
 
@@ -119,8 +124,8 @@ namespace scala {
     static const int MaxBatchNumber;
     int dataset_index; // index into dataset list
     int datasetID;     // dataset ID, -1 if multiple xdatasets in run
-    mutable std::vector<int> batch_number_list;
-    std::vector<bool> batch_accepted;
+    std::vector<std::pair<int, bool> > batch_number_list;
+    //    std::vector<bool> batch_accepted; // now second of pair
     int batch_number_offset;
     int batchserial0;
     int file_number;
@@ -136,6 +141,10 @@ namespace scala {
     bool resrangeset;   // true if there is a run resolution limit
     int latnum;         // lattice number, = 0 for single lattice
     bool use_;        // true to use
+
+    // returns index into list if found, else -1
+    int indexInList(const int& Batchnum) const;
+
   };
   //--------------------------------------------------------------
   class RunRange 

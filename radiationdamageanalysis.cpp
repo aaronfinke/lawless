@@ -33,9 +33,8 @@ namespace scala {
 
     Run thisrun = hkl_list.RunList()[irun];
     runnum = thisrun.RunNumber();
-    // nbatches is range of batch numbers in run
-    std::pair<int,int> batchrange = thisrun.BatchRange();
-    int nbatches = batchrange.second - batchrange.first + 1;
+    // nbatches excludes rejected batches
+    int nbatches = hkl_list.num_accepted_batches();
 
     phibinsize = 1.0; // 1 degree bins
     batchgroup = nbatchgroup;
@@ -52,6 +51,15 @@ namespace scala {
     ntimebin = (nbatches+batchgroup-1)/batchgroup;
     int datasetIndex = thisrun.DatasetIndex();
     batch0 = thisrun.Batch0();
+    // Make index list allowing for rejected batches
+    std::vector<Batch> batches = hkl_list.Batches();
+    batchindex.assign(batches.size(), -1);
+    int k=0;
+    for (size_t ib=0; ib<batches.size(); ib++) { 
+      if (batches[ib].Accepted()) {
+	batchindex[ib] = k++;
+      }
+    }
 
     // resolution ranges
     ResoRange resrange = hkl_list.ResRange(); // store resolution range
@@ -80,11 +88,11 @@ namespace scala {
 	  // we have a list of observations, now do a double loop over
 	  // different observations
 	  for (size_t j=0; j<observations.size()-1; j++) { 
-	    int batchj = observations[j].Batch();
+	    int batchj = batchIndex(observations[j].Batch());
 	    float Ij = std::abs(observations[j].kI());
 	    for (size_t i=j+1; i<observations.size(); i++) { 
-	      int batchi = observations[i].Batch();
-	      int bintime = (Max(batchi, batchj) - batch0)/batchgroup;
+	      int batchi = batchIndex(observations[i].Batch());
+	      int bintime = Max(batchi, batchj)/batchgroup;
 	      ASSERT ((bintime >= 0) && (bintime < ntimebin));
 	      float Ii = std::abs(observations[i].kI());
 	      // R-factor and CC
@@ -102,6 +110,12 @@ namespace scala {
 	rfactor[rbin][bintime] += rfactor[rbin][bintime-1];
 	cc[rbin][bintime] += cc[rbin][bintime-1];
       }}
+  }
+  //--------------------------------------------------------------
+  int RadiationDamageAnalysis::batchIndex(const int& batchnum) const
+  // get index of this batch in the run, allowing for rejected batches
+  {
+    return batchindex[batchnum - batch0];
   }
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::plot
@@ -193,7 +207,14 @@ namespace scala {
       }
       vals.push_back(rall.R());
 
-      int batch = bintime*batchgroup + batch0;
+      int batch = bintime*batchgroup;
+      for (size_t k=0; k<batchindex.size(); k++) { 
+	if (batchindex[k] == batch) {
+	  batch = k + batch0;
+	  break;
+	}
+      }
+
       table.Line(vals, nc0, n, batch, batchcompleteness[jbatch]);
 
       n++;

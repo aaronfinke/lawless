@@ -374,6 +374,96 @@ namespace scala
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
+  MeanVariance::MeanVariance(const std::vector<double>& list)
+    : sum_sc(0.0), sum_w(0.0), count(0)
+  {
+    for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
+  }
+  //--------------------------------------------------------------
+  void MeanVariance::clear()
+  {sum_sc=0.0; sum_w=0.0; sum_w2=0.0; sum_sc2 = 0.0; count=0;}
+  //--------------------------------------------------------------
+  void MeanVariance::Add(const float& v, const float& w)
+  {
+    sum_sc += w * v;
+    sum_sc2 += w * v * v;
+    sum_w += w;
+    count++;
+  }
+  //--------------------------------------------------------------
+  void MeanVariance::Add(const double& v, const double& w)
+  {
+    sum_sc += w * v;
+    sum_sc2 += w * v * v;
+    sum_w += w;
+    sum_w2 += w * w;
+    count++;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::Mean() const
+  {
+    return (sum_w > 0) ? sum_sc/sum_w : 0.0;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::Variance() const
+  // variance of mean
+  {
+    double var = 0.0;
+    if (count > 1) {
+      // Variance of mean is just 1/N sampleVariance
+      //  assuming the weights are proportional to the true variances
+      var = SampleVariance()/double(count);
+    }  
+  return var;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::SD() const
+  {
+    return sqrt(Variance());
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::SampleVariance() const
+  // Variance of distribution
+  {
+    double var = 0.0;
+    if (count > 1) {
+      // fac = Sum(w)/[(Sum(w))^2 - Sum(w^2)] to allow for bias
+      //   equivalent to n/(n-1) correction, see Wikipedia
+      double fac = sum_w/(sum_w*sum_w - sum_w2);
+      var = Max(0.0, sum_sc2 - sum_sc*sum_sc/sum_w) * fac;
+    } else if (count == 1) {
+      var = 1.0/sum_w;
+    }
+    return var;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::SampleSD() const
+  {
+    return sqrt(SampleVariance());
+  }
+  //--------------------------------------------------------------
+  std::string MeanVariance::format() const
+  {
+    return "Mean "+clipper::String(Mean()); 
+  }
+  //--------------------------------------------------------------
+  MeanVariance& MeanVariance::operator +=(const MeanVariance& other)
+  {
+    sum_sc += other.sum_sc;
+    sum_w += other.sum_w;
+    count += other.count;
+  
+    return *this;
+  }
+  //--------------------------------------------------------------
+  MeanVariance& operator +
+  (const MeanVariance& a, const MeanVariance& b)
+  {
+    MeanVariance c = a;
+    return c += b;
+  }
+  //--------------------------------------------------------------
+  //--------------------------------------------------------------
   float Median(const std::vector<float>& f, const int& nuse)
   // returns median, f must be sorted
   {

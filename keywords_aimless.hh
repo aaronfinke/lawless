@@ -215,6 +215,11 @@ namespace phaser_io {
     //            NOALL (== ALL 0) switches off this test
     //            Only applies to merging step (scaling step checks all anyway)
     //  EMAX <Emax> maximum normalised F accepted
+    //  BATCH  <batchrejectfactor>
+    //          if > 0, reject batches with scales >
+    //             batchrejectfactor * medianscale
+    //           (and negatives)
+    //           valid only for batch scaling eg for serial data
   {
   public:
     REJECT();
@@ -392,6 +397,7 @@ namespace phaser_io {
     //        VARIANCE  w = 1/var(I)  [default]
     //        UNIT      w = 1
     //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
+    //     SAMPLESD use sample SD in final averaging
   {
   public:
     SDCORRECTION();
@@ -427,7 +433,10 @@ namespace phaser_io {
     //! return weight type
     scala::WeightType::AverageWeightType SDCweightType() const
       {return weighttype;}
-    
+
+    //! return sampleSD flag
+    bool SampleSD() const {return sampleSD;}
+
   private:
     bool refine;  // true to refine
     bool refine_set; // true if explicit refine flag set
@@ -441,6 +450,7 @@ namespace phaser_io {
     std::vector<double> targets;   // 3 targets
     std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
     scala::WeightType::AverageWeightType weighttype;
+    bool sampleSD;
   };
   //--------------------------------------------------------------
   class INTENSITIES : public InputBase, virtual public CCP4base

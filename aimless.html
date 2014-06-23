@@ -81,7 +81,7 @@ SCALE BATCH option if every image is different from every other one, <em>i.e.</e
 off-line detectors (including film), or rapidly or
 discontinuously changing incident beam flux. This is
 rarely the
-case for synchrotron data. This mode may be VERY slow if there are many batches.<br>
+case for synchrotron data, but is appropriate for serial data (eg XFEL). This mode may be VERY slow if there are many batches.<br>
  </li>
   <li>If there is a discontinuity between one set of images and another
 (<em>e.g.</em> change of exposure time), then flag them as different
@@ -218,7 +218,8 @@ to
 maximum order Lmax in the camera spindle frame. The number of
 parameters increases as (Lmax + 1)**2, so you should use the minimum
 order needed (eg 4 - 6, default 4). The deviation of the surface from spherical should be
-restrained eg with TIE SURFACE 0.001 [default] </dd>
+restrained eg with TIE SURFACE 0.001 [default]. Set Lmax = 0 to switch off<br>
+ </dd>
       <dt><a name="scales_absorption"></a>ABSORPTION [&lt;Lmax&gt;] </dt>
       <dd>Secondary beam correction expanded in spherical harmonics up
 to
@@ -262,8 +263,9 @@ given. The parameters are restrained using the TIE TILE parameters (<a href="#ti
 </h3>
 
 
-<h3>[[NO]TIE&nbsp; SdFac | SdB | SdAdd &lt;targetvalue&gt; &lt;SDtarget&gt;]<br>
-</h3>
+<h3>[[NO]TIE&nbsp; SdFac | SdB | SdAdd &lt;targetvalue&gt; &lt;SDtarget&gt;]</h3>
+<h3>[SAMPLESD]</h3>
+
 
 <h3>
 </h3>
@@ -280,13 +282,18 @@ The default is "SDCORRECTION REFINE INDIVIDUAL", If explicit values are given, t
 <p>The keyword REFINE controls refinement of the correction parameters,
 essentially trying to make the plot of the SD of the distribution of
 fraction deviations (Ihl - &lt;I&gt;)/sigma&nbsp; = 1.0&nbsp; over all
-intensity ranges. The residual minimised is Sum( w * (1 - SD)^2) + Restraint Residual
+intensity ranges. The residual minimised is Sum( w * (1 - SD)^2) + Restraint Residual <br>
+</p>SAMPLESD is intended for very high multiplicity data such as XFEL
+serial data. The final SDs are estimated from the weighted population
+variance, assuming that the input sigma(I)^2 values are proportional to
+the true errors. This probably gives a more realistic estimate of the
+error in &lt;I&gt;. In this case refinement of the corrections is switched off unless explicitly requested.<br>
 <br>
-</p>
-<p> Other subkeys
+Other subkeys
 control what values are determined and used for each run (if more
 than one). TIE and SIMILAR are mutually exclusive<br>
-</p>
+
+
 
 <ul>
   
@@ -396,8 +403,9 @@ profile-fitted for weak data, summation integration value for strong.</dd></dl>
 <dd> &lt;Sdrej&gt; [&lt;Sdrej2&gt;]
 </dd>
 <dd> [ALL &lt;Sdrej+-&gt; [&lt;Sdrej2+-&gt;]] </dd>
-<dd>[KEEP | REJECT | LARGER | SMALLER]</dd><dt>[EMAX &lt;Emax&gt;]<br>
-</dt>
+<dd>[KEEP | REJECT | LARGER | SMALLER]</dd><dt>[EMAX &lt;Emax&gt;]</dt><dd>[BATCH &lt;batchrejectfactor&gt;]<br>
+</dd>
+
 
 </h3>
 
@@ -418,10 +426,15 @@ the merging step only within the I+ &amp; I- sets for that reflection,
 ie
 Bijvoet-related reflections are treated as independent. The ALL
 keyword here enables an additional test on all observations including
-I+ &amp; I- observations. Observations rejected on this second check
+I+ &amp; I- <br>
+observations. Observations rejected on this second check
 are
-flagged "@" in the ROGUES file.<br>
-</p>
+flagged "@" in the ROGUES file.</p>
+<p>REJECT BATCH &lt;batchrejectfactor&gt; is intended for batch scaling
+of eg XFEL data. After the initial scales are calculated, very weak
+batches with scale factorsbatchrejectfactor x median scale are rejected
+ </p>
+
 <dl>
   <dt>Subkeys: </dt>
   <dd>
@@ -1213,7 +1226,11 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.3.6 print reciprocal symmetry operators. Fix bug with explicit RUN definitions<br>
+  <h2>RELEASE NOTES</h2>0.3.7
+Bug fixes for unusual case of runs with all fulls and no fulls. Options
+for XFEL data: SDCORRECTION SAMPLESD; Rsplit. Bug fixes for Batch
+scaling with rejected batches. REJECT BATCH option for batch scaling<br>
+0.3.6 Fix bug with explicit RUN definitions.<br>
 0.3.4,5
 remove debug print for self-overlaps. Pick up number of parts for
 previously summed partials (MPART column from Feckless), for partial

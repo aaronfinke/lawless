@@ -275,6 +275,7 @@ namespace scala {
       // loop all observations, ignoring accept flag
       for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
 	this_obs = this_refl.get_observation(lobs);
+	int batchnum = this_obs.Batch();
 	int jbatch = hkl_list.batch_serial(this_obs.Batch()); // batch serial
 	int jdataset = this_obs.datasetIndex();
 	ObservationStatus status = this_obs.ObsStatus();

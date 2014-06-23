@@ -311,6 +311,7 @@ namespace scala {
     smoothscale.SetSmoothing(navgscale, sdwz);
     // Default to 1.0
     smoothscale.StoreValue(1.0);
+    allbatches = true;    // use all batches by default
   }
   //--------------------------------------------------------------
   // Construct batch scaling from list of batch numbers (from run)
@@ -320,11 +321,12 @@ namespace scala {
     nscales = BatchNumbers.size();
     batchscales.assign(nscales, 1.0);
     nscaleintervals = nscales;
+    allbatches = true;    // use all batches by default
     // Make lookup table (hash table)
     // Setup up hash lookup table a bit larger than required
     batch_lookup.set_size( int(1.2 * nscales));
     for (int i = 0; i < nscales; i++)  {
-      batch_lookup.add(BatchNumbers[i], i);      
+      batch_lookup.add(BatchNumbers[i], i);
     }
   }
   //--------------------------------------------------------------
@@ -344,6 +346,29 @@ namespace scala {
       }
     }
     return ties;
+  }
+  //--------------------------------------------------------------
+  // valid scale at batch number batchnum
+  bool PrimaryScale::ValidScale(const int& batchnum) const
+  {
+    // Batch serial number
+    int jb = batch_lookup.lookup(batchnum);
+    if (!allbatches) {
+      jb = batchscaleindex[jb];
+    }
+    if (jb >= 0) {return true;}
+    return false;
+  }
+  //--------------------------------------------------------------
+  int PrimaryScale::batchSerialIndex(const int& batchnum) const
+  // index number in this batch list for batch number batchnum, omitting rejects
+  {
+    // Batch serial number
+    int jb = batch_lookup.lookup(batchnum);
+    if (!allbatches) {
+      jb = batchscaleindex[jb];
+    }
+    return jb;
   }
   //--------------------------------------------------------------
   double PrimaryScale::Scale(const double& phi) const
@@ -417,11 +442,22 @@ namespace scala {
   {
     // Batch serial number
     int jb = batch_lookup.lookup(batch);
-    ASSERT (jb >= 0 && jb < nscales);
-    scale = batchscales[jb]; 
-    if (Deriv) {
-      dgdp.assign(nscales,0.0);
-      dgdp[jb] = 1.0;
+    if (!allbatches) {
+      //      std::cout <<"ScaleDeriv "<<batch<<" "<<jb<<" "<<batchscaleindex.at(jb)<<"\n";
+      jb = batchscaleindex[jb];
+    }
+    ASSERT (jb < nscales);
+    if (jb < 0) {
+      if (Deriv) {
+	dgdp.assign(nscales,0.0);
+      }
+      scale =  1.0;
+    } else {
+      scale = batchscales[jb];
+      if (Deriv) {
+	dgdp.assign(nscales,0.0);
+	dgdp[jb] = 1.0;
+      }
     }
   }
   //--------------------------------------------------------------
@@ -430,7 +466,14 @@ namespace scala {
   {
     ASSERT (int(Scales.size()) == nscales);
     if (batchscale) {
-      batchscales = Scales;
+      if (allbatches) {
+	batchscales = Scales;
+      } else {
+	for (size_t i=0; i<Scales.size(); i++) { 
+	  batchscales.at(scalebatchindex[i]) = Scales[i];
+	  //	  std::cout <<i<<" "<<scalebatchindex[i]<<" scdx bidx (StoreScales)\n";
+	}
+      }
     } else {
       smoothscale.StoreValues(Scales);
     }
@@ -440,16 +483,56 @@ namespace scala {
   // Store Nobs vector (length nscales)
   {
     ASSERT (int(Nobs.size()) == nscales);
-    nobsPar = Nobs;
+    if (allbatches) {
+      nobsPar = Nobs;
+    } else {
+      for (size_t i=0; i<Nobs.size(); i++) {
+	  nobsPar.at(scalebatchindex[i]) = Nobs[i];
+      }
+    }
   }
   //--------------------------------------------------------------
   std::vector<double>  PrimaryScale::Scales() const
-    // Retrieve scales
+  // Retrieve scales
   {
     if (batchscale) {
-      return batchscales;
+      if (allbatches) {
+	return batchscales;
+      } else {
+	std::vector<double> scales(nscales);
+	for (size_t ib=0; ib<batchscaleindex.size(); ib++) { 
+	  int k = batchscaleindex[ib];
+	  if (k >= 0) {
+	    scales.at(k) = batchscales[ib];
+	    k++;
+	  }
+	}
+	return scales;
+      }
     } else {
       return smoothscale.Values();
+    }
+  }
+  //--------------------------------------------------------------
+  std::vector<int>  PrimaryScale::Nobservations() const
+  // Retrieve number of observations
+  {
+    if (batchscale) {
+      if (allbatches) {
+	return nobsPar;
+      } else {
+	std::vector<int> nobs(nscales);
+	for (size_t ib=0; ib<batchscaleindex.size(); ib++) { 
+	  int k = batchscaleindex[ib];
+	  if (k >= 0) {
+	    nobs.at(k) = nobsPar[ib];
+	    k++;
+	  }
+	}
+	return nobs;
+      }
+    } else {
+      return nobsPar;
     }
   }
   //--------------------------------------------------------------
@@ -487,15 +570,25 @@ namespace scala {
   std::string PrimaryScale::FormatSave() const
   // Format all information into a labelled save format for later restoration
   {
-    std::string dump = "PrimaryScale V1 {\n"; 
+    std::string dump = "PrimaryScale V2 {\n"; 
     dump += "NscaleIntervals "+itos(nscaleintervals)+"\n";
     dump += "Nscales "+itos(nscales)+"\n";
     dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
     if (batchscale) {
       dump += "Batch\n";
       dump += batch_lookup.FormatSave();
-      ASSERT (int(batchscales.size()) == nscales);
-      dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
+      if (allbatches) {
+	ASSERT (int(batchscales.size()) == nscales);
+	dump += "Allbatches\n";
+	dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
+      } else {
+	dump += "Somebatches\n";
+	dump += "Nbatches "+itos(batchscaleindex.size())+"\n";
+	dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
+	dump += "Batchscaleindex\n"+StringUtil::FormatSaveVector(batchscaleindex);
+	dump += "Nscaleindex "+itos(scalebatchindex.size())+"\n";
+	dump += "Scalebatchindex\n"+StringUtil::FormatSaveVector(scalebatchindex);
+      }
     } else { // smooth
       dump += "Smooth\n";
       dump += "Scalespacing "+ ftos(scalespacing)+"\n";;
@@ -509,7 +602,9 @@ namespace scala {
   void PrimaryScale::Restore(Fileread& FR)
   {
     FR.ReadTag("PrimaryScale"); // fails if tag does not match
-    if (FR.GetTag() != "V1") {  // version check
+    std::string version = FR.GetTag();
+    int versionnumber = atoi(version.substr(1).c_str());
+    if (version != "V1" && version != "V2") {  // version check
       clipper::Message::message(Message_fatal
         ("PrimaryScale::Restore incompatible version in "+FR.Filename()));
     }
@@ -521,7 +616,25 @@ namespace scala {
     if (tag == "Batch") {
       batchscale = true;
       batch_lookup.Restore(FR);  // batch lookup table
-      FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+      if (versionnumber >= 2) {
+	std::string tag = FR.GetTag();
+	if (tag == "Allbatches") {
+	  allbatches = true;
+	  FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+	} else if (tag == "Somebatches") {
+	  FR.ReadTag("Nbatches"); int nbatches = FR.Int();
+	  FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+	  FR.ReadTag("Batchscaleindex"); batchscaleindex = FR.IntVec(nbatches);
+	  FR.ReadTag("Nscaleindex"); int nscaleindex = FR.Int();
+	  FR.ReadTag("Scalebatchindex"); scalebatchindex = FR.IntVec(nscaleindex);
+	} else {
+	  Message::message(Message_fatal
+			   ("PrimaryScale::Restore unrecognised tag "+tag+
+			    " in "+FR.Filename()));
+	}
+      } else {
+	FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+      }
     } else if (tag == "Smooth") { // smooth
       batchscale = false;
       FR.ReadTag("Scalespacing"); scalespacing = FR.Double();
@@ -536,6 +649,58 @@ namespace scala {
       clipper::Message::message(Message_warn
         ("PrimaryScale::Restore unexpected tag "+FR.Tag()));
     }  
+  }
+  //--------------------------------------------------------------
+  void PrimaryScale::setBatchReject(const std::vector<bool>& Usebatch,
+				    const std::vector<int>& batchnumbers)
+  {
+    ASSERT (batchscale);
+    ASSERT (allbatches == true);
+    bool anyreject = false;
+    for (size_t ib=0; ib<Usebatch.size(); ib++) { 
+      int batchnum = batchnumbers[ib];
+      int jb = batch_lookup.lookup(batchnum);
+      if (jb >= 0) { // we have this batch in this run
+	if (!Usebatch[ib]) {
+	  anyreject = true;
+	  break;
+	}}
+    }
+    if (!anyreject) return;  // nothing to do
+
+    ASSERT (Usebatch.size() == batchnumbers.size());
+    allbatches = false;
+    usebatch = Usebatch; // all batches even if not in this run
+
+    // set index lists
+    //    std::vector<int> batchscaleindex; // if !allbatches, index into scale list for this batch
+    //    std::vector<int> scalebatchindex; // if !allbatches, index into batch list for this scale
+    int nbatches = nscales;  
+    batchscaleindex.assign(nbatches, -1);  // for each batch in this run
+    scalebatchindex.clear();
+    int k = 0;
+    for (size_t ib=0; ib<batchnumbers.size(); ib++) { 
+      int batchnum = batchnumbers[ib];
+      int jb = batch_lookup.lookup(batchnum);
+      if (jb >= 0) { // we have this batch in this run
+	if (usebatch[ib]) {
+	  batchscaleindex[jb] = k;  // jb'th batch uses k'th scale
+	  scalebatchindex.push_back(jb);  // k'th scale corresponds to the jb'th batch
+	  //^
+	  //	  std::cout << "Use Batch " <<batchnum<<" serial " <<jb
+	  //		    <<" scale index "<<k<<"\n";
+	  //^-
+	  k++;
+	} else {
+	  //	  std::cout << "Reject batch " << batchnum <<"\n";
+	}
+      }
+    }
+    //    std::cout <<"nscales changed from "<<nscales<<" to "<<scalebatchindex.size()<<"\n"; //^
+    nscales = scalebatchindex.size();
+    nscaleintervals = nscales;
+    batchscales.assign(nbatches,1.0);  //B batch scales
+    nobsPar.assign(nbatches, 0);
   }
   //--------------------------------------------------------------
   //  Number of points in moving average, 3, 4 or 5
@@ -583,6 +748,7 @@ namespace scala {
     smoothB.SetSmoothing(navgbfac, sdwt);
     // Default = 0.0
     smoothB.StoreValue(0.0);
+    allbatches = true;    // use all batches by default
   }
   //--------------------------------------------------------------
   RelativeBfactor::RelativeBfactor(const std::vector<int>& BatchNumbers)
@@ -591,6 +757,7 @@ namespace scala {
     batchbfac = true;
     nbfac = BatchNumbers.size();
     bfactors = std::vector<double>(nbfac, 0.0);
+    allbatches = true;    // use all batches by default
     // Make lookup table (hash table)
     // Setup up hash lookup table a bit larger than required
     batch_lookup.set_size( int(1.2 * nbfac));
@@ -632,6 +799,29 @@ namespace scala {
       }
     }
     return ties;
+  }
+  //--------------------------------------------------------------
+  // valid B-factor at batch number batchnum
+  bool RelativeBfactor::ValidBfactor(const int& batchnum) const
+  {
+    // Batch serial number
+    int jb = batch_lookup.lookup(batchnum);
+    if (!allbatches) {
+      jb = batchbfacindex[jb];
+    }
+    if (jb >= 0) {return true;}
+    return false;
+  }
+  //--------------------------------------------------------------
+  int RelativeBfactor::batchSerialIndex(const int& batchnum) const
+  // index number in this batch list for batch number batchnum, omitting rejects
+  {
+    // Batch serial number
+    int jb = batch_lookup.lookup(batchnum);
+    if (!allbatches) {
+      jb = batchbfacindex[jb];
+    }
+    return jb;
   }
   //--------------------------------------------------------------
   double RelativeBfactor::BfactorScale(const double& time, const double& invresolsq) const
@@ -716,6 +906,9 @@ namespace scala {
   {
     // Batch serial number
     int jb = batch_lookup.lookup(batch);
+    if (!allbatches) {
+      jb = batchbfacindex[jb];
+    }
     ASSERT (jb >= 0 && jb < nbfac);
     gbfac = exp(0.5 * invresolsq * bfactors[jb]); 
     if (Deriv) {
@@ -728,6 +921,9 @@ namespace scala {
   {
     if (nbfac == 0) return 0.0;
     int jb = batch_lookup.lookup(batch);
+    if (!allbatches) {
+      jb = batchbfacindex[jb];
+    }
     ASSERT (jb >= 0 && jb < nbfac);
     return bfactors[jb];
   }
@@ -737,7 +933,13 @@ namespace scala {
   {
     ASSERT (int(Bfacs.size()) == nbfac);
     if (batchbfac) {
-      bfactors = Bfacs;
+      if (allbatches) {
+	bfactors = Bfacs;
+      } else {
+	for (size_t i=0; i<Bfacs.size(); i++) { 
+	  bfactors.at(bfacbatchindex[i]) = Bfacs[i];
+	}
+      }
     } else { 
       smoothB.StoreValues(Bfacs);
     }
@@ -747,7 +949,13 @@ namespace scala {
   // Store Nobs vector (length nscales)
   {
     ASSERT (int(Nobs.size()) == nbfac);
-    nobsPar = Nobs;
+    if (allbatches) {
+      nobsPar = Nobs;
+    } else {
+      for (size_t i=0; i<Nobs.size(); i++) { 
+	  nobsPar.at(bfacbatchindex[i]) = Nobs[i];
+      }
+    }
   }
   //--------------------------------------------------------------
   std::vector<double> RelativeBfactor::Bfactors() const
@@ -756,9 +964,43 @@ namespace scala {
     if (nbfac <= 0) {
       return bfactors;  // should be empty
     } else if (batchbfac) {
-      return bfactors;
+      if (allbatches) {
+	return bfactors;
+      } else {
+	std::vector<double> bfacs(nbfac);
+	for (size_t ib=0; ib<batchbfacindex.size(); ib++) { 
+	  int k = batchbfacindex[ib];
+	  if (k >= 0) {
+	    bfacs.at(k) = bfactors[ib];
+	    k++;
+	  }
+	}
+	return bfacs;
+      }
     } else {
       return smoothB.Values();
+    }
+  }
+  //--------------------------------------------------------------
+  std::vector<int>  RelativeBfactor::Nobservations() const
+  // Retrieve number of observations
+  {
+    if (batchbfac) {
+      if (allbatches) {
+	return nobsPar;
+      } else {
+	std::vector<int> nobs(nbfac);
+	for (size_t ib=0; ib<batchbfacindex.size(); ib++) { 
+	  int k = batchbfacindex[ib];
+	  if (k >= 0) {
+	    nobs.at(k) = nobsPar[ib];
+	    k++;
+	  }
+	}
+	return nobs;
+      }
+    } else {
+      return nobsPar;
     }
   }
   //--------------------------------------------------------------
@@ -789,15 +1031,25 @@ namespace scala {
   std::string RelativeBfactor::FormatSave() const
   // Format all information into a labelled save format for later restoration
   {
-    std::string dump = "RelativeBfactor V1 {\n"; 
+    std::string dump = "RelativeBfactor V2 {\n"; 
     dump += "NbfacIntervals "+itos(nbfacintervals)+"\n";
     dump += "Nbfac "+itos(nbfac)+"\n";
     dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
     if (batchbfac) {
       dump += "Batch\n";
       dump += batch_lookup.FormatSave();
-      ASSERT (int(bfactors.size()) == nbfac);
-      dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+      if (allbatches) {
+	ASSERT (int(bfactors.size()) == nbfac);
+	dump += "Allbatches\n";
+	dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+      } else {
+	dump += "Somebatches\n";
+	dump += "Nbatches "+itos(batchbfacindex.size())+"\n";
+	dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+	dump += "Batchbfacindex\n"+StringUtil::FormatSaveVector(batchbfacindex);
+	dump += "Nbfacindex "+itos(bfacbatchindex.size())+"\n";
+	dump += "Bfacbatchindex\n"+StringUtil::FormatSaveVector(bfacbatchindex);
+      }
     } else { // smooth
       dump += "Smooth\n";
       dump += "Bfacspacing "+ clipper::String(bfacspacing)+"\n";;
@@ -811,7 +1063,9 @@ namespace scala {
   void RelativeBfactor::Restore(Fileread& FR)
   {
     FR.ReadTag("RelativeBfactor"); // fails if tag does not match
-    if (FR.GetTag() != "V1") {  // version check
+    std::string version = FR.GetTag();
+    int versionnumber = atoi(version.substr(1).c_str());
+    if (version != "V1" && version != "V2") {  // version check
       clipper::Message::message(Message_fatal
         ("RelativeBfactor::Restore incompatible version in "+FR.Filename()));
     }
@@ -823,7 +1077,25 @@ namespace scala {
     if (tag == "Batch") {
       batchbfac = true;
       batch_lookup.Restore(FR);
-      FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+      if (versionnumber >= 2) {
+	std::string tag = FR.GetTag();
+	if (tag == "Allbatches") {
+	  allbatches = true;
+	  FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+	} else if (tag == "Somebatches") {
+	  FR.ReadTag("Nbatches"); int nbatches = FR.Int();
+	  FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+	  FR.ReadTag("Batchbfacindex"); batchbfacindex = FR.IntVec(nbfac);
+	  FR.ReadTag("Nbfacindex"); int nbfacindex = FR.Int();
+	  FR.ReadTag("Bfacbatchindex"); bfacbatchindex = FR.IntVec(nbfacindex);
+	} else {
+	  Message::message(Message_fatal
+			   ("RelativeBfactor::Restore unrecognised tag "+tag+
+			    " in "+FR.Filename()));
+	}
+      } else {
+	FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+      }
     } else if (tag == "Smooth") { // smooth
       batchbfac = false;
       FR.ReadTag("Bfacspacing"); bfacspacing = FR.Double();
@@ -838,6 +1110,58 @@ namespace scala {
       clipper::Message::message(Message_warn
         ("RelativeBfactor::Restore unexpected tag "+FR.Tag()));
     }
+  }
+  //--------------------------------------------------------------
+  void RelativeBfactor::setBatchReject(const std::vector<bool>& Usebatch,
+				       const std::vector<int>& batchnumbers)
+  {
+    ASSERT (batchbfac);
+    ASSERT (allbatches == true);
+    bool anyreject = false;
+    for (size_t ib=0; ib<Usebatch.size(); ib++) { 
+      int batchnum = batchnumbers[ib];
+      int jb = batch_lookup.lookup(batchnum);
+      if (jb >= 0) { // we have this batch in this run
+	if (!Usebatch[ib]) {
+	  anyreject = true;
+	  break;
+	}}
+    }
+    if (!anyreject) return;  // nothing to do
+
+    ASSERT (Usebatch.size() == batchnumbers.size());
+    allbatches = false;
+    usebatch = Usebatch; // all batches even if not in this run
+
+    // set index lists
+    //    std::vector<int> batchbfacindex; // if !allbatches, index into bfac list for this batch
+    //    std::vector<int> bfacbatchindex; // if !allbatches, index into batch list for this bfac
+    int nbatches = nbfac;  
+    batchbfacindex.assign(nbatches, -1);  // for each batch in this run
+    bfacbatchindex.clear();
+    int k = 0;
+    for (size_t ib=0; ib<batchnumbers.size(); ib++) { 
+      int batchnum = batchnumbers[ib];
+      int jb = batch_lookup.lookup(batchnum);
+      if (jb >= 0) { // we have this batch in this run
+	if (usebatch[ib]) {
+	  batchbfacindex[jb] = k;  // jb'th batch uses k'th bfac
+	  bfacbatchindex.push_back(jb);  // k'th bfac corresponds to the jb'th batch
+	  //^
+	  //	  std::cout << "Use Batch " <<batchnum<<" serial " <<jb
+	  //		    <<" bfac index "<<k<<"\n";
+	  //^-
+	  k++;
+	} else {
+	  //	  std::cout << "Reject batch " << batchnum <<"\n";
+	}
+      }
+    }
+    //    std::cout <<"nbfacs changed from "<<nbfacs<<" to "<<bfacbatchindex.size()<<"\n"; //^
+    nbfac = bfacbatchindex.size();
+    nbfacintervals = nbfac;
+    bfactors.assign(nbatches,1.0);  //B batch bfacs
+    nobsPar.assign(nbatches, 0);
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------

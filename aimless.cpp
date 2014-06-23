@@ -30,6 +30,7 @@
 #include "observationstatuscontrol.hh"
 #include "analyseoverlaps.hh"
 #include "referencelist.hh"
+#include "rejectbatches.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -472,12 +473,18 @@ int main(int argc, char* argv[])
       output.logTab(0,LOGFILE,
 		    "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
+      // Option to reject batches based on extreme scale factors
+      // relevant for eg XFEL data
+      if (controls.outlierScale.Reject(ALL).batchrejectfactor > 0.0) {
+	RejectBatches rejectBatches(hkl_list, AllScales, controls, output);
+      }
     } else {
       if (input.InitialUnity()) {
 	output.logTab(0,LOGFILE,
 	      "\n========= Initial scales all set to 1.0 =========\n");
       }
     }
+
 
     // Set weighting for SD model
     //   (doesn't make a huge difference at least in some tests)

@@ -27,12 +27,17 @@ namespace scala {
     int irun;    // run serial number
     int runnum;  // run number
     int batchgroup; // number of batches in group (usually 1)
+    // index into run, allowing for rejected batches
+    std::vector<int> batchindex;
     double phibinsize;  // bin size in degrees
     int batch0;     // 1st batch number
     int nresbin;
     int ntimebin;
     std::vector<std::vector<Rfactor> > rfactor;  // resolution, time
     std::vector<std::vector<correl_coeff> > cc;
+
+    // get index of this batch in the run, allowing for rejected batches
+    int batchIndex(const int& batchnum) const;
   };
 //--------------------------------------------------------------
 } // namespace scala

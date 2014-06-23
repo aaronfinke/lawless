@@ -1,7 +1,5 @@
 // observationstatuscontrol.hh
 
-
-
 #ifndef OBSERVATIONSTATUSCONTROL_HEADER
 #define OBSERVATIONSTATUSCONTROL_HEADER
 
@@ -19,12 +17,16 @@ namespace scala {
   // Set to use runs flagged in userun
   void SetRunsToUse(const std::vector<bool>& userun, hkl_unmerge_list& hkl_list);
 
+  // Set to use batches flagged in usebatch
+  void SetBatchesToUse(const std::vector<bool>& usebatch,
+		       hkl_unmerge_list& hkl_list);
+
   // Clear all observation status flags back to the ObservationFlag setting
   // ie clear outlier & Emax status flags
   // the ObservationFlag setting is left unaltered
   // Set reflection status to Accept
-  // Don't change RejectOverlap flag
-  void ClearObsStatus(hkl_unmerge_list& hkl_list);
+  // Don't change RejectOverlap, run & batch rejections flag unless allflags true
+  void ClearObsStatus(hkl_unmerge_list& hkl_list, const bool& allflags=false);
 }
 
 #endif

@@ -15,6 +15,9 @@
 
 namespace scala
 {
+  bool SelectedObservations::sampleSD = false;   // static
+  int SelectedObservations::minimumsample = 6;
+
   // ------------------------------------------------------------
   // constructor for selecting datasets & anomalous class
   SelectedObservations::SelectedObservations(const reflection& Refl,
@@ -208,6 +211,16 @@ namespace scala
     return 1.0f;
   }
   // ------------------------------------------------------------
+  //! Set sample variance, minimum number of values (<0 to switch off)
+  void SelectedObservations::SetSampleSD (const int& minSample)
+  {
+    sampleSD = false;
+    if (minSample > 0) {
+      sampleSD = true;
+      minimumsample = minSample;
+    }
+  }
+  // ------------------------------------------------------------
   IsigI SelectedObservations::Average()
   // Weight depends on weighttype
   //   UNIT        unit weights
@@ -216,15 +229,18 @@ namespace scala
   //  Note that a smaller scale = larger g = larger weight
   {
     //  <I> = Sum(w g I) / Sum (w g^2)
+    if (State == +1) {return avIsigI;}
     if (Nused == 0) {return IsigI(0.0,0.0);}
+
 
     sumwgI = 0.0;
     sumwg2 = 0.0;
 
-    Rtype w;
-    Rtype g;
+    double w;
+    double g;
 
     Nused = 0;
+    MeanVariance mv;
 
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
@@ -237,10 +253,33 @@ namespace scala
 	sumwgI += wgI[i];
 	wg2[i] = w * g * g;
 	sumwg2 += wg2[i];
+	if (sampleSD) {
+	  mv.Add(double(this_ref->get_observation(i).kI()), w/(g*g));
+	}
       }
     }
     if (Nused > 0) {
-      avIsigI = IsigI(sumwgI/sumwg2, sqrt(1.0/sumwg2));
+      if (sampleSD && (Nused > minimumsample)) {
+	sdI = mv.SD(); // sample SD
+	//^
+	//	std::cout << "SampleSD, wSD, I, N " <<sdI<<" "<<sqrt(1.0/sumwg2)<<
+	//	  " "<<sumwgI/sumwg2<<" "<< Nused<<"\n";
+	//	if (sdI > 10000.) {
+	//	  std::cout <<"Large SDs, sampleSD " << mv.SampleSD() <<"\n";
+	//	  for (int i=0;i<nobs;i++)  {
+	//	    if (use[i]) {
+	//	      std::cout << "I, sigI, gscale "
+	//		<< this_ref->get_observation(i).kI()<<" "
+	//		<< this_ref->get_observation(i).ksigI()<<" "
+	//		<<this_ref->get_observation(i).Gscale() <<"\n";
+	//	    }
+	//	  }
+	//	}
+	//^-
+      } else {
+	sdI = sqrt(1.0/sumwg2);
+      }
+      avIsigI = IsigI(sumwgI/sumwg2, sdI);
       State = +1;
     } else {	
       avIsigI = IsigI(0.0,0.0);
@@ -259,10 +298,11 @@ namespace scala
     sumwgI = 0.0;
     sumwg2 = 0.0;
 
-    Rtype w;
-    Rtype g;
+    double w;
+    double g;
 
     int Nu = 0;
+    MeanVariance mv;
 
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
@@ -274,17 +314,22 @@ namespace scala
 	  sumwgI += wgI[i];
 	  wg2[i] = w * g * g;
 	  sumwg2 += wg2[i];
+	  mv.Add(wgI[i], w);
 	}
       }
     }
+    IsigI avIsigIpart;
     if (Nu > 0) {
-      avIsigI = IsigI(sumwgI/sumwg2, sqrt(1.0/sumwg2));
-      State = +1;
+      if (sampleSD && (Nused > minimumsample)) {
+	sdI = mv.SD(); // sample SD
+      } else {
+	sdI = sqrt(1.0/sumwg2);
+      }
+      avIsigIpart = IsigI(sumwgI/sumwg2, sdI);
     } else {	
-      avIsigI = IsigI(0.0,0.0);
-      State = -1;
+      avIsigIpart = IsigI(0.0,0.0);
     }
-    return avIsigI;
+    return avIsigIpart;
   }
   // ------------------------------------------------------------
   // List of deviations delta (ie delI/sigma(I) ) where delI

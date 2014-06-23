@@ -475,9 +475,13 @@ namespace scala {
     }
     IsigI Isum;
     if (SelectI::Combine()) {
-      Rtype Iraw = Ic.I();
-      if (LP_ > 0.0) Iraw /= LP_;  // raw intensity back-corrected for LP
-      Isum = SelectI::GetCombinedI(Iraw, Ic, Ipr);
+      if (Ipr.sigI() <= 0.0) {
+	Isum = Ic;  // no valid Ipr for this observation
+      } else {
+	Rtype Iraw = Ic.I();
+	if (LP_ > 0.0) Iraw /= LP_;  // raw intensity back-corrected for LP
+	Isum = SelectI::GetCombinedI(Iraw, Ic, Ipr);
+      }
     } else if (SelectI::SelectIcolFlag() < 0) { // profile
       Isum = Ipr;
     } else {
@@ -724,6 +728,24 @@ namespace scala {
     batches.clear();
   }
   //--------------------------------------------------------------
+  void hkl_unmerge_list::setNoPartials(const bool& nopartials)
+  {
+    // set NoPartial flag
+    bool currentNoPartial = partial_flags.noPartials();
+    partial_flags.setNoPartials(nopartials);  // reset
+    rfl_status currentstatus = status;
+    if ((status == PREPARED) || (status == SUMMED)) {
+      if (!nopartials && currentNoPartial) {
+	// we are switching from noPartials to Partials, so re-organise
+	status = ORGANISED;
+	prepare();
+	if (currentstatus == SUMMED) {
+	  sum_partials();
+	}
+      }
+    }
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::clear()
   // Clear out list ready for new init
   {
@@ -928,18 +950,23 @@ namespace scala {
     nlattices = mainlatticenumberrange.AbsRange()+1;
   }
   //--------------------------------------------------------------
-  void hkl_unmerge_list::RejectBatch(const int& ibatch)
+  void hkl_unmerge_list::RejectBatch(const int& ibatch, const bool& fromrun)
   // Mark batch number ibatch as not accepted
-  // Data records are not changed
+  // Data records are not changed, runlist is updated if fromrun true
   {
-    batches[batch_lookup.lookup(ibatch)].SetAccept(false);
+    RejectBatchSerial(batch_lookup.lookup(ibatch), fromrun);
   }
   //--------------------------------------------------------------
-  void hkl_unmerge_list::RejectBatchSerial(const int& jbat)
+  void hkl_unmerge_list::RejectBatchSerial(const int& jbat, const bool& fromrun)
   // Mark batch with serial number jbat as not accepted
-  // Data records are not changed
+  // Data records are not changed, runlist is updated if fromrun true
   {
     batches.at(jbat).SetAccept(false);
+    if (fromrun) {
+      int irun = batch(jbat).RunIndex();
+      int batchnum = batch(jbat).num();
+      runlist.at(jbat).SetBatchAccept(batchnum, false);
+    }
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::AppendFileName(const std::string& Name)
@@ -1872,13 +1899,16 @@ namespace scala {
   }
   //--------------------------------------------------------------
   int hkl_unmerge_list::partials()
-    //                   ^^^^^^^
-    // Allocate observations within reflections to partials
-    // ie create observation list for each reflection
+  //                   ^^^^^^^
+  // Allocate observations within reflections to partials
+  // ie create observation list for each reflection
   // Returns number of observations
   {
     if (status != ORGANISED) 
-      Message::message(Message_fatal("hkl_unmerge_list::partials - not ORGANISED") );
+      {Message::message(Message_fatal("hkl_unmerge_list::partials - not ORGANISED") );}
+    if (partial_flags.noPartials()) {
+      return nopartials();  // simpler processing if no partials
+    }
     if (!partial_set)
       Message::message(Message_fatal("hkl_unmerge_list::partials - no partial selection information") );
     Nobservations = 0;
@@ -1920,6 +1950,7 @@ namespace scala {
       obs_list.clear();   // clear temporary list
       int i = refl_list[j].first_index();
       bool obsOK = false; // true if at least one accepted observations
+      int lastbatch = -1;
 
       while (i <= refl_list[j].last_index())  {
 	// start possible observation
@@ -1928,6 +1959,7 @@ namespace scala {
 	int Nfound = 1;
 	int isym1 = find_part(i).isym();
 	int batch1 = find_part(i).batch();
+	lastbatch = batch1;
 	int run1 = find_part(i).run();
 	int datasetIndex = runlist[run1].DatasetIndex();
 	Rtype total_fraction = find_part(i).fraction_calc();
@@ -1946,7 +1978,8 @@ namespace scala {
 	}
 
 	int kpart = 1;
-	//  Npart for 1st part: = 1 for a full, > 1 if extracted from MPART column,
+	//  Npart for 1st part: = 1 for a full,
+	//     > 1 if extracted from MPART column,
 	//     = -1 for a partial with no MPART column
 	int Npart = find_part(i).Npart();
 	
@@ -1966,6 +1999,12 @@ namespace scala {
 	  //same run
 	  if (run1 != find_part(i).run()) break;
 
+	  if ((Npart == 1) && (find_part(i).Npart() == 1)) {
+	    // both parts marked as full, so not partial
+	    // could be partial if one part is marked as full
+	    break;
+	  }
+
 	  bool addingoverlaps = false;
 	  if (dataflags.is_latnum) {
 	    if (latnum <= 0 ){
@@ -1984,7 +2023,18 @@ namespace scala {
 	  }
 
 	  // check contiguous batches: count gaps, should == 0
-	  int gap = (find_part(i).batch() - (batch1+kpart));
+	  int gap = 0;
+	  if (lastbatch >= 0) { // not 1st part
+	    // check for contiguous batches
+	    int gap = find_part(i).batch();  // this batch
+	    if ((gap - lastbatch) != +1) {
+	      //	      std::cout << "Non-contiguous "<<refl_list[j].hkl().format()
+	      //			<<" "<<lastbatch<<" "<<gap<<"\n"; //^
+	      break;   // not contiguous
+	    }
+	    gap = gap - (batch1+kpart);
+	  }
+	  lastbatch = find_part(i).batch();
 	  if (std::abs(gap) > 2) break;
 	  batchgap += gap;
 	  
@@ -2178,6 +2228,136 @@ namespace scala {
     ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
   } // end ::partials
+  //--------------------------------------------------------------
+  int hkl_unmerge_list::nopartials()
+  //                    ^^^^^^^
+  //  create observation list for each reflection for nopartials
+  // Returns number of observations
+  {
+    Nobservations = 0;
+    partial_flags.Clear();
+		
+    // Temporary store for observation list for each reflection
+    //   this can expand beyond allocated length if necessary
+    std::vector <observation> obs_list(100);
+
+    // Clear run reflection counts
+    for (size_t irun=0;irun<runlist.size();++irun) {
+      runlist[irun].clearCounts();
+    }
+    Rtype avI; // for each observation
+    MeanSD meanI;
+    int latnum;
+    std::vector<LatticeIndexInfo> lathkl;
+    maxhkloverlappart = 0;  // maximum number of overlaps for any one part
+    // count lattices
+    nlattices = 0;
+    nlatticesall = 0;
+    maxhkloverlap = 0; // maximum number of overlapped hkl on any one observations
+
+    // MAXNLATTICES is maximum number of lattices allowed
+    // count of "main" lattice entries
+    std::vector<int> numberinlattice(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
+    // count of overlapped lattice entries
+    std::vector<int> numberinlatticeall(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
+
+    std::vector<Range> invresrangebydataset(ndatasets);
+
+    // Update lattice number ranges
+    latticenumberrange.clear();
+    mainlatticenumberrange.clear();
+    PartFlagSwitch partial_status = FULL; // always
+    Rtype total_fraction = 0.0;
+
+    for (size_t j = 0; j < refl_list.size(); j++) {  // loop all reflections
+      obs_list.clear();   // clear temporary list
+      int i = refl_list[j].first_index();
+      bool obsOK = false; // true if at least one accepted observations
+
+      while (i <= refl_list[j].last_index())  {
+	// start possible observation
+	//  Set values for first part or full
+	int i1 = i;
+	int Nfound = 1;
+	int isym1 = find_part(i).isym();
+	int batch1 = find_part(i).batch();
+	int run1 = find_part(i).run();
+	int datasetIndex = runlist[run1].DatasetIndex();
+	ObservationFlag obsflag(find_part(i).ObsFlag());
+	avI = find_part(i).Ic();
+	if (dataflags.is_latnum) {
+	  latnum = find_part(i).latnum();
+	  mainlatticenumberrange.update(latnum);
+	  lathkl = find_part(i).lathkl();
+	  UpdateLatticeNumberRanges(lathkl);
+	  numberinlattice.at(latnum)++;    // count entries for each lattice
+	  numberinlatticeall.at(latnum)++;    // count entries for each lattice
+	}
+
+	//  Npart for 1st part: = 1 for a full, > 1 if extracted from MPART column,
+	//     = -1 for a partial with no MPART column
+	ASSERT (find_part(i).Npart() == 1);
+	
+	// Store observation
+	// If any part of obsflag is set, mark observation as REJECTED for now
+	Nobservations += 1;
+	maxhkloverlap = Max(maxhkloverlap, int(lathkl.size()));
+	obs_list.push_back(observation(
+			 refl_symm.get_from_asu(refl_list[j].hkl(), isym1),
+			 isym1, run1, datasetIndex, Nfound,
+			 &obs_part_pointer[i1],
+			 total_fraction, partial_status, obsflag, latnum, lathkl));
+	invresrangebydataset[datasetIndex].update(refl_list[j].invresolsq());
+	obsOK = true;
+	runlist[run1].Nfulls()++;
+	meanI.Add(avI);
+	if (dataflags.is_latnum) {
+	  // update counts for each lattice mentioned in lathkl list
+	  UpdateNumberInLattice(numberinlatticeall, lathkl);
+	}
+	i++;
+      } // observation loop
+      if (obs_list.size() > 0) {
+	refl_list[j].add_observation_list(obs_list);
+      }
+    } // reflection loop
+
+    nlattices = 0;
+    excludeoverlaps = true; // default for single lattice
+    if (dataflags.is_latnum) {
+      // count lattices with non-zero entries
+      ASSERT (numberinlattice.size() == numberinlatticeall.size());
+      for (size_t j=1; j<numberinlattice.size(); j++) { // loop from 1
+	if (numberinlattice[j] > 0) {
+	  nlattices++;
+	}
+	if (numberinlatticeall[j] > 0) {
+	  nlatticesall++;
+	}
+      }
+      excludeoverlaps = false;
+    }
+
+    // Set flags into runs for only||few fulls||partials
+    for (size_t irun=0;irun<runlist.size();++irun) {
+      runlist[irun].SetFullsAndPartials();
+    }
+
+    status = PREPARED;
+
+    ResoRange overallrange = ResoLimRange;
+    for (int id=0;id<ndatasets;++id) {
+      // Resolution range for each dataset
+      datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
+      // Overall
+      overallrange = overallrange.MaxRange(datasets[id].ResRange());
+    }
+    overallrange.ExtendRange();  // add a little tolerance
+    ResoLimRange = overallrange;
+
+    ImposeResoByRunLimits();  // mark observations if outside run limits
+    return Nobservations;
+  } // end ::nopartials
   //--------------------------------------------------------------
   void hkl_unmerge_list::UpdateLatticeNumberRanges(const std::vector<LatticeIndexInfo>& lathkl)
   // update maxhkloverlappart and latticenumberrange

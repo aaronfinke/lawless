@@ -62,7 +62,7 @@ namespace scala {
     // Set up rotation ranges for each run
     for (int irun=0;irun<nruns;++irun) {
       // Store number of rotation ranges
-      //   for batch mode = Nbatches
+      //   for batch mode = Nbatches (excluding rejected ones)
       nranges_run[irun] = AllScales.primary_scale(irun).Nintervals();
       if (AllScales.primary_scale(irun).IsBatchScale()) {
 	// Batch scale
@@ -110,8 +110,10 @@ namespace scala {
 	Rtype phi = this_obs.phi();
 	if (AllScales.primary_scale(irun).IsBatchScale()) {
 	  // batch scale
-	  int batchserial = hkl_list.batch_serial(this_obs.Batch());
-	  irot = batchserial - runlist[irun].BatchSerial0() + idxrun[irun];
+	  int batchnum = this_obs.Batch();
+	  // serial index in run
+	  int batchserial = AllScales.primary_scale(irun).batchSerialIndex(batchnum);
+	  irot = batchserial + idxrun[irun];
 	} else {
 	  irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
 	}
@@ -164,7 +166,6 @@ namespace scala {
    }
    // Store initial scales   
    AllScales.SetInitialScales(gscales, numobsrotrange);
-
   }  // InitialScales
 
 } // namespace scala

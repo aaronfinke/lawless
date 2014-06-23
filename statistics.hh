@@ -42,6 +42,23 @@ namespace scala {
 		  const float& anomProbSlope,
 		  const ReferenceList& hklreflist,
 		  phaser_io::Output& output);
+
+  // Set arrays of Primary scales at theta=0 for centre of each batch,
+  // & Bfactor, for selected dataset
+  //
+  // On entry:
+  //  batches        list of all batches (including those not in this dataset)
+  //  datasetIndex   dataset index number to select dataset
+  //  AllScales      scales
+  //
+  // On exit:
+  //  scale0batch    primary scales at theta=0 for centre of each batch
+  //  bfacbatch      Bfactor for each batch
+  void BatchScales0(const std::vector<Batch>& batches,
+		    const int& datasetIndex, const ScaleModel& AllScales,
+		    std::vector<float>& scale0batch,
+		    std::vector<float>& bfacbatch);
+
 }
 
 #endif
