@@ -276,7 +276,7 @@ namespace scala {
   // rreferencebatchsmoothed  vs. reference, replaced by smooth version
   // ccreferencebatchsmoothed vs. reference, replaced by smooth version
   // MinimumIoverSigmaBatch     threshold for resolution
-  // NbatchSmooth should be odd, if not forced to be odd here
+  // NbatchSmooth should be odd, if not will be forced to be odd here
   {
     int nbatches = mnIsdResBatch.size();
     maxresbatchsmoothed.assign(nbatches, 0.0);
@@ -293,55 +293,58 @@ namespace scala {
     int nbs = (NbatchSmooth/2)*2 + 1; // force odd
 
     for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
-      int irun = batches[ib].RunIndex(); // run index for central batch
-      int nbatrun = runlist[irun].Nbatches(); // number of batches in run
-      int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
-      if (nbsr >= 3) { // don't bother smoothing if very few batches
-	nbsr = (nbsr/2)*2 + 1;	// Make it odd
-	if (nbsr > nbatrun) nbsr -= 2; // // ... but not larger than nbatrun
-	int half = nbsr/2;
-	int i2 = Min(ib+half, nbatches); // last batch in group + 1
-	// is it in the same run? loop backwards if necessary until it is
-	while (batches[i2-1].RunIndex() != irun) {
-	  i2--;
-	}
-	int i1 = i2 - nbsr;
-	if (i1 < 0) {
-	  i1 = 0;
-	}
-	// is it in the same run? loop forwards if necessary until it is
-	while (batches[i1].RunIndex() != irun) {
-	  i1++;
-	}
-	i2 = i1 + nbsr;
-	ASSERT (i2 <= nbatches);
-	ASSERT (batches[i2-1].RunIndex() == irun);
-	// Number of resolution bins
-	int nrbins = mnIsdResBatch[ib].size();
-	std::vector<MeanSD> msd(nrbins); // for each resolution bin
-	for (int j=i1;j<i2;++j) { // loop nbsr batches
-	  Rsmooth[ib] += rmergebatch[j];  // Rmerge
-	  for (int i=0;i<nrbins;++i) { // loop resolution bins
-	    msd[i] += mnIsdResBatch[j][i];
+      if (batches[ib].Accepted()) {
+	int irun = batches[ib].RunIndex(); // run index for central batch
+	int nbatrun = runlist[irun].Nbatches(); // number of batches in run
+	int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
+	if (nbsr >= 3) { // don't bother smoothing if very few batches
+	  nbsr = (nbsr/2)*2 + 1;	// Make it odd
+	  if (nbsr > nbatrun) nbsr -= 2; // // ... but not larger than nbatrun
+	  int half = nbsr/2;
+	  int i2 = Min(ib+half, nbatches); // last batch in group + 1
+	  // is it in the same run? loop backwards if necessary until it is
+	  while (batches[i2-1].RunIndex() != irun) {
+	    i2--;
 	  }
-	  // R and CC against reference, if present
-	  if (hklref) {
-	    Rrefsmooth[ib] += rreferencebatchsmoothed[j];
-	    ccrefsmooth[ib] += ccreferencebatchsmoothed[j];
+	  int i1 = i2 - nbsr;
+	  if (i1 < 0) {
+	    i1 = 0;
 	  }
+	  // is it in the same run? loop forwards if necessary until it is
+	  while (batches[i1].RunIndex() != irun) {
+	    i1++;
+	  }
+	  i2 = i1 + nbsr;
+	  ASSERT (i2 <= nbatches);
+	  // Number of resolution bins
+	  int nrbins = mnIsdResBatch[ib].size();
+	  std::vector<MeanSD> msd(nrbins); // for each resolution bin
+	  for (int j=i1;j<i2;++j) { // loop nbsr batches
+	    if (batches[j].Accepted()) {
+	      Rsmooth[ib] += rmergebatch[j];  // Rmerge
+	      for (int i=0;i<nrbins;++i) { // loop resolution bins
+		msd[i] += mnIsdResBatch[j][i];
+	      }
+	      // R and CC against reference, if present
+	      if (hklref) {
+		Rrefsmooth[ib] += rreferencebatchsmoothed[j];
+		ccrefsmooth[ib] += ccreferencebatchsmoothed[j];
+	      }
+	    }
+	  }
+	  //	std::cout <<ib<<" "<< i1 <<" "<<i2
+	  //		  <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
+	  //		  <<" " << rmergebatch[ib].R()
+	  //		  <<" " << Rsmooth[ib].R()
+	  //		  << " i1,i2\n"; //^
+	  
+	  // assign resolution limit for this group to batch ib
+	  
+	  ResolutionLimit batchreslimit(msd, ResRange,
+					MinimumIoverSigmaBatch);
+	  maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 
 	}
-	//	std::cout <<ib<<" "<< i1 <<" "<<i2
-	//		  <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
-	//		  <<" " << rmergebatch[ib].R()
-	//		  <<" " << Rsmooth[ib].R()
-	//		  << " i1,i2\n"; //^
-	
-	// assign resolution limit for this group to batch ib
-
-	ResolutionLimit batchreslimit(msd, ResRange,
-				      MinimumIoverSigmaBatch);
-	maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 
-      }
+      } // batch accepted
     } // end loop batches
     rmergebatch = Rsmooth; // return overwriting input
     rreferencebatchsmoothed = Rrefsmooth;

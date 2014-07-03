@@ -14,10 +14,23 @@ namespace scala {
 FoxHolmes::FoxHolmes(const scala::InitialData& Data)
 {
   data = &Data;   // copy pointer to data object
-  npar = data->Npar();
+  npar = data->Npar();       // number of active parameters
+  nparall = data->NparAll(); // total number, some may be void
   scales = std::vector<double>(npar, 1.0);
   gradient.newsize(npar);
   gradientOK = false;
+
+  // for each active parameter idxparam is the index into the total number
+  // return for each rotation range true if there are data, else false
+  std::vector<bool> validranges = data->validRanges();
+  idxparam.clear();
+  int k = 0;
+  for (size_t i=0; i<validranges.size(); i++) { 
+    if (validranges[i]) {
+      idxparam.push_back(i);
+    }
+  }
+  ASSERT (int(idxparam.size()) == npar);
 }
 // ---------------------------------------------------------
 int FoxHolmes::MeanI(const std::vector<DPair>& y,
@@ -25,6 +38,8 @@ int FoxHolmes::MeanI(const std::vector<DPair>& y,
 // Mean I <I> 
 // returns number which have non-zero sd
 //
+// On entry:
+//  y is array of data lengtht nparall, including possible empty slots
 // On exit:
 //  mnI   <I>
 //  sumwg2  Sum(w g^2)
@@ -34,17 +49,15 @@ int FoxHolmes::MeanI(const std::vector<DPair>& y,
   double sumwgI = 0.0;
   sumwg2 = 0.0;
   int n = 0;
-  for (int i=0;i<npar;i++)
-    {
-      sd = y[i].second;
-      if (sd > 0.00001)
-	{
-	  w = 1./(sd*sd);
-	  sumwgI += w * scales[i] * y[i].first;
-	  sumwg2 += w * scales[i] * scales[i];
-	  n++;
-	}
+  for (int i=0;i<nparall;i++)  {
+    sd = y[i].second;
+    if (sd > 0.00001) {
+      w = 1./(sd*sd);
+      sumwgI += w * scales[i] * y[i].first;
+      sumwg2 += w * scales[i] * scales[i];
+      n++;
     }
+  }
   mnI = 0.0;
   if (sumwg2 > 0.0) 
     {mnI =  sumwgI/sumwg2;}
@@ -54,11 +67,10 @@ int FoxHolmes::MeanI(const std::vector<DPair>& y,
 floatType FoxHolmes::targetFn()
 {
   // R = 0.5 * Sum( w (I - g<I>)^2
-  if (!gradientOK)
-    {
-      TNT::Fortran_Matrix<floatType> H;
-      TargetGradientHessian(false, false, H);
-    }
+  if (!gradientOK) {
+    TNT::Fortran_Matrix<floatType> H;
+    TargetGradientHessian(false, false, H);
+  }
   return target;
 }
 // ---------------------------------------------------------
@@ -67,11 +79,10 @@ floatType    FoxHolmes::gradientFn(TNT::Vector<floatType>& grad)
 // d(g<I>)/dp = g d<I>/dp  + <I> dg/dp
 // d<I>/dpi = (Ii- 2g<I>)/g^2    in this case (one observation/paraemeter)
 {
-  if (!gradientOK)
-    {
-      TNT::Fortran_Matrix<floatType> H;
-      TargetGradientHessian(true, false, H);
-    }
+  if (!gradientOK) {
+    TNT::Fortran_Matrix<floatType> H;
+    TargetGradientHessian(true, false, H);
+  }
   grad = gradient;
   //  std::cout << "%% Gradient: \n";
   //  for (int i=0;i<npar;i++) {
@@ -98,15 +109,14 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 // DoHessian implies DoGradient
 {
   target = 0.0;
-  if (DoHessian)
-    {
-      DoGradient = true;
-      H.newsize(npar,npar);
-      for (int i=0;i<npar;i++) { // loop parameters
-	for (int j=0;j<npar;j++) // loop parameters
-	  {H(i+1,j+1) = 0.0;}
-      }
+  if (DoHessian) {
+    DoGradient = true;
+    H.newsize(npar,npar);
+    for (int i=0;i<npar;i++) { // loop parameters
+      for (int j=0;j<npar;j++) // loop parameters
+	{H(i+1,j+1) = 0.0;}
     }
+  }
   if (DoGradient) {
     for (int i=0;i<npar;i++) // loop parameters
       {gradient[i] = 0.0;}
@@ -115,18 +125,19 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
   double sd, di, w, mnI, sumwg2;
   std::vector<double> dmnIdp(npar);
 
-  std::vector<DPair> y(npar);
+  std::vector<DPair> y(nparall);
   std::vector<double> dmnIgldgi(npar);
 
   while (data->ObsArray(y)) {  // Loop observations
     // y(npar) is array of I,sigma pairs
     int n = MeanI(y, mnI, sumwg2);  // Mean I with current scales
     if (n > 0) {
-      for (int i=0;i<npar;i++) {  // Loop parameters
-	sd = y[i].second;
+      for (int i=0;i<npar;i++) {  // Loop active parameters
+	int k = idxparam[i];
+	sd = y[k].second;
 	if (sd > 0.00001) {
 	  w = 1./(sd*sd);
-	  di = y[i].first - scales[i] * mnI;
+	  di = y[k].first - scales[i] * mnI;
 	  
 	  // target function = 0.5 * Sum(w(I-g<I>)^2)
 	  target += 0.5 * w * di * di;
@@ -140,7 +151,8 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
       
       if (DoGradient)	{
 	for (int l=0;l<npar;l++) { // loop l observations
-	  sd = y[l].second;
+	  int k = idxparam[l];
+	  sd = y[k].second;
 	  if (sd > 0.00001) {
 	    for (int i=0;i<npar;i++) { // loop parameters
 	      // observation l, parameter i
@@ -149,7 +161,8 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 	      if (i == l) dmnIgldgi[i] += mnI;
 	      if (dmnIgldgi[i] != 0.0) {
 		w = 1./(sd*sd);
-		gradient[i] += - w * (y[l].first - scales[l] * mnI) * dmnIgldgi[i];
+		gradient[i] += - w * (y[k].first - scales[l] * mnI)
+		  * dmnIgldgi[i];
 			    
 		if (DoHessian) {
 		  /// Approximation, diagonal matrix
@@ -189,7 +202,7 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
   //    std::cout << "** Hessian: \n";
   //    for (int i=0;i<npar;i++) {
   //      for (int j=0;j<npar;j++) 
-  //	{std::cout << " " << H(i+1,j+1);}
+  //  	{std::cout << " " << H(i+1,j+1);}
   //      std::cout << "\n";
   //    }
   //  }
@@ -199,10 +212,10 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 void FoxHolmes::applyShift(TNT::Vector<floatType>& newg)
 {
   //^
-  //  std::cout << "<< Apply shift:\n";
+  // std::cout << "<< Apply shift:\n";
   for (int i=0;i<npar;i++)  {
     scales[i] = newg[i];
-  //    std::cout << " " << scales[i];
+    //    std::cout << " " << scales[i];
   }
   //  std::cout << "\n";
   gradientOK = false;
@@ -248,6 +261,16 @@ TNT::Vector<floatType> FoxHolmes::getRefinePars()
     pars[i] = scales[i];
   }
   return pars;
+}
+// ---------------------------------------------------------
+std::vector<floatType> FoxHolmes::getGscales() const
+// return actual (inverse) scales for all rotation ranges
+{
+  std::vector<floatType> gscales(nparall, 0.0);
+  for (int i=0;i<npar;i++) {
+    gscales[idxparam[i]] = scales[i];
+  }
+  return gscales;
 }
 // ---------------------------------------------------------
 TNT::Vector<floatType> FoxHolmes::getLargeShifts()

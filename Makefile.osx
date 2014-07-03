@@ -7,8 +7,8 @@ LXX=g++
 #LXX=gcc
 #OPT = -g -Wreturn-type
 #OPT = -g -Wall
-OPT = -O2 -Wreturn-type -fopenmp
-#OPT = -O2 -Wreturn-type
+#OPT = -O2 -Wreturn-type -fopenmp
+OPT = -O2 -Wreturn-type
 #OPT = -O2 -Wall
 
 CFLAGS= ${OPT}

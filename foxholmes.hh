@@ -38,14 +38,20 @@ public:
   TNT::Vector<floatType> getRefinePars();
   TNT::Vector<floatType> getLargeShifts();
   
+  // return actual (inverse) scales for all rotation ranges
+  std::vector<floatType> getGscales() const;
 
 private:
-  int npar;
+  int npar;     // number of active parameters
+  int nparall;  // total number of parameters
   std::vector<double> scales;
   const scala::InitialData* data;
   bool gradientOK;  // true if there is an up-to-date gradient
   TNT::Vector<floatType> gradient;
   floatType target;
+
+  // index 
+  std::vector<int> idxparam; // length 
 
   int MeanI(const std::vector<DPair>& y,
 	    double& mnI, double& sumwg2) const;

@@ -903,7 +903,6 @@ namespace scala {
   void hkl_unmerge_list::OffsetLatticeNumbers(const int& latticeoffset)
   // Apply offset to lattice numbers
   {
-    if (!MultiLattice()) {return;}  // ignore unless multilattice
     if (latticeoffset == 0) {return;} // don't bother if 0
 
     //std::cout <<"OffsetLatticeNumbers " << latticeoffset <<std::endl; //^

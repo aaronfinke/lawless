@@ -25,7 +25,11 @@ public:
   InitialData();
   InitialData(const clipper::Array2d<double>& AvI);
 
-  int Npar() const {return np;}
+  int Npar() const {return np;}    // N valid rotation ranges 
+  int NparAll() const {return npall;} // total N rotation ranges
+
+  // return for each rotation range true if there are data, else false
+  std::vector<bool> validRanges() const {return validranges;}
 
   // Data are in 2D array AvI(rotation, resolution)
   // For each resolution bin, we want to make all the <Irot> equal over
@@ -36,9 +40,11 @@ public:
   bool ObsArray(std::vector<DPair>& obs) const;
 
 private:
-  int np;  // Number of parameters = nrotranges
+  int npall;  // Number of parameters = nrotranges
+  int np;     // Number of active parameters <= nrotranges
   // Data is a 2D array(nrotranges, nresbins)
   const clipper::Array2d<double>*  avi;
+  std::vector<bool> validranges;
   mutable int next;
 };
 
