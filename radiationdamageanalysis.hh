@@ -27,8 +27,9 @@ namespace scala {
     int irun;    // run serial number
     int runnum;  // run number
     int batchgroup; // number of batches in group (usually 1)
-    // index into run, allowing for rejected batches
-    std::vector<int> batchindex;
+
+    hash_table batch_lookup;  // batch lookup for index into run
+
     double phibinsize;  // bin size in degrees
     int batch0;     // 1st batch number
     int nresbin;

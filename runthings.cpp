@@ -272,9 +272,32 @@ namespace scala {
     return true;
   }
   //--------------------------------------------------------------
+  RunRange::RunRange(const int& Low, const int& High)
+    : LowBatchNumber(Low), HighBatchNumber(High), Offset(0)
+  {
+    if (LowBatchNumber > HighBatchNumber) {
+      std::swap(LowBatchNumber, HighBatchNumber);
+    }
+  }
+  //--------------------------------------------------------------
+  RunRange::RunRange(const std::pair<int,int>& LowHigh)
+    :	LowBatchNumber(LowHigh.first), HighBatchNumber(LowHigh.second), Offset(0)
+  {
+    if (LowBatchNumber > HighBatchNumber) {
+      std::swap(LowBatchNumber, HighBatchNumber);
+    }
+  }
+  //--------------------------------------------------------------
+  bool RunRange::Adjacent(const RunRange& test) const
+  // returns true if test run and this one are adjacent
+  // test both ways round
+  {
+    return ((LowBatchNumber == test.HighBatchNumber+1) ||
+	    (test.LowBatchNumber == HighBatchNumber+1));
+  }
   //--------------------------------------------------------------
   bool RunRange::Encloses(const RunRange& test) const
-  // returns true if test run overlaps with this one
+  // returns true if test run overlaps with this one, or are adjacent
   // test both ways round
   {
     return (Encloses(test.LowBatchNumber) || Encloses(test.HighBatchNumber) ||
@@ -282,9 +305,9 @@ namespace scala {
   }
   //--------------------------------------------------------------
   bool RunRange::Encloses(const int& testN) const
-  // returns true if testN is inside this one
+  // returns true if testN is inside this one, or are adjacent
   {
-    return (testN >= LowBatchNumber && testN <= HighBatchNumber);
+    return (testN >= LowBatchNumber && testN <= HighBatchNumber+1);
   }
   //--------------------------------------------------------------
   void RunRange::IncrementOffset(const int& offset)
@@ -323,24 +346,27 @@ namespace scala {
 	for (size_t ir=0;ir<ref_rr.size();ir++) {
 	  // Loop each reference run 
 	  if (ref_rr[ir].Encloses(test_rr[it])) {
-	    OK = false;
-	    break;
+	    // but it might be OK if they are adjacent before any offset
+	    if (!((test_rr[it].Offset == 0) && ref_rr[ir].Adjacent(test_rr[it]))) {
+	      OK = false;
+	      break;
+	    }
 	  }
-	  if (OK) {
-	    // this test run does not overlap with any reference run
-	    // Test it against the other test runs
-	    for (size_t it2=0;it2<test_rr.size();it2++) {
-	      if (it2 != it) {
-		if (test_rr[it2].Encloses(test_rr[it])) {
-		  OK = false;
-		  break;
-		}
+	} // end loop reference runs
+	if (OK) {
+	  // this test run does not overlap with any reference run
+	  // Test it against the other test runs
+	  for (size_t it2=0;it2<test_rr.size();it2++) {
+	    if (it2 != it) {
+	      if (test_rr[it2].Encloses(test_rr[it])) {
+		OK = false;
+		break;
 	      }
 	    }
 	  }
 	}
 	if (OK) {
-	  // No overlap, offset OK
+	  // No overlap, offset OK 
 	  found = true;
 	  break;
 	}

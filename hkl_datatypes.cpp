@@ -744,6 +744,17 @@ namespace scala
     return true;
   }
   //--------------------------------------------------------------
+  PxdName::PxdName(const std::string& pname_in,
+		   const std::string& xname_in,
+		   const std::string& dname_in)
+    :  pname_(pname_in), xname_(xname_in), dname_(dname_in)
+  {
+    // set defaults if blank
+    if (pname_ == "") {pname_ = "P1";}
+    if (xname_ == "") {xname_ = "X1";}
+    if (dname_ == "") {dname_ = "D1";}
+  }
+  //--------------------------------------------------------------
   void PxdName::update(const PxdName& NewPxd)
   // Replace elements by any non-blank elements in NewPxd
   {

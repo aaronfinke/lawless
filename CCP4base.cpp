@@ -107,12 +107,27 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
       break; 
 
     default:
-      if ((std::isprint)(ch))
-      {
+      if ((std::isprint)(ch)) {
+	bool inquote = false;
         string_value = ch;
+	if (isquote(ch)) {inquote = true;}
         //allow printable characters except spaces and ASSIGN
-        while(input_stream.get(ch) && (std::isprint)(ch) && !(std::isspace)(ch) && ch != '=') 
+        while(input_stream.get(ch)) {
+	  // end string if:
+	  //   a) end get, or
+	  //   b) non-printing character, or
+	  //   c) space, or
+	  //   d) "="
+	  //  unless it's in a quoted string 
+	  if (!inquote) {
+	    if (!(std::isprint)(ch) || (std::isspace)(ch) || ch == '=') {
+	      break; // end string
+	    }
+	  } else if (isquote(ch)) {
+	    inquote = false;
+	  }
           string_value += ch;
+	}
         input_stream.putback(ch); // oops - read one too far
         tmp = string_value;
         keywords += tmp.erase(0,1);
@@ -122,6 +137,12 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
 
     throw SyntaxError(keywords,"Unrecognised token (" + std::string(1,ch) + ")");
     return curr_tok = ENDLINE;
+}
+
+bool CCP4base::isquote(const char& ch)
+// true if ch is ' or "
+{
+  return (ch == '\'') || (ch == '"');
 }
 
 Token_value CCP4base::get_key(std::istringstream& input_stream)

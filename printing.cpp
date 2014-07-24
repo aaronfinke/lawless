@@ -107,7 +107,8 @@ void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& outpu
 FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
 				 const std::vector<Run>& RunList,
 				 const int& datasetIndex,
-				 const std::vector<float>& bfacbatch)
+				 const std::vector<float>& bfacbatch,
+				 const std::vector<int>& nbfacrun)
 {
   bfdecaybatch.assign(bfacbatch.size(), 0.0);
   bsloperun.assign(RunList.size(), 0.0);     // for each run
@@ -117,33 +118,35 @@ FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
 
   for (size_t irun=0;irun<RunList.size();++irun) { // loop runs
     if (RunList[irun].DatasetIndex() == datasetIndex) { // is run in this dataset?
-      // Extract Bfactors for batches belonging to this run
-      LinearFit linefit;
-      float w = 1.0;
-      // B slope is determined in A^2/batch, but using the ranges we can convert it to
-      // A^2/degree
-      Range batchserialrange;  // range of batch serials in this run
-      Range phirange;          // range of phi in this run
-
-      for (size_t i=0;i<batches.size();++i) {  // loop batches
-	if (batches[i].Accepted() && (batches[i].RunIndex() == int(irun))) { // in this run
-	  if (batch0run[irun] < 0) {  // 1st batch in run
-	    batch0run[irun] = i;
+      if (nbfacrun[irun] > 1) {
+	// Extract Bfactors for batches belonging to this run
+	LinearFit linefit;
+	float w = 1.0;
+	// B slope is determined in A^2/batch, but using the ranges we can convert it to
+	// A^2/degree
+	Range batchserialrange;  // range of batch serials in this run
+	Range phirange;          // range of phi in this run
+	
+	for (size_t i=0;i<batches.size();++i) {  // loop batches
+	  if (batches[i].Accepted() && (batches[i].RunIndex() == int(irun))) { // in this run
+	    if (batch0run[irun] < 0) {  // 1st batch in run
+	      batch0run[irun] = i;
+	    }
+	    float x = i - batch0run[irun];
+	    // x = batch serial in run, y = B
+	    linefit.add(x, bfacbatch[i], w);
+	    batchserialrange.update(x);
+	    phirange.update(batches[i].MidPhi());
 	  }
-	  float x = i - batch0run[irun];
-	  // x = batch serial in run, y = B
-	  linefit.add(x, bfacbatch[i], w);
-	  batchserialrange.update(x);
-	  phirange.update(batches[i].MidPhi());
 	}
+	// scaling from batch serial to phi
+	scales[irun] = phirange.AbsRange()/batchserialrange.AbsRange();
+	float scale = 1.0;
+	
+	RPair r = linefit.result();
+	bsloperun[irun] = r.first;
+	b0run[irun] = r.second;
       }
-      // scaling from batch serial to phi
-      scales[irun] = phirange.AbsRange()/batchserialrange.AbsRange();
-      float scale = 1.0;
-
-      RPair r = linefit.result();
-      bsloperun[irun] = r.first;
-      b0run[irun] = r.second;
     }
   } // end loop runs
   for (size_t i=0;i<batches.size();++i) {  // loop batches
@@ -199,6 +202,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
 			const int& datasetIndex,
 			const std::vector<float>& scale0batch,
 			const std::vector<float>& bfacbatch,
+			const std::vector<int>& nbfacrun,
 			const std::vector<MeanSD>& scalebatch,
 			phaser_io::Output& output)
 {
@@ -211,16 +215,18 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
 		"0k is the scale calculated excluding any input scale\n");
  
   // Fit straight line to B factors within each run
-  FitBfactorLines fit(batches, RunList, datasetIndex, bfacbatch);
+  FitBfactorLines fit(batches, RunList, datasetIndex, bfacbatch, nbfacrun);
   std::vector<float> bfdecaybatch = fit.DecayBatch();
 
   output.logTab(0,LOGFILE,
 		"\nBdecay comes from a straight line fit to the B-factors within each run");
   for (size_t irun=0;irun<RunList.size();++irun) { // loop runs
     if (RunList[irun].DatasetIndex() == datasetIndex) { // is run in this dataset?
-      output.logTabPrintf(1,LOGFILE,
-			  "For run number %4d, slope of B (A^2/degree) %8.3f\n",
-			  RunList[irun].RunNumber(), fit.Slope(irun));
+      if (nbfacrun[irun] > 1) {  // more than 1 Bfactor in run
+	output.logTabPrintf(1,LOGFILE,
+			    "For run number %4d, slope of B (A^2/degree) %8.3f\n",
+			    RunList[irun].RunNumber(), fit.Slope(irun));
+      }
     }
   }
 

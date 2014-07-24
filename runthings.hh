@@ -151,13 +151,14 @@ namespace scala {
   {
   public:
     RunRange() : Offset(0) {}
-    RunRange(const int& Low, const int& High)
-      : LowBatchNumber(Low), HighBatchNumber(High), Offset(0)  {}
-    RunRange(const std::pair<int,int>& LowHigh)
-      :	LowBatchNumber(LowHigh.first), HighBatchNumber(LowHigh.second), Offset(0) {}
+    RunRange(const int& Low, const int& High);
+    RunRange(const std::pair<int,int>& LowHigh);
     
     bool Encloses(const RunRange& test) const;
     bool Encloses(const int& testN) const;
+    
+    // returns true if test run and this one are adjacent
+    bool Adjacent(const RunRange& test) const;
     
     void IncrementOffset(const int& offset);
     

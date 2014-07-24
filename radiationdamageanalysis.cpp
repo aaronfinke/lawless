@@ -28,13 +28,24 @@ namespace scala {
   // jrun is run serial number
   // nbatchgroup is number of batches to group together, usually 1
   {
+    ASSERT (hkl_list.num_runs() == 1); // the present code assumes a single run
     irun = jrun;
     ASSERT ((irun >= 0) && (irun <  hkl_list.num_runs()));
 
     Run thisrun = hkl_list.RunList()[irun];
     runnum = thisrun.RunNumber();
-    // nbatches excludes rejected batches
-    int nbatches = hkl_list.num_accepted_batches();
+
+    // all batch numbers including rejected ones
+    std::vector<int> batchnumberlist = thisrun.BatchList(false);
+    int nbatches = batchnumberlist.back() - batchnumberlist[0];
+    batch0 = batchnumberlist[0];   // 1st batch
+
+    // Make lookup table (hash table)
+    // Setup up hash lookup table a bit larger than required
+    batch_lookup.set_size( int(1.2 * nbatches));
+    for (int i = 0; i < nbatches; i++)  {
+      batch_lookup.add(batchnumberlist[i], i);
+    }
 
     phibinsize = 1.0; // 1 degree bins
     batchgroup = nbatchgroup;
@@ -50,16 +61,6 @@ namespace scala {
 
     ntimebin = (nbatches+batchgroup-1)/batchgroup;
     int datasetIndex = thisrun.DatasetIndex();
-    batch0 = thisrun.Batch0();
-    // Make index list allowing for rejected batches
-    std::vector<Batch> batches = hkl_list.Batches();
-    batchindex.assign(batches.size(), -1);
-    int k=0;
-    for (size_t ib=0; ib<batches.size(); ib++) { 
-      if (batches[ib].Accepted()) {
-	batchindex[ib] = k++;
-      }
-    }
 
     // resolution ranges
     ResoRange resrange = hkl_list.ResRange(); // store resolution range
@@ -92,8 +93,12 @@ namespace scala {
 	    float Ij = std::abs(observations[j].kI());
 	    for (size_t i=j+1; i<observations.size(); i++) { 
 	      int batchi = batchIndex(observations[i].Batch());
-	      int bintime = Max(batchi, batchj)/batchgroup;
+	      int bintime = Min(Max(batchi, batchj)/batchgroup, ntimebin-1);
 	      ASSERT ((bintime >= 0) && (bintime < ntimebin));
+	      //	      if (!((bintime >= 0) && (bintime < ntimebin))){
+	      //		std::cout <<batchi<<" "<<batchj<<" "<<bintime<<
+	      //		  " "<<bintime<<"\n";
+	      //	      } //^
 	      float Ii = std::abs(observations[i].kI());
 	      // R-factor and CC
 	      rfactor[rbin][bintime].add(std::abs(Ii-Ij),
@@ -113,9 +118,9 @@ namespace scala {
   }
   //--------------------------------------------------------------
   int RadiationDamageAnalysis::batchIndex(const int& batchnum) const
-  // get index of this batch in the run, allowing for rejected batches
+  // get index of this batch in the run, including rejected batches
   {
-    return batchindex[batchnum - batch0];
+    return batchnum - batch0;
   }
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::plot
@@ -207,13 +212,7 @@ namespace scala {
       }
       vals.push_back(rall.R());
 
-      int batch = bintime*batchgroup;
-      for (size_t k=0; k<batchindex.size(); k++) { 
-	if (batchindex[k] == batch) {
-	  batch = k + batch0;
-	  break;
-	}
-      }
+      int batch = bintime*batchgroup + batch0;
 
       table.Line(vals, nc0, n, batch, batchcompleteness[jbatch]);
 

@@ -144,9 +144,17 @@ namespace scala
     void clear();
 
     double Mean() const;
+
+    // variance of mean from the weights ie 1/Sum(weights)
+    double VarianceFromWeights() const;
+    // SD of mean from the weights ie sqrt(1/Sum(weights))
+    double SDfromWeights() const;
+
     // Variance of mean
     double Variance() const;
     double SD() const;
+
+
 
     // Variance of distribution
     double SampleVariance() const;

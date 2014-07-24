@@ -1940,6 +1940,7 @@ namespace scala {
     std::vector<int> numberinlatticeall(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
 
     std::vector<Range> invresrangebydataset(ndatasets);
+    std::vector<Range> invresrangebyrun(runlist.size());
 
     // Update lattice number ranges
     latticenumberrange.clear();
@@ -2164,6 +2165,7 @@ namespace scala {
 	  //^-
 
 	  invresrangebydataset[datasetIndex].update(refl_list[j].invresolsq());
+	  invresrangebyrun[run1].update(refl_list[j].invresolsq());
 	  obsOK = true;
 	  if (partial_status == FULL) {
 	    runlist[run1].Nfulls()++;
@@ -2221,6 +2223,11 @@ namespace scala {
       // Overall
       overallrange = overallrange.MaxRange(datasets[id].ResRange());
     }
+    for (size_t irun=0;irun<runlist.size();++irun) {
+      if (!runlist[irun].IsResoRange()) {
+	runlist[irun].StoreResoRange(invresrangebyrun[irun]);
+      }
+    }
     overallrange.ExtendRange();  // add a little tolerance
     ResoLimRange = overallrange;
 
@@ -2261,6 +2268,7 @@ namespace scala {
     std::vector<int> numberinlatticeall(MAXNLATTICES+1,0); // +1 as lattices are numbered from 1
 
     std::vector<Range> invresrangebydataset(ndatasets);
+    std::vector<Range> invresrangebyrun(runlist.size());
 
     // Update lattice number ranges
     latticenumberrange.clear();
@@ -2307,6 +2315,7 @@ namespace scala {
 			 &obs_part_pointer[i1],
 			 total_fraction, partial_status, obsflag, latnum, lathkl));
 	invresrangebydataset[datasetIndex].update(refl_list[j].invresolsq());
+	invresrangebyrun[run1].update(refl_list[j].invresolsq());
 	obsOK = true;
 	runlist[run1].Nfulls()++;
 	meanI.Add(avI);
@@ -2350,6 +2359,11 @@ namespace scala {
       datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
       // Overall
       overallrange = overallrange.MaxRange(datasets[id].ResRange());
+    }
+    for (size_t irun=0;irun<runlist.size();++irun) {
+      if (!runlist[irun].IsResoRange()) {
+	runlist[irun].StoreResoRange(invresrangebyrun[irun]);
+      }
     }
     overallrange.ExtendRange();  // add a little tolerance
     ResoLimRange = overallrange;

@@ -422,9 +422,7 @@ namespace scala
     //! constructor from names
     PxdName(const std::string& pname_in,
 	    const std::string& xname_in,
-	    const std::string& dname_in)
-      :  pname_(pname_in), xname_(xname_in), dname_(dname_in) {}
-  
+	    const std::string& dname_in);
   
     const std::string& pname() const {return pname_;} //!< get project name
     const std::string& xname() const {return xname_;} //!< get crystalname

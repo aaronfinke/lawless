@@ -488,8 +488,10 @@ namespace scala {
     // Rmeas by run & resolution (not all runs may be in this dataset)
     int nruns = hkl_list.num_runs();
     std::vector<std::vector<Rfactor> > rmeasRun(nruns);
+    std::vector<int> nbfacrun(nruns);  // number of Bfactors in run
     for (int i=0;i<nruns;++i) {
       rmeasRun[i].assign(nresbin, Rfactor());
+      nbfacrun[i] = AllScales.Bfactor(i).Number();
     }
     std::vector<Rfactor> rpimRes(nresbin);   // Rpim
     // over all I+ & I- sets
@@ -766,8 +768,8 @@ namespace scala {
 
       // ---- For anisotropic analysis on projections, expand symmetry
       int nsymp = hkl_list.symmetry().NsymP(); // number of primitive operations
-      float normscale = NormRes.CorrAvg(invresolsq); // Normalisation factor (multiplying)
-      normscale = 1.0; // testing
+      //float normscale = NormRes.CorrAvg(invresolsq); // Normalisation factor (multiplying)
+      float normscale = 1.0;
 
       for (int isym=1;isym<=nsymp*2;isym+=2) { // loop odd ISYM, for I+
 	DVect3 projection =
@@ -937,7 +939,7 @@ namespace scala {
 			outliercount.at(2));
 
     PrintScalesByBatch(dataset_pxd, batches, runlist, datasetIndex,
-		       scale0batch, bfacbatch, scalebatch,
+		       scale0batch, bfacbatch, nbfacrun, scalebatch,
 		       output);
     PrintDeviationsByBatch(dataset_pxd, batches, datasetIndex,
 			   imeanbatch, rmsDbatch, rmergebatch, rmergebatchsmoothed, rejectedbatch,

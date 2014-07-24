@@ -31,6 +31,7 @@
 #include "analyseoverlaps.hh"
 #include "referencelist.hh"
 #include "rejectbatches.hh"
+#include "runcorrelations.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -866,6 +867,14 @@ int main(int argc, char* argv[])
       nbatchsmooth = (Nint(smoothwidth/width)/2)*2 + 1; // force to be odd
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
+
+    // run-run correlations: don't do them if there are too many
+    const int MAXRUNCORRELATION = 100;
+    if ((hkl_list.num_runs() > 1) &&
+	(hkl_list.num_runs() < MAXRUNCORRELATION)) {
+      RunCorrelations runcorrelations(hkl_list, SD_model, NormRes, nresbin);
+      runcorrelations.formatTable(output);
+    }
 
     // Gather & print all statistics for each dataset ------------------------------------
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {

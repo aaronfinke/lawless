@@ -20,6 +20,9 @@ static std::string StripNull(const std::string& s);
 //! Trim off leading & trailing spaces from string
 static std::string Trim(const std::string& s);
 //--------------------------------------------------------------
+//! Trim off leading & trailing quotes from string
+  static std::string Unquote(const std::string& s);
+//--------------------------------------------------------------
 //! Return string of length <fieldwidth> with text centred on position cenpos in it
 /*! If string length is > fieldwidth, return full string */
 static std::string CentreString(const std::string& text, const int& fieldwidth,
@@ -41,6 +44,12 @@ static std::vector<std::string> split(const std::string& str,
 //! Return substrings split at string "sep1" or "sep2" (excluded)
 static std::vector<std::string> split(const std::string& str,
 			   const std::string& sep1, const std::string& sep2);
+//--------------------------------------------------------------
+//! Reduce spaces in string to single spaces
+static std::string onespace(const std::string& s);
+//--------------------------------------------------------------
+//! Replace spaces in string with "_"
+static std::string removespaces(const std::string& s);
 //--------------------------------------------------------------
 //! make XML tag <tag>data</tag>
 //  If edit true [default] then replace characters such as "<" with html versions 

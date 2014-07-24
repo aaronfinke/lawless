@@ -51,6 +51,32 @@ std::string StringUtil::Trim(const std::string& s)
   return ss;
 }
 //--------------------------------------------------------------
+std::string StringUtil::Unquote(const std::string& sin)
+// Trim off spaces and leading & trailing quotes from string
+{
+  std::string s = Trim(sin);
+  std::string ss;
+  if (s.size() > 0) {
+    bool instring = false;  // first non-quote character
+    for (size_t i=0;i<s.size();i++) {
+      if (instring || ((s[i] != '\'') && (s[i] != '"'))) {
+	ss.push_back(s[i]);
+	instring = true;
+      }
+    }
+    // now remove trailing spaces
+    int j = ss.size()-1;
+    while (j >=0) {
+      if ((ss[j] != '\'') && (ss[j] != '"')) {
+	break;
+      }
+      j--;
+    }
+    ss.resize(j+1);
+  }
+  return ss;
+}
+//--------------------------------------------------------------
 // Return string of length <fieldwidth> with text centred on position
 // cenpos (numbered from 0)
 std::string StringUtil::CentreString(const std::string& text, const int& fieldwidth,
@@ -137,6 +163,34 @@ std::vector<std::string> StringUtil::split(const std::string& str,
     }
     if (tokend == std::string::npos) return splitstr;
   }
+}
+//--------------------------------------------------------------
+std::string StringUtil::onespace(const std::string& s)
+// Reduce spaces in string to single spaces
+{
+  std::vector<std::string> splitstring = StringUtil::split(s, " ");
+  std::string sss;
+  for (size_t k=0; k<splitstring.size(); k++) { 
+    sss += splitstring[k];
+    if (k < splitstring.size()-1) {
+      sss += " ";
+    }
+  }
+  return sss;
+}
+//--------------------------------------------------------------
+std::string StringUtil::removespaces(const std::string& s)
+// Replace spaces in string with "_"
+{
+  std::vector<std::string> splitstring = StringUtil::split(s, " ");
+  std::string sss;
+  for (size_t k=0; k<splitstring.size(); k++) { 
+    sss += splitstring[k];
+    if (k < splitstring.size()-1) {
+      sss += "_";
+    }
+  }
+  return sss;
 }
 //--------------------------------------------------------------
 // <tag><data</tag>

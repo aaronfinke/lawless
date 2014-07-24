@@ -1691,7 +1691,7 @@ XMLOUT::XMLOUT() : CCP4base(), InputBase()
 //--------------------------------------------------------------
 Token_value XMLOUT::parse(std::istringstream& input_stream)
 {
-  name = StringUtil::Trim(getLine(input_stream));
+  name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
 }
 //--------------------------------------------------------------
@@ -1706,7 +1706,7 @@ HKLIN::HKLIN() : CCP4base(), InputBase()
 //--------------------------------------------------------------
 Token_value HKLIN::parse(std::istringstream& input_stream)
 {
-  name = StringUtil::Trim(getLine(input_stream));
+  name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
 }
 //--------------------------------------------------------------
@@ -1721,7 +1721,7 @@ HKLOUT::HKLOUT() : CCP4base(), InputBase()
 //--------------------------------------------------------------
 Token_value HKLOUT::parse(std::istringstream& input_stream)
 {
-  name = StringUtil::Trim(getLine(input_stream));
+  name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
 }
 //--------------------------------------------------------------
@@ -1736,7 +1736,7 @@ HKLREF::HKLREF() : CCP4base(), InputBase()
 //--------------------------------------------------------------
 Token_value HKLREF::parse(std::istringstream& input_stream)
 {
-  name = StringUtil::Trim(getLine(input_stream));
+  name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
 }
 //--------------------------------------------------------------
@@ -1826,7 +1826,7 @@ XYZIN::XYZIN() : CCP4base(), InputBase()
 //--------------------------------------------------------------
 Token_value XYZIN::parse(std::istringstream& input_stream)
 {
-  name = StringUtil::Trim(getLine(input_stream));
+  name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
 }
 //--------------------------------------------------------------

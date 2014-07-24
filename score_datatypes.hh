@@ -173,6 +173,9 @@ namespace scala
 
     double CC() const {return result().val;}
 
+    // Standard error =~ (1-r^2)^2/sqrt(n-1)
+    double SD() const;
+
     void dump() const;
 
     correl_coeff& operator+=(const correl_coeff& other);

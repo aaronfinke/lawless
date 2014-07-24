@@ -7,8 +7,8 @@ LXX=g++
 #LXX=gcc
 #OPT = -g -Wreturn-type
 #OPT = -g -Wall
-#OPT = -O2 -Wreturn-type -fopenmp
-OPT = -O2 -Wreturn-type
+OPT = -O2 -Wreturn-type -fopenmp
+#OPT = -O2 -Wreturn-type
 #OPT = -O2 -Wall
 
 CFLAGS= ${OPT}
@@ -114,7 +114,7 @@ OBJ =   \
 	histogram.o radiationdamageanalysis.o \
 	hkl_merge.o anisotropicmodel.o \
 	referencelist.o referencescalemodel.o refinereferencescale.o \
-	refinetargets.o rejectbatches.o
+	refinetargets.o rejectbatches.o runcorrelations.o
 
 COBJ = \
 	CCP4base.o Errors.o Output.o Preprocessor.o \
@@ -151,7 +151,7 @@ SOURCE = ${EXE}.cpp \
 	histogram.cpp radiationdamageanalysis.cpp \
 	hkl_merge.cpp anisotropicmodel.cpp \
 	referencelist.cpp referencescalemodel.cpp refinereferencescale.cpp \
-	refinetargets.cpp rejectbatches.cpp
+	refinetargets.cpp rejectbatches.cpp runcorrelations.cpp
 
 
 # Common with Pointless
@@ -193,7 +193,7 @@ HDR = ${EXE}.hh \
 	weighttype.hh histogram.hh radiationdamageanalysis.hh \
 	hkl_merge.hh anisotropicmodel.hh \
 	referencelist.hh referencescalemodel.hh refinereferencescale.hh \
-	refinetargets.hh rejectbatches.hh
+	refinetargets.hh rejectbatches.hh runcorrelations.hh
 
 
 # common with Pointless

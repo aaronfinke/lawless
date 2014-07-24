@@ -388,6 +388,7 @@ namespace scala
     sum_sc += w * v;
     sum_sc2 += w * v * v;
     sum_w += w;
+    sum_w2 += w * w;
     count++;
   }
   //--------------------------------------------------------------
@@ -403,6 +404,22 @@ namespace scala
   double MeanVariance::Mean() const
   {
     return (sum_w > 0) ? sum_sc/sum_w : 0.0;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::VarianceFromWeights() const
+  // variance of mean from the weights ie 1/Sum(weights)
+  {
+    double var = 0.0;
+    if (count > 0) {
+      var = 1.0 / sum_w;
+    }  
+    return var;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::SDfromWeights() const
+  // SD of mean from the weights ie sqrt(1/Sum(weights))
+  {
+    return sqrt(VarianceFromWeights());
   }
   //--------------------------------------------------------------
   double MeanVariance::Variance() const

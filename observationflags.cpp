@@ -248,9 +248,9 @@ namespace scala
     s += StringUtil::MakeXMLtag("NumberAccepted", naccepted);
     if (maximumvalue > -9999.0) {
       s += StringUtil::MakeXMLtag("Maximum", maximumvalue, 8,3);
-      s += StringUtil::MakeXMLtag("MaximumAccepted", maxaccepted);
+      s += StringUtil::MakeXMLtag("MaximumAccepted", maxaccepted,8,3);
     }
-    return s;
+    return s+"\n";
   }
   //--------------------------------------------------------------
   std::string ObservationFlagControl::asXML() const
@@ -260,17 +260,17 @@ namespace scala
 
     s += "<ObservationFlags>\n";
     s += StringUtil::MakeXMLtag("BGratioTooLarge",
-				XMLset(NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio));
+	XMLset(NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio), false);
     s += StringUtil::MakeXMLtag("PKratioTooLarge",
-				XMLset(NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio));
+	XMLset(NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio), false);
     s += StringUtil::MakeXMLtag("TooNegative",
-				XMLset(NTooNeg, NaccTooNeg));
+		XMLset(NTooNeg, NaccTooNeg), false);
     s += StringUtil::MakeXMLtag("GradientTooLarge",
-				XMLset(NGradient, NaccGradient, MaxGradient, MaxAccGradient));
+	XMLset(NGradient, NaccGradient, MaxGradient, MaxAccGradient), false);
     s += StringUtil::MakeXMLtag("ProfileFittedOverloads",
-				XMLset(Noverload, Naccoverload));
+				XMLset(Noverload, Naccoverload), false);
     s += StringUtil::MakeXMLtag("Edge",
-				XMLset(Nedge, Naccedge));
+				XMLset(Nedge, Naccedge), false);
     s += "</ObservationFlags>\n";
     return s;
   }

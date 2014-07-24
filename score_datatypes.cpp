@@ -234,6 +234,17 @@ namespace scala
     return ValCount(0.0,n+nw);
   }
   //--------------------------------------------------------------
+  double correl_coeff::SD() const
+  // Standard error =~ (1-r^2)^2/sqrt(n-1)
+  {
+    double sd = 0.0;
+    if (Number() > 1) {
+      sd = 1.0 - CC()*CC();
+      sd = sd * sd / sqrt(double(Number()-1.0));
+    }
+    return sd;
+  }
+  //--------------------------------------------------------------
   correl_coeff& correl_coeff::operator +=(const correl_coeff& other)
   {
     sum_wx  += other.sum_wx;

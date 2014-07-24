@@ -34,9 +34,10 @@ public:
   FitBfactorLines (){}
 
   FitBfactorLines(const std::vector<Batch>& batches,
-				     const std::vector<Run>& RunList,
-				     const int& datasetIndex,
-				     const std::vector<float>& bfacbatch);
+		  const std::vector<Run>& RunList,
+		  const int& datasetIndex,
+		  const std::vector<float>& bfacbatch,
+		  const std::vector<int>& nbfacrun);
 
   std::vector<float> DecayBatch() const {return bfdecaybatch;}  // for each batch
 
@@ -55,6 +56,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
 			const int& datasetIndex,
 			const std::vector<float>& scale0batch,
 			const std::vector<float>& bfacbatch,
+			const std::vector<int>& nbfacrun,
 			const std::vector<MeanSD>& scalebatch,
 			phaser_io::Output& output);
 //--------------------------------------------------------------

@@ -108,34 +108,6 @@ int SetOverlapFlags(const bool& Exclude, hkl_unmerge_list& hkl_list)
       hkl_list.sum_partials();
     }
 
-    /*
-    reflection this_refl;
-    observation this_obs;
-    hkl_list.rewind();
-
-    // loop all reflections unconditionally
-    for (int jref=0;jref<hkl_list.num_reflections();++jref) {
-      this_refl = hkl_list.get_reflection(jref);
-      // loop all observations, ignoring accept flag
-      for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
-	this_obs = this_refl.get_observation(lobs);
-	ObservationStatus status = this_obs.ObsStatus();
-	int batch = this_obs.Batch(); // central batch
-	int jbatch = hkl_list.batch_serial(batch);
-	if (!usebatch[jbatch]) {
-	  if (!this_obs.IsFull()) {
-	    // sanity check
-	    Message::message(Message_fatal
-	       ("SetBatchesToUse: cannot reject individual batches for Partials"));
-	  }
-	  status.SetRejectBatch();     // Don't use
-	  this_obs.UpdateStatus(status);
-	  this_refl.replace_observation(this_obs);
-	}
-      }
-      hkl_list.replace_reflection(this_refl);
-    }
-    */
   }
   // ------------------------------------------------------------
   void ClearObsStatus(hkl_unmerge_list& hkl_list, const bool& allflags)

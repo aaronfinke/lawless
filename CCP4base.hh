@@ -111,6 +111,9 @@ namespace phaser_io {
     void parseCCP4(Preprocessor capture);
     floatType isperc(floatType percent);
     std::string Keywords();
+
+    static bool isquote(const char& ch);
+
 };
 
 } // phaser_io
