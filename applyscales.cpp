@@ -9,7 +9,7 @@
 
 namespace scala {
   double ApplyScales(const ScaleModel& AllScales, hkl_unmerge_list& hkl_list,
-		     const bool& onlyUseSingletons)
+                     const bool& onlyUseSingletons)
   //! Apply scales to all data, return mean(I) within resolution limits
   // if onlyUseSingletons true, do not attempt to apply scales to overlaps
   {
@@ -28,14 +28,14 @@ namespace scala {
 
       //  Loop all observations
       for (int i=0;i<this_refl.num_observations();++i) {
-	this_obs = this_refl.get_observation(i);
+        this_obs = this_refl.get_observation(i);
 
-	// apply scale to observation
-	AllScales.ScaleObs(this_obs, invresolsq, onlyUseSingletons);
-	this_refl.replace_observation(this_obs);
-	if (inrange) {
-	  meanI.Add(this_obs.kI());
-	}
+        // apply scale to observation
+        AllScales.ScaleObs(this_obs, invresolsq, onlyUseSingletons);
+        this_refl.replace_observation(this_obs);
+        if (inrange) {
+          meanI.Add(this_obs.kI());
+        }
       }
       hkl_list.replace_reflection(this_refl); // store updated reflection
     }

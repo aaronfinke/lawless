@@ -1,7 +1,7 @@
 // histogram.cpp
 
 
-#include "histogram.hh" 
+#include "histogram.hh"
 namespace scala {
 // ------------------------------------------------------------
 Histogram::Histogram(const Range& range)  //!< construct from range & Nbins
@@ -42,7 +42,7 @@ void Histogram::add(const double& val)   // add value into histogram
 int Histogram::total() const
 {
   int total = 0;
-  for (size_t i=0; i<counts.size(); i++) { 
+  for (size_t i=0; i<counts.size(); i++) {
     total += counts[i];
   }
   return total;

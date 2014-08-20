@@ -12,21 +12,21 @@ using phaser_io::LOGFILE;
 namespace scala {
   //------------------------------------------------------
   ReferenceList::ReferenceList(const std::string& filename,
-			       const std::string& labI,
-			       const std::string& labsigI,
-			       const double& resoLimit,
-			       const bool& verbose,
-			       phaser_io::Output& output)
+                               const std::string& labI,
+                               const std::string& labsigI,
+                               const double& resoLimit,
+                               const bool& verbose,
+                               phaser_io::Output& output)
   {
     init(filename, labI, labsigI, resoLimit, verbose, output);
   }
   //------------------------------------------------------
   void ReferenceList::init(const std::string& filename,
-			   const std::string& labI,
-			   const std::string& labsigI,
-			   const double& resoLimit,
-			   const bool& verbose,
-			   phaser_io::Output& output)
+                           const std::string& labI,
+                           const std::string& labsigI,
+                           const double& resoLimit,
+                           const bool& verbose,
+                           phaser_io::Output& output)
   {
     hklrefname = filename;
     labI_ = labI;
@@ -41,15 +41,15 @@ namespace scala {
     column_list.addLabin(labI_, labsigI_);
     hklmergelist.read(column_list, resolimit, verbose, output);
     output.logTabPrintf(1,LOGFILE,
-		     "Number of reflections read %8d\n",
-		     hklmergelist.num_obs());
+                     "Number of reflections read %8d\n",
+                     hklmergelist.num_obs());
     referencescalemodel.init();
   }
   //------------------------------------------------------
   void ReferenceList::init(const std::string& xyzin,
-			   const double& resoLimit,
-			   const bool& verbose,
-			   phaser_io::Output& output)
+                           const double& resoLimit,
+                           const bool& verbose,
+                           phaser_io::Output& output)
   // Initialise from coordinate list
   {
     hklrefname = xyzin;
@@ -58,10 +58,10 @@ namespace scala {
     bulksolvent = false;
 
     hklmergelist.CreateFromAtoms(hklrefname, "", Scell(),
-				 resolimit, verbose, output);
+                                 resolimit, verbose, output);
     output.logTabPrintf(1,LOGFILE,
-		     "Number of reflections calculated %8d\n",
-		     hklmergelist.num_obs());
+                     "Number of reflections calculated %8d\n",
+                     hklmergelist.num_obs());
     referencescalemodel.init();
   }
   //------------------------------------------------------
@@ -73,7 +73,7 @@ namespace scala {
   }
   //------------------------------------------------------
   bool ReferenceList::checkCompatible(const hkl_unmerge_list& hkl_list,
-				      const double& toleranceratio)
+                                      const double& toleranceratio)
   // toleranceratio = 1.0 for difference > maximum resolution,
   //    larger tolerance is more lax
   // set status = -1 if the two lists have different symmetry (point group),
@@ -85,10 +85,10 @@ namespace scala {
   }
   //------------------------------------------------------
   bool ReferenceList::scaleToObserved(const hkl_unmerge_list& hkl_list,
-				      const int& datasetindex,
-				      const SDmodel& SDM,
-				      const double& toleranceratio,
-				      phaser_io::Output& output)
+                                      const int& datasetindex,
+                                      const SDmodel& SDM,
+                                      const double& toleranceratio,
+                                      phaser_io::Output& output)
   // Scale reference list to observed, ie generate ReferenceScaleModel
   //  hkl_list        the observed data
   //  datasetindex    = -1 for all datasets
@@ -106,11 +106,11 @@ namespace scala {
     output.logTab(0,LOGFILE,s);
 
     // MergedList list from unmerged
-    MergedList mergedobslist(hkl_list, SDM, "", datasetindex); 
+    MergedList mergedobslist(hkl_list, SDM, "", datasetindex);
 
     // Initialise model
     referencescalemodel.init(mergedobslist,
-			     hklmergelist, toleranceratio);
+                             hklmergelist, toleranceratio);
     if (!referencescalemodel.isOK()) {
       return false;  // fail
     }
@@ -118,11 +118,11 @@ namespace scala {
     int nprocs = 1;
     Timer timer;
     RefineReferenceScale refinereferencescale(mergedobslist.ImeanForDataset(0),
-					      hklmergelist,
-					      referencescalemodel,
-					      mergedobslist.meanIntensity(),
-					      nprocs);
-  
+                                              hklmergelist,
+                                              referencescalemodel,
+                                              mergedobslist.meanIntensity(),
+                                              nprocs);
+
     refinereferencescale.setTargetType(targettype);  // ln cosh
 
     int Ncycles = 10;
@@ -135,23 +135,23 @@ namespace scala {
     referencescalemodel.fixUp();  // remove isotropic part of anisotropic B
 
     output.logTabPrintf(0,LOGFILE,"\nTime for refinement: %8.3f\n",
-			timer.Stop());
+                        timer.Stop());
     output.logTabPrintf(0,LOGFILE,"Number of reflections used: %8d\n",
-			refinereferencescale.Nobservations());
+                        refinereferencescale.Nobservations());
     output.logTab(0,LOGFILE,
-		  "\n"+referencescalemodel.format());
+                  "\n"+referencescalemodel.format());
     //^    output.setVerbose(false, false);
 
     return true;
   }
   //------------------------------------------------------
   bool ReferenceList::SFcalcScaleToObserved(const std::string& xyzin,
-					    const hkl_unmerge_list& hkl_list,
-					    const int& datasetindex,
-					    const SDmodel& SDM,
-					    const double& toleranceratio,
-					    const bool& verbose,
-					    phaser_io::Output& output)
+                                            const hkl_unmerge_list& hkl_list,
+                                            const int& datasetindex,
+                                            const SDmodel& SDM,
+                                            const double& toleranceratio,
+                                            const bool& verbose,
+                                            phaser_io::Output& output)
   // Make reference list from atoms, scale to observed with bulk solvent (CLipper),
   //  and generate ReferenceScaleModel
   //  xyzin         file name for coordinate file
@@ -160,7 +160,7 @@ namespace scala {
   //  SDM             sd model
   //  toleranceratio  = 1.0 for cell difference > maximum resolution,
   //                  larger tolerance is more lax
-  //  
+  //
   //
   // Return false if datasets are incompatible
   {
@@ -168,16 +168,15 @@ namespace scala {
     inputtype = "XYZIN";
     bulksolvent = true;
     // MergedList list from unmerged
-    MergedList mergedobslist(hkl_list, SDM, "", datasetindex); 
+    MergedList mergedobslist(hkl_list, SDM, "", datasetindex);
 
     hklmergelist.createFromAtomsBulk(xyzin, mergedobslist,
-				     verbose, output);
+                                     verbose, output);
     output.logTabPrintf(0,LOGFILE,
-			"%9d reflections generated and scaled\n",
-			hklmergelist.num_obs());
+                        "%9d reflections generated and scaled\n",
+                        hklmergelist.num_obs());
     referencescalemodel.init();  // unit scales
     return true;
   }
 
 } // namespace scala
-

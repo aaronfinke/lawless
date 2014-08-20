@@ -11,7 +11,7 @@
 //
 // Note that analysis is done on intensity bins, not E^2 bins, so the
 // distribution will not be even on intensity bins: this doesn't matter
-//  
+//
 
 #include "selectsdcorrreflections.hh"
 #include "normalise.hh"
@@ -23,8 +23,8 @@ namespace scala {
 
   // ------------------------------------------------------------
   int SelectSDcorrReflections(hkl_unmerge_list& hkl_list,
-			      const all_controls& controls,
-			      const int& Nbintarget)
+                              const all_controls& controls,
+                              const int& Nbintarget)
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
   //   Nbintarget  target minimum number of reflections / intensity bin
@@ -33,16 +33,16 @@ namespace scala {
   //   hkl_list    reflection list, reflection accept flags updated
   //
   // returns number of reflections accepted
-  //               
+  //
   {
     hkl_list.ResetReflAccept();  // set to accept everything
-    // Overall Normalisation 
+    // Overall Normalisation
     double MinIsigRatio = -1.0;  // no resolution cutoff
     bool Overall = true;
     Rings NoRings;
     ResoRange ResRangeN = hkl_list.ResLimRange();
     Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-				     ResRangeN, NoRings, 0);
+                                     ResRangeN, NoRings, 0);
 
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();
@@ -64,8 +64,8 @@ namespace scala {
     int nvrefl = 0;  // count number of valid reflections with at least 2 observations
     while (hkl_list.next_reflection(this_refl) >= 0)  {
       if ((icerings.InRing(this_refl.invresolsq()) < 0) &&
-	(this_refl.NvalidObservations() > 1)) {  // no singletons or in icering
-	nvrefl++;
+        (this_refl.NvalidObservations() > 1)) {  // no singletons or in icering
+        nvrefl++;
       }
     }
 
@@ -84,9 +84,9 @@ namespace scala {
     double frac = Min(1.0, float(Nbintarget)/float(nrefbin)); // average fraction to accept
     //^
     //    std::cout << "nvrefl, Nbintarget, nreflarge, nrefbin "
-    //	      << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
+    //        << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
     //    std::cout << "Iav, Jmax " << Iav <<" "<<Jmax <<"\n";
-    //    std::cout << "Frac "<< frac  << "\n"; 
+    //    std::cout << "Frac "<< frac  << "\n";
     //^-
 
 
@@ -101,53 +101,53 @@ namespace scala {
     // * * * * Loop all reflections
     while ((rindex = hkl_list.next_reflection(this_refl)) >= 0)  {
       if (icerings.InRing(this_refl.invresolsq()) >= 0) {
-	// reject
-	raccept = +1;
-	inring++;
-	mint = 0;
+        // reject
+        raccept = +1;
+        inring++;
+        mint = 0;
       } else if (this_refl.NvalidObservations() > 1) {  // no singletons
-	// Select all (I+ & I-) accepted observations for all datasets
-	SelectedObservations allobs(this_refl, -1, ALL);
-	IsigI AvIsig = allobs.Average();  // average I, 1/variance weight
-	raccept = 0; // accept
-	double E2 = NormRes.applyAvg(AvIsig.I(), this_refl.invresolsq());
-	if (E2 < E2min) {
-	  // Accept a fraction frac of these scaled by p(E^2)
-	  double p = exp(-E2); // p(true(E2) > E2)
-	  double acc = 1.0;
-	  if (p > 0.0) {acc = (1-frac)*(1-p)/p0 + frac;}
-	  if (p >= 1.0 || FRandom(1.0) > acc) { // reject all negative <I>
-	    // reject
-	    raccept = +1;
-	    rejf++;
-	    //^
-	    //	    std::cout << frac <<" "<<AvIsig.I()<<" "<<E2<<" "<< p<<" "<<acc<<"  **\n"; //^-
-	  }
-	}
-	mint = Irange.bin(AvIsig.I());
+        // Select all (I+ & I-) accepted observations for all datasets
+        SelectedObservations allobs(this_refl, -1, ALL);
+        IsigI AvIsig = allobs.Average();  // average I, 1/variance weight
+        raccept = 0; // accept
+        double E2 = NormRes.applyAvg(AvIsig.I(), this_refl.invresolsq());
+        if (E2 < E2min) {
+          // Accept a fraction frac of these scaled by p(E^2)
+          double p = exp(-E2); // p(true(E2) > E2)
+          double acc = 1.0;
+          if (p > 0.0) {acc = (1-frac)*(1-p)/p0 + frac;}
+          if (p >= 1.0 || FRandom(1.0) > acc) { // reject all negative <I>
+            // reject
+            raccept = +1;
+            rejf++;
+            //^
+            //      std::cout << frac <<" "<<AvIsig.I()<<" "<<E2<<" "<< p<<" "<<acc<<"  **\n"; //^-
+          }
+        }
+        mint = Irange.bin(AvIsig.I());
       } else { // singletons
-	mint = 0;
-       	raccept = +1;
+        mint = 0;
+        raccept = +1;
       }
       if (raccept != 0) { // not accepted
-	this_refl.SetStatus(raccept);
-	hkl_list.replace_reflection(this_refl); // store updated reflection
-	countsr.at(mint)++;
+        this_refl.SetStatus(raccept);
+        hkl_list.replace_reflection(this_refl); // store updated reflection
+        countsr.at(mint)++;
       } else {
-	// Count reflections accepted
-	countsa.at(mint)++;
-	refAccepted++;
+        // Count reflections accepted
+        countsa.at(mint)++;
+        refAccepted++;
       }
     }  // end loop reflections
 
     //^
     //    std::cout << "\n *** Number rejected in ice rings " << inring <<"\n";
-    //    
+    //
     //    std::cout << "\n *** Number rejected on frac " << rejf <<"\n";
     //    //^
     //    for (int i=0;i<countsa.size();++i) {
     //      std::cout <<"Count  Ibin acc rej " << i
-    //		<< " " << countsa[i]<< " " << countsr[i] <<"\n";
+    //          << " " << countsa[i]<< " " << countsr[i] <<"\n";
     //    }
     //^-
     return refAccepted;

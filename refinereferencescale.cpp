@@ -1,6 +1,6 @@
 //  refinereferencescale.cpp
 //
-// 
+//
 //  Refine scale of reference intensities to test set, using BFGS minimiser
 //
 //  Minimise f(d) = f(w(Iobs - k Iref)) where k is a ReferenceScaleModel
@@ -8,7 +8,7 @@
 //    weight w is usually "unit" weights, actually = 2/Meanintensity
 //           as a crude normalisation, but could be 1/sigma(Iobs)
 //           sigma weighting seems to give biased results with <kIref> < <Iobs>
-//           
+//
 //  Function to minimise is either:
 //    1) least squares, ie R = Sum [(wd)^2]  if targettype == RefineTargets::QUADRATIC,
 //       quadratic == true, or
@@ -94,7 +94,7 @@ namespace scala {
   }
   // ---------------------------------------------------------
   floatType RefineReferenceScale::hessianFn(TNT::Fortran_Matrix<floatType>& H,
-				   bool& is_diagonal)
+                                   bool& is_diagonal)
   {
     is_diagonal = false;
     TargetGradientHessian(true, true, H);
@@ -102,8 +102,8 @@ namespace scala {
   }
   // ---------------------------------------------------------
   void RefineReferenceScale::TargetGradientHessian(bool DoGradient,
-					   bool DoHessian,
-					   TNT::Fortran_Matrix<floatType>& H)
+                                           bool DoHessian,
+                                           TNT::Fortran_Matrix<floatType>& H)
   // Merged data version
   // Private function to calculate target function, gradient & Hessian
   //  gradient is stored locally, Hessian is returned
@@ -125,7 +125,7 @@ namespace scala {
     // then copy it into the 2D array H
     // Accumulating the Hessian is the rate-limiting step
     std::vector<floatType> Hv(npar*npar*nprocs,0.0);
-  
+
     //  Timer timer;
     target = 0.0;
     if (DoHessian) {
@@ -133,16 +133,16 @@ namespace scala {
       DoGradient = true;
       H.newsize(npar,npar);
       for (int i=0;i<npar;i++) { // loop parameters
-	for (int j=0;j<npar;j++) // loop parameters
-	  {H(i+1,j+1) = 0.0;}
+        for (int j=0;j<npar;j++) // loop parameters
+          {H(i+1,j+1) = 0.0;}
       }
     }
     if (DoGradient) {
       // Clear gradient
       for (int i=0;i<npar;i++) // loop parameters
-	{gradient[i] = 0.0;}
+        {gradient[i] = 0.0;}
     }
-  
+
     // loop all test reflections
     nref = 0;
     int nbig = 0;
@@ -160,123 +160,123 @@ namespace scala {
       // find equivalent in reference list, if present
       IsigI Isref = hklmergelist->Isig(hkl);
       if (Isref.sigI() > 0.0) {
-	ftype I = (*isigi)[ih].I();     // Iobs
-	ftype sd = (*isigi)[ih].sigI();
-	if (sd > 0.0) {
-	  double scale =
-	    referencescalemodel->fderiv(true, hkl, dkdp);
-	  //double w = 1.0/sd;
-	  double w = unitweight;  // equal weights
-	  // target function to minimise is Sum(h){w *(Iav - k Iref)^2}
-	  double di = I - scale * Isref.I();
-	  double wdi = std::abs(w*di);
-	  if (quadratictarget) {
-	    meanDi.Add(wdi);
-	    w *= w;  // square
-	    target += w * di * di;
-	  } else {
-	    // ln cosh
-	    meanDi.Add(wdi);
-	    meanDi2.Add(wdi*wdi);
-	    if (wdi > RefineTargets::MAXCOSHARG) {
-	      target += wdi;
-	      nbig++;
-	    } else {
-	      target += log(cosh(wdi));
-	    }
-	  }
-	  nref++;
+        ftype I = (*isigi)[ih].I();     // Iobs
+        ftype sd = (*isigi)[ih].sigI();
+        if (sd > 0.0) {
+          double scale =
+            referencescalemodel->fderiv(true, hkl, dkdp);
+          //double w = 1.0/sd;
+          double w = unitweight;  // equal weights
+          // target function to minimise is Sum(h){w *(Iav - k Iref)^2}
+          double di = I - scale * Isref.I();
+          double wdi = std::abs(w*di);
+          if (quadratictarget) {
+            meanDi.Add(wdi);
+            w *= w;  // square
+            target += w * di * di;
+          } else {
+            // ln cosh
+            meanDi.Add(wdi);
+            meanDi2.Add(wdi*wdi);
+            if (wdi > RefineTargets::MAXCOSHARG) {
+              target += wdi;
+              nbig++;
+            } else {
+              target += log(cosh(wdi));
+            }
+          }
+          nref++;
 
-	  meanIref.Add(scale * Isref.I());
-	  meanIobs.Add(I);   //^
+          meanIref.Add(scale * Isref.I());
+          meanIobs.Add(I);   //^
 
-	  if (DoGradient) {
-	    // dR/dp =  for parameter p
-	    double dlncdx = 1.0;
-	    if (!quadratictarget) {
-	      if (wdi < RefineTargets::MAXCOSHARG) {
-		dlncdx = tanh(w*di);  // signed
-	      } else if (di < 0.0) {
-		dlncdx = -1.0;
-	      }
-	    }
-	    for (int ip=0;ip<npar;++ip) {
-	      if (quadratictarget) {
-		gradient[ip] -= 2.0 * w * di * Isref.I() * dkdp[ip];
-	      } else {
-		gradient[ip] -= dlncdx * Isref.I() * dkdp[ip];
-	      }
-	    }
-	    if (DoHessian) {
-	      double Iref2 = Isref.I() * Isref.I();
-	      if (quadratictarget) { 
-		for (int ip=0;ip<npar;++ip) {
-		  int ip1 = ip*npar;
-		  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
-		    Hv[(ip1+jp)] += 2.0 * w * Iref2 *
-		      dkdp[ip]*dkdp[jp];
-		  }
-		}
-	      } else { // ln cosh target
-		double d2dx = 1.0;
-		// NB test against MAXCOSHARG already done for dlncdx
-		if (std::abs(wdi) > RefineTargets::MINCOSHARG) {
-		  d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
-		  // exact 2nd derivative
-		  //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
-		}
-		for (int ip=0;ip<npar;++ip) {
-		  int ip1 = ip*npar;
-		  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
-		    Hv[(ip1+jp)] += w * w * Iref2 *
-		      dkdp[ip]*dkdp[jp] * d2dx;
-		  }
-		}
-	      }
-	    } // end loop parameters
-	  }  // DoGradient
-	}  // sdI > 0
+          if (DoGradient) {
+            // dR/dp =  for parameter p
+            double dlncdx = 1.0;
+            if (!quadratictarget) {
+              if (wdi < RefineTargets::MAXCOSHARG) {
+                dlncdx = tanh(w*di);  // signed
+              } else if (di < 0.0) {
+                dlncdx = -1.0;
+              }
+            }
+            for (int ip=0;ip<npar;++ip) {
+              if (quadratictarget) {
+                gradient[ip] -= 2.0 * w * di * Isref.I() * dkdp[ip];
+              } else {
+                gradient[ip] -= dlncdx * Isref.I() * dkdp[ip];
+              }
+            }
+            if (DoHessian) {
+              double Iref2 = Isref.I() * Isref.I();
+              if (quadratictarget) {
+                for (int ip=0;ip<npar;++ip) {
+                  int ip1 = ip*npar;
+                  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
+                    Hv[(ip1+jp)] += 2.0 * w * Iref2 *
+                      dkdp[ip]*dkdp[jp];
+                  }
+                }
+              } else { // ln cosh target
+                double d2dx = 1.0;
+                // NB test against MAXCOSHARG already done for dlncdx
+                if (std::abs(wdi) > RefineTargets::MINCOSHARG) {
+                  d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
+                  // exact 2nd derivative
+                  //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
+                }
+                for (int ip=0;ip<npar;++ip) {
+                  int ip1 = ip*npar;
+                  for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
+                    Hv[(ip1+jp)] += w * w * Iref2 *
+                      dkdp[ip]*dkdp[jp] * d2dx;
+                  }
+                }
+              }
+            } // end loop parameters
+          }  // DoGradient
+        }  // sdI > 0
       }
     } // end loop reflections
-    
+
     if(DoHessian) {
       // Symmetrise Hessian
       for (int i=0;i<npar;i++) {
-	for (int j=0;j<=i;j++) {
-	  H(j+1,i+1) += Hv[(i*npar+j)];
-	  H(i+1,j+1) = H(j+1,i+1); // other half
-	}
+        for (int j=0;j<=i;j++) {
+          H(j+1,i+1) += Hv[(i*npar+j)];
+          H(i+1,j+1) = H(j+1,i+1); // other half
+        }
       }
       if (DEBUG) {
-	printf("Target: %10.1f\n", target);
-	printf("Gradient:\n");
-	for (int i=0;i<npar;i++){
-	  printf(" %8.1f", gradient[i]);
-	}
-	printf("\n");
-	
-	printf("Full Hessian:\n");
-	for (int j=0;j<npar;j++){
-	  for (int i=0;i<npar;i++){
-	    printf(" %.3lf", H(i+1,j+1));
-	  }
-	  printf("\n");
-	}
-	if (npar == 2) {
-	  double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
-	  printf("Determinant %.4f\n", det);
-	}
+        printf("Target: %10.1f\n", target);
+        printf("Gradient:\n");
+        for (int i=0;i<npar;i++){
+          printf(" %8.1f", gradient[i]);
+        }
+        printf("\n");
+
+        printf("Full Hessian:\n");
+        for (int j=0;j<npar;j++){
+          for (int i=0;i<npar;i++){
+            printf(" %.3lf", H(i+1,j+1));
+          }
+          printf("\n");
+        }
+        if (npar == 2) {
+          double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
+          printf("Determinant %.4f\n", det);
+        }
       }
 
     } else { // Hessian
       if (DEBUG) {
-	printf("Target: %10.1f\n", target);
+        printf("Target: %10.1f\n", target);
       }
     }
     if (DEBUG) {
       printf("<Iref> <Iobs> <|wDi|> rms(wDi), nbig %8.1f %8.1f %8.2f %8.2f %7d\n",
-	     meanIref.Mean(), meanIobs.Mean(),
-	     meanDi.Mean(), sqrt(meanDi2.Mean()), nbig);
+             meanIref.Mean(), meanIobs.Mean(),
+             meanDi.Mean(), sqrt(meanDi2.Mean()), nbig);
     }
 
     if (DoGradient) gradientOK = true;
@@ -298,7 +298,7 @@ namespace scala {
   {
     /*
       output.logTab(1,where,"\nScales:");
-      for (int i=0;i<npar;i++) 
+      for (int i=0;i<npar;i++)
       {output.logTabPrintf(2,where," %7.3f", params[i]);}
       output.logTab(1,where,"\n");
     */
@@ -315,9 +315,9 @@ namespace scala {
     double bound;
     for (int i=0;i<npar;i++) {
       if (referencescalemodel->GetLowerBound(i, bound)) {
-	Lower[i].on(bound);
+        Lower[i].on(bound);
       } else {
-	Lower[i].off();
+        Lower[i].off();
       }
     }
     return Lower;
@@ -329,9 +329,9 @@ namespace scala {
     double bound;
     for (int i=0;i<npar;i++) {
       if (referencescalemodel->GetUpperBound(i, bound)) {
-	Upper[i].on(bound);
+        Upper[i].on(bound);
       } else {
-	Upper[i].off();
+        Upper[i].off();
       }
     }
     return Upper;

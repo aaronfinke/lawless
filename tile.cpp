@@ -48,16 +48,16 @@ namespace scala {
       int xdetrange = Nint(detrange[0][1] - detrange[0][0]);
       int ydetrange = Nint(detrange[1][1] - detrange[1][0]);
       if (xdetrange == 3072 && ydetrange == 3072) {
-	dettype = CCD3x3;
-	ntilex = 3;
-	ntiley = 3;
+        dettype = CCD3x3;
+        ntilex = 3;
+        ntiley = 3;
       }
     }
   }
   //--------------------------------------------------------------
   //! construct from arguments
   DetectorType::DetectorType(const Type& Dtype, const std::string& TypeLabel,
-			     const std::vector<std::vector<float> >& Detrange)
+                             const std::vector<std::vector<float> >& Detrange)
     :dettype(Dtype), typestr(TypeLabel),
      ndet(1)
   {
@@ -89,14 +89,14 @@ namespace scala {
   //--------------------------------------------------------------
   //! construct from arguments
   DetectorType::DetectorType(const std::string& TypeLabel,
-			     const std::vector<std::vector<float> >& Detrange)
+                             const std::vector<std::vector<float> >& Detrange)
     : typestr(TypeLabel), ndet(1)
   {
     if (ndet > 1) {
       Message::message(Message_fatal
    ("DetectorType: cannot cope with more than one detector, update program"));
     }
-    // 
+    //
     dettype = TypeFromLabel(typestr);
     ntilex = ntiley = 1;
     if (dettype == CCD2x2) {ntilex = ntiley = 2;}
@@ -123,7 +123,7 @@ namespace scala {
     bool OK = true;
     if (std::abs(detrange[1][0] - detrange[0][0]) < 0.001) {OK = false;}
     if (std::abs(detrange[1][1] - detrange[0][1]) < 0.001) {OK = false;}
-    return OK; 
+    return OK;
   }
   //--------------------------------------------------------------
   Range DetectorType::XdetRange() const
@@ -200,9 +200,9 @@ namespace scala {
     if (dettype != b.dettype) return false;
     if (ndet != b.ndet) return false;
     for (int i=0;i<2;++i) {for (int j=0;j<2;++j) {
-	if (std::abs(detrange[i][j]-b.detrange[i][j]) > 0.001) {
-	  return false;
-	}
+        if (std::abs(detrange[i][j]-b.detrange[i][j]) > 0.001) {
+          return false;
+        }
       }}
     return true;
   }
@@ -232,33 +232,33 @@ namespace scala {
     idxrun.assign(nrun, -1);
     int k = -1;
     detectorstatistics.clear();
-    
+
     for (int irun=0;irun<nrun;irun++) {
-      int b0 = hkl_list.RunList()[irun].BatchSerial0();  // 1st batch serial 
+      int b0 = hkl_list.RunList()[irun].BatchSerial0();  // 1st batch serial
       Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
       detectortypes[irun] = DetectorType(bat0);
       if (irun == 0) { // 1st irun
-	k++;
-	idxrun[irun] = k;  // index for run
-	// Create new statistics object
-	detectorstatistics.push_back(DetectorStatistics(detectortypes[irun]));
+        k++;
+        idxrun[irun] = k;  // index for run
+        // Create new statistics object
+        detectorstatistics.push_back(DetectorStatistics(detectortypes[irun]));
       } else { // run > 0
-	// Check against earlier runs
-	bool found = false;
-	for (int jrun=0;jrun<irun;jrun++) {
-	  if (detectortypes[jrun] == detectortypes[0]) {
-	    // irun is same detector as jrun
-	    idxrun[irun] = idxrun[jrun];
-	    found = true;
-	    break;
-	  }
-	}
-	if (!found) {
-	  // irun is new dataset
-	  idxrun[irun] = ++k;
-	  detectorstatistics.push_back
-	    (DetectorStatistics(detectortypes[irun]));
-	}
+        // Check against earlier runs
+        bool found = false;
+        for (int jrun=0;jrun<irun;jrun++) {
+          if (detectortypes[jrun] == detectortypes[0]) {
+            // irun is same detector as jrun
+            idxrun[irun] = idxrun[jrun];
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          // irun is new dataset
+          idxrun[irun] = ++k;
+          detectorstatistics.push_back
+            (DetectorStatistics(detectortypes[irun]));
+        }
       }
     }  // end loop runs
     ndet = k+1;
@@ -272,7 +272,7 @@ namespace scala {
     DetectorType detectortypes;
     idxrun.assign(nrun, -1);
     detectorstatistics.clear();
-    
+
     DetectorType::Type Dtype(DetectorType::UNKNOWN);
     std::string Typelabel("Unknown");
 
@@ -285,8 +285,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void DetectorAnalysis::AddStats(const float& I, const float& AvI,
-				  const int& runidx,
-				  const int& xdet, const int& ydet)
+                                  const int& runidx,
+                                  const int& xdet, const int& ydet)
   {
     detectorstatistics[idxrun[runidx]].AddStats(I, AvI, xdet, ydet);
   }
@@ -325,7 +325,7 @@ namespace scala {
     // Pixel binning
     const int kbin = 32;
     SetBinning(kbin, kbin);
-  }    
+  }
   //--------------------------------------------------------------
   void DetectorStatistics::SetBinning(const int& Ngpxlx, const int& Ngpxly)
   {
@@ -343,15 +343,15 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void DetectorStatistics::AddStats(const float& I, const float& AvI,
-				    const int& xdet, const int& ydet)
+                                    const int& xdet, const int& ydet)
   {
     int jx = xdetrange.tbin(xdet);
     int jy = ydetrange.tbin(ydet);
     ASSERT ((jx >= 0) && (jy >= 0));
     //^
-    if (jx >= sumwIxy.rows() || jy >= sumwIxy.cols() || 
-	jx >= sumwIothers.rows() || jy >= sumwIothers.cols() ||
-	jx >= avdelta.rows() || jy >= avdelta.cols()) {
+    if (jx >= sumwIxy.rows() || jy >= sumwIxy.cols() ||
+        jx >= sumwIothers.rows() || jy >= sumwIothers.cols() ||
+        jx >= avdelta.rows() || jy >= avdelta.cols()) {
       std::cout << "Fail\n";
     }
     float w = 1.0;  // unit weights
@@ -366,22 +366,22 @@ namespace scala {
   {
     //^
     //    std::cout <<"Sizes: "
-    //	      <<sumwIxy.rows()<<" "<< sumwIxy.cols() <<" "
-    //	      <<sumwIothers.rows()<<" "<< sumwIothers.cols() <<" "
-    //	      <<avdelta.rows()<<" "<< avdelta.cols() <<"\n";
+    //        <<sumwIxy.rows()<<" "<< sumwIxy.cols() <<" "
+    //        <<sumwIothers.rows()<<" "<< sumwIothers.cols() <<" "
+    //        <<avdelta.rows()<<" "<< avdelta.cols() <<"\n";
     //^-
     // Calculate scales = Sum w I(xy) / Sum w Iothers(xy)
     clipper::Array2d<double> scale(sumwIxy.rows(), sumwIxy.cols());
     for (int ix=0;ix<sumwIxy.rows();++ix) {
       for (int iy=0;iy<sumwIxy.cols();++iy) {
-	if (sumwIothers(ix,iy) != 0.0) {
-	  scale(ix,iy) /= sumwIothers(ix,iy);
-	} else {
-	  scale(ix,iy) = 1.0;
-	}
-	if (scale(ix,iy) < 0.0) {
-	  scale(ix,iy) = 0.0;
-	}
+        if (sumwIothers(ix,iy) != 0.0) {
+          scale(ix,iy) /= sumwIothers(ix,iy);
+        } else {
+          scale(ix,iy) = 1.0;
+        }
+        if (scale(ix,iy) < 0.0) {
+          scale(ix,iy) = 0.0;
+        }
       }}
     Imagearray imagearray;
     imagearray.SetScale(1000.);
@@ -401,15 +401,15 @@ namespace scala {
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   DetectorScale::DetectorScale(const DetectorScaleType& DetScaleType,
-			       const int& nTileX, const int& nTileY,
-			       const DetectorType& dettype)
+                               const int& nTileX, const int& nTileY,
+                               const DetectorType& dettype)
   {
     init(DetScaleType, nTileX, nTileY, dettype);
   }
   //--------------------------------------------------------------
   void DetectorScale::init(const DetectorScaleType& DetScaleType,
-			   const int& nTileX, const int& nTileY,
-			   const DetectorType& dettype)
+                           const int& nTileX, const int& nTileY,
+                           const DetectorType& dettype)
   {
     detectorscaletype = DetScaleType;
     type = dettype;
@@ -427,8 +427,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void DetectorScale::init(const DetectorScaleType& DetScaleType,
-			   const int& nTileX, const int& nTileY,
-			   const Range& Xrange, const Range& Yrange)
+                           const int& nTileX, const int& nTileY,
+                           const Range& Xrange, const Range& Yrange)
   {
     detectorscaletype = DetScaleType;
     ntilex = nTileX;
@@ -451,19 +451,19 @@ namespace scala {
     nparams = 0;
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	if (detectorscaletype == FLAT) {
-	  tilescales(i,j) = new FlatTile;
-	} else if (detectorscaletype == CCD3) {
-	  tilescales(i,j) = new CCDTile3;
-	} else if (detectorscaletype == CCD1) {
-	  tilescales(i,j) = new CCDTile1;
-	} else if (detectorscaletype == CCD2) {
-	  tilescales(i,j) = new CCDTile2;
-	} else if (detectorscaletype == PIXEL) {
-	  tilescales(i,j) = new TilePixel;
-	}
-	tilescales(i,j)->init(sizex, sizey);
-	tilescales(i,j)->SetGridCoordinates(i,j);
+        if (detectorscaletype == FLAT) {
+          tilescales(i,j) = new FlatTile;
+        } else if (detectorscaletype == CCD3) {
+          tilescales(i,j) = new CCDTile3;
+        } else if (detectorscaletype == CCD1) {
+          tilescales(i,j) = new CCDTile1;
+        } else if (detectorscaletype == CCD2) {
+          tilescales(i,j) = new CCDTile2;
+        } else if (detectorscaletype == PIXEL) {
+          tilescales(i,j) = new TilePixel;
+        }
+        tilescales(i,j)->init(sizex, sizey);
+        tilescales(i,j)->SetGridCoordinates(i,j);
       }}
     setSymmetric(false);
   }
@@ -473,9 +473,9 @@ namespace scala {
   {
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	if (tilescales(i,j) != NULL) {
-	  delete tilescales(i,j);
-	}
+        if (tilescales(i,j) != NULL) {
+          delete tilescales(i,j);
+        }
       }
     }
     init();
@@ -485,7 +485,7 @@ namespace scala {
   {
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	tilescales(i,j)->clearCounts();
+        tilescales(i,j)->clearCounts();
       }}
   }
   //--------------------------------------------------------------
@@ -494,9 +494,9 @@ namespace scala {
     nparams = 0;
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	tilescales(i,j)->setSymmetric(symmetric);
-	idx_tile(i,j) = nparams;
-	nparams += tilescales(i,j)->Nparams();
+        tilescales(i,j)->setSymmetric(symmetric);
+        idx_tile(i,j) = nparams;
+        nparams += tilescales(i,j)->Nparams();
       }}
     //    std::cout << "DetectorScale::nparams " <<nparams <<"\n";  //^-
   }
@@ -504,26 +504,26 @@ namespace scala {
   DetectorScale::~DetectorScale() {
     if (ntilex > 0 && ntiley > 0) {
       for (int i=0;i<ntilex;++i) { // loop x
-	for (int j=0;j<ntiley;++j) { // loop y
-	  delete tilescales(i,j);
-	}}
+        for (int j=0;j<ntiley;++j) { // loop y
+          delete tilescales(i,j);
+        }}
     }
   }
   //--------------------------------------------------------------
   // Copy & copy constructor should fail or be done properly due to pointers
-  DetectorScale::DetectorScale(const DetectorScale& detscale) 
+  DetectorScale::DetectorScale(const DetectorScale& detscale)
     : detectorscaletype(NONE), ntilex(0), ntiley(0)
   {
     if (detscale.detectorscaletype != NONE) {
       Message::message(Message_fatal
-		       ("DetectorScale: illegal copy constructor"));
+                       ("DetectorScale: illegal copy constructor"));
     }
   }
   //--------------------------------------------------------------
   DetectorScale& DetectorScale::operator= (const DetectorScale& detscale) {
     if (detscale.detectorscaletype != NONE) {
       Message::message(Message_fatal
-		       ("DetectorScale: illegal copy operator"));
+                       ("DetectorScale: illegal copy operator"));
     }
     init(NONE, 0, 0, Range(), Range());
     return *this;
@@ -538,8 +538,8 @@ namespace scala {
       // Only sensible if more than one tile
       if (ntilex <= 0 || ntiley <= 0) {return false;}
     } else if ((detectorscaletype == CCD1) ||
-	       (detectorscaletype == CCD2) ||
-	       (detectorscaletype == CCD3)) {
+               (detectorscaletype == CCD2) ||
+               (detectorscaletype == CCD3)) {
       // At least one tile
       if (ntilex <= 1 || ntiley <= 1) {return false;}
       if (nparams <= 0) {return false;}
@@ -553,16 +553,16 @@ namespace scala {
     ASSERT (int(parameters.size()) == nparams);
     std::vector<double>::const_iterator pos1 = parameters.begin();  // start of range
     std::vector<double>::const_iterator pos2;                   // end of range
-    
+
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	pos2 = pos1 + tilescales(i,j)->Nparams();
-	tilescales(i,j)->StoreParameters(std::vector<double>(pos1, pos2));
-	//^
-	//	std::cout << "Tile "<<i<<" "<<j
-	//		  <<" "<<tilescales(i,j)->formatparameters()<<"\n";
-	//^-
-	pos1 = pos2;
+        pos2 = pos1 + tilescales(i,j)->Nparams();
+        tilescales(i,j)->StoreParameters(std::vector<double>(pos1, pos2));
+        //^
+        //      std::cout << "Tile "<<i<<" "<<j
+        //                <<" "<<tilescales(i,j)->formatparameters()<<"\n";
+        //^-
+        pos1 = pos2;
       }}
   }
   //--------------------------------------------------------------
@@ -572,8 +572,8 @@ namespace scala {
     std::vector<double> params;
     for (int i=0;i<ntilex;++i) { // loop x
       for (int j=0;j<ntiley;++j) { // loop y
-	std::vector<double> pars = tilescales(i,j)->Parameters();
-	params.insert(params.end(), pars.begin(), pars.end());
+        std::vector<double> pars = tilescales(i,j)->Parameters();
+        params.insert(params.end(), pars.begin(), pars.end());
       }}
     return params;
   }
@@ -592,8 +592,8 @@ namespace scala {
     bool found = false;
     for (i=0;i<ntilex;++i) { // loop x
       for (j=0;j<ntiley;++j) { // loop y
-	if (ipar < idx_tile(i,j)) {
-	  found = true; j--; break;}
+        if (ipar < idx_tile(i,j)) {
+          found = true; j--; break;}
       }
       if (found) {break;}
     }
@@ -630,7 +630,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::vector<Tie> DetectorScale::Ties(const std::vector<double> sdties,
-				       const int& idx0) const
+                                       const int& idx0) const
   // Return list of ties: sdties are sds for weight, idx0 is index to first global
   // parameter for setting ties, since they refer to the global parameter index
   //
@@ -643,8 +643,8 @@ namespace scala {
   {
     std::vector<Tie> ties;
     if (! ((detectorscaletype == CCD1) ||
-	   (detectorscaletype == CCD2) ||
-	   (detectorscaletype == CCD3)))
+           (detectorscaletype == CCD2) ||
+           (detectorscaletype == CCD3)))
       {return ties;}
     // Only ties for CCD tiled detector (at present)
     int idx = idx0;
@@ -659,12 +659,12 @@ namespace scala {
     }
     for (int i=0;i<ntilex;++i) { // loop tile x
       for (int j=0;j<ntiley;++j) { // loop tile y
-	std::vector<Tie> tileties = tilescales(i,j)->Ties(sdties, idx);
-	// ties within tile
-	ties.insert(ties.end(), tileties.begin(), tileties.end());
-	// Ties between tiles
-	kindexwt.push_back(tilescales(i,j)->TiedParameters(sdties, idx));
-	idx += tilescales(i,j)->Nparams(); // point to 1st parameter of next tile
+        std::vector<Tie> tileties = tilescales(i,j)->Ties(sdties, idx);
+        // ties within tile
+        ties.insert(ties.end(), tileties.begin(), tileties.end());
+        // Ties between tiles
+        kindexwt.push_back(tilescales(i,j)->TiedParameters(sdties, idx));
+        idx += tilescales(i,j)->Nparams(); // point to 1st parameter of next tile
       }}  // end tile loop
 
     int ntiles = ntilex*ntiley;
@@ -673,17 +673,17 @@ namespace scala {
     for (int j=0;j<npars;++j) { // loop parameters
       std::vector<int> kindex; // indices
       for (size_t k=0; k<kindexwt.size(); k++) {  // loop tiles
-	kindex.push_back(kindexwt[k].first[j]);  // add in parameter index for tile
-	if (int(k) == kcentral) { // overweight central tile
-	  kindex.push_back(kindexwt[k].first[j]);  // add in again
-	  kindex.push_back(kindexwt[k].first[j]);
-	}
+        kindex.push_back(kindexwt[k].first[j]);  // add in parameter index for tile
+        if (int(k) == kcentral) { // overweight central tile
+          kindex.push_back(kindexwt[k].first[j]);  // add in again
+          kindex.push_back(kindexwt[k].first[j]);
+        }
       }
       if (kindex.size() > 1) {ties.push_back(Tie(kindex, kindexwt[0].second[j]));}
     }
     //^
     //    std::cout << "Ties:\n";
-    //    for (size_t j=0; j<ties.size(); j++) { 
+    //    for (size_t j=0; j<ties.size(); j++) {
     //      std::cout << ties[j].format() <<"\n";
     //    }
     //^-
@@ -702,7 +702,7 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for detector coordinates Xdet, Ydet
   double DetectorScale::ScaleDeriv(const std::pair<float,float>& XYdet,
-				   std::vector<double>& dgdp) const
+                                   std::vector<double>& dgdp) const
   {
     double scale;
     ScaleDeriv(true, XYdet, scale, dgdp);
@@ -711,15 +711,15 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for  detector coordinates Xdet, Ydet
   void DetectorScale::ScaleDeriv(const std::pair<float,float>& XYdet,
-				 double& scale, std::vector<double>& dgdp) const
+                                 double& scale, std::vector<double>& dgdp) const
   {
     ScaleDeriv(true, XYdet, scale, dgdp);
   }
   //--------------------------------------------------------------
     // Return scale & derivatives for  detector coordinates Xdet, Ydet
   void DetectorScale::ScaleDeriv(const bool& Deriv,
-				 const std::pair<float,float>& XYdet,
-				 double& scale, std::vector<double>& dgdp) const
+                                 const std::pair<float,float>& XYdet,
+                                 double& scale, std::vector<double>& dgdp) const
   {
     // Which tile?
     int xtile = xdrange.bin(XYdet.first);
@@ -737,7 +737,7 @@ namespace scala {
     std::copy(dgdt.begin(), dgdt.end(), dgdp.begin()+idx_tile(xtile,ytile));
     //^
     //    std::cout << "DetectorScale::ScaleDeriv "
-    //	      << Xt <<" "<<Yt<<"\n";
+    //        << Xt <<" "<<Yt<<"\n";
     //    for (size_t i=0;i<dgdp.size();++i) {std::cout <<" "<<dgdp[i];}
     //    std::cout <<"\n";
     //^-
@@ -757,7 +757,7 @@ namespace scala {
       // mid-tile
       s = tilescales(ntilex/2, ntiley/2)->format();
       s += ", number of tiles: "+StringUtil::StringUtil::itos(ntilex,2)+
-	" x "+StringUtil::StringUtil::itos(ntiley,2);
+        " x "+StringUtil::StringUtil::itos(ntiley,2);
     }
     return s;
   }
@@ -782,17 +782,17 @@ namespace scala {
       // these should all have the same number of lines
       std::vector<std::vector<std::string> > sxtiles(ntilex);
       for (int i=0;i<ntilex;++i) { // loop x
-	sxtiles[i] = tilescales(i,j)->formatparameters();
-	if (i>0) {
-	  ASSERT (sxtiles[i].size() == sxtiles[0].size());
-	}
+        sxtiles[i] = tilescales(i,j)->formatparameters();
+        if (i>0) {
+          ASSERT (sxtiles[i].size() == sxtiles[0].size());
+        }
       }
       // Print them out across the page (to string)
       for (size_t k=0;k<sxtiles[0].size();++k) { // loop lines
-	for (int i=0;i<ntilex;++i) { // loop x tiles
-	  s += sxtiles[i][k];
-	}
-	s += "\n";
+        for (int i=0;i<ntilex;++i) { // loop x tiles
+          s += sxtiles[i][k];
+        }
+        s += "\n";
       }
     } // end loop y tiles
     return s;
@@ -806,7 +806,7 @@ namespace scala {
   std::string DetectorScale::FormatSave() const
   // return formatted version for save and restore
   {
-    std::string dump = "DetectorScale V1 {\n";    
+    std::string dump = "DetectorScale V1 {\n";
     dump += "DetectorType " + type.TypeLabel() + "\n";
     dump += "ScaleType " + formatType(detectorscaletype) + "\n";
     dump += "Ntilex "+itos(ntilex)+"\n";
@@ -815,9 +815,9 @@ namespace scala {
     dump += "YDrange "+ftos(ydrange.min())+" "+ftos(ydrange.max()) + "\n";
     for (int j=0;j<ntiley;++j) { // loop y
       for (int i=0;i<ntilex;++i) { // loop x
-	dump += "TileXY " + itos(i) + " " + itos(j) + "\n";
-	dump += tilescales(i,j)->FormatSave();
-	dump += "ParameterIndex " +itos(idx_tile(i,j)) + "\n";
+        dump += "TileXY " + itos(i) + " " + itos(j) + "\n";
+        dump += tilescales(i,j)->FormatSave();
+        dump += "ParameterIndex " +itos(idx_tile(i,j)) + "\n";
       } // x
     } // y
     return dump+"}\n";
@@ -850,10 +850,10 @@ namespace scala {
     int ix, jy;
     for (int j=0;j<ntiley;++j) { // loop y
       for (int i=0;i<ntilex;++i) { // loop x
-	FR.ReadTag("TileXY"); ix = FR.Int(); jy = FR.Int();
-	ASSERT ((ix == i) && (jy == j));
-	tilescales(i,j)->Restore(FR);
-	FR.ReadTag("ParameterIndex"); idx_tile(i,j) = FR.Int();
+        FR.ReadTag("TileXY"); ix = FR.Int(); jy = FR.Int();
+        ASSERT ((ix == i) && (jy == j));
+        tilescales(i,j)->Restore(FR);
+        FR.ReadTag("ParameterIndex"); idx_tile(i,j) = FR.Int();
       } // x
     } // y
     if (!FR.CheckEnd()) {
@@ -882,8 +882,8 @@ namespace scala {
     for (int y=0;y<nyp;++y) {
       float Ydet = y;
       for (int x=0;x<nxp;++x) {
-	float Xdet = x;
-	image(x,y) = Scale(std::pair<float,float>(Xdet,Ydet));
+        float Xdet = x;
+        image(x,y) = Scale(std::pair<float,float>(Xdet,Ydet));
       }}
     Imagearray imagearray;
     imagearray.SetScale(1000.);
@@ -981,7 +981,7 @@ namespace scala {
   void CCDTile3::StoreParameters(const std::vector<double>& parameters)
   {
     ASSERT (int(parameters.size()) == nparams);
-    
+
     r0 = parameters[0];
     w0 = parameters[1];
     A0 = parameters[2];
@@ -1025,7 +1025,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! return vector of internal ties, given SDs and 1st global parameter index
   std::vector<Tie> CCDTile3::Ties(const std::vector<double> sdties,
-				   const int& idx0)
+                                   const int& idx0)
   {
     // 12 parameters expressed as Fourier series, r,w relative to rad0
     // For all parameter types r,w,A, tie all Fourier coefficients to 0.0
@@ -1036,31 +1036,31 @@ namespace scala {
       double SD = sdties[4];
       double weight = 1.0/(SD*SD);
       int idx = idx0+3;  // skip r0, w0, A0
-      
+
       for (int k=3;k<nparams_tile;++k) { // loop parameters / tile (=15-3)
-	// tie ABCD to 0.0
-	ties.push_back(Tie(idx, 0.0, weight));
-	idx++;
+        // tie ABCD to 0.0
+        ties.push_back(Tie(idx, 0.0, weight));
+        idx++;
       }
     }
     return ties;
   }
   //--------------------------------------------------------------
-  //! vector of indices and weights for each parameter to be restrained across tiles 
-  std::pair<std::vector<int>, std::vector<double> > 
+  //! vector of indices and weights for each parameter to be restrained across tiles
+  std::pair<std::vector<int>, std::vector<double> >
   CCDTile3::TiedParameters(const std::vector<double> sdties,
-		 const int& idx0)
+                 const int& idx0)
   {
     // tie r0,w0,A0 tiles
     std::pair<std::vector<int>, std::vector<double> > kindexwt;
 
     int idx = idx0;
-    
+
     for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r0,w0,A0
       if (sdties[k] > 0.0) {
-	double weight = 1.0/(sdties[k]*sdties[k]);
-	kindexwt.first.push_back(idx);
-	kindexwt.second.push_back(weight);
+        double weight = 1.0/(sdties[k]*sdties[k]);
+        kindexwt.first.push_back(idx);
+        kindexwt.second.push_back(weight);
       }
       idx++;
     }
@@ -1111,9 +1111,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void CCDTile3::ScaleDeriv(const bool& Deriv,
-			    const double& Xt, const double& Yt,
-			    double& scale,
-			    std::vector<double>& dgdp) const
+                            const double& Xt, const double& Yt,
+                            double& scale,
+                            std::vector<double>& dgdp) const
   {
     // Xt, Yt in pixels
     double x = (Xt-xc0)/rad0;
@@ -1152,20 +1152,20 @@ namespace scala {
       const int NPARAMBASE = 3;
       dgdp = radfunc.deriv(NPARAMBASE, w);  // fills 1st 3 slots in dgdp
       if (!circularlysymmetric) {
-	// d/d(Fourier coefficients)
-	for (size_t i=0; i<drdp.size(); i++) { 
-	  // dg/dr(ABCD) = dg/dr * r0 * df(phi)/dr(ABCD)
-	  drdp[i] *= r0*dgdp[0];
-	  dwdp[i] *= w0*dgdp[1];  //  etc
-	  dAdp[i] *= A0*dgdp[2];
-	}
-	// dg/dq0 = dg/dq dq/dq0 = dg/dq (1+fq)  for q=r,w,A
-	dgdp[0] *= (1.0+fr); // dg/dr0
-	dgdp[1] *= (1.0+fw); // dg/dw0
-	dgdp[2] *= (1.0+fA); // dg/dA0
-	dgdp.insert(dgdp.end(), drdp.begin(), drdp.end());
-	dgdp.insert(dgdp.end(), dwdp.begin(), dwdp.end());
-	dgdp.insert(dgdp.end(), dAdp.begin(), dAdp.end());
+        // d/d(Fourier coefficients)
+        for (size_t i=0; i<drdp.size(); i++) {
+          // dg/dr(ABCD) = dg/dr * r0 * df(phi)/dr(ABCD)
+          drdp[i] *= r0*dgdp[0];
+          dwdp[i] *= w0*dgdp[1];  //  etc
+          dAdp[i] *= A0*dgdp[2];
+        }
+        // dg/dq0 = dg/dq dq/dq0 = dg/dq (1+fq)  for q=r,w,A
+        dgdp[0] *= (1.0+fr); // dg/dr0
+        dgdp[1] *= (1.0+fw); // dg/dw0
+        dgdp[2] *= (1.0+fA); // dg/dA0
+        dgdp.insert(dgdp.end(), drdp.begin(), drdp.end());
+        dgdp.insert(dgdp.end(), dwdp.begin(), dwdp.end());
+        dgdp.insert(dgdp.end(), dAdp.begin(), dAdp.end());
       }
       ASSERT (int(dgdp.size()) == nparams);
     }
@@ -1215,17 +1215,17 @@ namespace scala {
     // r, w, A
     line = "| "+
       StringUtil::CentreString(("r="+StringUtil::Strip(StringUtil::ftos(r0,6,2))
-				+rfs.format()), width-4)+
+                                +rfs.format()), width-4)+
       " |";
     s.push_back(line);
     line = "| "+
       StringUtil::CentreString(("w="+StringUtil::Strip(StringUtil::ftos(w0,6,2))
-				+wfs.format()), width-4)+
+                                +wfs.format()), width-4)+
       " |";
     s.push_back(line);
     line = "| "+
       StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
-				+Afs.format()), width-4)+
+                                +Afs.format()), width-4)+
       " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
@@ -1282,7 +1282,7 @@ namespace scala {
     FR.ReadTag("Nparams"); nparams = FR.Int(); nparams_smooth = FR.Int();
     FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
     FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
-    FR.ReadTag("Parameters"); 
+    FR.ReadTag("Parameters");
     std::vector<double> parameters = FR.DoubleVec(nparams);
     StoreParameters(parameters);
     FR.ReadTag("Ncorners");
@@ -1359,7 +1359,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! return vector of ties, given SDs and 1st global parameter index
   std::vector<Tie> CCDTile1::Ties(const std::vector<double> sdties,
-				   const int& idx0)
+                                   const int& idx0)
   {
     // Note that r,w,x0,y0 etc are in fractions of rad0
     std::vector<Tie> ties;
@@ -1377,22 +1377,22 @@ namespace scala {
     return ties;
   }
   //--------------------------------------------------------------
-  //! vector of indices and weights for each parameter to be restrained across tiles 
-  std::pair<std::vector<int>, std::vector<double> > 
+  //! vector of indices and weights for each parameter to be restrained across tiles
+  std::pair<std::vector<int>, std::vector<double> >
   CCDTile1::TiedParameters(const std::vector<double> sdties,
-		 const int& idx0)
+                 const int& idx0)
   {
     std::pair<std::vector<int>, std::vector<double> > kindexwt;
     // Tie r,w,A parameters together for all tiles
     int idx = idx0;   // starting global parameter index
     for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r,w,A
       if (sdties[k] > 0.0) {
-	double weight = sdties[k];
-	weight = 1./(weight*weight);
-	kindexwt.second.push_back(weight);
-	std::cout << k <<" tie for r,w,A = 0,1,2\n";
-	std::vector<int> kindex;  // parameter indices for this group of parameters
-	kindexwt.first.push_back(idx);
+        double weight = sdties[k];
+        weight = 1./(weight*weight);
+        kindexwt.second.push_back(weight);
+        std::cout << k <<" tie for r,w,A = 0,1,2\n";
+        std::vector<int> kindex;  // parameter indices for this group of parameters
+        kindexwt.first.push_back(idx);
       }
       idx++;
     } // end loop r,w,A
@@ -1441,9 +1441,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void CCDTile1::ScaleDeriv(const bool& Deriv,
-			    const double& Xt, const double& Yt,
-			    double& scale,
-			    std::vector<double>& dgdp) const
+                            const double& Xt, const double& Yt,
+                            double& scale,
+                            std::vector<double>& dgdp) const
   {
     // symmetric correction, function of x & y separately
     // Xt, Yt in pixels
@@ -1483,13 +1483,13 @@ namespace scala {
       dgdp[2] = fz - 1.0;                // ds/dA
       */
       // ds/dx0 = ds/dd dd/dx0
-      // dd/dx0 = 
+      // dd/dx0 =
       if (d == 0.0) {
-	dgdp[3] = dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
-	dgdp[4] = dgdp[0]; //  dd/dy0 = -1
+        dgdp[3] = dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
+        dgdp[4] = dgdp[0]; //  dd/dy0 = -1
       } else {
-	dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
-	dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
+        dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
+        dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
       }
     }
   }
@@ -1536,14 +1536,14 @@ namespace scala {
     // r, w, A
     line = "| "+
       StringUtil::CentreString(("r="+StringUtil::ftos(r,6,2)+
-				", w="+StringUtil::ftos(w,6,2)+
-				", A="+StringUtil::ftos(A,6,2)), width-4)+
+                                ", w="+StringUtil::ftos(w,6,2)+
+                                ", A="+StringUtil::ftos(A,6,2)), width-4)+
       " |";
     s.push_back(line);
     line = "| "+
       StringUtil::CentreString
       (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
-	", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
+        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
       " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
@@ -1590,7 +1590,7 @@ namespace scala {
     FR.ReadTag("Nparams"); nparams = FR.Int();
     FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
     FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
-    FR.ReadTag("Parameters"); 
+    FR.ReadTag("Parameters");
     std::vector<double> parameters = FR.DoubleVec(nparams);
     StoreParameters(parameters);
     FR.ReadTag("Ncorners");
@@ -1663,7 +1663,7 @@ namespace scala {
     A0 = parameters[2];
     x0 = parameters[3];
     y0 = parameters[4];
-    
+
     if (!circularlysymmetric) {
       std::vector<double>::const_iterator pp = parameters.begin() + 5;
       std::vector<double> A_params(pp, pp+nparams_smooth);
@@ -1688,8 +1688,8 @@ namespace scala {
     par[4] = y0;
     if (!circularlysymmetric) {
       std::vector<double> A_params = Afs.GetParameters();
-      for (size_t j=0; j<A_params.size(); j++) { 
-	par[j+5] = A_params[j];
+      for (size_t j=0; j<A_params.size(); j++) {
+        par[j+5] = A_params[j];
       }
     }
     ASSERT (int(par.size()) == nparams);
@@ -1698,7 +1698,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! return vector of internal ties, given SDs and 1st global parameter index
   std::vector<Tie> CCDTile2::Ties(const std::vector<double> sdties,
-				   const int& idx0)
+                                   const int& idx0)
   {
     std::vector<Tie> ties;
     sdties_ = sdties;
@@ -1728,17 +1728,17 @@ namespace scala {
       weight = 1.0/(sdties[4]*sdties[4]);
       // For parameter type A, tie all Fourier coefficients to 0.0
       for (int j=0;j<nparams_smooth;++j) { // ABCD
-	// tie ABCD to 0.0
-	ties.push_back(Tie(idx++, 0.0, weight));
+        // tie ABCD to 0.0
+        ties.push_back(Tie(idx++, 0.0, weight));
       }
     }
     return ties;
   }
   //--------------------------------------------------------------
-  //! vector of indices and weights for each parameter to be restrained across tiles 
-  std::pair<std::vector<int>, std::vector<double> > 
+  //! vector of indices and weights for each parameter to be restrained across tiles
+  std::pair<std::vector<int>, std::vector<double> >
   CCDTile2::TiedParameters(const std::vector<double> sdties,
-		 const int& idx0)
+                 const int& idx0)
   {
     //  r,w relative to rad0
     // For parameter types r,w,A, tie across tiles
@@ -1820,9 +1820,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void CCDTile2::ScaleDeriv(const bool& Deriv,
-				 const double& Xt, const double& Yt,
-				 double& scale,
-				 std::vector<double>& dgdp) const
+                                 const double& Xt, const double& Yt,
+                                 double& scale,
+                                 std::vector<double>& dgdp) const
   {
     // Xt, Yt in pixels
     double x = (Xt-xc0)/rad0;
@@ -1851,32 +1851,32 @@ namespace scala {
     if (Deriv) {
       // Count observations in each corner, only if calculating derivatives
       if (d > dcrnmin) { // in a corner
-	int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
-	int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
-	ncorners(i,j)++;
+        int i = (x-x0) < 0.0 ? 0 : 1; // 0 or 1 if left or right
+        int j = (y-y0) < 0.0 ? 0 : 1; // 0 or 1 if bottom or top
+        ncorners(i,j)++;
       }
       dgdp = radfunc.deriv(nparams, w);  // fills 1st 3 slots in dgdp
       /*
-	dgdp.resize(nparams);
-	dgdp[0] = (twooverrootpi * A / w) * exp(-z*z);  // dgdr = -dgdd
-	dgdp[1] = dgdp[0] * (1. + 0.5*z);               // dgdw 
-	double dgdA = 0.5 * erfz - 1.0;         // dgd(Atotal)
-	dgdp[2] = dgdA *(1.0 + fA);  // dg/d(Aconstant) = dg/dA dA/d(Aconstant)
+        dgdp.resize(nparams);
+        dgdp[0] = (twooverrootpi * A / w) * exp(-z*z);  // dgdr = -dgdd
+        dgdp[1] = dgdp[0] * (1. + 0.5*z);               // dgdw
+        double dgdA = 0.5 * erfz - 1.0;         // dgd(Atotal)
+        dgdp[2] = dgdA *(1.0 + fA);  // dg/d(Aconstant) = dg/dA dA/d(Aconstant)
       */
       // dg/dA0 = dg/dA dA/dA0 = dg/dA (1 + fA)
       dgdp[2] = dgdp[2] *(1.0 + fA); // dg/d(Aconstant) = dg/dA dA/d(Aconstant)
       // x0, y0
       if (d == 0.0) {
-	dgdp[3] = - dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
-	dgdp[4] = - dgdp[0]; //  dd/dy0 = -1
+        dgdp[3] = - dgdp[0]; // eg if y=y0, d=x-x0, dd/dx0 = -1
+        dgdp[4] = - dgdp[0]; //  dd/dy0 = -1
       } else {
-	dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
-	dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
+        dgdp[3] = - dgdp[0] * (x0 - x) / d;  // dgdx0 = dg/dd * dd/dx0
+        dgdp[4] = - dgdp[0] * (y0 - y) / d;  // dgdy0 = dg/dd * dd/dy0
       }
       if (!circularlysymmetric) {
-	for (size_t i=0; i<dAdp.size(); i++) { 
-	  dgdp[i+5] = dAdp[i] * dgdp[2] * A0;
-	}
+        for (size_t i=0; i<dAdp.size(); i++) {
+          dgdp[i+5] = dAdp[i] * dgdp[2] * A0;
+        }
       }
     }
   }
@@ -1929,23 +1929,23 @@ namespace scala {
     // r, w, A
     line = "| "+
       StringUtil::CentreString("r="+StringUtil::ftos(r,6,2)+
-			       ", w="+StringUtil::ftos(w,6,2), width-4)+" |";
+                               ", w="+StringUtil::ftos(w,6,2), width-4)+" |";
     s.push_back(line);
     if (circularlysymmetric) {
       line = "| "+
-	StringUtil::CentreString("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2)), width-4)+
+        StringUtil::CentreString("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2)), width-4)+
       " |";
     } else {
       line = "| "+
-	StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
-				  +Afs.format()), width-4)+
-	" |";
+        StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
+                                  +Afs.format()), width-4)+
+        " |";
     }
     s.push_back(line);
     line = "| "+
       StringUtil::CentreString
       (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
-	", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
+        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
       " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
@@ -1978,8 +1978,8 @@ namespace scala {
       StringUtil::ftos(sdties_[3],7,3)+"\n";
     if (!circularlysymmetric) {
       s += std::string(
-	"   Fourier coefficients of variation of A will be tied to zero with SD")+
-	StringUtil::ftos(sdties_[4],7,3)+"\n";
+        "   Fourier coefficients of variation of A will be tied to zero with SD")+
+        StringUtil::ftos(sdties_[4],7,3)+"\n";
     }
     return s;
   }
@@ -2023,7 +2023,7 @@ namespace scala {
     FR.ReadTag("Nparams"); nparams = FR.Int(); nparams_smooth = FR.Int();
     FR.ReadTag("XYc0"); xc0 = FR.Double(); yc0 = FR.Double();
     FR.ReadTag("XY0"); x0 = FR.Double(); y0 = FR.Double();
-    FR.ReadTag("Parameters"); 
+    FR.ReadTag("Parameters");
     std::vector<double> parameters = FR.DoubleVec(nparams);
     StoreParameters(parameters);
     FR.ReadTag("Ncorners");
@@ -2037,7 +2037,7 @@ namespace scala {
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   double RadialFunctionGompertzCDF::value(const double& z, const double& A)
-  //! calculate the value of the function and store intermediates 
+  //! calculate the value of the function and store intermediates
   {
     // Gompertz distribution CDF
     z_ = z;
@@ -2054,7 +2054,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! derivatives ds/dp0, for r,w,A, must follow a call to value
   std::vector<double> RadialFunctionGompertzCDF::deriv(const int& nparams,
-						       const double& w) const
+                                                       const double& w) const
   {
     ASSERT (A_ >= -999.);
     std::vector<double> dsdp(nparams); // nparams >= 3
@@ -2067,7 +2067,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double RadialFunctionErfc::value(const double& z, const double& A)
-  //! calculate the value of the function and store intermediates 
+  //! calculate the value of the function and store intermediates
   {
     // erfc
     z_ = z;
@@ -2081,7 +2081,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! derivatives ds/dp0, for r,w,A, must follow a call to value
   std::vector<double> RadialFunctionErfc::deriv(const int& nparams,
-						const double& w) const
+                                                const double& w) const
   {
     std::vector<double> dsdp(nparams); // nparams >= 3
     // df/dz = -(1/sqrt(pi))exp(-z^2); ds/dz = A df/dz
@@ -2132,9 +2132,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void FlatTile::ScaleDeriv(const bool& Deriv,
-			    const double& Xt, const double& Yt,
-			    double& scale,
-			    std::vector<double>& dgdp) const
+                            const double& Xt, const double& Yt,
+                            double& scale,
+                            std::vector<double>& dgdp) const
   {
     dgdp.assign(1,1.0);
     scale = 1.0;
@@ -2215,7 +2215,7 @@ namespace scala {
     int k = -1;
     for (int jx=0;jx<njx;++jx) {
       for (int jy=0;jy<njy;++jy) {
-	scalexy(jx,jy) = parameters[++k];
+        scalexy(jx,jy) = parameters[++k];
       }}
   }
   //--------------------------------------------------------------
@@ -2226,7 +2226,7 @@ namespace scala {
     int k = -1;
     for (int jx=0;jx<njx;++jx) {
       for (int jy=0;jy<njy;++jy) {
-	par[++k] = scalexy(jx,jy);
+        par[++k] = scalexy(jx,jy);
       }}
     return par;
   }
@@ -2254,9 +2254,9 @@ namespace scala {
   //--------------------------------------------------------------
   // Return scale & derivatives for tile coordinates Xt, Yt
   void TilePixel::ScaleDeriv(const bool& Deriv,
-				 const double& Xt, const double& Yt,
-				 double& scale,
-				 std::vector<double>& dgdp) const
+                                 const double& Xt, const double& Yt,
+                                 double& scale,
+                                 std::vector<double>& dgdp) const
   {
     int jx = Xt/ngpxlX;
     int jy = Yt/ngpxlY;
@@ -2315,7 +2315,7 @@ namespace scala {
     FR.ReadTag("Nparams"); nparams = FR.Int();
     FR.ReadTag("NgpxlXY"); ngpxlX = FR.Int(); ngpxlY = FR.Int();
     FR.ReadTag("NjXY"); njx = FR.Int(); njy = FR.Int();
-    FR.ReadTag("Parameters"); 
+    FR.ReadTag("Parameters");
     std::vector<double> parameters = FR.DoubleVec(nparams);
     StoreParameters(parameters);
     if (!FR.CheckEnd()) {
@@ -2327,7 +2327,7 @@ namespace scala {
   //=======================================================================
   //! construct or initialise from constant value
   FourierSmooth::FourierSmooth(const double& flatlevel,
-			       const bool& isconstant)
+                               const bool& isconstant)
   {
     setIsConstant(isconstant);
     setLevel(flatlevel);
@@ -2357,11 +2357,11 @@ namespace scala {
 //----------------------------------------------------------------------------
 //! set parameters from 5 values, ideally at pi/5 + n pi/2
 void FourierSmooth::determineParameters(const std::vector<double>& phivalues,
-					const std::vector<double>& values)
+                                        const std::vector<double>& values)
 {
   if (int(phivalues.size()) != 5) {
     clipper::Message::message(Message_fatal
-	("FourierSmooth::determineParameters: must have 5 values"));
+        ("FourierSmooth::determineParameters: must have 5 values"));
   }
   ASSERT (phivalues.size() == values.size());
   // We have 5 observational equations, i=1,5, values v[i], angles p[i]
@@ -2372,7 +2372,7 @@ void FourierSmooth::determineParameters(const std::vector<double>& phivalues,
   clipper::Matrix<double> P(5,5);
   for (size_t j=0; j<phivalues.size(); j++) {  // build the matrix
     P(j, 0) = cos(phivalues[j]);
-    P(j, 1) = sin(phivalues[j]); 
+    P(j, 1) = sin(phivalues[j]);
     P(j, 2) = cos(2.0*phivalues[j]);
     P(j, 3) = sin(2.0*phivalues[j]);
     P(j, 4) = 1.0;
@@ -2403,7 +2403,7 @@ double FourierSmooth::Value(const double& phi) const
 //-----------------------------------------------------------------------
 //! get value at angle phi and dvdp its derivatives wrt parameters
 double FourierSmooth::ValueDerivatives(const double& phi,
-				       std::vector<double>& dvdp) const
+                                       std::vector<double>& dvdp) const
 {
   double cp = cos(phi);
   double sp = sin(phi);
@@ -2424,7 +2424,7 @@ double FourierSmooth::ValueDerivatives(const double& phi,
 std::string FourierSmooth::dump() const
 {
   std::string s = "FourierSmooth: ABCD[E] = ";
-  for (size_t j=0; j<parameters.size(); j++) { 
+  for (size_t j=0; j<parameters.size(); j++) {
     s += " "+StringUtil::ftos(parameters[j], 9, 4);
   }
   return s+"\n";
@@ -2439,7 +2439,7 @@ std::string FourierSmooth::format() const
     s += StringUtil::ftos(parameters.back(), 5, 2);
   }
   s += " {";
-  for (size_t j=0; j<last; j++) { 
+  for (size_t j=0; j<last; j++) {
     if (j != 0) {s += ",";}
     s += StringUtil::ftos(parameters[j], 5, 2);
   }
@@ -2447,6 +2447,6 @@ std::string FourierSmooth::format() const
   return StringUtil::Strip(s);
 }
 //-----------------------------------------------------------------------
-  
+
 
 }

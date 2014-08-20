@@ -106,7 +106,7 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
     BasisFn_spline bfns( is1, 12 );
     ResolutionFn rfns( hkl1, bfns, tfns, params );
     for ( HRI ih = hkl1.first(); !ih.last(); ih.next() )
-      //ic1[ih] = datatypes::I_sigI<T>( sqrt(rfns.f(ih)), 1.0 );  
+      //ic1[ih] = datatypes::I_sigI<T>( sqrt(rfns.f(ih)), 1.0 );
       ic1[ih] = datatypes::I_sigI<T>( rfns.f(ih), 1.0 );  // I, sigI
 
 
@@ -120,19 +120,19 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
     //^^
     //    U_aniso_orth u0 = bfn.u_aniso_orth( param );
     //    std::cout << "u0\n" <<u0.format() <<"\n";
-    //    clipper::Matrix<double> Uorth(3,3); 
+    //    clipper::Matrix<double> Uorth(3,3);
     //    for (int j=0;j<3;++j) {
     //      for (int i=0;i<3;++i) {
-    //	Uorth(i,j) = u0(i,j);
+    //  Uorth(i,j) = u0(i,j);
     //      }}
     //    std::vector<double> eo = Uorth.eigen();
     //    std::cout << "Eigenvalues: ";
     //    for (int i=0;i<3;++i) {std::cout <<" "<<eo[i];}
     //    std::cout <<"\n";
     //    double minB = clipper::Util::eightpi2() *
-    //      std::min(std::min(eo[0], eo[1]), eo[2]); 
+    //      std::min(std::min(eo[0], eo[1]), eo[2]);
     //    double maxB =  clipper::Util::eightpi2() *
-    //      std::max(std::max(eo[0], eo[1]), eo[2]); 
+    //      std::max(std::max(eo[0], eo[1]), eo[2]);
     //    double db = maxB - minB;
     //    std::cout << "DeltaB " << db <<"\n";
     //^-
@@ -146,7 +146,7 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
     is1 = io1;
     for ( HRI ih = hkl1.first(); !ih.last(); ih.next() )
       if ( !is1[ih].missing() )
-	is1[ih].scale( exp( 0.5*bfn.f(ih.hkl(),hkl1.cell(),param) ) );  //was 0.5 NDS
+        is1[ih].scale( exp( 0.5*bfn.f(ih.hkl(),hkl1.cell(),param) ) );  //was 0.5 NDS
     u = bfn.u_aniso_orth( param );
 
     //^^
@@ -154,7 +154,7 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
     //    std::cout << c << " | " << param[1] << " " << param[2] << " " << param[3] << " " << param[4] << " " << param[5] << " " << param[6] << "\n";
     //    for (int j=0;j<3;++j) {
     //      for (int i=0;i<3;++i) {
-    //	Uorth(i,j) = u(i,j);
+    //  Uorth(i,j) = u(i,j);
     //      }}
     //    eo = Uorth.eigen();
     //    std::cout << "Eigenvalues: ";

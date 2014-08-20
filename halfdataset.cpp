@@ -57,8 +57,8 @@ namespace scala {
     }
     rmsdelanomOverall = rmsOverall.SD();
     correlplot.init("DelAnom/RMS scatter plot",
-		    dataset_pxd.format(), nresbin,
-		    rmsdelanomOverall, nAnomPairs);
+                    dataset_pxd.format(), nresbin,
+                    rmsdelanomOverall, nAnomPairs);
     iscorrelplot = true;
   }
   // ------------------------------------------------------------
@@ -70,7 +70,7 @@ namespace scala {
     for (int i=0;i<nresbin;++i) {
       rmsdelanom[i] = RMSdelanom[i].SD();
       rmsOverall += RMSdelanom[i];
-    }    
+    }
   }
   // ------------------------------------------------------------
   void HalfDataset::AddMean(const int& mres, SelectedObservations& allobs)
@@ -86,7 +86,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAnomCentric(const int& mres,
-				   SelectedObservations& allobs)
+                                   SelectedObservations& allobs)
   // Add into sums, centric without anomalous
   {
     const float cossin45 = 0.707106781;   // cos 45 = sin 45
@@ -97,16 +97,16 @@ namespace scala {
       float del2 = Is[1] - Is[3];
       // Exclude unfeasibly large differences
       if (del1 < maxDelAnom*rmsdelanom[mres] && del2 < maxDelAnom*rmsdelanom[mres]) {
-	ccanomresoCen[mres].add(del1, del2);
-	// Sums for RMS correlation ratio
-	rmsCorrelCen[mres].Add(cossin45*(del1+del2));
-	rmsErrorCen[mres].Add(cossin45*(del1-del2));      }
+        ccanomresoCen[mres].add(del1, del2);
+        // Sums for RMS correlation ratio
+        rmsCorrelCen[mres].Add(cossin45*(del1+del2));
+        rmsErrorCen[mres].Add(cossin45*(del1-del2));      }
     }
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAnom(const int& mres,
-			    SelectedObservations& obsplus,
-			    SelectedObservations& obsminus)
+                            SelectedObservations& obsplus,
+                            SelectedObservations& obsminus)
   // Add into sums, acentric with anomalous
   {
     const float cossin45 = 0.707106781;   // cos 45 = sin 45
@@ -116,15 +116,15 @@ namespace scala {
       float del2 = I2p - I2m;
       // Exclude unfeasibly large differences
       if (std::abs(del1) < maxDelAnom*rmsdelanom[mres] &&
-	  std::abs(del2) < maxDelAnom*rmsdelanom[mres]) {
-	ccanomreso[mres].add(del1, del2);
-	// Sums for RMS correlation ratio
-	rmsCorrel[mres].Add(cossin45*(del1+del2));
-	rmsError[mres].Add(cossin45*(del1-del2));
-	// Add point for correlation plot, with sampling if necessary
-	if (iscorrelplot) {
-	  correlplot.AddPoint(mres, del1, del2);
-	}
+          std::abs(del2) < maxDelAnom*rmsdelanom[mres]) {
+        ccanomreso[mres].add(del1, del2);
+        // Sums for RMS correlation ratio
+        rmsCorrel[mres].Add(cossin45*(del1+del2));
+        rmsError[mres].Add(cossin45*(del1-del2));
+        // Add point for correlation plot, with sampling if necessary
+        if (iscorrelplot) {
+          correlplot.AddPoint(mres, del1, del2);
+        }
       }
     }
   }
@@ -226,28 +226,28 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAniso(const int& mres, const int& jaxis,
-			     const double& wt,
-			     SelectedObservations& allobs)
+                             const double& wt,
+                             SelectedObservations& allobs)
   // Add into sums, for anisotropy analysis along three directions
   {
     float I1, I2;
     if (mres == 0) {
       // inner resolution bin, use all data for all directions
       if (allobs.HalfAverages(I1, I2)) {
-	for (int j=0;j<3;++j) {
-	  ccaniso[j][mres].add(I1,I2,wt);  // analyis by axis and resolution
-	}
+        for (int j=0;j<3;++j) {
+          ccaniso[j][mres].add(I1,I2,wt);  // analyis by axis and resolution
+        }
       }
     } else if (jaxis >= 0) { // near axis
       if (allobs.HalfAverages(I1, I2)) {
-	ccaniso[jaxis][mres].add(I1,I2,wt);  // analysis by axis and resolution
+        ccaniso[jaxis][mres].add(I1,I2,wt);  // analysis by axis and resolution
       }
     }
   }
   // ------------------------------------------------------------
   void HalfDataset::AddAnisoProjection(const IVect3& anisores,
-				       SelectedObservations& allobs,
-				       const float& normscale)
+                                       SelectedObservations& allobs,
+                                       const float& normscale)
   // Add into sums, for anisotropy analysis by projection
   // along three directions
   // anisores are 3 projected resolution bins along the principle axes
@@ -259,7 +259,7 @@ namespace scala {
       I2 *= normscale;
       //^      std::cout << "I12 " << I1 <<"  " <<I2<<"\n"; //^
       for (int i=0;i<3;++i) {
-	ccanisoprj[i][anisores[i]].add(I1,I2);  // analyis by axis and resolution
+        ccanisoprj[i][anisores[i]].add(I1,I2);  // analyis by axis and resolution
       }
     }
   }
@@ -296,7 +296,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void HalfDataset::Analyse(const ResoRange& ResRange,
-			    const double& MinimumHalfdatasetCC)
+                            const double& MinimumHalfdatasetCC)
   // Determine resolution "limits" from half-dataset CCs
   // Also clear directions if there is only a value in the 1st bin
   {
@@ -306,18 +306,18 @@ namespace scala {
       std::vector<double> cc(ccaniso[jax].size(),0.0);
       bool OK = false;
       for (size_t i=0;i<ccaniso[jax].size();++i) {
-	if (i>0 && ccaniso[jax][i].result().count > 0) {
-	  OK = true;
-	}
-	cc[i] = ccaniso[jax][i].result().val;
+        if (i>0 && ccaniso[jax][i].result().count > 0) {
+          OK = true;
+        }
+        cc[i] = ccaniso[jax][i].result().val;
       }
       if (!OK) {
-	// clear directions if there is only a value in the 1st bin
-	for (size_t i=0;i<ccaniso[jax].size();++i) {
-	  ccaniso[jax][i].zero();
-	}
+        // clear directions if there is only a value in the 1st bin
+        for (size_t i=0;i<ccaniso[jax].size();++i) {
+          ccaniso[jax][i].zero();
+        }
       } else {
-	anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC);
+        anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC);
       }
     }
     // Overall values

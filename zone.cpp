@@ -14,7 +14,7 @@ namespace scala
 {  //--------------------------------------------------------------
   double IscoreVal(const IsigI& Isig)
   // Score function value from I,sig
-  //  = I/sigI 
+  //  = I/sigI
   {
     if (Isig.I() < 0.0) {return 0.0;}
     return Isig.I()/(Isig.sigI());
@@ -30,11 +30,11 @@ namespace scala
 
     for (size_t is=0;is<ngrid.size();is++)
       {
-	Sumx[is] = 0.0;
-	if (ngrid[is] > 1)
-	  xgrid[is] = 1.0/double(ngrid[is]);
-	else
-	  xgrid[is] = 0.0;
+        Sumx[is] = 0.0;
+        if (ngrid[is] > 1)
+          xgrid[is] = 1.0/double(ngrid[is]);
+        else
+          xgrid[is] = 0.0;
       }
     nobs = 0;
   }
@@ -47,11 +47,11 @@ namespace scala
 
     for (size_t is=0;is<ngrid.size();is++)
       {
-	Sumx[is] = 0.0;
-	if (xgrid[is] > 1)
-	  ngrid[is] = Nint(1.0/xgrid[is]);
-	else
-	  ngrid[is] = 0;
+        Sumx[is] = 0.0;
+        if (xgrid[is] > 1)
+          ngrid[is] = Nint(1.0/xgrid[is]);
+        else
+          ngrid[is] = 0;
       }
     nobs = 0;
   }
@@ -66,7 +66,7 @@ namespace scala
 
     for (size_t is=0;is<ngrid.size();is++)
       {
-	Sumx[is] += Val * cos(twopij * xgrid[is]);
+        Sumx[is] += Val * cos(twopij * xgrid[is]);
       }
     nobs++;
   }
@@ -81,19 +81,19 @@ namespace scala
     std::vector<double> F(ngrid.size(),0.0);
     if (nobs > 0)
       {
-	double F0;
-	for (size_t is=0;is<ngrid.size();is++)
-	  {
-	    F[is] = Sumx[is]/double(nobs);
-	    if (is == 0) F0 = F[is];   // normalise to zero'th term
-	    if (F0 > 0.0) {
-	      F[is] = F[is]/F0;
-	    } else {
-	      F[is] = 0.0;
-	    }
-	    //^
-	    //^	    std::cout << "1DFV " << is << " " << F[is] << "\n";
-	  }
+        double F0;
+        for (size_t is=0;is<ngrid.size();is++)
+          {
+            F[is] = Sumx[is]/double(nobs);
+            if (is == 0) F0 = F[is];   // normalise to zero'th term
+            if (F0 > 0.0) {
+              F[is] = F[is]/F0;
+            } else {
+              F[is] = 0.0;
+            }
+            //^
+            //^     std::cout << "1DFV " << is << " " << F[is] << "\n";
+          }
       }
     return F;
   }
@@ -103,7 +103,7 @@ namespace scala
   double Zone::MinControlSD = 0.05;
   //--------------------------------------------------------------
   Zone::Zone(const std::string& Axis, const int& Nfold,
-	     const hkl_symmetry& LGsym)
+             const hkl_symmetry& LGsym)
   // Initialise from Axis (a|b|c) & order (2,3,4,6)
   // Nfold negated to test only the 1/Nfold point
   // (sets validpoint array)
@@ -126,7 +126,7 @@ namespace scala
 
     // Vector to convert input hkl to Fourier index
     //  set here to 001 (ie 00l), permuted in "init"
-    cond = clipper::Vec3<int>(0,0,1);  
+    cond = clipper::Vec3<int>(0,0,1);
 
 
     if (Axis == "a") {
@@ -140,14 +140,14 @@ namespace scala
     }
     else {
       clipper::Message::message(clipper::Message_fatal
-				("Illegal argument to Zone Axis: "+Axis));
+                                ("Illegal argument to Zone Axis: "+Axis));
     }
     lgsymm = LGsym;  // Laue group symmetry
     init(disable);
   }
   //--------------------------------------------------------------
   Zone::Zone(const std::string& GlidePlane, const std::string& Glide,
-	     const hkl_symmetry& LGsym)
+             const hkl_symmetry& LGsym)
   // Initialise from Glide Plane & translation direction
   {
     axis = false;
@@ -160,7 +160,7 @@ namespace scala
     // point is useful. This is the case for all glides
     // and 2- & 3-fold screws
     singleprob = true;
-    
+
     if (GlidePlane =="a") {
       permute = ReindexOp("k,l,h");
     }
@@ -184,7 +184,7 @@ namespace scala
     }
     else {
       clipper::Message::message(clipper::Message_fatal
-				("Illegal argument to Zone Plane: "+GlidePlane));
+                                ("Illegal argument to Zone Plane: "+GlidePlane));
     }
 
     // cond is vector to convert input hkl to Fourier index
@@ -199,42 +199,42 @@ namespace scala
     //     n       001   l=2n
     //     d       111   h+k+l=4n
 
-    if (Glide =="a" || Glide =="b" || Glide =="c") 
+    if (Glide =="a" || Glide =="b" || Glide =="c")
       {
-	if (Glide =="a") {
-	  cond = clipper::Vec3<int>(1,0,0);  // Glide shift x+1/2
-	}
-	else if (Glide =="b") {
-	  cond = clipper::Vec3<int>(0,1,0);  // Glide shift y+1/2
-	}
-	else if (Glide =="c") {
-	  cond = clipper::Vec3<int>(0,0,1);  // Glide shift z+1/2
-	}
-	// Transform cond vector to internal standard frame
-	clipper::Vec3<double> v = clipper::Vec3<double>(cond) * permute;
-	cond = clipper::Vec3<int>(Nint(v[0]), Nint(v[1]), Nint(v[2]));
+        if (Glide =="a") {
+          cond = clipper::Vec3<int>(1,0,0);  // Glide shift x+1/2
+        }
+        else if (Glide =="b") {
+          cond = clipper::Vec3<int>(0,1,0);  // Glide shift y+1/2
+        }
+        else if (Glide =="c") {
+          cond = clipper::Vec3<int>(0,0,1);  // Glide shift z+1/2
+        }
+        // Transform cond vector to internal standard frame
+        clipper::Vec3<double> v = clipper::Vec3<double>(cond) * permute;
+        cond = clipper::Vec3<int>(Nint(v[0]), Nint(v[1]), Nint(v[2]));
       }
     else if (Glide =="n") {
       if (diagonal) {
-	cond = clipper::Vec3<int>(0,0,1);  // n(110) Glide shift z+1/2
+        cond = clipper::Vec3<int>(0,0,1);  // n(110) Glide shift z+1/2
       }
       else {
-	cond = clipper::Vec3<int>(1,1,0);  // n(c) Glide shift x+1/2,y+1/2
+        cond = clipper::Vec3<int>(1,1,0);  // n(c) Glide shift x+1/2,y+1/2
       }
     }
     else if (Glide =="d") {
       order = 4;
       disable = true;  // only 4n not 2n
       if (diagonal) {
-	cond = clipper::Vec3<int>(1,1,1);  // d(110) Glide shift x,y,z+1/4
+        cond = clipper::Vec3<int>(1,1,1);  // d(110) Glide shift x,y,z+1/4
       }
       else {
-	cond = clipper::Vec3<int>(1,1,0);  // d(c) Glide shift x+1/4,y+1/4
+        cond = clipper::Vec3<int>(1,1,0);  // d(c) Glide shift x+1/4,y+1/4
       }
     }
     else {
       clipper::Message::message(clipper::Message_fatal
-				("Illegal argument to Zone Glide: "+GlidePlane));
+                                ("Illegal argument to Zone Glide: "+GlidePlane));
     }
     lgsymm = LGsym;  // Laue group symmetry
     init(disable);
@@ -247,9 +247,9 @@ namespace scala
     // Set up grid intervals
     for (int i=1;i<=order;i++) {
       if (i == 1) {
-	ngrid.push_back(i);
+        ngrid.push_back(i);
       } else if (order%i == 0) {
-	ngrid.push_back(i);
+        ngrid.push_back(i);
       }
     }
     npoint = ngrid.size();
@@ -280,9 +280,9 @@ namespace scala
     prob_yes = -1.0;
   }
   //--------------------------------------------------------------
-  bool Zone::InZone(const Hkl& hkl) const 
+  bool Zone::InZone(const Hkl& hkl) const
   // returns true if hkl is in defined zone
-  //  hkl is the original index in reference (lattice) frame 
+  //  hkl is the original index in reference (lattice) frame
   {
     // Put into the Laue group frame
     Hkl hklL = hkl.change_basis(reindexmat);
@@ -299,7 +299,7 @@ namespace scala
     if (axis) {
       // Axis, internally test axis is 00l
       if (h[0] == 0 && h[1] == 0) {
-	return true;
+        return true;
       }
     } else if (diagonal) {
       // Glide on diagonal, internally hhl
@@ -311,7 +311,7 @@ namespace scala
     return false;
   }
   //--------------------------------------------------------------
-  int AxisDirection(const clipper::Vec3<double> vaxis) 
+  int AxisDirection(const clipper::Vec3<double> vaxis)
   //  Returns:
   //   jc   axis direction (0,1,2) if principle axis, -1 if not
   {
@@ -320,13 +320,13 @@ namespace scala
     // Count non-zero elements
     for (int i=0;i<3;i++)
       {
-	if (std::abs(vaxis[i]) > 0.02) {
-	  nc++;
-	  jc = i;
-	}
+        if (std::abs(vaxis[i]) > 0.02) {
+          nc++;
+          jc = i;
+        }
       }
-    
-    // Not principle	  
+
+    // Not principle
     if (nc != 1) jc = -1;
     return jc;
   }
@@ -369,18 +369,18 @@ namespace scala
     double sc = 1./smallv;
     for (int i=0;i<3;i++)  {v1[i] *= sc;}
     bool integral = true;
-    for (int i=0;i<3;i++)  
+    for (int i=0;i<3;i++)
       {if (!Close(v1[i], double(Nint(v1[i])), tol)) integral = false;}
     if (!integral)
       {clipper::Message::message(clipper::Message_fatal
-				 ("IntVector: non-integral vector "+v1.format()));}
+                                 ("IntVector: non-integral vector "+v1.format()));}
     clipper::Vec3<int> iv;
     for (int i=0;i<3;i++) {iv[i] = Nint(v1[i]);}
     return iv;
   }
   //--------------------------------------------------------------
   std::string DirectionFormat(const int& jc, const clipper::Vec3<double>& vd,
-			      const bool& diagonal)
+                              const bool& diagonal)
   // jc = 0,1,2 for principle direction
   // vd   direction
   // diagonal   true if diagonal
@@ -398,22 +398,22 @@ namespace scala
     if (jc >= 0) {
       // Principal direction
       if (diagonal)
-	{dir = sdiag[jc];}
+        {dir = sdiag[jc];}
       else
-	{dir = sabc[jc];}
+        {dir = sabc[jc];}
     } else {
       // Try to make integer version of direction
       clipper::Vec3<int> iv = IntVector(vd);
       for (int i=0;i<3;i++) {
-	dir += clipper::String(iv[i],4);
-	//	  if (i<2) dir +=",";
+        dir += clipper::String(iv[i],4);
+        //        if (i<2) dir +=",";
       }
     }
     return StringUtil::Strip(dir);
   }
   //--------------------------------------------------------------
   std::string Zone::formatNewFrame(const ReindexOp& RefToNew,
-				   const int Sub) const
+                                   const int Sub) const
   // Format in "new" frame
   // RefToNew is reindex operator from "reference" (lattice) frame
   // (stored with StoreReindex function) to some new frame in
@@ -428,18 +428,18 @@ namespace scala
     if (!RefToNew.IsIdentity()) {
       // print lattice direction as well
       dref = DirectionFormat(AxisDirection(DirectionRefFrame()),
-			   DirectionRefFrame(), diagonal);
-    }      
+                           DirectionRefFrame(), diagonal);
+    }
 
     if (axis) {
       // Axis
       std::string l = "screw axis "+
-	clipper::String(order,1)+"("+clipper::String(order/Sub,1)+
-	") ["+dir+"]";
+        clipper::String(order,1)+"("+clipper::String(order/Sub,1)+
+        ") ["+dir+"]";
       if (dref == "") {
-	l += "    ";
+        l += "    ";
       } else {
-	l += " ("+dref+")";
+        l += " ("+dref+")";
       }
       return l;
     } else {
@@ -447,16 +447,16 @@ namespace scala
       // Direction of axis or glide in new frame
       std::string gld = glide;
       clipper::Vec3<double> vg = qcond * RefToNew;
-	int jg = AxisDirection(vg);
-	if (jg >= 0)
-	  {gld = DirectionFormat(jg, vg, false);}
-	
-	return "glide plane "+gld+"("+dir+")";
+        int jg = AxisDirection(vg);
+        if (jg >= 0)
+          {gld = DirectionFormat(jg, vg, false);}
+
+        return "glide plane "+gld+"("+dir+")";
     }
   }
   //--------------------------------------------------------------
   template<class T>  std::string Cond(const clipper::Vec3<T>& cond,
-				      const int mult)
+                                      const int mult)
   // format condition as eg h+k=2n
   {
     std::vector<char> shkl(3);
@@ -471,16 +471,16 @@ namespace scala
 
     for (int i=0;i<3;i++)
       {
-	if (!Close(cv[i], T(0), T(0.01)))
-	  {
-	    if (!first) sc += "+";
-	    if (!Close(cv[i], T(1), T(0.01))) 
-	      {
-		sc += clipper::String(cv[i]);
-	      }
-	    sc += shkl[i];
-	    first = false;
-	  }
+        if (!Close(cv[i], T(0), T(0.01)))
+          {
+            if (!first) sc += "+";
+            if (!Close(cv[i], T(1), T(0.01)))
+              {
+                sc += clipper::String(cv[i]);
+              }
+            sc += shkl[i];
+            first = false;
+          }
       }
     sc += "="+clipper::String(mult,1)+"n";
     return StringUtil::Strip(sc);
@@ -563,7 +563,7 @@ namespace scala
   }?*/
   //--------------------------------------------------------------
   std::string Zone::FormatConditionNewFrame(const ReindexOp& RefToNew,
-					    const int Sub) const
+                                            const int Sub) const
   // Format condition in newframe
   // RefToNew is reindex operator from "reference" (lattice) frame
   // (stored with StoreReindex function) to some new frame in
@@ -571,7 +571,7 @@ namespace scala
   {
     if (axis && Sub > 0 && !validpoint[Sub])
       {
-	return "";  // Obscured point by lattice absences
+        return "";  // Obscured point by lattice absences
       }
 
     std::vector<char> shkl(3);
@@ -590,57 +590,57 @@ namespace scala
 
     if (jc >= 0)
       {
-	for (int i=0;i<3;i++)
-	  {
-	    vaxis[i] = std::abs(vaxis[i]);  // force positive
-	    if (vaxis[i] > 0.01)
-	      {
-		sax += shkl[i];
-		if (diagonal)
-		  {sgl += shkl[i];}
-		else
-		  {sgl += '0';}
-	      }
-	    else
-	      {
-		sax += '0';
-		if (diagonal)
-		  {if (zg == ' ') zg = shkl[i];
-		    sgl += zg;
-		  }
-		else
-		  {sgl += shkl[i];}
-	      }
-	  }
+        for (int i=0;i<3;i++)
+          {
+            vaxis[i] = std::abs(vaxis[i]);  // force positive
+            if (vaxis[i] > 0.01)
+              {
+                sax += shkl[i];
+                if (diagonal)
+                  {sgl += shkl[i];}
+                else
+                  {sgl += '0';}
+              }
+            else
+              {
+                sax += '0';
+                if (diagonal)
+                  {if (zg == ' ') zg = shkl[i];
+                    sgl += zg;
+                  }
+                else
+                  {sgl += shkl[i];}
+              }
+          }
       }
     else
-      // Not principle	  
+      // Not principle
       {
-	sax = "[";
-	// Try to make integer version of direction
-	clipper::Vec3<int> iv = IntVector(vaxis);
-	for (int i=0;i<3;i++) {
-	  sax += clipper::String(iv[i],3);
-	  // if (i<2) sax +=",";
-	}
-	sax += "]";
-	sax = StringUtil::Strip(sax);
-	sgl = sax;
+        sax = "[";
+        // Try to make integer version of direction
+        clipper::Vec3<int> iv = IntVector(vaxis);
+        for (int i=0;i<3;i++) {
+          sax += clipper::String(iv[i],3);
+          // if (i<2) sax +=",";
+        }
+        sax += "]";
+        sax = StringUtil::Strip(sax);
+        sgl = sax;
       }
 
     if (axis)
       {
-	sc += sax;
+        sc += sax;
       }
     else
       {
-	sc = sgl;
+        sc = sgl;
       }
-    
+
     int mult = order;
     if (axis && Sub > 0)
       {
-	mult = ngrid[Sub];
+        mult = ngrid[Sub];
       }
 
     sc += ": " + Cond<double>(RefToNew.inverse()*qcond, mult);
@@ -666,9 +666,9 @@ namespace scala
       clipper::Vec3<double> vd1 = DirectionRefFrame();
       clipper::Vec3<double> vd2 = other.DirectionRefFrame();
       for (int i=0;i<3;i++)
-	{if (std::abs(vd1[i]) != std::abs(vd2[i]))
-	    {same = false;}
-	}
+        {if (std::abs(vd1[i]) != std::abs(vd2[i]))
+            {same = false;}
+        }
       return same;
     }
   //--------------------------------------------------------------
@@ -690,7 +690,7 @@ namespace scala
     //%    }
     // Transform back to lattice frame
     Hkl h = hklL.change_basis(reindexmat.inverse());
-    
+
     InvResRange.update(sSqr);
     // Fourier index j = [h].[qcond]
     //  Fourier component = 2 pi j . x
@@ -708,7 +708,7 @@ namespace scala
   //--------------------------------------------------------------
   // Store SD of control reflections for Z-score
   void Zone::StoreMeanSD(const std::vector<double>& Mean,
-			 const std::vector<double>& SD)
+                         const std::vector<double>& SD)
   {
     ASSERT (int(Mean.size()) == npoint && int(SD.size()) == npoint);
     ZeroControlSD = false;
@@ -716,13 +716,13 @@ namespace scala
 
     for (int i=0;i<npoint;++i) {
       if (SD[i] < 0.00001) {
-	// Set flag to indicate a zero SD
-	ZeroControlSD = true;
-	controlsd[i] = Max(MinControlSD, SD[i]);
-	if (i > 0 && std::abs(Mean[i] - 1.0) < 0.001) {
-	  UnitControlMean[i] = true;
-	}
-      } 
+        // Set flag to indicate a zero SD
+        ZeroControlSD = true;
+        controlsd[i] = Max(MinControlSD, SD[i]);
+        if (i > 0 && std::abs(Mean[i] - 1.0) < 0.001) {
+          UnitControlMean[i] = true;
+        }
+      }
       controlsd[i] = Max(MinControlSD, SD[i]);
     }
     controlmean = Mean;
@@ -741,18 +741,18 @@ namespace scala
       std::vector<IsigI> Is(maxIndx+1);
 
       for (size_t i=0;i<IdxIs.size();i++) {
-	IsigI Isig = IdxIs[i].Isig;
-	int j = std::abs(IdxIs[i].index);
-	double w = 1./(Isig.sigI()*Isig.sigI());
-	mnI.at(j) += w * Isig.I();
-	wt.at(j) += w;
+        IsigI Isig = IdxIs[i].Isig;
+        int j = std::abs(IdxIs[i].index);
+        double w = 1./(Isig.sigI()*Isig.sigI());
+        mnI.at(j) += w * Isig.I();
+        wt.at(j) += w;
       }
       for (int j=0;j<maxIndx+1;j++) {
-	if (wt.at(j) > 0.0) {
-	  Is.at(j) = IsigI(mnI.at(j)/wt.at(j), 1./sqrt(wt.at(j)));
-	} else {
-	  Is.at(j) = IsigI(0.0, 0.0);
-	}
+        if (wt.at(j) > 0.0) {
+          Is.at(j) = IsigI(mnI.at(j)/wt.at(j), 1./sqrt(wt.at(j)));
+        } else {
+          Is.at(j) = IsigI(0.0, 0.0);
+        }
       }
       return Is;
   }
@@ -770,37 +770,37 @@ namespace scala
       std::vector<IndexIsigI> adjustedIndxIsigI(IndxIsigI.size());
       // Correct intensities
       for (size_t i=0;i<IndxIsigI.size();i++) {
-	IsigI Isig = IndxIsigI[i].Isig;
-	float I = Isig.I();
-	//^
-	//^	float I0 = I;
-	//^	double v0 =  IscoreVal(Isig);
-	//^-
-	int j = std::abs(IndxIsigI[i].index);
-	if (I > 0.0) {
-	  // No correction if already negative
-	  if (j > 0) {
-	    if (averageIsigI[j-1].I() > 0.0) {
-	      I -= neighbourFraction * averageIsigI[j-1].I();
-	      I = Max(0.0, I); // don't allow to go negative
-	    }
-	  }
-	  if (j < maxIndx) {
-	    if (averageIsigI[j+1].I() > 0.0) {
-	      I -= neighbourFraction * averageIsigI[j+1].I();
-	      I = Max(0.0, I); // don't allow to go negative
-	    }
-	  }
-	  Isig.I() = I;
-	} else {
-	  // I <= 0
-	  Isig.I() = 0.0;
-	}
-	adjustedIndxIsigI[i] = IndexIsigI(j, Isig);  // store adjusted values
-	fsum.AddRef(j, IscoreVal(Isig));
-	//^
-	//^	std::cout << "I, I' " << j << " " << I0 << " " << I << " " 
-	//^		  << v0 << " " << IscoreVal(Isig) << "\n";
+        IsigI Isig = IndxIsigI[i].Isig;
+        float I = Isig.I();
+        //^
+        //^     float I0 = I;
+        //^     double v0 =  IscoreVal(Isig);
+        //^-
+        int j = std::abs(IndxIsigI[i].index);
+        if (I > 0.0) {
+          // No correction if already negative
+          if (j > 0) {
+            if (averageIsigI[j-1].I() > 0.0) {
+              I -= neighbourFraction * averageIsigI[j-1].I();
+              I = Max(0.0, I); // don't allow to go negative
+            }
+          }
+          if (j < maxIndx) {
+            if (averageIsigI[j+1].I() > 0.0) {
+              I -= neighbourFraction * averageIsigI[j+1].I();
+              I = Max(0.0, I); // don't allow to go negative
+            }
+          }
+          Isig.I() = I;
+        } else {
+          // I <= 0
+          Isig.I() = 0.0;
+        }
+        adjustedIndxIsigI[i] = IndexIsigI(j, Isig);  // store adjusted values
+        fsum.AddRef(j, IscoreVal(Isig));
+        //^
+        //^     std::cout << "I, I' " << j << " " << I0 << " " << I << " "
+        //^               << v0 << " " << IscoreVal(Isig) << "\n";
       }
       // Average adjusted values for printing
       adjustedIsigI = AverageI(adjustedIndxIsigI);
@@ -809,7 +809,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   // Store reindex from some standard reference frame, for comparison of zones
-  void Zone::StoreReindex(const ReindexOp& reindexin) 
+  void Zone::StoreReindex(const ReindexOp& reindexin)
   {
     reindexmat = reindexin;
     NonIdentityReindex = ! reindexmat.IsIdentity(); // flag non-identity
@@ -828,9 +828,9 @@ namespace scala
   void Zone::TestValidIndices() const
   {
     if ((axis && IndxIsigI.size() < 2) ||
-	(maxIndx <= minIndx))
+        (maxIndx <= minIndx))
       {
-	valid = false;
+        valid = false;
       }
     else
       valid = true;
@@ -852,7 +852,7 @@ namespace scala
   //  We have a calculated value of the Fourier coefficient(s),
   //  expressed as a fraction of the origin, and also an
   //  estimate of the standard deviation from the control sample.
-  //  
+  //
   //  We want to calculate the probability that the reflection
   //  condition is true, ie the reflections are systematically
   //  absent, as opposed to not true. In this calculation, we
@@ -882,13 +882,13 @@ namespace scala
   //                        =  0  if M/(q p(j)) is not integral
   //  thus, for a 4-fold
   //
-  //                        j    = 1          2 
+  //                        j    = 1          2
   //                        p(j) = 2          4
   //   q   M/q  Condition         0.5        0.25   Fourier position
   //   4    1      1n             1/2(0)     1/4(0)     M/qp(E(v))
   //   2    2      2n             2/2(1)     2/4(0)
   //   1    4      4n             4/2(1)     4/4(1)
-  //  
+  //
   //  Then the "distance" between measured & ideal values is
   //  d = || v - e(q) ||            dmax = Sqrt(N)
   //
@@ -924,11 +924,11 @@ namespace scala
   //                                     ie V2 & v3 should != 1.0
   //    2  6(2) l=3n  P = P1 P2 P3; P1 = L(d1, 0), d1 = 1 - v2
   //                                P2 = L(d2, 0), d2 = abs(v1 - v3)
-  //                                P3 = 1 - L(d3,0), d3 = Sqrt(v1^2 + v3^2) 
+  //                                P3 = 1 - L(d3,0), d3 = Sqrt(v1^2 + v3^2)
   //                                     ie V1 & v3 should != 1.0
   //    1  6(1) l=6n  P = P1 P2 P3 P4; Pj(1,3) = L(dj, 0), dj = abs(1 - vj,) j = 1,2,3
-  //                                P4 = L(d123,0) d123 = 
-  //  
+  //                                P4 = L(d123,0) d123 =
+  //
   //
   //  Try the following
   // *  P(!A | d) is calculated assuming the "ideal" value of the Fourier
@@ -945,7 +945,7 @@ namespace scala
   // *  Then normalise to make P(A|v) + P!A|v) = 1
   // *  The values are then renormalised by making the sum over all values
   // *  of q
-  //    
+  //
   {
     if (results) return;   // already calculated
     TestValidIndices();
@@ -967,25 +967,25 @@ namespace scala
     if (valid) {
       int ninvalid = 0;
       for (int i=1;i<npoint;i++) {
-	if (controlsdv[i] < -0.0001) {
-	  clipper::Message::message(clipper::Message_fatal
-				    ("Zone: "+
-				     formatRefFrame()+": results requested with SD unset"));
-	}
+        if (controlsdv[i] < -0.0001) {
+          clipper::Message::message(clipper::Message_fatal
+                                    ("Zone: "+
+                                     formatRefFrame()+": results requested with SD unset"));
+        }
 
-	// Check for strange values of the control mean, which probably indicate a systematic
-	// non-random sample of indices, eg all odd ones already eliminated
-	if (DEBUG) {
-	  std::cout << "ZoneCalc "
-		    << controlsdv[i] << " " << controlmean[i]
-		    << "  V[i] = " << V[i] << "\n";
-	}
+        // Check for strange values of the control mean, which probably indicate a systematic
+        // non-random sample of indices, eg all odd ones already eliminated
+        if (DEBUG) {
+          std::cout << "ZoneCalc "
+                    << controlsdv[i] << " " << controlmean[i]
+                    << "  V[i] = " << V[i] << "\n";
+        }
 
-	if (UnitControlMean[i]) {
-	  prunedData[i] = true;
-	  ninvalid++;
-	}
-	average_controlsd += controlsdv[i];
+        if (UnitControlMean[i]) {
+          prunedData[i] = true;
+          ninvalid++;
+        }
+        average_controlsd += controlsdv[i];
       }
       // Zone is invalid if all points are invalid
       if (ninvalid == npoint) {valid = false;}
@@ -995,8 +995,8 @@ namespace scala
     if (!valid || V[0] <= 0.0)  {
       // No data or invalid data
       Pfor.resize(npoint);
-      for (int i=0;i<npoint;i++)	{
-	Pfor[i] = -1.0;
+      for (int i=0;i<npoint;i++)        {
+        Pfor[i] = -1.0;
       }
       prob_yes = -1.0;
       return;
@@ -1007,9 +1007,9 @@ namespace scala
     Pfor.resize(npoint);
     int Nf = npoint-1;
     double dmax = sqrt(double(Nf));
-    // Offset Lorentzian probability so that P(dmax) = 0 
+    // Offset Lorentzian probability so that P(dmax) = 0
     double Poffset = TruncatedLorentzianProb(dmax, 0.0, average_controlsd, 0.0, dmax);
-    //^ 
+    //^
     //^    Poffset = 0.0; //^!!!!
 
     // Prior distribution of E(v|!A)
@@ -1031,153 +1031,153 @@ namespace scala
       if (DEBUG) {std::cout << "\ni = " << i << " q = " << q <<"\n";}
       double d = 0.0;
       if (order == 6) { // special for 6-fold   -------------------> 6
-	// For 6(0,1,2,3) we have three sorts of targets
-	//  (1) values that should = 1 (or 0 for 6(0))  (characterized by d1)
-	//  (2) values that should be equal 
-	//  (3) values that should not be 1.0
-	//  Each of these gives a probability to be multiplied
-	std::vector<double> d123(4);
-	std::vector<double> p123(4);
-	double d1max = 1.0;
-	double d2max = 1.0;
-	
-	Pfor[i] = 1.0;
-	double pmax = 1.0;
-	double av = 0.0;
-	for (int j=1;j<npoint;j++) {
-	  av += V[j];
-	}
-	av /= double(npoint-1);
-	d = 0.0;
-	for (int j=1;j<npoint;j++) {
-	  d += (V[j] - av)*(V[j] - av);  // v1,2,3 equality test
-	}
-	d123[3] = d;
-	d2max = sqrt(3.0);
-	double pequal = Max(0.0, TruncatedLorentzianProb(d, 0.0, average_controlsd, 0.0, d2max));
-	double pmax1 = Max(0.0, TruncatedLorentzianProb(0.0, 0.0, average_controlsd, 0.0, d2max));
-	double pnotequal = pmax1 - pequal;			   
+        // For 6(0,1,2,3) we have three sorts of targets
+        //  (1) values that should = 1 (or 0 for 6(0))  (characterized by d1)
+        //  (2) values that should be equal
+        //  (3) values that should not be 1.0
+        //  Each of these gives a probability to be multiplied
+        std::vector<double> d123(4);
+        std::vector<double> p123(4);
+        double d1max = 1.0;
+        double d2max = 1.0;
 
-	if (q == 1) { // q = 1, link v1, v2 and v3, ie j = 1,2,3
-	  // for 6(1) v1=v2=v3=1
-	  // Multiply probabilities for each point V1,2,3 = 1.0
-	  for (int j=0;j<npoint-1;++j) {
-	    d123[j] = Max(0.0, Min(1.0, 1.0 - V[j+1]));  // distance from 1.0
-	    p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
-	    Pfor[i] *= p123[j];
-	  }
-	  p123[3] = pequal;
-	  Pfor[i] *= p123[3];
-	} else if (q == 2) { // q = 2, 6(2), link v1 and v3, ie j = 1 and 3
-	  d123[0] = Max(0.0, Min(1.0, 1. - V[2]));  // V2 should be 1
-	  d123[1] = Min(d1max, std::abs(V[1] - V[3]));  // V1 should = V3
-	  // V1 & V3 should != 1.0
-	  d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[1]*V[1] + V[3]*V[3]));   // distance from 1.0
-	  double avcsd = 0.5 * (controlsdv[1] + controlsdv[3]);
-	  p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[2], 0.0, d1max));
-	  p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
-	  d2max = sqrt(2.0);
-	  pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
-	  // invert probability
-	  p123[2] = pmax - Max(0.0,
-			       TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
-	  // V2 should not equal V1 and V3
-	  p123[3] = pnotequal;
-	  for (int j=0;j<int(p123.size());++j) {
-	    Pfor[i] *= p123[j];
-	  }
-	} else if (q == 3) { // q = 3, 6(3), link v2 and v3, ie j = 2 and 3
-	  d123[0] = Max(0.0, Min(1.0, 1. - V[1]));  // V1 should be 1
-	  d123[1] = Min(d1max, std::abs(V[2] - V[3]));  // V2 should = V3
-	  d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[2]*V[2] + V[3]*V[3])); // V2 & V3 should != 1.0
-	  double avcsd = 0.5 * (controlsdv[2] + controlsdv[3]);
-	  p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[1], 0.0, d1max));
-	  p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
-	  d2max = sqrt(2.0);
-	  pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
-	  p123[2] = pmax - Max(0.0, TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
-	  // V1 should not equal V2 and V3
-	  p123[3] = pnotequal;
-	  for (int j=0;j<int(p123.size());++j) {
-	    Pfor[i] *= p123[j];
-	  }
-	} else {  // q = 6, ie 6(0)
-	  // for 6(0) v1=v2=v3=0
-	  // Multiply probabilities for each point V1,2,3 = 0.0
-	  for (int j=0;j<npoint-1;++j) {
-	    d123[j] = Max(0.0, Min(1.0, V[j+1]));  // distance from 0.0
-	    p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
-	    Pfor[i] *= p123[j];
-	  }
-	  p123[3] = pequal;
-	  Pfor[i] *= p123[3];
-	}
-	if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
-			      << " pequal " << pequal << " pnotequal " << pnotequal
-			      << " d123 ";
-	  for (int k=0;k<int(d123.size());++k) {std::cout <<" " << d123[k];}
-	  std::cout << "\n    p123 ";
-	  for (int k=0;k<int(p123.size());++k) {std::cout <<" " << p123[k];}
-	  std::cout << " pmax " << pmax << " Pfor " << Pfor[i] << "\n";}
-	//                                     -------------------> 6
+        Pfor[i] = 1.0;
+        double pmax = 1.0;
+        double av = 0.0;
+        for (int j=1;j<npoint;j++) {
+          av += V[j];
+        }
+        av /= double(npoint-1);
+        d = 0.0;
+        for (int j=1;j<npoint;j++) {
+          d += (V[j] - av)*(V[j] - av);  // v1,2,3 equality test
+        }
+        d123[3] = d;
+        d2max = sqrt(3.0);
+        double pequal = Max(0.0, TruncatedLorentzianProb(d, 0.0, average_controlsd, 0.0, d2max));
+        double pmax1 = Max(0.0, TruncatedLorentzianProb(0.0, 0.0, average_controlsd, 0.0, d2max));
+        double pnotequal = pmax1 - pequal;
+
+        if (q == 1) { // q = 1, link v1, v2 and v3, ie j = 1,2,3
+          // for 6(1) v1=v2=v3=1
+          // Multiply probabilities for each point V1,2,3 = 1.0
+          for (int j=0;j<npoint-1;++j) {
+            d123[j] = Max(0.0, Min(1.0, 1.0 - V[j+1]));  // distance from 1.0
+            p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
+            Pfor[i] *= p123[j];
+          }
+          p123[3] = pequal;
+          Pfor[i] *= p123[3];
+        } else if (q == 2) { // q = 2, 6(2), link v1 and v3, ie j = 1 and 3
+          d123[0] = Max(0.0, Min(1.0, 1. - V[2]));  // V2 should be 1
+          d123[1] = Min(d1max, std::abs(V[1] - V[3]));  // V1 should = V3
+          // V1 & V3 should != 1.0
+          d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[1]*V[1] + V[3]*V[3]));   // distance from 1.0
+          double avcsd = 0.5 * (controlsdv[1] + controlsdv[3]);
+          p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[2], 0.0, d1max));
+          p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
+          d2max = sqrt(2.0);
+          pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
+          // invert probability
+          p123[2] = pmax - Max(0.0,
+                               TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
+          // V2 should not equal V1 and V3
+          p123[3] = pnotequal;
+          for (int j=0;j<int(p123.size());++j) {
+            Pfor[i] *= p123[j];
+          }
+        } else if (q == 3) { // q = 3, 6(3), link v2 and v3, ie j = 2 and 3
+          d123[0] = Max(0.0, Min(1.0, 1. - V[1]));  // V1 should be 1
+          d123[1] = Min(d1max, std::abs(V[2] - V[3]));  // V2 should = V3
+          d123[2] = Max(0.0, sqrt(2.0) - sqrt(V[2]*V[2] + V[3]*V[3])); // V2 & V3 should != 1.0
+          double avcsd = 0.5 * (controlsdv[2] + controlsdv[3]);
+          p123[0] = Max(0.0, TruncatedLorentzianProb(d123[0], 0.0, controlsdv[1], 0.0, d1max));
+          p123[1] = Max(0.0, TruncatedLorentzianProb(d123[1], 0.0, avcsd, 0.0, d1max));
+          d2max = sqrt(2.0);
+          pmax = TruncatedLorentzianProb(0.0, 0.0, avcsd, 0.0, d2max);
+          p123[2] = pmax - Max(0.0, TruncatedLorentzianProb(d123[2], 0.0, avcsd, 0.0, d2max));
+          // V1 should not equal V2 and V3
+          p123[3] = pnotequal;
+          for (int j=0;j<int(p123.size());++j) {
+            Pfor[i] *= p123[j];
+          }
+        } else {  // q = 6, ie 6(0)
+          // for 6(0) v1=v2=v3=0
+          // Multiply probabilities for each point V1,2,3 = 0.0
+          for (int j=0;j<npoint-1;++j) {
+            d123[j] = Max(0.0, Min(1.0, V[j+1]));  // distance from 0.0
+            p123[j] = Max(0.0, TruncatedLorentzianProb(d123[j], 0.0, controlsdv[j], 0.0, d1max));
+            Pfor[i] *= p123[j];
+          }
+          p123[3] = pequal;
+          Pfor[i] *= p123[3];
+        }
+        if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
+                              << " pequal " << pequal << " pnotequal " << pnotequal
+                              << " d123 ";
+          for (int k=0;k<int(d123.size());++k) {std::cout <<" " << d123[k];}
+          std::cout << "\n    p123 ";
+          for (int k=0;k<int(p123.size());++k) {std::cout <<" " << p123[k];}
+          std::cout << " pmax " << pmax << " Pfor " << Pfor[i] << "\n";}
+        //                                     -------------------> 6
       } else {  // 2,3,4 (ie not 6)
-	int np = 0;
-	// Loop each non-origin Fourier point
-	for (int j=1;j<npoint;j++) {
-	  if (validpoint[j]) {	
-	    // Screw condition   M/q, q = M/ngrid[i]
-	    // Fourier order          p = ngrid[j]
-	    int Movq = ngrid[i];
-	    if (Movq%ngrid[j] ==  0) {  // (M/q)%p
-	      // M/q is integral multiple of p(j), this Fourier point should be present
-	      //  "distance" from expectation value 1 = (1 - v)
-	      d += (1.- V[j])*(1.- V[j]);
-	      np++;
-	    } else {
-	      // M/q is not an integral multiple of p(j), this Fourier point should be absent
-	      //  "distance" from expectation value 0 = v
-	      if (V[j] > 0.0) {
-		d += V[j]*V[j];
-	      }
-	      np++;
-	    } // valid point
-	  }
-	}
-	if (np > 0) {
-	  // Sqrt to get "distance"
-	  d = Min(dmax,sqrt(d));
-	  if (i == 0) {
-	    // First point q = 0, ie condition absent
-	    // Do something different for this one,
-	    //     to allow for possibility of pseudosymmetry
-	    //   Integrated Gaussian probability around possible values
-	    Pfor[i] = IP.LorentzProb(d, average_controlsd, 0, dmax);
-	    //		Pfor[i] = IP.Prob(d, controlsdv[i], 0, 0);
-	    if (DEBUG) {std::cout << "Zone: qA " << i << " q = " << q
-				<< " " << d << " " << average_controlsd << " " << Pfor[i] << "\n";}
-	  } else {
-	    // Probability offset to make P(dmax) = 0
-	    Pfor[i] = Max(0.0, TruncatedLorentzianProb(d, 0.0, controlsdv[i], 0.0, dmax) - Poffset);
-	    if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
-				  << " " << d << " " << controlsdv[i] << " " << Pfor[i] << "\n";}
-	  }
-	} else {Pfor[i] = 1.0;}
-      } 
-      if (validpoint[i]) {	
-	Ptot += Pfor[i];
+        int np = 0;
+        // Loop each non-origin Fourier point
+        for (int j=1;j<npoint;j++) {
+          if (validpoint[j]) {
+            // Screw condition   M/q, q = M/ngrid[i]
+            // Fourier order          p = ngrid[j]
+            int Movq = ngrid[i];
+            if (Movq%ngrid[j] ==  0) {  // (M/q)%p
+              // M/q is integral multiple of p(j), this Fourier point should be present
+              //  "distance" from expectation value 1 = (1 - v)
+              d += (1.- V[j])*(1.- V[j]);
+              np++;
+            } else {
+              // M/q is not an integral multiple of p(j), this Fourier point should be absent
+              //  "distance" from expectation value 0 = v
+              if (V[j] > 0.0) {
+                d += V[j]*V[j];
+              }
+              np++;
+            } // valid point
+          }
+        }
+        if (np > 0) {
+          // Sqrt to get "distance"
+          d = Min(dmax,sqrt(d));
+          if (i == 0) {
+            // First point q = 0, ie condition absent
+            // Do something different for this one,
+            //     to allow for possibility of pseudosymmetry
+            //   Integrated Gaussian probability around possible values
+            Pfor[i] = IP.LorentzProb(d, average_controlsd, 0, dmax);
+            //          Pfor[i] = IP.Prob(d, controlsdv[i], 0, 0);
+            if (DEBUG) {std::cout << "Zone: qA " << i << " q = " << q
+                                << " " << d << " " << average_controlsd << " " << Pfor[i] << "\n";}
+          } else {
+            // Probability offset to make P(dmax) = 0
+            Pfor[i] = Max(0.0, TruncatedLorentzianProb(d, 0.0, controlsdv[i], 0.0, dmax) - Poffset);
+            if (DEBUG) {std::cout << "Zone: qB " << i << " q = " << q
+                                  << " " << d << " " << controlsdv[i] << " " << Pfor[i] << "\n";}
+          }
+        } else {Pfor[i] = 1.0;}
+      }
+      if (validpoint[i]) {
+        Ptot += Pfor[i];
       }
     }  // end loop q
     if (Ptot > 0.0) {
       for (int i=0;i<npoint;i++) {  // Loop O(i) screw or glide translation
-	Pfor[i] /= Ptot;
+        Pfor[i] /= Ptot;
       }
     }
     // Store single value for probability if appropriate
     if (prob_yes < 0.0) {
       if (singleprob) {
-	prob_yes = Pfor.back();
+        prob_yes = Pfor.back();
       } else {
-	prob_yes = -1.0;
+        prob_yes = -1.0;
       }
     }
 
@@ -1190,21 +1190,21 @@ namespace scala
   {
     if (!singleprob)
       clipper::Message::message(clipper::Message_fatal
-				("Zone::StoreProb called for case of no single value "));
+                                ("Zone::StoreProb called for case of no single value "));
     prob_yes = ProbYes;
   }
   //--------------------------------------------------------------
-  // Return probability 
+  // Return probability
   double Zone::Prob() const
   {
     if (!singleprob)
       clipper::Message::message(clipper::Message_fatal
-				("Zone::Prob called for case of no single value "));
+                                ("Zone::Prob called for case of no single value "));
     CalcResults();
     return prob_yes;
   }
   //--------------------------------------------------------------
-  int Zone::Nobs() const 
+  int Zone::Nobs() const
   // Return number of contributions
   {
     if (axis) {
@@ -1228,24 +1228,24 @@ namespace scala
     if (! valid) return IndxList;
     if (axis)
       {
-	if (IndxIsigI.size() > 1)
-	  {
-	    for (size_t i=0;i<IndxIsigI.size();i++)
-	      {
-		IndxList.push_back(IndxIsigI[i].index);
-	      }
-	  }
+        if (IndxIsigI.size() > 1)
+          {
+            for (size_t i=0;i<IndxIsigI.size();i++)
+              {
+                IndxList.push_back(IndxIsigI[i].index);
+              }
+          }
       }
     else
       {
-	if (maxIndx > minIndx)
-	  // only if more than one index
-	  {
-	    for (int i=minIndx;i<=maxIndx;i++)
-	      {
-		IndxList.push_back(i);
-	      }
-	  }
+        if (maxIndx > minIndx)
+          // only if more than one index
+          {
+            for (int i=minIndx;i<=maxIndx;i++)
+              {
+                IndxList.push_back(i);
+              }
+          }
       }
     return IndxList;
   }
@@ -1253,10 +1253,10 @@ namespace scala
   void Zone::dump() const
   {
     std::cout << "\n" << formatNewFrame(ReindexOp(), 1) << "\n"
-	      << "  Order " << order << "  Npoint " << npoint
-	      << "\n"
-	      << "  Zone  " << direction
-	      << "     Condition: " << FormatConditionNewFrame(ReindexOp(), 0) << "\n";
+              << "  Order " << order << "  Npoint " << npoint
+              << "\n"
+              << "  Zone  " << direction
+              << "     Condition: " << FormatConditionNewFrame(ReindexOp(), 0) << "\n";
 
     std::cout << permute.format() << "\n";
     std::cout << "  Cond  ";
@@ -1271,7 +1271,7 @@ namespace scala
     CalcResults();
     if (singleprob)
       {
-	std::cout << "Single probability: " << prob_yes << "\n";
+        std::cout << "Single probability: " << prob_yes << "\n";
       }
     std::cout << "Probability values: ";
     for (int i=1;i<npoint;i++) {std::cout << " " << Pfor[i];}
@@ -1297,87 +1297,87 @@ namespace scala
     if (!diagonal)
       // Principle zone glide
       {
-	if (glide == "d")
-	  // d(a),(b),(c)
-	  //    reflections eg u u' 0, 2g 2u 0  (for hk0, d(c))
-	  {
-	    hkl[2] = 0;
-	    hkl[0] = odd1;
-	    hkl[1] = odd2;
-	    Chkl.push_back(hkl);
-	    hkl[0] = 2*odd1;
-	    hkl[1] = 2*even;
-	    Chkl.push_back(hkl);
-	  }
-	else if (glide == "n")
-	  // n(a),(b),(c)
-	  //    reflections eg  g u 0, u g 0 (for hk0, n(c))
-	  {
-	    hkl[2] = 0;
-	    hkl[0] = odd1;
-	    hkl[1] = even;
-	    Chkl.push_back(hkl);
-	    hkl[0] = even;
-	    hkl[1] = odd1;
-	    Chkl.push_back(hkl);
-	  }
-	else if (glide == "a" || glide == "b" || glide == "c")
-	  // a, b, c glide
-	  //    
-	  //    reflections u u 0, u g 0 (for hk0, b(c))
-	  //                u u 0, g u 0 (for hk0, a(c))
-	  {
-	    hkl[0] = odd1;
-	    hkl[1] = odd2;
-	    hkl[2] = 0;
-	    Chkl.push_back(hkl);
-	    // Transform cond vector to internal standard frame
-	    clipper::Vec3<double> v = clipper::Vec3<double>(cond) * permute;
-	    // Which is the non-zero element?	    
-	    int jc = -1;
-	    for (int i=0;i<3;i++)
-	      {if (Nint(v[i]) !=0) jc = i;}
-	    ASSERT (jc<2);
-	    hkl[jc] = odd1;        // a or b glide in internal frame (hk0)
-	    hkl[1-jc] = even;      // jc = 0 or 1
-	    Chkl.push_back(hkl);
-	  }
-	else
-	  clipper::Message::message(clipper::Message_fatal
-				    ("Zone::GlideTestHkl: shouldn't happen"));
+        if (glide == "d")
+          // d(a),(b),(c)
+          //    reflections eg u u' 0, 2g 2u 0  (for hk0, d(c))
+          {
+            hkl[2] = 0;
+            hkl[0] = odd1;
+            hkl[1] = odd2;
+            Chkl.push_back(hkl);
+            hkl[0] = 2*odd1;
+            hkl[1] = 2*even;
+            Chkl.push_back(hkl);
+          }
+        else if (glide == "n")
+          // n(a),(b),(c)
+          //    reflections eg  g u 0, u g 0 (for hk0, n(c))
+          {
+            hkl[2] = 0;
+            hkl[0] = odd1;
+            hkl[1] = even;
+            Chkl.push_back(hkl);
+            hkl[0] = even;
+            hkl[1] = odd1;
+            Chkl.push_back(hkl);
+          }
+        else if (glide == "a" || glide == "b" || glide == "c")
+          // a, b, c glide
+          //
+          //    reflections u u 0, u g 0 (for hk0, b(c))
+          //                u u 0, g u 0 (for hk0, a(c))
+          {
+            hkl[0] = odd1;
+            hkl[1] = odd2;
+            hkl[2] = 0;
+            Chkl.push_back(hkl);
+            // Transform cond vector to internal standard frame
+            clipper::Vec3<double> v = clipper::Vec3<double>(cond) * permute;
+            // Which is the non-zero element?
+            int jc = -1;
+            for (int i=0;i<3;i++)
+              {if (Nint(v[i]) !=0) jc = i;}
+            ASSERT (jc<2);
+            hkl[jc] = odd1;        // a or b glide in internal frame (hk0)
+            hkl[1-jc] = even;      // jc = 0 or 1
+            Chkl.push_back(hkl);
+          }
+        else
+          clipper::Message::message(clipper::Message_fatal
+                                    ("Zone::GlideTestHkl: shouldn't happen"));
       }
     else
       // 110 etc  treat all as 110, hhl zone
       {
-	if (glide == "d")
-	  // d(110) 
-	  //    reflections eg u u u', 2u 2u 2u'
-	  {
-	    hkl[0] = odd1;
-	    hkl[1] = odd1;
-	    hkl[2] = odd2;
-	    Chkl.push_back(hkl);
-	    hkl[0] = 2*odd1;
-	    hkl[1] = 2*odd1;
-	    hkl[2] = 2*odd2;
-	    Chkl.push_back(hkl);
-	  }
-	else if (glide == "a" || glide == "b" || glide == "c" || glide == "n")
-	  // c or n(110) 
-	  //    reflections eg u u u', g g u
-	  {
-	    hkl[0] = odd1;
-	    hkl[1] = odd1;
-	    hkl[2] = odd2;
-	    Chkl.push_back(hkl);
-	    hkl[0] = even;
-	    hkl[1] = even;
-	    hkl[2] = odd2;
-	    Chkl.push_back(hkl);
-	  }
-	else
-	  clipper::Message::message(clipper::Message_fatal
-				    ("Zone::GlideTestHkl: shouldn't happen"));
+        if (glide == "d")
+          // d(110)
+          //    reflections eg u u u', 2u 2u 2u'
+          {
+            hkl[0] = odd1;
+            hkl[1] = odd1;
+            hkl[2] = odd2;
+            Chkl.push_back(hkl);
+            hkl[0] = 2*odd1;
+            hkl[1] = 2*odd1;
+            hkl[2] = 2*odd2;
+            Chkl.push_back(hkl);
+          }
+        else if (glide == "a" || glide == "b" || glide == "c" || glide == "n")
+          // c or n(110)
+          //    reflections eg u u u', g g u
+          {
+            hkl[0] = odd1;
+            hkl[1] = odd1;
+            hkl[2] = odd2;
+            Chkl.push_back(hkl);
+            hkl[0] = even;
+            hkl[1] = even;
+            hkl[2] = odd2;
+            Chkl.push_back(hkl);
+          }
+        else
+          clipper::Message::message(clipper::Message_fatal
+                                    ("Zone::GlideTestHkl: shouldn't happen"));
       }
 
     // Unpermute to original form, convert to "New" frame
@@ -1386,7 +1386,7 @@ namespace scala
     // then h(new) = h' [P]^-1 [H]^-1 [Hr] = [HP]^-1 [Hr]
     for (size_t i=0;i<Chkl.size();i++)
       {
-	Chkl[i] = Chkl[i].change_basis(permuteIndex.inverse() * RefToNew);
+        Chkl[i] = Chkl[i].change_basis(permuteIndex.inverse() * RefToNew);
       }
 
     return Chkl;
@@ -1407,7 +1407,7 @@ namespace scala
   // for index 2 & 3 respectively
   // If these flags match systematic absence condition
   // (+1 absent, 0 present) then that screw is present
-  // 
+  //
   // for principal axes only, not 110)
 
   // RefToNew is reindex operator from "reference" (lattice) frame
@@ -1415,47 +1415,47 @@ namespace scala
   // which to return the indices
 
   std::vector<Hkl> Zone::AxisTestHkl(const ReindexOp& RefToNew,
-				     std::vector<std::vector<int> >& screwabsence) const
+                                     std::vector<std::vector<int> >& screwabsence) const
   {
     ASSERT (axis);  // Axes only
     std::vector<Hkl> Chkl;
 
     if (direction == "a" || direction == "b" || direction == "c")
       {
-	// cond is 100, 010 or 001
-	Hkl hkl;
-	int idx = 2;
-	for (int i=0;i<3;i++) hkl[i] = idx * cond[i];
-	Chkl.push_back(hkl);
-	idx = 3;
-	for (int i=0;i<3;i++) hkl[i] = idx * cond[i];
-	Chkl.push_back(hkl);
+        // cond is 100, 010 or 001
+        Hkl hkl;
+        int idx = 2;
+        for (int i=0;i<3;i++) hkl[i] = idx * cond[i];
+        Chkl.push_back(hkl);
+        idx = 3;
+        for (int i=0;i<3;i++) hkl[i] = idx * cond[i];
+        Chkl.push_back(hkl);
 
-	screwabsence.resize(npoint);
-	screwabsence[0] = PairIntVec(0,0);  // first point is always present
-	// Just tabulate everything (not clever)
-	if (order == 2)
-	  {
-	    screwabsence[1] = PairIntVec(0,+1);  // 2(1)
-	  }
-	else if (order == 3)
-	  {
-	    screwabsence[1] = PairIntVec(+1,0);  // 3(1)
-	  }
-	else if (order == 4)
-	  {
-	    if (validpoint[1])
-	      screwabsence[1] = PairIntVec(0,+1);  // 4(2) only if valid
-	    else
-	      screwabsence[1] = PairIntVec(-1,-1);   // 4(2) only if valid
-	    screwabsence[2] = PairIntVec(+1,+1);   // 4(1)
-	  }
-	else if (order == 6)
-	  {
-	    screwabsence[1] = PairIntVec(0,+1);  // 6(3)
-	    screwabsence[2] = PairIntVec(+1,0);  // 6(2)
-	    screwabsence[3] = PairIntVec(+1,+1);   // 6(1)
-	  }
+        screwabsence.resize(npoint);
+        screwabsence[0] = PairIntVec(0,0);  // first point is always present
+        // Just tabulate everything (not clever)
+        if (order == 2)
+          {
+            screwabsence[1] = PairIntVec(0,+1);  // 2(1)
+          }
+        else if (order == 3)
+          {
+            screwabsence[1] = PairIntVec(+1,0);  // 3(1)
+          }
+        else if (order == 4)
+          {
+            if (validpoint[1])
+              screwabsence[1] = PairIntVec(0,+1);  // 4(2) only if valid
+            else
+              screwabsence[1] = PairIntVec(-1,-1);   // 4(2) only if valid
+            screwabsence[2] = PairIntVec(+1,+1);   // 4(1)
+          }
+        else if (order == 6)
+          {
+            screwabsence[1] = PairIntVec(0,+1);  // 6(3)
+            screwabsence[2] = PairIntVec(+1,0);  // 6(2)
+            screwabsence[3] = PairIntVec(+1,+1);   // 6(1)
+          }
       }
 
     // convert to "New" frame
@@ -1464,7 +1464,7 @@ namespace scala
     // then h(new) = h [H]^-1 [Hr]
     for (size_t i=0;i<Chkl.size();i++)
       {
-	Chkl[i] = Chkl[i].change_basis(reindexmat.inverse() * RefToNew);
+        Chkl[i] = Chkl[i].change_basis(reindexmat.inverse() * RefToNew);
       }
 
     return Chkl;
@@ -1479,18 +1479,18 @@ namespace scala
     bool same = true;
     for (int i=0;i<3;i++)
       {
-	if (std::abs(qcond[i]) != std::abs(other.qcond[i]))
-	  same = false;
+        if (std::abs(qcond[i]) != std::abs(other.qcond[i]))
+          same = false;
       }
     if (same)
       // Check direction
       {
-	clipper::Vec3<double> vd1 = DirectionRefFrame();
-	clipper::Vec3<double> vd2 = other.DirectionRefFrame();
-	for (int i=0;i<3;i++)
-	  {if (std::abs(vd1[i]) != std::abs(vd2[i]))
-	      {same = false;}
-	  }
+        clipper::Vec3<double> vd1 = DirectionRefFrame();
+        clipper::Vec3<double> vd2 = other.DirectionRefFrame();
+        for (int i=0;i<3;i++)
+          {if (std::abs(vd1[i]) != std::abs(vd2[i]))
+              {same = false;}
+          }
       }
     return same;
   }
@@ -1503,10 +1503,10 @@ namespace scala
     int best = -1; // index to best type
     for (int i=0;i<int(P.size());++i) {
       if (validpoint[i]) {
-	if (P[i] > big) {
-	  big = P[i];
-	  best = i;
-	}
+        if (P[i] > big) {
+          big = P[i];
+          best = i;
+        }
       }
     }
     if (best < 0) {
@@ -1517,14 +1517,14 @@ namespace scala
       return std::string("rotation axis order "+clipper::String(order,1));
     }
     return std::string("screw axis "+clipper::String(order,1)+
-		       "("+clipper::String(order/ngrid[best],1)+")");
+                       "("+clipper::String(order/ngrid[best],1)+")");
   }
   //--------------------------------------------------------------
   bool SysAbsScore::IsZoneInGroup(const int& iz) const
   // Return true if zone iz is in group
   {
     return (std::find(zonesingroup.begin(), zonesingroup.end(), iz) !=
-	    zonesingroup.end());
+            zonesingroup.end());
   }
 
 } // namespace scala

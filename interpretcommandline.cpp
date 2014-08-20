@@ -40,65 +40,65 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
       StringUtil::split(CommandLine.Echo(), " ", "\n");
 
     copy = false;
-    
+
     int ifld = 0;
 
     std::string s;  // for echoing command line arguments
 
     while (ifld < int(fields.size())) {
-      if (fields[ifld][0] == '-')	{
-	// Switch, ie string beginning with '-'	
-	//		    std::cout << "Command line switch found: " 
-	//			      << string_value << "\n";
-	if (fields[ifld++].substr(0,2) == "-c") {
-	  copy = true;
-	  s += "-copy\n";
-	}
+      if (fields[ifld][0] == '-')       {
+        // Switch, ie string beginning with '-'
+        //                  std::cout << "Command line switch found: "
+        //                            << string_value << "\n";
+        if (fields[ifld++].substr(0,2) == "-c") {
+          copy = true;
+          s += "-copy\n";
+        }
       } else  {
-	bool fieldpair = true;
-	if (stoup(fields[ifld]) == "HKLIN") {
-	  HklinNames.push_back(fields[++ifld]);
-	} 
-	else if (stoup(fields[ifld]) == "XDSIN")  {
-	  XDSinName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "SCAIN")  {
-	  SCAinName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "HKLREF") {
-	  HklrefName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "HKLOUT") {
-	  HkloutName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "HKLOUTUNMERGED") {
-	  HkloutUnmergedName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "SCALEPACK") {
-	  ScaoutName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "SCALEPACKUNMERGED") {
-	  ScaoutUnmergedName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "XMLOUT") {
-	  XmloutName = fields[++ifld];
-	}
-	else if (stoup(fields[ifld]) == "XYZIN") {
-	  XyzinName = fields[++ifld];
-	}
-	else if (otherFiles(stoup(fields[ifld]))) {
-	  // Other file name, ignore
-	  ifld++;
-	}	
-	else {
-	  HklinNames.push_back(fields[ifld]);
-	  fieldpair = false;
-	}
-	if (fieldpair && ifld > 0) {
-	  s +=  fields[ifld-1] + " ";
-	}
-	s += fields[ifld] + "\n";
-	ifld++;
+        bool fieldpair = true;
+        if (stoup(fields[ifld]) == "HKLIN") {
+          HklinNames.push_back(fields[++ifld]);
+        }
+        else if (stoup(fields[ifld]) == "XDSIN")  {
+          XDSinName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "SCAIN")  {
+          SCAinName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "HKLREF") {
+          HklrefName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "HKLOUT") {
+          HkloutName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "HKLOUTUNMERGED") {
+          HkloutUnmergedName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "SCALEPACK") {
+          ScaoutName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "SCALEPACKUNMERGED") {
+          ScaoutUnmergedName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "XMLOUT") {
+          XmloutName = fields[++ifld];
+        }
+        else if (stoup(fields[ifld]) == "XYZIN") {
+          XyzinName = fields[++ifld];
+        }
+        else if (otherFiles(stoup(fields[ifld]))) {
+          // Other file name, ignore
+          ifld++;
+        }
+        else {
+          HklinNames.push_back(fields[ifld]);
+          fieldpair = false;
+        }
+        if (fieldpair && ifld > 0) {
+          s +=  fields[ifld-1] + " ";
+        }
+        s += fields[ifld] + "\n";
+        ifld++;
       }
     }
     if (s != "") {
@@ -160,13 +160,12 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
       "SCALES", "TILEIMAGE"};
     const int N = 7;  // number of filenames
     std::vector<std::string> names(files, files+N);
-    for (size_t k=0; k<names.size(); k++) { 
+    for (size_t k=0; k<names.size(); k++) {
       if (field == names[k]) {
-	return true;
+        return true;
       }
     }
     return false;
   }
   //--------------------------------------------------------------
 }  // phaser_io
-

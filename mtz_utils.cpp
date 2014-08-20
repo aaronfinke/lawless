@@ -6,13 +6,13 @@
 // from CLIBS/mtzdata.h  extra item spg_confidence added from earlier versions
 /** MTZ symmetry struct. */
 // typedef struct { int spcgrp;           /**< spacegroup number */
-//		 char spcgrpname[MAXSPGNAMELENGTH+1];  /**< spacegroup name */
-//		 int nsym;             /**< number of symmetry operations */
-//		 float sym[192][4][4]; /**< symmetry operations 
+//               char spcgrpname[MAXSPGNAMELENGTH+1];  /**< spacegroup name */
+//               int nsym;             /**< number of symmetry operations */
+//               float sym[192][4][4]; /**< symmetry operations
 //                                          (translations in [*][3]) */
-//		 int nsymp;            /**< number of primitive symmetry ops. */
-//		 char symtyp;          /**< lattice type (P,A,B,C,I,F,R) */
-//		 char pgname[11];      /**< pointgroup name */
+//               int nsymp;            /**< number of primitive symmetry ops. */
+//               char symtyp;          /**< lattice type (P,A,B,C,I,F,R) */
+//               char pgname[11];      /**< pointgroup name */
 //                 char spg_confidence;  /**< L => Bravais lattice correct
 //                                            P => pointgroup correct
 //                                            E => spacegroup or enantiomorph
@@ -20,7 +20,7 @@
 //                                            X => flag not set */
 //               } SYMGRP;
 
-namespace MtzIO 
+namespace MtzIO
 {
   //--------------------------------------------------------------
   std::vector<clipper::Symop> ClipperSymopsFromMtzSYMGRP(const CMtz::SYMGRP& mtzsym)
@@ -31,10 +31,10 @@ namespace MtzIO
     clipper::Vec3<double>  trn;
     for ( int i = 0; i < mtzsym.nsym; i++ ) {
       for (int k = 0; k < 3; ++k) {
-	for (int l = 0; l < 3; ++l) {
-	  rot(k,l) = mtzsym.sym[i][k][l];
-	}
-	trn[k] = mtzsym.sym[i][k][3];
+        for (int l = 0; l < 3; ++l) {
+          rot(k,l) = mtzsym.sym[i][k][l];
+        }
+        trn[k] = mtzsym.sym[i][k][3];
       }
       symops.push_back(clipper::Symop(RTop<>(rot,trn)));
     }
@@ -43,7 +43,7 @@ namespace MtzIO
   //--------------------------------------------------------------
   // Mtz symmetry from SpaceGroup
   CMtz::SYMGRP spg_to_mtz(const scala::SpaceGroup& cspgp, const char& HorR,
-			  const char& spg_status)
+                          const char& spg_status)
   {
     CMtz::SYMGRP mtzsym;
     //    mtzsym.spcgrp = cspgp.spacegroup_number();
@@ -57,13 +57,13 @@ namespace MtzIO
 
     for (int i = 0; i < mtzsym.nsym; ++i) {
       for (int k = 0; k < 3; ++k) {
-	for (int l = 0; l < 3; ++l) {
-	  mtzsym.sym[i][k][l] = cspgp.symop(i).rot()(k,l);
-	}
-	mtzsym.sym[i][k][3] = cspgp.symop(i).trn()[k];
-	for (int l = 0; l < 3; ++l) 
-	  mtzsym.sym[i][3][l] = 0.0;
-	mtzsym.sym[i][3][3] = 1.0;
+        for (int l = 0; l < 3; ++l) {
+          mtzsym.sym[i][k][l] = cspgp.symop(i).rot()(k,l);
+        }
+        mtzsym.sym[i][k][3] = cspgp.symop(i).trn()[k];
+        for (int l = 0; l < 3; ++l)
+          mtzsym.sym[i][3][l] = 0.0;
+        mtzsym.sym[i][3][3] = 1.0;
       }
     }
     return mtzsym;
@@ -73,13 +73,13 @@ namespace MtzIO
   // true if two MTZ-style symmetry structures are equal
   {
     //  typedef struct { int spcgrp;           /**< spacegroup number */
-    //		 char spcgrpname[MAXSPGNAMELENGTH+1];  /**< spacegroup name */
-    //		 int nsym;             /**< number of symmetry operations */
-    //		 float sym[192][4][4]; /**< symmetry operations 
+    //           char spcgrpname[MAXSPGNAMELENGTH+1];  /**< spacegroup name */
+    //           int nsym;             /**< number of symmetry operations */
+    //           float sym[192][4][4]; /**< symmetry operations
     //                                          (translations in [*][3]) */
-    //		 int nsymp;            /**< number of primitive symmetry ops. */
-    //		 char symtyp;          /**< lattice type (P,A,B,C,I,F,R) */
-    //		 char pgname[11];      /**< pointgroup name */
+    //           int nsymp;            /**< number of primitive symmetry ops. */
+    //           char symtyp;          /**< lattice type (P,A,B,C,I,F,R) */
+    //           char pgname[11];      /**< pointgroup name */
     //               } SYMGRP;
     // Don't worry about names
     if (sg1.spcgrp != sg2.spcgrp) return false;
@@ -87,9 +87,9 @@ namespace MtzIO
     if (sg1.nsymp != sg2.nsymp) return false;
     for (int k=0;k<sg1.nsym;++k) {
       for (int j=0;j<4;++j) {
-	for (int i=0;i<4;++i) {
-	  if (sg1.sym[k][j][i] != sg2.sym[k][j][i]) return false;
-	}}}
+        for (int i=0;i<4;++i) {
+          if (sg1.sym[k][j][i] != sg2.sym[k][j][i]) return false;
+        }}}
     if (sg1.symtyp != sg2.symtyp) return false;
     return true;
   }
@@ -99,7 +99,7 @@ namespace MtzIO
   // Copied from Clipper code, ccp4_mtz_io.cpp::write_spacegroup
   //   written by Kevin Cowtan, copied with his permission 2013/05/20
   void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const Spacegroup& sg,
-  			  const char& spg_status)
+                          const char& spg_status)
   {
     // tables of MTZ symbols
     char mtzlauetab[231][8]={"?","1","-1","2","2","2","m","m","m","m","2/m","2/m","2/m","2/m","2/m","2/m","222","222","222","222","222","222","222","222","222","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","4","4","4","4","4","4","-4","-4","4/m","4/m","4/m","4/m","4/m","4/m","422","422","422","422","422","422","422","422","422","422","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","-4m2","-4m2","-4m2","-4m2","-42m","-42m","-42m","-42m","-42m","-42m","-4m2","-4m2","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","3","3","3","3","-3","-3","312","321","312","321","312","321","32","3m1","31m","3m1","31m","3m","3m","-31m","-31m","-3m1","-3m1","-3m","-3m","6","6","6","6","6","6","-6","6/m","6/m","622","622","622","622","622","622","6mm","6mm","6mm","6mm","-62m","-62m","-6m2","-6m2","6/mmm","6/mmm","6/mmm","6/mmm","23","23","23","23","23","m-3","m-3","m-3","m-3","m-3","m-3","m-3","432","432","432","432","432","432","432","432","-43m","-43m","-43m","-43m","-43m","-43m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m"};
@@ -121,10 +121,10 @@ namespace MtzIO
     strncpy( mtzout->mtzsymm.pgname, mtzlaue.c_str(), 11 );
     for ( int i = 0; i < sg.num_symops(); i++ ) {
       for ( int j = 0; j < 3; j++ )
-	for ( int k = 0; k < 3; k++ )
-	  mtzout->mtzsymm.sym[i][j][k] = sg.symop(i).rot()(j,k);
+        for ( int k = 0; k < 3; k++ )
+          mtzout->mtzsymm.sym[i][j][k] = sg.symop(i).rot()(j,k);
       for ( int j = 0; j < 3; j++ )
-	mtzout->mtzsymm.sym[i][j][3] = sg.symop(i).trn()[j];
+        mtzout->mtzsymm.sym[i][j][3] = sg.symop(i).trn()[j];
     }
   }
   //--------------------------------------------------------------
@@ -145,7 +145,7 @@ namespace MtzIO
       clipper::String(time);
     // History so far: NB new line goes at the beginning
     std::vector<clipper::String> historylines(1,text);
-    for (size_t i=0; i<oldhistory.size(); i++) { 
+    for (size_t i=0; i<oldhistory.size(); i++) {
       historylines.push_back(oldhistory[i]);
     }
     return historylines;
@@ -153,7 +153,7 @@ namespace MtzIO
   //--------------------------------------------------------------
   //! Append to oldhistory and write to MTZ
   void MTZaddHistory(const std::vector<std::string> oldhistory,
-		     CMtz::MTZ* mtzout)
+                     CMtz::MTZ* mtzout)
   {
     // Make new history
     std::vector<clipper::String> historylines = addToHistory(oldhistory);
@@ -164,8 +164,8 @@ namespace MtzIO
     // Add in reverse order as MtzAddHistory reverses them
     for (int i=nlines-1;i>=0;--i) {
       if (historylines[i] != "") {
-	strncpy(line, historylines[i].c_str(), MTZRECORDLENGTH-1); 
-	Nhist = MtzAddHistory(mtzout, &line, 1);
+        strncpy(line, historylines[i].c_str(), MTZRECORDLENGTH-1);
+        Nhist = MtzAddHistory(mtzout, &line, 1);
       }
     }
     Nhist = Nhist;

@@ -152,8 +152,8 @@ String FormatV3(const Vec3<ftype>& v)
 }
 
 Euler_explicit::Euler_explicit(const Vec3<ftype>& e1, const ftype& phi1,
-			       const Vec3<ftype>& e2, const ftype& phi2,
-			       const Vec3<ftype>& e3, const ftype& phi3)
+                               const Vec3<ftype>& e2, const ftype& phi2,
+                               const Vec3<ftype>& e3, const ftype& phi3)
       : e1_(e1), e2_(e2), e3_(e3), phi1_(phi1), phi2_(phi2), phi3_(phi3)
 {
   // Normalise direction cosines
@@ -321,8 +321,8 @@ Mat33<> Rotation::matrix() const
   ftype wy( 2.0*w_*y_ );
   ftype wz( 2.0*w_*z_ );
   return Mat33<>( 1.0-yy-zz, xy-wz,     xz+wy,
-		       xy+wz,     1.0-xx-zz, yz-wx,
-		       xz-wy,     yz+wx,     1.0-xx-yy );
+                       xy+wz,     1.0-xx-zz, yz-wx,
+                       xz-wy,     yz+wx,     1.0-xx-yy );
 }
 
   ftype AngleInRange(const ftype& angle)
@@ -334,7 +334,7 @@ Mat33<> Rotation::matrix() const
   }
 
   bool Rotation::euler_explicit(Euler_explicit& euler_explicit,
-				const int& SolutionNumber) const
+                                const int& SolutionNumber) const
 //!< return Euler_explicit angles given axes; return false if no solution
 //!< SolutionNumber = 1 or 2 for the two solutions
 //
@@ -355,7 +355,7 @@ Mat33<> Rotation::matrix() const
   //     specified axes e1, e2, e3 defined by their direction cosines
   //     ie rotate about e3, then e2, then e1
   //
-  //     R =  R(e1, phi1) R(e2, phi2) R(e3, phi3) 
+  //     R =  R(e1, phi1) R(e2, phi2) R(e3, phi3)
   //
   //     where R(e, phi) is the rotation matrix for a rotation by angle
   //     phi around axis e
@@ -415,7 +415,7 @@ Mat33<> Rotation::matrix() const
   //   where b = phi2
   ftype a = atan2(ss, cc);
   ftype amb = acos(rhs);  // +-(a-b)
-  // Two solutions (from arc cos), phi2 = b = a -+(a-b) 
+  // Two solutions (from arc cos), phi2 = b = a -+(a-b)
   //   1)  phi2 = a - amb
   //   2)  phi2 = a + amb
   // in range -pi to +pi
@@ -424,15 +424,15 @@ Mat33<> Rotation::matrix() const
   ftype phi2b  = AngleInRange(a + amb);
   // Choose solution 1 (larger phi2 ie positive) or
   // solution 2 (smaller (negative) phi2)
-  //  make phi2a > phi2b  
+  //  make phi2a > phi2b
   if (phi2a < phi2b) Util::swap<ftype>(phi2a, phi2b);
   ftype phi2 = phi2b;
   if (SolutionNumber == 1) phi2 = phi2a;   // pick one solution
-  
+
   // ** Step 2 ** Calculation of phi1
   ftype phi1 = 0.0;
   Rotation R2(e2, phi2);  // R2 = R(e2, phi2)
-  Vec3<ftype> v = R2.matrix() * e3;  // v = R2 e3 
+  Vec3<ftype> v = R2.matrix() * e3;  // v = R2 e3
   // w = R e3
   Vec3<ftype> w = Re3;
   // v1 = v - (v.e1) e1
@@ -450,9 +450,9 @@ Mat33<> Rotation::matrix() const
       // sin(phi1) = (v1.w1 x e1)/norm
       phi1 = AngleInRange(atan2((v1*Vec3<ftype>::cross(w1, e1))/norm, (v1*w1)/norm));
     }
-  
+
   // ** Step 3 ** Calculation of phi3
-  // R3 = R(e3, phi3) = R * R(e1, -phi1) * R(e2, -phi2) 
+  // R3 = R(e3, phi3) = R * R(e1, -phi1) * R(e2, -phi2)
   //   note rotations mulitply in reverse order to matrices
   Rotation R3 =  *(this) * (Rotation(e1, -phi1) * R2.inverse());
   Vec3<ftype> R3u = R3.matrix() * u;
@@ -473,9 +473,9 @@ Mat33<> Rotation::matrix() const
 Rotation operator* ( const Rotation& r1, const Rotation& r2 )
 {
   return Rotation( r1.w_*r2.w_ - r1.x_*r2.x_ - r1.y_*r2.y_ - r1.z_*r2.z_,
-		   r1.w_*r2.x_ + r1.x_*r2.w_ + r1.z_*r2.y_ - r1.y_*r2.z_,
-		   r1.w_*r2.y_ + r1.y_*r2.w_ + r1.x_*r2.z_ - r1.z_*r2.x_,
-		   r1.w_*r2.z_ + r1.z_*r2.w_ + r1.y_*r2.x_ - r1.x_*r2.y_ );
+                   r1.w_*r2.x_ + r1.x_*r2.w_ + r1.z_*r2.y_ - r1.y_*r2.z_,
+                   r1.w_*r2.y_ + r1.y_*r2.w_ + r1.x_*r2.z_ - r1.z_*r2.x_,
+                   r1.w_*r2.z_ + r1.z_*r2.w_ + r1.y_*r2.x_ - r1.x_*r2.y_ );
 }
 
 String Rotation::format() const

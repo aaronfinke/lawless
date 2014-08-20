@@ -34,7 +34,7 @@ namespace scala
       double p = sig*y2[i-1] + 2.0;
       y2[i] = (sig - 1.0)/p;
       u[i] = (6.0*((y[i+1]-y[i])/(x[i+1]-x[i])-(y[i]-y[i-1])/
-		   (x[i]-x[i-1]))/(x[i+1]-x[i-1])-sig*u[i-1])/p;
+                   (x[i]-x[i-1]))/(x[i+1]-x[i-1])-sig*u[i-1])/p;
     }
     double qn=0.0;
     double un=0.0;
@@ -52,9 +52,9 @@ namespace scala
     while (hi-lo > 1) {
       int k=(hi+lo)/2;
       if (x[k] > xx)
-	hi = k;
+        hi = k;
       else
-	lo = k;
+        lo = k;
     }
     double h = x[hi] - x[lo];
     if (h == 0.0) return y[hi];

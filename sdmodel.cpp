@@ -27,7 +27,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   SDcorrection sdcdefpartial = sdcdeffull;  // default values
   SDcorrection sdcfull = sdcdeffull;
   SDcorrection sdcpartial = sdcdefpartial;  // actual values
- 
+
   SDmodel SDM;
   int Nruns = runlist.size();
   int nrunsused = Nruns;
@@ -44,7 +44,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       SDM.SetRefine(false);
     }}
 
-  std::vector<std::pair<SDcorrection,SDcorrection> > 
+  std::vector<std::pair<SDcorrection,SDcorrection> >
     sdcval = input.SDC_SDcorrections();
   std::vector<int> runnumbers = input.SDC_RunNumbers();
   ASSERT (sdcval.size() == runnumbers.size());
@@ -66,16 +66,16 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     if (input.SDC_NumberInput() > 0) {
       bool found = false;
       for (size_t i=0;i<runnumbers.size();++i) {
-	if (runnumbers[i] == runlist[irun].RunNumber()) {
-	  sdcfull = sdcval[i].first;
-	  sdcpartial = sdcval[i].second;
-	  found = true;
-	  break;
-	}
+        if (runnumbers[i] == runlist[irun].RunNumber()) {
+          sdcfull = sdcval[i].first;
+          sdcpartial = sdcval[i].second;
+          found = true;
+          break;
+        }
       }
       if (!found) {
-	sdcfull = sdcdeffull;
-	sdcpartial = sdcdefpartial;
+        sdcfull = sdcdeffull;
+        sdcpartial = sdcdefpartial;
       }
     }
     SDM.AddRun(runlist[irun].RunNumber(), sdcfull, sdcpartial);
@@ -103,10 +103,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     bool anyboth = false;
     bool anyFewFull = false;
     bool anyFewPartial = false;
-      
+
     for (int irun=0;irun<Nruns;irun++) { // loop runs
       if (irun == 0) {
-	FP1 = FandP[irun];
+        FP1 = FandP[irun];
       }
       if (FandP[irun] != FP1) sameflag = false;
       if (FandP[irun] == Run::FULLSANDPARTIALS) anyboth = true;
@@ -116,16 +116,16 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     // Set flags for all runs, not just the first, even though this is allrunssame
     for (int irun=0;irun<Nruns;irun++) { // loop runs
       if (sameflag) {
-	// all same flags, use that one
-	SetSdmFullPartialFlags(FP1, SDM, irun);
+        // all same flags, use that one
+        SetSdmFullPartialFlags(FP1, SDM, irun);
       } else if (anyboth) {
-	// any have both fulls & partials (not few), leave as that default
+        // any have both fulls & partials (not few), leave as that default
       } else if (anyFewFull && !anyFewPartial) {
-	// use FEWFULLS unless FEWPARTIALS is also set
-	SetSdmFullPartialFlags(Run::FEWFULLS, SDM, irun);
+        // use FEWFULLS unless FEWPARTIALS is also set
+        SetSdmFullPartialFlags(Run::FEWFULLS, SDM, irun);
       } else if (!anyFewFull && anyFewPartial) {
-	// use FEWPARTIALS unless FEWFULLS is also set
-	SetSdmFullPartialFlags(Run::FEWPARTIALS, SDM, irun);
+        // use FEWPARTIALS unless FEWFULLS is also set
+        SetSdmFullPartialFlags(Run::FEWPARTIALS, SDM, irun);
       }
     }  // end loop runs
   } // allrunssame
@@ -140,7 +140,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 }
 //-------------------------------------------------------------
   void SetSdmFullPartialFlags(const Run::FullsAndPartials& FandP,
-			      SDmodel& SDM, const int& irun)
+                              SDmodel& SDM, const int& irun)
   // Set appropriate flags into SDM...[irun] according to FandP
   {
     if (FandP == Run::ONLYFULLS) {
@@ -148,7 +148,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       SDM.PartialAsFull(irun, false); // use values from fulls for partials
     } else if (FandP == Run::FEWFULLS) {
       // few fulls
-      SDM.FullAsPartial(irun, true); // use values from partials for fulls 
+      SDM.FullAsPartial(irun, true); // use values from partials for fulls
     } else if (FandP == Run::ONLYPARTIALS) {
       // no fulls
       SDM.FullAsPartial(irun, false); // use values from partials for fulls
@@ -158,12 +158,12 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     }
   }
 //-------------------------------------------------------------
-  void SDmodel::init() 
+  void SDmodel::init()
   {
     nosdb = false;
     allrunssame = false;
     nsets = 0;
-    ties.tietype = 0; // no ties  
+    ties.tietype = 0; // no ties
     ties.targets.assign(3,0.0);
     ties.sdtargets.assign(3,0.0);
     SetVarianceWeights();    // default weighting scheme
@@ -182,8 +182,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     }
   }
 //-------------------------------------------------------------
-  void SDmodel::AddRun(const int& runNum, 
-		       const SDcorrection& SDCfull, const SDcorrection& SDCpartial)
+  void SDmodel::AddRun(const int& runNum,
+                       const SDcorrection& SDCfull, const SDcorrection& SDCpartial)
  {
    sdc_full_run.push_back(SDCfull);
    sdc_full_run.back().SetFixSDb(nosdb);
@@ -199,8 +199,8 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   //! Store ties for all SD corrections
   // tietype = 0 no tie, = -1 defaults, = +1 set from parameters, = +2 similarity
   void SDmodel::SetTies(const int& Tietype,
-			const std::vector<double>& Targets,
-			const std::vector<double>& SDtargets)
+                        const std::vector<double>& Targets,
+                        const std::vector<double>& SDtargets)
   {
     ties.tietype = Tietype;
     ties.targets = Targets;
@@ -210,15 +210,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   //-------------------------------------------------------------
   //! Store one tie for all SD corrections, for parameter ipar (0-2)
   void SDmodel::ResetTie(const int& ipar,
-			const double& Target,
-			const double& SDtarget)
+                        const double& Target,
+                        const double& SDtarget)
   {
     ties.tietype = +1;
     ASSERT (ipar < int(ties.targets.size()));
     ties.targets.at(ipar) = Target;
     ties.sdtargets.at(ipar) = SDtarget;
     SetTies();
-  }  
+  }
 //-------------------------------------------------------------
   //! Store ties for all SD corrections
   // tietype = 0 no tie, = -1 defaults, = +1 set from parameters
@@ -227,22 +227,22 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     //^
     //    std::cout << "SDmodel::SetTies " <<
     //      " " << ties.targets[0]<< " " << ties.targets[1]
-    //	      << " " << ties.targets[2] <<"\n" 
-    //	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
-    //	      << " " << ties.sdtargets[2] <<"\n";
+    //        << " " << ties.targets[2] <<"\n"
+    //        << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
+    //        << " " << ties.sdtargets[2] <<"\n";
     //^-
     for (int irun=0;irun<Nruns();++irun) {
       if (ties.tietype == 0) { // no ties
-	sdc_full_run[irun].ClearRestraints();
-	sdc_partial_run[irun].ClearRestraints();
+        sdc_full_run[irun].ClearRestraints();
+        sdc_partial_run[irun].ClearRestraints();
       } else if (ties.tietype < 0) { // use defaults
-	sdc_full_run[irun].SetDefaultRestraints();
-	sdc_partial_run[irun].SetDefaultRestraints();
-	// Store default parameters for printing
-	sdc_full_run[irun].GetRestraints(ties.targets, ties.sdtargets);
+        sdc_full_run[irun].SetDefaultRestraints();
+        sdc_partial_run[irun].SetDefaultRestraints();
+        // Store default parameters for printing
+        sdc_full_run[irun].GetRestraints(ties.targets, ties.sdtargets);
       } else { // use input values or similarity
-	sdc_full_run[irun].SetRestraints(ties.targets, ties.sdtargets);
-	sdc_partial_run[irun].SetRestraints(ties.targets, ties.sdtargets);
+        sdc_full_run[irun].SetRestraints(ties.targets, ties.sdtargets);
+        sdc_partial_run[irun].SetRestraints(ties.targets, ties.sdtargets);
       }
     }
   }
@@ -256,33 +256,33 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     if (ties.tietype != 0) {  // ties.tietype = 0 for no restraints
       // If we are not refining SdB and the only restraint is on SdB, then no restraints
       if (nosdb) {
-	// No SdB refinement
-	if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[2] != 0.0)) {
-	  restraints = true;
-	}
+        // No SdB refinement
+        if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[2] != 0.0)) {
+          restraints = true;
+        }
       } else { // SdB refinement
-	if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[1] != 0.0) ||
-	    (ties.sdtargets[2] != 0.0)) {
-	  restraints = true;
-	}
+        if ((ties.sdtargets[0] != 0.0) || (ties.sdtargets[1] != 0.0) ||
+            (ties.sdtargets[2] != 0.0)) {
+          restraints = true;
+        }
       }
     }
 
-    if (ties.tietype == +2) {  
+    if (ties.tietype == +2) {
       s = "SD parameters tied to average across all runs";
     } else if (restraints) {
       s = "Restraints on SD correction parameters (target (+-SD)):";
       if (ties.sdtargets[0] != 0.0) { // SdAdd
-	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[0],5,1))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[0],5,1))+")";
+        s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[0],5,1))+
+          " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[0],5,1))+")";
       }
       if (!nosdb && ties.sdtargets[1] != 0.0) { // SdB
-	s += " SdB "+StringUtil::Strip(StringUtil::ftos(ties.targets[1],8,1))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[1],8,1))+")";
+        s += " SdB "+StringUtil::Strip(StringUtil::ftos(ties.targets[1],8,1))+
+          " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[1],8,1))+")";
       }
       if (ties.sdtargets[2] != 0.0) { // SdAdd
-	s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[2],8,3))+
-	  " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[2],8,3))+")";
+        s += " SdAdd "+StringUtil::Strip(StringUtil::ftos(ties.targets[2],8,3))+
+          " (+-"+StringUtil::Strip(StringUtil::ftos(ties.sdtargets[2],8,3))+")";
       }
     } else {
       s = "No restraints on SD correction parameters";
@@ -291,23 +291,23 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   }
   //-------------------------------------------------------------
   //! Set flag = true to fix SDb = 0.0
-  void SDmodel::SetNoSDb(const bool& NoSDb) 
+  void SDmodel::SetNoSDb(const bool& NoSDb)
   {
     nosdb = NoSDb;
     for (int irun=0;irun<Nruns();++irun) {
       if (nosdb) {
-	sdc_full_run[irun].FixSDb();
-	sdc_partial_run[irun].FixSDb();
+        sdc_full_run[irun].FixSDb();
+        sdc_partial_run[irun].FixSDb();
       } else {
-	sdc_full_run[irun].UnFixSDb();
-	sdc_partial_run[irun].UnFixSDb();
+        sdc_full_run[irun].UnFixSDb();
+        sdc_partial_run[irun].UnFixSDb();
       }
     }
     SetIdxParam();  // set up index list
   }
   //-------------------------------------------------------------
   //! Set flag = true to use same parameters for all runs
-  void SDmodel::SetAllRunsSame(const bool& flag) 
+  void SDmodel::SetAllRunsSame(const bool& flag)
   {
     allrunssame = flag;
     if (allrunssame) {
@@ -323,10 +323,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     int nparams = 0;
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // use parameters for fulls
-	nparams += sdc_full_run[irun].Nparams();
+        nparams += sdc_full_run[irun].Nparams();
       }
       if (usetype[irun] <= 0) { // use parameters for partials
-	nparams += sdc_partial_run[irun].Nparams();
+        nparams += sdc_partial_run[irun].Nparams();
       }
     }
     return nparams;
@@ -338,10 +338,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     int ngroups = 0;
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // use parameters for fulls
-	ngroups++;
+        ngroups++;
       }
       if (usetype[irun] <= 0) { // use parameters for partials
-	ngroups++;
+        ngroups++;
       }
     }
     return ngroups;
@@ -355,23 +355,23 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     idxpartialparam.assign(Nruns(), 0);
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // use parameters for fulls
-	idxfullparam[irun] = nparams; // index to first parameter in run
-	nparams += sdc_full_run[irun].Nparams();
+        idxfullparam[irun] = nparams; // index to first parameter in run
+        nparams += sdc_full_run[irun].Nparams();
       }
       if (usetype[irun] <= 0) { // use parameters for partials
-	idxpartialparam[irun] = nparams; // index to first parameter in run
-	nparams += sdc_partial_run[irun].Nparams();
+        idxpartialparam[irun] = nparams; // index to first parameter in run
+        nparams += sdc_partial_run[irun].Nparams();
       }
     }
     if (nsets < Nruns()) {
       // if allsame, copy parameter indices from 1st run
       for (int irun=nsets;irun<Nruns();++irun) {
-	if (usetype[irun] >= 0) { // use parameters for fulls
-	  idxfullparam[irun] = idxfullparam[0]; // index to first parameter in run
-	}
-	if (usetype[irun] <= 0) { // use parameters for partials
-	  idxpartialparam[irun] = idxpartialparam[0]; // index to first parameter in run
-	}
+        if (usetype[irun] >= 0) { // use parameters for fulls
+          idxfullparam[irun] = idxfullparam[0]; // index to first parameter in run
+        }
+        if (usetype[irun] <= 0) { // use parameters for partials
+          idxpartialparam[irun] = idxpartialparam[0]; // index to first parameter in run
+        }
       }
     }
   }
@@ -385,7 +385,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     SetIdxParam();
   }
 //-------------------------------------------------------------
-  //! use full correction for partials 
+  //! use full correction for partials
   // if few == true, there are few partials, if false none
   void SDmodel::PartialAsFull(const int& RunIndex, const bool& few)
   {
@@ -404,7 +404,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   }
   //-------------------------------------------------------------
   void SDmodel::UpdateFactor(const int& RunIndex, const bool& copy,
-			     const float& UpdateFull, const float& UpdatePartial)
+                             const float& UpdateFull, const float& UpdatePartial)
   // Update SDC for run RunIndex by multiplying SDfac values, only if > 0
   //    UpdateFull     update factor for fulls
   //    UpdatePartial  update factor for partials
@@ -421,12 +421,12 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       if (UpdateFull > 0.0) {sdc_full_run[ir].UpdateFactor(UpdateFull);}
       if (UpdatePartial > 0.0) {sdc_partial_run[ir].UpdateFactor(UpdatePartial);}
       if (copy) {
-	// copy values if needed for usetype flags
-	if (usetype[ir] < 0) {
-	  sdc_full_run[ir] = sdc_partial_run[ir]; // full as partial
-	} else if (usetype[ir] > 0) {
-	  sdc_partial_run[ir] = sdc_full_run[ir]; // partial as full
-	}
+        // copy values if needed for usetype flags
+        if (usetype[ir] < 0) {
+          sdc_full_run[ir] = sdc_partial_run[ir]; // full as partial
+        } else if (usetype[ir] > 0) {
+          sdc_partial_run[ir] = sdc_full_run[ir]; // partial as full
+        }
       }
     }
   }
@@ -450,7 +450,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     int nobs = Ref.num_observations();
     std::vector<float> sig0(nobs,0.0); // uncorrected sigma(I)
     SelectedObservations selobs(Ref, -1, ALL, weighttype);
-    float Iav = selobs.Average().I();  // average intensity for SD correction 
+    float Iav = selobs.Average().I();  // average intensity for SD correction
 
     observation this_obs;
     Ref.reset(); // reset next_observation count
@@ -459,9 +459,9 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     while ((iobs=Ref.next_observation(this_obs)) >= 0) {
       // correct sigI for observation, return uncorrected value
       if (this_obs.IsFull())
-	{sig0[iobs] = sdc_full_run[this_obs.run()].Correct(this_obs, Iav);}
+        {sig0[iobs] = sdc_full_run[this_obs.run()].Correct(this_obs, Iav);}
       else
-	{sig0[iobs] = sdc_partial_run[this_obs.run()].Correct(this_obs, Iav);}
+        {sig0[iobs] = sdc_partial_run[this_obs.run()].Correct(this_obs, Iav);}
       // store updated observation
       Ref.replace_observation(this_obs);
     }
@@ -485,28 +485,28 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       ObservationStatus obsstatus = this_obs.ObsStatus() ;
       // OK is Accepted or Outlier
       if (obsstatus.IsOKforRogues()) {
-	// correct sigI for observation, return uncorrected value
-	if (this_obs.IsFull())
-	  {sdc_full_run[this_obs.run()].Correct(this_obs, Iav);}
-	else
-	  {sdc_partial_run[this_obs.run()].Correct(this_obs, Iav);}
-	// store updated observation
-	Ref.replace_observation(this_obs);
+        // correct sigI for observation, return uncorrected value
+        if (this_obs.IsFull())
+          {sdc_full_run[this_obs.run()].Correct(this_obs, Iav);}
+        else
+          {sdc_partial_run[this_obs.run()].Correct(this_obs, Iav);}
+        // store updated observation
+        Ref.replace_observation(this_obs);
       } // accepted
     }
   }
 //-------------------------------------------------------------
   // Return overall minimum & maximum values
   void SDmodel::GetSDcorrectionRanges(float& minSDcorrFulls, float& maxSDcorrFulls,
-				      float& minSDcorrPartials, float& maxSDcorrPartials) const
+                                      float& minSDcorrPartials, float& maxSDcorrPartials) const
   {
-    std::pair<float,float> minmax; 
+    std::pair<float,float> minmax;
     for (int i=0;i<Nruns();++i) {  // loop runs for fulls
       if (i == 0) {
-	minmax = sdc_full_run[i].MinMax();
+        minmax = sdc_full_run[i].MinMax();
       } else {
-	minmax.first = Min(minmax.first, sdc_full_run[i].MinMax().first);
-	minmax.second = Max(minmax.second, sdc_full_run[i].MinMax().second);
+        minmax.first = Min(minmax.first, sdc_full_run[i].MinMax().first);
+        minmax.second = Max(minmax.second, sdc_full_run[i].MinMax().second);
       }
     }
     minSDcorrFulls = 0.0;
@@ -520,10 +520,10 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
     for (size_t i=0;i<sdc_partial_run.size();++i) { // loop runs for partials
       if (i == 0) {
-	minmax = sdc_partial_run[i].MinMax();
+        minmax = sdc_partial_run[i].MinMax();
       } else {
-	minmax.first = Min(minmax.first, sdc_partial_run[i].MinMax().first);
-	minmax.second = Max(minmax.second, sdc_partial_run[i].MinMax().second);
+        minmax.first = Min(minmax.first, sdc_partial_run[i].MinMax().first);
+        minmax.second = Max(minmax.second, sdc_partial_run[i].MinMax().second);
       }
     }
     minSDcorrPartials = 0.0;
@@ -542,15 +542,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::vector<double> params;
     std::vector<double> p;
 
-    // nsets = Nruns, or 1 if allrunssame 
+    // nsets = Nruns, or 1 if allrunssame
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	p = sdc_full_run[irun].GetParameters();
-	params.insert(params.end(), p.begin(), p.end());
+        p = sdc_full_run[irun].GetParameters();
+        params.insert(params.end(), p.begin(), p.end());
       }
       if (usetype[irun] <= 0) { // values for partials
-	p = sdc_partial_run[irun].GetParameters();
-	params.insert(params.end(), p.begin(), p.end());
+        p = sdc_partial_run[irun].GetParameters();
+        params.insert(params.end(), p.begin(), p.end());
       }
     }
     return params;
@@ -564,23 +564,23 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::vector<double> p;
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	p = sdc_full_run[irun].GetShifts(scale);
-	shifts.insert(shifts.end(), p.begin(), p.end());
+        p = sdc_full_run[irun].GetShifts(scale);
+        shifts.insert(shifts.end(), p.begin(), p.end());
       }
       if (usetype[irun] <= 0) { // values for partials
-	p = sdc_partial_run[irun].GetShifts(scale);
-	shifts.insert(shifts.end(), p.begin(), p.end());
+        p = sdc_partial_run[irun].GetShifts(scale);
+        shifts.insert(shifts.end(), p.begin(), p.end());
       }
     }
     return shifts;
   }
 //-------------------------------------------------------------
   void SDmodel::AddToAverages(std::vector<MeanValue>& averagerealparameters,
-			      const std::vector<double>& realparameters) const
-  // add 2 or 3 parameters into averages    
+                              const std::vector<double>& realparameters) const
+  // add 2 or 3 parameters into averages
   {
     ASSERT (averagerealparameters.size() == realparameters.size());
-    for (size_t i=0; i<averagerealparameters.size(); i++) { 
+    for (size_t i=0; i<averagerealparameters.size(); i++) {
       averagerealparameters[i].Add(realparameters[i]);
     }
   }
@@ -593,7 +593,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     // NB refined parameters are not SdFac, SDb, SDadd but
     //  averages and restraints are
     std::vector<MeanValue> averagerealparameters(npc); // SdFac, [SDb,] SDadd
-    
+
     for (int irun=0;irun<Nruns();++irun) { // loop all runs
       AddToAverages(averagerealparameters, sdc_full_run[irun].GetRealParameters());
       AddToAverages(averagerealparameters, sdc_partial_run[irun].GetRealParameters());
@@ -611,14 +611,14 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     ties.targets = newtargets;
     //^
     //    std::cout << "Updating SDcorrection targets "
-    //	      << " " << newtargets[0]
-    //	      << " " << newtargets[1]
-    //	      << " " << newtargets[2] <<"\n";
+    //        << " " << newtargets[0]
+    //        << " " << newtargets[1]
+    //        << " " << newtargets[2] <<"\n";
     //    std::cout << "SDmodel::SetTies " <<
     //      " " << ties.targets[0]<< " " << ties.targets[1]
-    //	      << " " << ties.targets[2] <<"\n" 
-    //	      << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
-    //	      << " " << ties.sdtargets[2] <<"\n";
+    //        << " " << ties.targets[2] <<"\n"
+    //        << " " << ties.sdtargets[0]<< " " << ties.sdtargets[1]
+    //        << " " << ties.sdtargets[2] <<"\n";
     //^-
   }
 //-------------------------------------------------------------
@@ -637,16 +637,16 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       int k1=k; // save
       // Always put in values for fulls even if not refined
       for (int j=0;j<sdc_full_run[irun].Nparams();++j) {
-	pars[j] = params[k++];
+        pars[j] = params[k++];
       }
       sdc_full_run[irun].SetParameters(pars); // set values for fulls anyway
       if (usetype[irun] != 0) { // no actual values for fulls or partialsa
-	// pick up same parameters for partials
-	k = k1;
+        // pick up same parameters for partials
+        k = k1;
       }
       // Always put in values for partials even if not refined
       for (int j=0;j<sdc_partial_run[irun].Nparams();++j) {
-	pars[j] = params[k++];
+        pars[j] = params[k++];
       }
       sdc_partial_run[irun].SetParameters(pars); // set values for partials
     } // end loop runs
@@ -656,7 +656,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   //-------------------------------------------------------------
   std::vector <std::vector<double> >
   SDmodel::GetDerivatives(SelectedObservations& selobs,
-			  const std::vector<float>& sigmaI) const
+                          const std::vector<float>& sigmaI) const
   // uncorrected scaled sigma(I) for each observation (including unselected ones)
   // return vector elements for each observation in selobs
   // each element is vector of elements for each parameter
@@ -675,50 +675,50 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::vector <std::vector<double> >  ddeltadp(nobs);
 
     std::vector<double> ddeltaidp; // d(delta(i))/dp for i'th observation
-    float Iav = selobs.Average().I();  // average intensity for SD correction 
+    float Iav = selobs.Average().I();  // average intensity for SD correction
     std::vector<double> dp;  // for each param set
     double an = selobs.Number();  // number used
     double fac = -sqrt(an/(an-1.0));
 
     for (int iobs=0;iobs<nobs;++iobs) { // loop observations in selobs
-      if (delI[iobs] != 0.0) {	// a valid delta
-	ddeltaidp.assign(Nparams(),0.0);
-	//--- calculate d(sigma')/dp vector for all parameters
-	int irun = selobs.Run(iobs);
-	int idx; // first parameter index
-	if (selobs.Full(iobs)) {
-	  // Full
-	  if (usetype[irun] >= 0) { // values for fulls
-	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxfullparam[irun];
-	  } else if (usetype[irun] < 0) { // full as partial
-	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxpartialparam[irun];
-	  }
-	} else {
-	  // Partial
-	  if (usetype[irun] > 0) { // partial as full
-	    dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxfullparam[irun];
-	  } else if (usetype[irun] <= 0) { // partial
-	    dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
-	    idx = idxpartialparam[irun];
-	  }
-	}
-	for (size_t i=0;i<dp.size();++i) {
-	  ddeltaidp[idx++] = dp[i];
-	}
-	// all parameters d(sigma')/dp done
-	// uncorrected sigma(I) for observation
-	//	float sigma = sigmaI[iobs];
-	// d(delta)/d(sigma') = -sqrt(n/n-1) delI / (sigma')^2
+      if (delI[iobs] != 0.0) {  // a valid delta
+        ddeltaidp.assign(Nparams(),0.0);
+        //--- calculate d(sigma')/dp vector for all parameters
+        int irun = selobs.Run(iobs);
+        int idx; // first parameter index
+        if (selobs.Full(iobs)) {
+          // Full
+          if (usetype[irun] >= 0) { // values for fulls
+            dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+            idx = idxfullparam[irun];
+          } else if (usetype[irun] < 0) { // full as partial
+            dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+            idx = idxpartialparam[irun];
+          }
+        } else {
+          // Partial
+          if (usetype[irun] > 0) { // partial as full
+            dp = sdc_full_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+            idx = idxfullparam[irun];
+          } else if (usetype[irun] <= 0) { // partial
+            dp = sdc_partial_run[irun].GetDerivatives(sigmaI[iobs], Iav);
+            idx = idxpartialparam[irun];
+          }
+        }
+        for (size_t i=0;i<dp.size();++i) {
+          ddeltaidp[idx++] = dp[i];
+        }
+        // all parameters d(sigma')/dp done
+        // uncorrected sigma(I) for observation
+        //      float sigma = sigmaI[iobs];
+        // d(delta)/d(sigma') = -sqrt(n/n-1) delI / (sigma')^2
 
-	double dddsp = fac * delI[iobs] / (sigmaprime[iobs]*sigmaprime[iobs]);
-	  
-	for (size_t i=0;i<ddeltaidp.size();++i) {
-	  ddeltaidp[i] *= dddsp; // d(delta)/dp = d(delta)/d(sigma') d(sigma')/dp
-	}
-	ddeltadp[iobs] = ddeltaidp;  // store d(delta(i))/dp vector
+        double dddsp = fac * delI[iobs] / (sigmaprime[iobs]*sigmaprime[iobs]);
+
+        for (size_t i=0;i<ddeltaidp.size();++i) {
+          ddeltaidp[i] *= dddsp; // d(delta)/dp = d(delta)/d(sigma') d(sigma')/dp
+        }
+        ddeltadp[iobs] = ddeltaidp;  // store d(delta(i))/dp vector
       } // end valid delta
     } // end loop observations in selobs
     return ddeltadp;
@@ -729,15 +729,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   {
     std::vector<double> bounds;
     std::vector<double> p;
-    // nsets = Nruns, or 1 if allrunssame 
+    // nsets = Nruns, or 1 if allrunssame
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	p = sdc_full_run[irun].LowerBounds();
-	bounds.insert(bounds.end(), p.begin(), p.end());
+        p = sdc_full_run[irun].LowerBounds();
+        bounds.insert(bounds.end(), p.begin(), p.end());
       }
       if (usetype[irun] <= 0) { // values for partials
-	p = sdc_partial_run[irun].LowerBounds();
-	bounds.insert(bounds.end(), p.begin(), p.end());
+        p = sdc_partial_run[irun].LowerBounds();
+        bounds.insert(bounds.end(), p.begin(), p.end());
       }
     }
     return bounds;
@@ -748,15 +748,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   {
     std::vector<double> bounds;
     std::vector<double> p;
-    // nsets = Nruns, or 1 if allrunssame 
+    // nsets = Nruns, or 1 if allrunssame
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	p = sdc_full_run[irun].UpperBounds();
-	bounds.insert(bounds.end(), p.begin(), p.end());
+        p = sdc_full_run[irun].UpperBounds();
+        bounds.insert(bounds.end(), p.begin(), p.end());
       }
       if (usetype[irun] <= 0) { // values for partials
-	p = sdc_partial_run[irun].UpperBounds();
-	bounds.insert(bounds.end(), p.begin(), p.end());
+        p = sdc_partial_run[irun].UpperBounds();
+        bounds.insert(bounds.end(), p.begin(), p.end());
       }
     }
     return bounds;
@@ -765,17 +765,17 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   std::vector<double> SDmodel::LargeShifts()
   //! large shifts  for each parameter
   {
-    std::vector<double> large; 
+    std::vector<double> large;
     std::vector<double> p;
-    // nsets = Nruns, or 1 if allrunssame 
+    // nsets = Nruns, or 1 if allrunssame
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	p = sdc_full_run[irun].LargeShifts();
-	large.insert(large.end(), p.begin(), p.end());
+        p = sdc_full_run[irun].LargeShifts();
+        large.insert(large.end(), p.begin(), p.end());
       }
       if (usetype[irun] <= 0) { // values for partials
-	p = sdc_partial_run[irun].LargeShifts();
-	large.insert(large.end(), p.begin(), p.end());
+        p = sdc_partial_run[irun].LargeShifts();
+        large.insert(large.end(), p.begin(), p.end());
       }
     }
     return large;
@@ -786,13 +786,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   {
     std::vector<double> R2;
 
-    // nsets = Nruns, or 1 if allrunssame 
+    // nsets = Nruns, or 1 if allrunssame
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	R2.push_back(sdc_full_run[irun].RestraintR());
+        R2.push_back(sdc_full_run[irun].RestraintR());
       }
       if (usetype[irun] <= 0) { // values for partials
-	R2.push_back(sdc_partial_run[irun].RestraintR());
+        R2.push_back(sdc_partial_run[irun].RestraintR());
       }
     }
     ASSERT (int(R2.size()) == Ngroups());
@@ -811,14 +811,14 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // values for fulls
-	sdc_full_run[irun].RestraintDerivatives(dp,h);
-	dr2dp.push_back(dp); // gradients
-	H.push_back(h);      // Hessian
+        sdc_full_run[irun].RestraintDerivatives(dp,h);
+        dr2dp.push_back(dp); // gradients
+        H.push_back(h);      // Hessian
       }
       if (usetype[irun] <= 0) { // values for partials
-	sdc_partial_run[irun].RestraintDerivatives(dp,h);
-	dr2dp.push_back(dp); // gradients
-	H.push_back(h);      // Hessian
+        sdc_partial_run[irun].RestraintDerivatives(dp,h);
+        dr2dp.push_back(dp); // gradients
+        H.push_back(h);      // Hessian
       }
     }
     ASSERT (int(dr2dp.size()) == Ngroups());
@@ -845,15 +845,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     for (int irun=0;irun<nr;++irun) {
       std::string label = "fulls & partials";
       if (usetype[irun] > 0) {
-	label = (usetype[irun] == +1) ? "only fulls" : "relatively few partials";
+        label = (usetype[irun] == +1) ? "only fulls" : "relatively few partials";
       } else if (usetype[irun] < 0){
-	label = (usetype[irun] == -1) ? "only partials" : "relatively few fulls";
+        label = (usetype[irun] == -1) ? "only partials" : "relatively few fulls";
       }
       if (allrunssame) {
       ss += FormatOutput::logTabPrintf(0,"All runs have %s\n", label.c_str());
       } else {
-	ss += FormatOutput::logTabPrintf(0,"Run %4d has %s\n",
-					 irun+1, label.c_str());
+        ss += FormatOutput::logTabPrintf(0,"Run %4d has %s\n",
+                                         irun+1, label.c_str());
       }
     }
     return ss;
@@ -890,11 +890,11 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     bool somepartials = false;
     for (int irun=0;irun<nsets;++irun) { // loop sets
       if (usetype[irun] > 0) { // some fulls
-	somefulls = true;
+        somefulls = true;
       } else if (usetype[irun] < 0) { // partials
-	somepartials = true;
+        somepartials = true;
       } else if (usetype[irun] == 0) { // both
-	both = true;
+        both = true;
       }
     }  // end loop run sets
     if (somefulls && somepartials) {both = true;}
@@ -902,59 +902,59 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::string label;
     if (both) {
       ss += FormatOutput::logTab(0,
-	 std::string(
-	   "                                    Fulls                    Partials\n")+
-	   "    Run                     SdFac     SdB    SdAdd     SdFac     SdB    SdAdd\n");
+         std::string(
+           "                                    Fulls                    Partials\n")+
+           "    Run                     SdFac     SdB    SdAdd     SdFac     SdB    SdAdd\n");
     } else {
       label = (fullpart > 0) ? "Fulls" : "Partials";
       ss += FormatOutput::logTab(0,
-	 std::string("                                    ")+label+"\n"+
+         std::string("                                    ")+label+"\n"+
                      "    Run                      SdFac    SdB    SdAdd\n");
     }
 
     for (int irun=0;irun<nsets;++irun) { // loop runs
       std::string runnum = clipper::String(runnumbers[irun], 7);
       if (allrunssame) {
-	runnum = "AllRuns";
+        runnum = "AllRuns";
       }
 
       if (both) {
-	double sdaf = 0.0;
-	double sdbf = 0.0;
-	double sdcf = 0.0;
-	double sdap = 0.0;
-	double sdbp = 0.0;
-	double sdcp = 0.0;
-	if (usetype[irun] >= 0) {
-	  sdaf = sdc_full_run[irun].SDfac();
-	  sdbf = sdc_full_run[irun].SDb();
-	  sdcf = sdc_full_run[irun].SDadd();
-	}
-	if (usetype[irun] <= 0) {
-	  sdap = sdc_partial_run[irun].SDfac();
-	  sdbp = sdc_partial_run[irun].SDb();
-	  sdcp = sdc_partial_run[irun].SDadd();
-	}
-	label = formatUseFlag(irun);
-	ss += FormatOutput::logTabPrintf(0,"%s  %s %7.2f  %6.2f  %7.4f   %7.2f  %6.2f  %7.4f\n",
-					 runnum.c_str(), label.c_str(),
-					 sdaf, sdbf, sdcf,
-					 sdap, sdbp, sdcp);
+        double sdaf = 0.0;
+        double sdbf = 0.0;
+        double sdcf = 0.0;
+        double sdap = 0.0;
+        double sdbp = 0.0;
+        double sdcp = 0.0;
+        if (usetype[irun] >= 0) {
+          sdaf = sdc_full_run[irun].SDfac();
+          sdbf = sdc_full_run[irun].SDb();
+          sdcf = sdc_full_run[irun].SDadd();
+        }
+        if (usetype[irun] <= 0) {
+          sdap = sdc_partial_run[irun].SDfac();
+          sdbp = sdc_partial_run[irun].SDb();
+          sdcp = sdc_partial_run[irun].SDadd();
+        }
+        label = formatUseFlag(irun);
+        ss += FormatOutput::logTabPrintf(0,"%s  %s %7.2f  %6.2f  %7.4f   %7.2f  %6.2f  %7.4f\n",
+                                         runnum.c_str(), label.c_str(),
+                                         sdaf, sdbf, sdcf,
+                                         sdap, sdbp, sdcp);
       } else if (fullpart > 0) {
-	// Fulls
-	label = formatUseFlag(irun);
-	ss += FormatOutput::logTabPrintf(0,"%s  %s  %7.2f  %6.2f  %7.4f\n",
-					 runnum.c_str(), label.c_str(),
-					 sdc_full_run[irun].SDfac(),
-					 sdc_full_run[irun].SDb(),
-					 sdc_full_run[irun].SDadd());
+        // Fulls
+        label = formatUseFlag(irun);
+        ss += FormatOutput::logTabPrintf(0,"%s  %s  %7.2f  %6.2f  %7.4f\n",
+                                         runnum.c_str(), label.c_str(),
+                                         sdc_full_run[irun].SDfac(),
+                                         sdc_full_run[irun].SDb(),
+                                         sdc_full_run[irun].SDadd());
       } else {
-	label = formatUseFlag(irun);
-	ss += FormatOutput::logTabPrintf(0,"%s %s  %7.2f  %6.2f  %7.4f\n",
-					 runnum.c_str(),label.c_str(),
-					 sdc_partial_run[irun].SDfac(),
-					 sdc_partial_run[irun].SDb(),
-					 sdc_partial_run[irun].SDadd());
+        label = formatUseFlag(irun);
+        ss += FormatOutput::logTabPrintf(0,"%s %s  %7.2f  %6.2f  %7.4f\n",
+                                         runnum.c_str(),label.c_str(),
+                                         sdc_partial_run[irun].SDfac(),
+                                         sdc_partial_run[irun].SDb(),
+                                         sdc_partial_run[irun].SDadd());
       }
     }  // end loop runs
 
@@ -963,7 +963,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       ss += std::string("\nFinal sigma(I) estimates will be calculated from the sample")+
       " variance of each reflection,\n"+
       "instead of from the individual SD(I), for those reflections with more than "+
-	StringUtil::itos(minimumsample) + " observations\n";
+        StringUtil::itos(minimumsample) + " observations\n";
     }
 
     return ss;
@@ -975,24 +975,24 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
     for (int irun=0;irun<nsets;++irun) { // loop runs
       if (allrunssame) {
-	s += "  <AllRuns/>\n";
+        s += "  <AllRuns/>\n";
       }
 
 
 
       if (usetype[irun] >= 0) {
-	s += "  <Fulls>\n";
-	s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_full_run[irun].SDfac(),6,2);
-	s += StringUtil::MakeXMLtag("SDb",   sdc_full_run[irun].SDb(),6,2);
-	s += StringUtil::MakeXMLtag("SDadd", sdc_full_run[irun].SDadd(),8,4);
-	s += "\n  </Fulls>\n";
+        s += "  <Fulls>\n";
+        s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_full_run[irun].SDfac(),6,2);
+        s += StringUtil::MakeXMLtag("SDb",   sdc_full_run[irun].SDb(),6,2);
+        s += StringUtil::MakeXMLtag("SDadd", sdc_full_run[irun].SDadd(),8,4);
+        s += "\n  </Fulls>\n";
       }
       if (usetype[irun] <= 0) {
-	s += "  <Partials>\n";
-	s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_partial_run[irun].SDfac(),6,2);
-	s += StringUtil::MakeXMLtag("SDb",   sdc_partial_run[irun].SDb(),6,2);
-	s += StringUtil::MakeXMLtag("SDadd", sdc_partial_run[irun].SDadd(),8,4);
-	s += "\n  </Partials>\n";
+        s += "  <Partials>\n";
+        s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_partial_run[irun].SDfac(),6,2);
+        s += StringUtil::MakeXMLtag("SDb",   sdc_partial_run[irun].SDb(),6,2);
+        s += StringUtil::MakeXMLtag("SDadd", sdc_partial_run[irun].SDadd(),8,4);
+        s += "\n  </Partials>\n";
       }
     }  // end loop runs
     s += "</SDcorrection>\n";
@@ -1044,7 +1044,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   }
 //-------------------------------------------------------------
   void SDmodel::Restore(const std::string& restorefilename,
-			const std::vector<Run>& runlist)
+                        const std::vector<Run>& runlist)
   {
     std::ifstream scalesin(restorefilename.c_str());
     Fileread FR(scalesin, restorefilename, "RESTORE");
@@ -1053,14 +1053,14 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     FR.ReadTag("ScaleModel"); // Note ReadTag fails if tag is wrong
     if (FR.GetTag() != "V1.1") {  // version check
       clipper::Message::message(Message_fatal
-		("RESTORE incompatible version in "+restorefilename));
+                ("RESTORE incompatible version in "+restorefilename));
     }
     FR.Skip(); // skip "{"
 
     RunsFromSavefile savefileruns(FR, runlist);
     if (savefileruns.NumberRunsFound() < int(runlist.size())) {
       clipper::Message::message(Message_fatal
-			("RESTORE not all runs found in save file"));
+                        ("RESTORE not all runs found in save file"));
     }
 
     int svnruns = savefileruns.NumberRunsInSaveFile();
@@ -1071,7 +1071,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     FR.SkipToTag("SDModel"); // Skip to tag
     if (FR.GetTag() != "V1.1") {  // version check
       clipper::Message::message(Message_fatal
-	("RESTORE SDmodel incompatible version in "+restorefilename));
+        ("RESTORE SDmodel incompatible version in "+restorefilename));
     }
     FR.Skip(); // skip "{"
 
@@ -1079,7 +1079,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     int nr = FR.Int();
     if (nr != svnruns) {
       clipper::Message::message(Message_fatal
-			("RESTORE SDmodel inconsisent Nruns"));
+                        ("RESTORE SDmodel inconsisent Nruns"));
     }
 
     int jpr = 0; // index to accepted runs
@@ -1087,28 +1087,28 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       FR.ReadTag("SDC");
       // Do we want this one?
       if (runsfromsavefile[ipr] < 0) {
-	FR.SkipSection(0);  // no, skip it
+        FR.SkipSection(0);  // no, skip it
       } else {
-	FR.Skip(); // skip "{"
-	FR.ReadTag("RunNumber");
-	int runnum = FR.Int();  // this should match run number in runlist
-	if (runnum != runlist[jpr].RunNumber()) {
-	  clipper::Message::message(Message_fatal
-		    ("RESTORE SDC: mismatch run number "+
-		     clipper::String(runnum)+" "+
-		     clipper::String(runlist[ipr].RunNumber())));
-	}
-	FR.ReadTag("SDCfulls");
-	sdc_full_run[jpr].Restore(FR);
-	FR.ReadTag("SDCpartials");
-	sdc_partial_run[jpr].Restore(FR);
-	FR.ReadTag("Usetype");
-	usetype[jpr] = FR.Int();
-	jpr++;
-	if (!FR.CheckEnd()) {
-	  clipper::Message::message(Message_warn
-				    ("SDmodel Restore unexpected tag "+FR.Tag()));
-	}
+        FR.Skip(); // skip "{"
+        FR.ReadTag("RunNumber");
+        int runnum = FR.Int();  // this should match run number in runlist
+        if (runnum != runlist[jpr].RunNumber()) {
+          clipper::Message::message(Message_fatal
+                    ("RESTORE SDC: mismatch run number "+
+                     clipper::String(runnum)+" "+
+                     clipper::String(runlist[ipr].RunNumber())));
+        }
+        FR.ReadTag("SDCfulls");
+        sdc_full_run[jpr].Restore(FR);
+        FR.ReadTag("SDCpartials");
+        sdc_partial_run[jpr].Restore(FR);
+        FR.ReadTag("Usetype");
+        usetype[jpr] = FR.Int();
+        jpr++;
+        if (!FR.CheckEnd()) {
+          clipper::Message::message(Message_warn
+                                    ("SDmodel Restore unexpected tag "+FR.Tag()));
+        }
       }  // end run
     }  // end loop runs
 

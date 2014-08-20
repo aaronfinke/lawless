@@ -6,17 +6,17 @@
 namespace scala {
   //---------------------------------------------------------------
   SDcorrResidual::SDcorrResidual(SDmodel& sdm,
-				 const hkl_unmerge_list& Hkl_list,
-				 IntensityBin& Irange,
-				 const bool& Anomalous)
+                                 const hkl_unmerge_list& Hkl_list,
+                                 IntensityBin& Irange,
+                                 const bool& Anomalous)
   {
     init(sdm,Hkl_list,Irange,Anomalous);
   }
   //---------------------------------------------------------------
   void SDcorrResidual::init(SDmodel& sdm,
-			    const hkl_unmerge_list& Hkl_list,
-			    IntensityBin& Irange,
-			    const bool& Anomalous)
+                            const hkl_unmerge_list& Hkl_list,
+                            IntensityBin& Irange,
+                            const bool& Anomalous)
   {
     // Store addresses of data objects
     SDM = &sdm;
@@ -78,29 +78,29 @@ namespace scala {
       SDM->CorrectReflection(this_refl);
       // Average I <I> over all observations
       SelectedObservations Selobs(this_refl, -1, ALL);
-      float Iav = Selobs.Average().I();  // average intensity for SD correction 
+      float Iav = Selobs.Average().I();  // average intensity for SD correction
       int mint = irange.bin(Iav);
       nref++;
       // loop datasets
       for (int id=0;id<Ndatasets;id++) {
-	if (Centric || !anomalous) {
-	  // No anomalous, treat all observations together
-	  SelectedObservations Selobs(this_refl, id, ALL);
-	  // Reject outliers
-	  Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
-	  sdanal.AddSelobsDelta(Selobs, mint);
-	} else {
-	  // Anomalous, treat I+ & I- separately
-	  // FIXME outlier rejection between I+ & I- not done yet
-	  SelectedObservations Selobs(this_refl, id, IPLUS);
-	  // Reject outliers
-	  Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
-	  sdanal.AddSelobsDelta(Selobs, mint);
-	  Selobs = SelectedObservations(this_refl, id, IMINUS);
-	  // Reject outliers
-	  Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
-	  sdanal.AddSelobsDelta(Selobs, mint);
-	}
+        if (Centric || !anomalous) {
+          // No anomalous, treat all observations together
+          SelectedObservations Selobs(this_refl, id, ALL);
+          // Reject outliers
+          Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
+          sdanal.AddSelobsDelta(Selobs, mint);
+        } else {
+          // Anomalous, treat I+ & I- separately
+          // FIXME outlier rejection between I+ & I- not done yet
+          SelectedObservations Selobs(this_refl, id, IPLUS);
+          // Reject outliers
+          Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
+          sdanal.AddSelobsDelta(Selobs, mint);
+          Selobs = SelectedObservations(this_refl, id, IMINUS);
+          // Reject outliers
+          Nrej += Selobs.Outliers(RejectFlags(sdrej, sdrej2, Rej2policy));
+          sdanal.AddSelobsDelta(Selobs, mint);
+        }
       } // end loop datasets
     } // end loop reflections
 
@@ -130,9 +130,9 @@ namespace scala {
     //%/    std::vector<double> wib(irange.NumberBins(), 0.0);
     //%/    for (int i=0;i<irange.NumberBins();++i) { // intensity bins
     //%/      for (int ir=0;ir<nrunsused;++ir) {  // runs
-    //%/	for (int j=0;j<2;++j) {  // full/partial
-    //%/	  wib[i] += double(sdanal.GetMeanSD(i,ir,j).Count()); // Sum N
-    //%/	}
+    //%/        for (int j=0;j<2;++j) {  // full/partial
+    //%/          wib[i] += double(sdanal.GetMeanSD(i,ir,j).Count()); // Sum N
+    //%/        }
     //%/      }
     //%/      wib[i] = sqrt(wib[i]);
     //%/    }
@@ -147,31 +147,31 @@ namespace scala {
       std::vector<double> sumwrun(2, 0.0); // full, partial
       std::vector<int> ninrun(2,0);
       for (int i=0;i<irange.NumberBins();++i) { // intensity bins
-	if (combine[ir]) {
-	  // combine full & partial (or just one)
-	  MeanSD mnsd = sdanal.GetMeanSD(i,ir,0) + sdanal.GetMeanSD(i,ir,1);
-	  r = 1.0 - mnsd.SD();
-	  sumrrun[0] += wib[i] * r * r;
-	  sumwrun[0] += wib[i];
-	  ninrun[0] += mnsd.Count();
-	} else {
-	  for (int j=0;j<2;++j) {  // full/partial
-	    r = 1.0 - sdanal.GetMeanSD(i,ir,j).SD();
-	    sumrrun[j] += wib[i] * r * r;
-	    sumwrun[j] += wib[i];
-	    ninrun[j] += sdanal.GetMeanSD(i,ir,j).Count();
-	  }
-	}
+        if (combine[ir]) {
+          // combine full & partial (or just one)
+          MeanSD mnsd = sdanal.GetMeanSD(i,ir,0) + sdanal.GetMeanSD(i,ir,1);
+          r = 1.0 - mnsd.SD();
+          sumrrun[0] += wib[i] * r * r;
+          sumwrun[0] += wib[i];
+          ninrun[0] += mnsd.Count();
+        } else {
+          for (int j=0;j<2;++j) {  // full/partial
+            r = 1.0 - sdanal.GetMeanSD(i,ir,j).SD();
+            sumrrun[j] += wib[i] * r * r;
+            sumwrun[j] += wib[i];
+            ninrun[j] += sdanal.GetMeanSD(i,ir,j).Count();
+          }
+        }
       } // end loop intensity bins
       for (int j=0;j<2;++j) {  // full/partial
-	if (sumwrun[j] > 0.0) {
-	  sumr += sumrrun[j];
-	  sumw += sumwrun[j];
-	  nr += ninrun[j];
-	  double resid = 0.5*sumrrun[j]/sumwrun[j];
-	  classRs.push_back(resid);
-	  nRs.push_back(ninrun[j]);
-	}
+        if (sumwrun[j] > 0.0) {
+          sumr += sumrrun[j];
+          sumw += sumwrun[j];
+          nr += ninrun[j];
+          double resid = 0.5*sumrrun[j]/sumwrun[j];
+          classRs.push_back(resid);
+          nRs.push_back(ninrun[j]);
+        }
       }
     }  // end loop runs
 
@@ -183,13 +183,13 @@ namespace scala {
   void SDcorrResidual::PrintTable(phaser_io::Output& output)
   {
     PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(),
-		    irange, hkl_list->RunList(), *SDM, -1, PxdName(), true, output);
+                    irange, hkl_list->RunList(), *SDM, -1, PxdName(), true, output);
   }
   //---------------------------------------------------------------
   SDcorrRefine::SDcorrRefine(SDmodel& sdm,
-			     const hkl_unmerge_list& Hkl_list,
-			     IntensityBin& Irange,
-			     const bool& anomalous)
+                             const hkl_unmerge_list& Hkl_list,
+                             IntensityBin& Irange,
+                             const bool& anomalous)
   {
     SDCresid.init(sdm,  Hkl_list, Irange, anomalous);
     nparams = sdm.Nparams();
@@ -203,7 +203,7 @@ namespace scala {
   //---------------------------------------------------------------
   //---------------------------------------------------------------
   std::vector<std::vector<double> > StartValues(const SDmodel& SDM,
-						const double& scale)
+                                                const double& scale)
   {
     std::vector<double> params = SDM.GetParameters();
     // Initial shifts for each parameter type, scaled by "scale"
@@ -221,12 +221,12 @@ namespace scala {
   }
   //---------------------------------------------------------------
   void OptimiseSDcorr(SDmodel& SDM,
-		      const hkl_unmerge_list& hkl_list,
-		      const all_controls& controls,
-		      IntensityBin& Irange,
-		      const double& tolerance,
-		      const int&  max_cycles,
-		      phaser_io::Output& output)
+                      const hkl_unmerge_list& hkl_list,
+                      const all_controls& controls,
+                      IntensityBin& Irange,
+                      const double& tolerance,
+                      const int&  max_cycles,
+                      phaser_io::Output& output)
   // Optimise SD correction model
   {
     // Set up Simplex minimiser
@@ -240,9 +240,9 @@ namespace scala {
     std::vector<double> newparams = optimiserSimplex(SDCref, start);
     SDM.SetParameters(newparams);
     output.logTabPrintf(0,LOGFILE,
-	"\nAfter %4d optimisation cycles, final residual = %7.4f\n",
-			optimiserSimplex.ncycles(),
-			optimiserSimplex.bestResidual());
+        "\nAfter %4d optimisation cycles, final residual = %7.4f\n",
+                        optimiserSimplex.ncycles(),
+                        optimiserSimplex.bestResidual());
   }
   //---------------------------------------------------------------
 }

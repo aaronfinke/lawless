@@ -27,8 +27,8 @@ namespace normalise {
   }
   //--------------------------------------------------------------
   void AnisotropicModel::init(const clipper::Cell& cCell,
-			      const CrystalSystem& crysSys,
-			      const clipper::U_aniso_orth& U_aniso_orth)
+                              const CrystalSystem& crysSys,
+                              const clipper::U_aniso_orth& U_aniso_orth)
   {
     ccell = cCell;
     cryssys = crysSys;
@@ -117,7 +117,7 @@ namespace normalise {
       lpumat[4] = -1;
       lpumat[5] = -1;
     } else if (cryssys == TRIGONAL &&
-	       scala::RhombohedralAxes(Scell(ccell).UnitCell())) {
+               scala::RhombohedralAxes(Scell(ccell).UnitCell())) {
       nparams = 2;
       params.resize(nparams);
       params[0] = umat[0];  // U00 = U11 = U22
@@ -146,7 +146,7 @@ namespace normalise {
       lpumat.assign(6,-1);
     } else { // shouldn't happen
       Message::message(Message_fatal
-		       ("AnisotropicModel: undefined Bravais lattice\n"));
+                       ("AnisotropicModel: undefined Bravais lattice\n"));
     }
   }
   //--------------------------------------------------------------
@@ -170,7 +170,7 @@ namespace normalise {
       umat[1] = pars[0];  // U00 = U1
       umat[2] = pars[1];  // U22
     } else if (cryssys == TRIGONAL &&
-	       scala::RhombohedralAxes(Scell(ccell).UnitCell())) {
+               scala::RhombohedralAxes(Scell(ccell).UnitCell())) {
       umat[0] = pars[0];  // U00 = U11 = U22
       umat[1] = pars[0];  // U00 = U11 = U22
       umat[2] = pars[0];  // U00 = U11 = U22
@@ -185,7 +185,7 @@ namespace normalise {
     } else if (cryssys == CUBIC) {
     } else { // shouldn't happen
       Message::message(Message_fatal
-		       ("AnisotropicModel: undefined Bravais lattice\n"));
+                       ("AnisotropicModel: undefined Bravais lattice\n"));
     }
   }
   //--------------------------------------------------------------
@@ -224,8 +224,8 @@ namespace normalise {
   //--------------------------------------------------------------
   // Return scale and derivative vector for index hkl
   double AnisotropicModel::fderiv(const bool& deriv,
-				  const scala::Hkl& hkl,
-				  std::vector<double>& dkdp) const
+                                  const scala::Hkl& hkl,
+                                  std::vector<double>& dkdp) const
   //  exp(-2pi^2 d*T [Uorth] d*)
   //   where [Uorth] is the anisotropic B-factor (no isotropic part)
   //   d* is the orthogonalised reciprocal space coordinate [B] h
@@ -241,14 +241,14 @@ namespace normalise {
     clipper::Coord_reci_orth xs =
       clipper::Coord_reci_frac(HKL).coord_reci_orth(ccell);
     double c[6];
-    c[0] = -xs[0]*xs[0];	  
-    c[1] = -xs[1]*xs[1];	  
-    c[2] = -xs[2]*xs[2];	  
+    c[0] = -xs[0]*xs[0];
+    c[1] = -xs[1]*xs[1];
+    c[2] = -xs[2]*xs[2];
     c[3] = -2.0*xs[0]*xs[1];
     c[4] = -2.0*xs[0]*xs[2];
     c[5] = -2.0*xs[1]*xs[2];
     scale = exp(c[0]*umat[0] + c[1]*umat[1] + c[2]*umat[2] +
-		c[3]*umat[3] + c[4]*umat[4] + c[5]*umat[5]);
+                c[3]*umat[3] + c[4]*umat[4] + c[5]*umat[5]);
 
     if (deriv) {
       // dscale/dp for active parameters
@@ -256,13 +256,13 @@ namespace normalise {
       // for each of the 6 umat[j] components, lpumat[j] indexes
       //  the active parameter, or = -1 if fixed
       for (int j=0;j<6;++j) {
-	int k = lpumat[j];
-	if (k >= 0) {
-	  dkdp[k] += c[j];
-	}
+        int k = lpumat[j];
+        if (k >= 0) {
+          dkdp[k] += c[j];
+        }
       }
       for (int k=0;k<nparams;++k) {
-	dkdp[k] *= scale;
+        dkdp[k] *= scale;
       }
     }
     return scale;

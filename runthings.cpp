@@ -56,8 +56,8 @@ namespace scala {
     int jb = -1;
     for (size_t ib=0;ib<batch_number_list.size();++ib) {
       if (batch_number_list[ib].first == Batchnum) {
-	jb = ib;
-	break;
+        jb = ib;
+        break;
       }
     }
     return jb;
@@ -76,9 +76,9 @@ namespace scala {
     std::vector<int> bn;
     for (size_t ib=0;ib<batch_number_list.size();++ib) {
       if (Accepted) {
-	if (batch_number_list.at(ib).second) bn.push_back(batch_number_list[ib].first);
+        if (batch_number_list.at(ib).second) bn.push_back(batch_number_list[ib].first);
       } else {
-	bn.push_back(batch_number_list[ib].first);
+        bn.push_back(batch_number_list[ib].first);
       }
     }
     return bn;
@@ -112,14 +112,14 @@ namespace scala {
   {
     std::string s =
       FormatOutput::logTabPrintf(0,
-	      "\nRun number: %3d  Dataset: %3d %s consists of batches:-",
-			 runnumber, dataset_index+1,
-				 datasets[dataset_index].pxdname().format().c_str());
+              "\nRun number: %3d  Dataset: %3d %s consists of batches:-",
+                         runnumber, dataset_index+1,
+                                 datasets[dataset_index].pxdname().format().c_str());
     const int nperline = 15;
     for (size_t i=0;i<batch_number_list.size();i++)  {
       if (batch_number_list[i].second) {
-	if (i%nperline == 0) s += FormatOutput::logTabPrintf(0,"\n");
-	s += FormatOutput::logTabPrintf(0," %6d", batch_number_list[i].first);
+        if (i%nperline == 0) s += FormatOutput::logTabPrintf(0,"\n");
+        s += FormatOutput::logTabPrintf(0," %6d", batch_number_list[i].first);
       }
     }
     if (latnum > 0) {
@@ -132,16 +132,16 @@ namespace scala {
     s += FormatOutput::logTabPrintf(0,"\n");
     if (resrangeset) {
       s +=  FormatOutput::logTabPrintf(0,"\n   Resolution range for run: %8.2f    %8.2f\n",
-			  resrange.ResLow(), resrange.ResHigh());
+                          resrange.ResLow(), resrange.ResHigh());
     }
     s += FormatOutput::logTabPrintf(3,
-			"Phi range: %8.2f to %8.2f   Time range: %8.2f to %8.2f\n",
-				    phirange.first(),phirange.last(),
-				    timerange.first(),timerange.last());
+                        "Phi range: %8.2f to %8.2f   Time range: %8.2f to %8.2f\n",
+                                    phirange.first(),phirange.last(),
+                                    timerange.first(),timerange.last());
     if (validorientation) {
       s += FormatOutput::logTab(1,
-		    "Closest reciprocal axis to spindle: "+
-		    spindletoprincipleaxis);
+                    "Closest reciprocal axis to spindle: "+
+                    spindletoprincipleaxis);
     }
     return s;
   }
@@ -154,45 +154,45 @@ namespace scala {
     int lastbatch = -1;
     for (size_t i=0;i<batch_number_list.size();++i) {
       if (batch_number_list[i].second) {
-	firstbatch = batch_number_list[i].first;
-	break;
+        firstbatch = batch_number_list[i].first;
+        break;
       }
     }
     if (firstbatch >= 0) {
       for (int i=int(batch_number_list.size())-1;i>=0;i--) {
-	if (batch_number_list[i].second) {
-	  lastbatch = batch_number_list[i].first;
-	  break;
-	}
+        if (batch_number_list[i].second) {
+          lastbatch = batch_number_list[i].first;
+          break;
+        }
       }
 
       s = FormatOutput::logTabPrintf(2,
-				     "Run number: %3d consists of batches %6d to %6d",
-				     runnumber, 
-				     firstbatch, lastbatch);
+                                     "Run number: %3d consists of batches %6d to %6d",
+                                     runnumber,
+                                     firstbatch, lastbatch);
       if (latnum > 0) {
-	s += " Lattice number " + StringUtil::itos(latnum, 2);
+        s += " Lattice number " + StringUtil::itos(latnum, 2);
       }
       if (!use_) {
-	s += " [Not Used]";
+        s += " [Not Used]";
       }
       s += "\n";
       if (resrangeset) {
-	s +=  FormatOutput::logTabPrintf(3,"Resolution range for run: %8.2f    %8.2f\n",
-					 resrange.ResLow(), resrange.ResHigh());
+        s +=  FormatOutput::logTabPrintf(3,"Resolution range for run: %8.2f    %8.2f\n",
+                                         resrange.ResLow(), resrange.ResHigh());
       }
       s += FormatOutput::logTabPrintf(3,
-				      "Phi range: %8.2f to %8.2f   Time range: %8.2f to %8.2f\n",
-				      phirange.first(),phirange.last(),
-				      timerange.first(),timerange.last());
+                                      "Phi range: %8.2f to %8.2f   Time range: %8.2f to %8.2f\n",
+                                      phirange.first(),phirange.last(),
+                                      timerange.first(),timerange.last());
       if (validorientation) {
-	s += FormatOutput::logTab(3,
-				  "Closest reciprocal axis to spindle: "+
-				  spindletoprincipleaxis);
+        s += FormatOutput::logTab(3,
+                                  "Closest reciprocal axis to spindle: "+
+                                  spindletoprincipleaxis);
       }
     } else {
       s = "No accepted batches in run";
-    } 
+    }
     return s;
   }
   //--------------------------------------------------------------
@@ -225,7 +225,7 @@ namespace scala {
     else {
       // Check for very few fulls or partials: if so combine them
       // Criteria for only a "few" fulls or partials
-      //  "Few" if either 
+      //  "Few" if either
       //     1. fraction (f = full/partial or 1/f)  .lt. FMINFEW
       //     2. number .lt. MINFEW   and f .lt. 0.5
       int combine = 0;
@@ -237,14 +237,14 @@ namespace scala {
       if (nfulls < MINFEW && f < 0.5) combine = -1;  // few fulls
       if (npartials < MINFEW && 1.0/f < 0.5) combine = +1;  // few partials
       if (combine < 0) fullsandpartials = FEWFULLS;
-      else if (combine > 0) fullsandpartials = FEWPARTIALS;    
+      else if (combine > 0) fullsandpartials = FEWPARTIALS;
     }
   }
   //--------------------------------------------------------------
   // format for saving essentials
   std::string Run::FormatSave() const
   {
-    std::string dump = "Run V1 {\n"; 
+    std::string dump = "Run V1 {\n";
     int nb = batch_number_list.size();
     std::vector<int> numbers(nb);
     for (size_t i=0;i<batch_number_list.size();++i) {
@@ -281,7 +281,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   RunRange::RunRange(const std::pair<int,int>& LowHigh)
-    :	LowBatchNumber(LowHigh.first), HighBatchNumber(LowHigh.second), Offset(0)
+    :   LowBatchNumber(LowHigh.first), HighBatchNumber(LowHigh.second), Offset(0)
   {
     if (LowBatchNumber > HighBatchNumber) {
       std::swap(LowBatchNumber, HighBatchNumber);
@@ -293,7 +293,7 @@ namespace scala {
   // test both ways round
   {
     return ((LowBatchNumber == test.HighBatchNumber+1) ||
-	    (test.LowBatchNumber == HighBatchNumber+1));
+            (test.LowBatchNumber == HighBatchNumber+1));
   }
   //--------------------------------------------------------------
   bool RunRange::Encloses(const RunRange& test) const
@@ -301,7 +301,7 @@ namespace scala {
   // test both ways round
   {
     return (Encloses(test.LowBatchNumber) || Encloses(test.HighBatchNumber) ||
-	    test.Encloses(LowBatchNumber) || test.Encloses(HighBatchNumber));
+            test.Encloses(LowBatchNumber) || test.Encloses(HighBatchNumber));
   }
   //--------------------------------------------------------------
   bool RunRange::Encloses(const int& testN) const
@@ -318,7 +318,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::vector<int> CompareRunRanges(const std::vector<Run>& refruns,
-				    const std::vector<Run>& testruns)
+                                    const std::vector<Run>& testruns)
   // Determine suitable batch number offsets for each run in testruns
   // such that they do not clash with any runs in refruns nor with other
   // runs in testruns
@@ -335,51 +335,51 @@ namespace scala {
     for (size_t i=0;i<testruns.size();i++) {
       test_rr[i] = RunRange(testruns[i].BatchRange());
     }
-    
+
     std::vector<int> offsets(test_rr.size(), 0);
     bool overflow = false; // true if we run off end of MaxBatch
-    
+
     for (size_t it=0;it<test_rr.size();it++) { // Loop each test run
       bool found = false;
       while (test_rr[it].Offset <= MaxOffset) {
-	bool OK = true;
-	for (size_t ir=0;ir<ref_rr.size();ir++) {
-	  // Loop each reference run 
-	  if (ref_rr[ir].Encloses(test_rr[it])) {
-	    // but it might be OK if they are adjacent before any offset
-	    if (!((test_rr[it].Offset == 0) && ref_rr[ir].Adjacent(test_rr[it]))) {
-	      OK = false;
-	      break;
-	    }
-	  }
-	} // end loop reference runs
-	if (OK) {
-	  // this test run does not overlap with any reference run
-	  // Test it against the other test runs
-	  for (size_t it2=0;it2<test_rr.size();it2++) {
-	    if (it2 != it) {
-	      if (test_rr[it2].Encloses(test_rr[it])) {
-		OK = false;
-		break;
-	      }
-	    }
-	  }
-	}
-	if (OK) {
-	  // No overlap, offset OK 
-	  found = true;
-	  break;
-	}
-	test_rr[it].IncrementOffset(OffsetIncrement);
+        bool OK = true;
+        for (size_t ir=0;ir<ref_rr.size();ir++) {
+          // Loop each reference run
+          if (ref_rr[ir].Encloses(test_rr[it])) {
+            // but it might be OK if they are adjacent before any offset
+            if (!((test_rr[it].Offset == 0) && ref_rr[ir].Adjacent(test_rr[it]))) {
+              OK = false;
+              break;
+            }
+          }
+        } // end loop reference runs
+        if (OK) {
+          // this test run does not overlap with any reference run
+          // Test it against the other test runs
+          for (size_t it2=0;it2<test_rr.size();it2++) {
+            if (it2 != it) {
+              if (test_rr[it2].Encloses(test_rr[it])) {
+                OK = false;
+                break;
+              }
+            }
+          }
+        }
+        if (OK) {
+          // No overlap, offset OK
+          found = true;
+          break;
+        }
+        test_rr[it].IncrementOffset(OffsetIncrement);
       }  // test next offset
       if (found) {
-	// We have found a suitable offset for this testrun
-	offsets[it] = test_rr[it].Offset;
+        // We have found a suitable offset for this testrun
+        offsets[it] = test_rr[it].Offset;
       }
       else
-	{overflow = true;}
+        {overflow = true;}
     } // end loop test_rr
-    if (overflow) offsets.clear();  // clear vector to indicate failure 
+    if (overflow) offsets.clear();  // clear vector to indicate failure
     return offsets;
   }
   //--------------------------------------------------------------
@@ -389,11 +389,10 @@ namespace scala {
   {
     for (size_t irun=0;irun<runList.size();irun++) {
       if (runNumber == runList[irun].RunNumber()) {
-	return irun;
+        return irun;
       }
     }
     return -1;
   }
   //--------------------------------------------------------------
 }
-

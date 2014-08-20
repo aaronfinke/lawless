@@ -1,5 +1,5 @@
 //  RefineSDCorrection.cpp
-// 
+//
 // residual Sum(j) [ wj (1 - sigma(delta(j)))^2 ]
 // delta(hl) = (Ihl - <Ih>!l)/[sqrt(nh/nh-1) * sigma'(hl)]
 // sigma'(hl) = SdFac *sqrt[sigma(hl)^2 + SdB <Ih> + (SdAdd * <Ih>)^2]
@@ -12,7 +12,7 @@
 //  explicitly here, using clipper::Matrix with eigenvalue decomposition.
 //  The matrix dimensions (nparam) are 2 or 3, so the clipper routines should be OK
 //  (they are not suitable for larger matrices)
-// 
+//
 //
 
 #include <assert.h>
@@ -24,12 +24,12 @@ namespace scala {
 // ---------------------------------------------------------
 // Refine SD correction model using LSQ minimiser for each "bin class" separately
   SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
-				       const hkl_unmerge_list& hkl_list,
-				       const all_controls& controls,
-				       IntensityBin& irange,
-				       const double& tolerance, const double& rtolerance,
-				       const int&  max_cycles,
-				       phaser_io::Output& output)
+                                       const hkl_unmerge_list& hkl_list,
+                                       const all_controls& controls,
+                                       IntensityBin& irange,
+                                       const double& tolerance, const double& rtolerance,
+                                       const int&  max_cycles,
+                                       phaser_io::Output& output)
 {
   //^  std::cout << "SDM start: " << SDM.format() <<"\n"; //^
 
@@ -49,7 +49,7 @@ namespace scala {
   output.logTabPrintf(0,LOGFILE,"Damping factor: %5.3f\n", damp);
   // print information about parameter restraints
   output.logTab(0,LOGFILE, SDM.formatTie());
- 
+
   SDM.SetTargetsFromAverageParameters();  // if similarity targets
 
   for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
@@ -58,23 +58,23 @@ namespace scala {
     sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
     //^
     //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
-    //    		    SDM, -1, PxdName(), false, output);
+    //                      SDM, -1, PxdName(), false, output);
     //^-
     bool update = (max_cycles > 0); // don't update parameters if zero cycles
     TargetResiduals target = UpdateParameters(SDM, sdanal, tolerance, damp, update);
     double R = target.R;
     if (target.R2 > 0.0) {
       output.logTabPrintf(0,LOGFILE,
-	"Cycle %3d residual %10.5f   (main residual %8.5f restraint residual %8.5f)\n",
-			cyc+1, std::abs(R), target.R1, target.R2);
+        "Cycle %3d residual %10.5f   (main residual %8.5f restraint residual %8.5f)\n",
+                        cyc+1, std::abs(R), target.R1, target.R2);
     } else {
       output.logTabPrintf(0,LOGFILE,
-	"Cycle %3d residual %10.5f\n",
-			  cyc+1, std::abs(R));
+        "Cycle %3d residual %10.5f\n",
+                          cyc+1, std::abs(R));
     }
     //^
     //    output.logTab(0,LOGFILE,
-    //		  "\nSD correction parameters after cycle\n"+SDM.format()); //^-
+    //            "\nSD correction parameters after cycle\n"+SDM.format()); //^-
 
     if (max_cycles <= 0) break;
     if (R < 0.0) {
@@ -91,30 +91,30 @@ namespace scala {
       // beyond minimum cycles, should we stop anyway?
       double diffR = std::abs(R - lastR);
       if (R > lastR) {
-	// residual gone up, reinstate best parameter set
-	SDM.SetParameters(bestsdmparams); // reset parameters
-	output.logTab(0,LOGFILE,"Residual increasing, revert to best cycle and exit");
-	break;
+        // residual gone up, reinstate best parameter set
+        SDM.SetParameters(bestsdmparams); // reset parameters
+        output.logTab(0,LOGFILE,"Residual increasing, revert to best cycle and exit");
+        break;
       }
       if (diffR < rtolerance) {
-	// change in residual less than tolerance
-	  break;
+        // change in residual less than tolerance
+          break;
       }
     }
     lastR = std::abs(R);
   }  // loop cycles
   //^
   //  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
-  //      		    SDM, -1, PxdName(), false, output);
+  //                        SDM, -1, PxdName(), false, output);
   //^-
 
   return sdanal;
 }
 // ---------------------------------------------------------
   SDanalysis SumsforSDcorrection(const SDmodel& SDM,
-				 const hkl_unmerge_list& hkl_list,
-				 const bool& anomalous,
-				 IntensityBin& irange)
+                                 const hkl_unmerge_list& hkl_list,
+                                 const bool& anomalous,
+                                 IntensityBin& irange)
   // Accumulate sums for SD correction refinement into SDanalysis object returned
   // anomalous   true to separate anomalous I+ & I- (usually true)
   {
@@ -128,7 +128,7 @@ namespace scala {
     int nref = 0;
     hkl_list.rewind();
     std::vector<float> delta, delta2;
-  
+
     //  deviations within each run & full/partial
     while (hkl_list.next_reflection(this_refl) >= 0)  {
       bool Centric = hkl_list.symmetry().is_centric(this_refl.hkl());
@@ -138,39 +138,39 @@ namespace scala {
       SelectedObservations selobs(this_refl, -1, ALL, weighttype);
       //^
       //      std::cout << "rsd " << this_refl.hkl().format()
-      //		<< " N " << selobs.Number() << "\n";
+      //                << " N " << selobs.Number() << "\n";
       //^-
-      float Iav = selobs.Average().I(); // average intensity for SD correction 
+      float Iav = selobs.Average().I(); // average intensity for SD correction
       int mint = irange.bin(Iav);
       nref++;
       int nacc = 0; //^
       for (int id=0;id<Ndatasets;id++) {    // loop datasets
-	if (Centric || !anomalous) {
-	  // No anomalous, treat all observations together
-	  if (Ndatasets > 1) {selobs.init(this_refl, id, ALL, weighttype);} // already done if 1 dataset
-	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
-	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    nacc++;
-	  }
-	} else {
-	  // Anomalous, treat I+ & I- separately
-	  selobs.init(this_refl, id, IPLUS, weighttype);
-	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
-	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    nacc++;
-	  }
-	  selobs.init(this_refl, id, IMINUS, weighttype);
-	  if (selobs.Number() > 1) {
-	    sdanal.AddSelobsDelta2(selobs, mint);
-	    // partial derivatives
-	    sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
-	    nacc++;
-	  }
-	} // end acentric
+        if (Centric || !anomalous) {
+          // No anomalous, treat all observations together
+          if (Ndatasets > 1) {selobs.init(this_refl, id, ALL, weighttype);} // already done if 1 dataset
+          if (selobs.Number() > 1) {
+            sdanal.AddSelobsDelta2(selobs, mint);
+            // partial derivatives
+            sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+            nacc++;
+          }
+        } else {
+          // Anomalous, treat I+ & I- separately
+          selobs.init(this_refl, id, IPLUS, weighttype);
+          if (selobs.Number() > 1) {
+            sdanal.AddSelobsDelta2(selobs, mint);
+            // partial derivatives
+            sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+            nacc++;
+          }
+          selobs.init(this_refl, id, IMINUS, weighttype);
+          if (selobs.Number() > 1) {
+            sdanal.AddSelobsDelta2(selobs, mint);
+            // partial derivatives
+            sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
+            nacc++;
+          }
+        } // end acentric
       } // end loop datasets
     } // end loop reflections
 
@@ -178,8 +178,8 @@ namespace scala {
   }
   // ---------------------------------------------------------
   TargetResiduals UpdateParameters(SDmodel& SDM, const SDanalysis& sdanal,
-				   const double& tolerance, const double& damp,
-				   const bool& Update)
+                                   const double& tolerance, const double& damp,
+                                   const bool& Update)
   // Solve LSQ equations for each "parameter class" to update SDmodel SDM,
   //    using sums in sdanal
   // Parameter classes are run and full/partial, subject to the Allrunssame flag and
@@ -228,7 +228,7 @@ namespace scala {
       std::vector<double> wib(nintbins, w1);
       // Test! double weight on top bin
       wib.back() *= 2;
-      
+
       double R1 = 0.0; // main residual
       double sumw = 0.0;
       int npar = sdanal.Nparam(jpc); // number of parameters for this parameter class
@@ -237,86 +237,86 @@ namespace scala {
       // index to 1st parameter in global list for class jpc
       int idxpar = sdanal.IdxParam(jpc);
       int number = 0;
-      
+
       for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
-	int jc = sdanal.BinClass(jpc, mint);
-	if (sddelta[jc] != 0.0) {
-	  number += ninclass[jc];
-	  double r = 1.0 - sddelta[jc]; // deviation
-	  R1 += wib[mint] * r * r;       // target residual ( * 2)
-	  sumw += wib[mint];
-	}
+        int jc = sdanal.BinClass(jpc, mint);
+        if (sddelta[jc] != 0.0) {
+          number += ninclass[jc];
+          double r = 1.0 - sddelta[jc]; // deviation
+          R1 += wib[mint] * r * r;       // target residual ( * 2)
+          sumw += wib[mint];
+        }
       }
       if (sumw > 0.0) {R1 = 0.5 * R1/sumw;}
       else {R1 = 0.0;}  // target residual
-      
+
       //^
       //      std::cout <<"Target contribution from group " << jpc<< " " << R1
-      //      		<< " number " << number <<"\n"; //^-
+      //                << " number " << number <<"\n"; //^-
 
       std::vector<double> gradient(npar, 0.0); // gradient vector dR/dp
       clipper::Matrix<double> H(npar,npar,0.0);  // Hessian ~= d2R/dp2
-      
+
       // kpl is parameter number local to parameter class
       // kpg is global parameter number
       for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl for this class
-	// dR/dpk = Sum[jc] (w (1 - SD(delta)) d(sigma(delta(jc)))/dpk)
-	for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
-	  int jc = sdanal.BinClass(jpc, mint);  // bin class number from param class & intbin
-	  if (sddelta[jc] != 0.0) {
-	    double r = 1.0 - sddelta[jc]; // deviation
-	    gradient[kpl] += wib[mint] * r * dsigDeldp[jpc][mint][kpl];
-	    //^
-	    //	    std::cout << "Gradient k, jc " << kpl << " " << jc
-	    //		      << " r " << r << " w " << wib[mint]
-	    //		      << " sddelta " << sddelta[jc]
-	    //		      << " Number " << sdanal.NumberinClass()[jc]
-	    //		      << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
-	    //		      << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
-	    //		      << "\n";
-	    //^-
+        // dR/dpk = Sum[jc] (w (1 - SD(delta)) d(sigma(delta(jc)))/dpk)
+        for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
+          int jc = sdanal.BinClass(jpc, mint);  // bin class number from param class & intbin
+          if (sddelta[jc] != 0.0) {
+            double r = 1.0 - sddelta[jc]; // deviation
+            gradient[kpl] += wib[mint] * r * dsigDeldp[jpc][mint][kpl];
+            //^
+            //      std::cout << "Gradient k, jc " << kpl << " " << jc
+            //                << " r " << r << " w " << wib[mint]
+            //                << " sddelta " << sddelta[jc]
+            //                << " Number " << sdanal.NumberinClass()[jc]
+            //                << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
+            //                << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
+            //                << "\n";
+            //^-
 
-	    for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
-	      H(kpl,lp) += wib[mint] * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
-	    }
-	  }
-	} // end loop intensity bins
-	//^
-	//	std::cout << "k, Grad(k) no R2 " << kpl <<" "<<gradient[kpl] <<"\n";
+            for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
+              H(kpl,lp) += wib[mint] * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+            }
+          }
+        } // end loop intensity bins
+        //^
+        //      std::cout << "k, Grad(k) no R2 " << kpl <<" "<<gradient[kpl] <<"\n";
 
-	// Restraints: local parameter kpg, parameter group jpc
-	gradient[kpl] += dr2dp[jpc][kpl]; // gradient
-	//^	std::cout << "k, Grad(k)  R2   " << kpl <<" "<<gradient[kpl] <<"\n";
-	for (int jpl=0;jpl<=kpl;++jpl) {  // Loop parameters jpl for this class
-	  H(jpl,kpl) += H2[jpc](jpl,kpl); // Hessian
-	}
+        // Restraints: local parameter kpg, parameter group jpc
+        gradient[kpl] += dr2dp[jpc][kpl]; // gradient
+        //^     std::cout << "k, Grad(k)  R2   " << kpl <<" "<<gradient[kpl] <<"\n";
+        for (int jpl=0;jpl<=kpl;++jpl) {  // Loop parameters jpl for this class
+          H(jpl,kpl) += H2[jpc](jpl,kpl); // Hessian
+        }
       }  // end loop local parameters k
       double R2 = sdmrestraintR[jpc];  // restraint residual R2
       double R = R1 + R2; // total residual
 
       //^
       //      std::cout << "Main residual: " << R1 << " Restraint Residual " << R2
-      //      		<< " Total " << R <<"\n"; //^-
+      //                << " Total " << R <<"\n"; //^-
 
       // Symmetrise Hessian
       for (int k=0;k<npar-1;k++) {
-	for (int l=k+1;l<npar;l++) 
-	  {H(k,l) = H(l,k);} // other half
+        for (int l=k+1;l<npar;l++)
+          {H(k,l) = H(l,k);} // other half
       }
       //^
       //      std::cout <<"Total Hessian:\n";
       //      for (int k=0;k<npar;k++) {
-      //	for (int l=0;l<npar;l++) 
-      //	  {std::cout <<" "<<H(l,k);}
-      //	std::cout <<"\n";
+      //        for (int l=0;l<npar;l++)
+      //          {std::cout <<" "<<H(l,k);}
+      //        std::cout <<"\n";
       //      }
       //      // for npar = 2
       //      if (npar == 2) {
-      //	double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
-      //	std::cout << "Det [2x2]" << det <<"\n";
+      //        double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
+      //        std::cout << "Det [2x2]" << det <<"\n";
       //      }
       //^-
-       
+
       // Variance/covariance matrix = (R/(m-n)) H^-1
       //   for m observations, n variables
       double rmn = R/(double(nintbins-npar));  // scaling factor
@@ -324,18 +324,18 @@ namespace scala {
       std::vector<double> U(npar);    // diagonal of scaling matrix
       std::vector<double> Uinv(npar); // diagonal of inverse scaling matrix
       for (int i=0;i<npar;++i) {
-       	ASSERT (H(i,i) > 0.0);  // positive definite
-	U[i] = sqrt(H(i,i));
-	Uinv[i] = 1.0/U[i];
+        ASSERT (H(i,i) > 0.0);  // positive definite
+        U[i] = sqrt(H(i,i));
+        Uinv[i] = 1.0/U[i];
       }
       clipper::Matrix<double> A(npar,npar);  // scaled Hessian
       // Scaled gradient vector
       std::vector<double> ugradient(npar, 0.0);
       for (int j=0;j<npar;++j) {
-	ugradient[j] = gradient[j] * Uinv[j]; // scaled gradient
-	for (int i=0;i<npar;++i) {
-	  A(i,j) = H(i,j) * Uinv[i] * Uinv[j];
-	}}
+        ugradient[j] = gradient[j] * Uinv[j]; // scaled gradient
+        for (int i=0;i<npar;++i) {
+          A(i,j) = H(i,j) * Uinv[i] * Uinv[j];
+        }}
 
       // Get A^-1 via eigenvectors
       std::vector<double> ev = A.eigen();
@@ -344,9 +344,9 @@ namespace scala {
       //   or if eigenvalue l(i) = ev[i] <= 0, L^-1ii = 0.0
       std::vector<double> Linv(npar, 0.0);
       for (int i=0;i<npar;++i) {
-	if (ev[i] > 0.0) {
-	  Linv[i] = 1.0/(ev[i] + damp);
-	}
+        if (ev[i] > 0.0) {
+          Linv[i] = 1.0/(ev[i] + damp);
+        }
       }
 
       clipper::Matrix<double> Ainv(npar,npar);
@@ -358,55 +358,55 @@ namespace scala {
       //       [E] is matrix of eigenvectors, transpose [E]T = [E]^-1
       // A now contains matrix of eigenvectors
       for (int j=0;j<npar;++j) {
-	for (int i=0;i<npar;++i) {
-	  Ainv(i,j) = 0.0;
-	  for (int k=0;k<npar;++k) {
-	    // [E] = A
-	    // [[E][L^-1]]ik = [E]ik (1/Lk)
-	    // [[E][L^-1][E]T]ij = Sum(k) [[E][L^-1]]ik [E]jk
-	    Ainv(i,j) += Linv[k] * A(i,k) * A(j,k);
-	  }
-	  // [H]^-1 = U^-1 A^-1 UT^-1
-	  Hinv(i,j) = Ainv(i,j) * Uinv[i] * Uinv[j];
-	}
+        for (int i=0;i<npar;++i) {
+          Ainv(i,j) = 0.0;
+          for (int k=0;k<npar;++k) {
+            // [E] = A
+            // [[E][L^-1]]ik = [E]ik (1/Lk)
+            // [[E][L^-1][E]T]ij = Sum(k) [[E][L^-1]]ik [E]jk
+            Ainv(i,j) += Linv[k] * A(i,k) * A(j,k);
+          }
+          // [H]^-1 = U^-1 A^-1 UT^-1
+          Hinv(i,j) = Ainv(i,j) * Uinv[i] * Uinv[j];
+        }
       }
       // scaled shifts
       std::vector<double> shifts = Ainv * ugradient;
       for (int i=0;i<npar;++i) {
-	shifts[i] *= Uinv[i];  // unscale
+        shifts[i] *= Uinv[i];  // unscale
       }
       //^
       //      std::cout <<"Scaled Hessian:\n";
       //      for (int k=0;k<npar;k++) {
-      //      	for (int l=0;l<npar;l++) 
-      //      	  {std::cout <<" "<<A(l,k);}
-      //      	std::cout <<"\n";
+      //        for (int l=0;l<npar;l++)
+      //          {std::cout <<" "<<A(l,k);}
+      //        std::cout <<"\n";
       //      }
       //      std::cout << "Eigenvalues: ";
       //      for (int k=0;k<npar;k++) {
-      //	std::cout <<" " << ev[k];
+      //        std::cout <<" " << ev[k];
       //      }
       //      std::cout <<"\nDamp: " << damp <<"\n";;
       //^-1
       // Apply shifts
       for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
-	int kpg = kpl + idxpar;
-	//^
-	//	std::cout << "Shift: " << kpl <<" "<<kpg<<" "<<shifts[kpl]
-	//		  << " old parameter " <<sdmparams[kpg]
-	//		  << " new parameter " <<sdmparams[kpg]+shifts[kpl]<<"\n"; //^ 
+        int kpg = kpl + idxpar;
+        //^
+        //      std::cout << "Shift: " << kpl <<" "<<kpg<<" "<<shifts[kpl]
+        //                << " old parameter " <<sdmparams[kpg]
+        //                << " new parameter " <<sdmparams[kpg]+shifts[kpl]<<"\n"; //^
 
-	sdmparams[kpg] += shifts[kpl];
+        sdmparams[kpg] += shifts[kpl];
       }
 
       std::vector<double> sdpkpl(npar);
       for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
-	sdpkpl[kpl] = rmn * sqrt(Hinv(kpl,kpl));
-	double relshift = shifts[kpl]/sdpkpl[kpl];
-	bigrelshift = Max(bigrelshift, std::abs(relshift));
-	//^
-	//	std::cout <<"Parameter "<<kpl<<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
-	//		  <<" rmn " << rmn<<"\n"; //^-
+        sdpkpl[kpl] = rmn * sqrt(Hinv(kpl,kpl));
+        double relshift = shifts[kpl]/sdpkpl[kpl];
+        bigrelshift = Max(bigrelshift, std::abs(relshift));
+        //^
+        //      std::cout <<"Parameter "<<kpl<<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
+        //                <<" rmn " << rmn<<"\n"; //^-
       }
       target.Add(R1, R2, R);
     } // end loop parameter classes
@@ -421,4 +421,3 @@ namespace scala {
   }
 // ---------------------------------------------------------
 }
-

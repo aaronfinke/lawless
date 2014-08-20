@@ -11,9 +11,9 @@ namespace phaser_io {
 void CCP4base::Add_Key(std::string card)
 { possible_keys.push_back(card); }
 
-Token_value CCP4base::skip_line(std::istringstream& input_stream) 
+Token_value CCP4base::skip_line(std::istringstream& input_stream)
 {
-  //This routine returns either END or ENDLINE after skipping to the end 
+  //This routine returns either END or ENDLINE after skipping to the end
   //of a line, warning of any unexpected tokens in the process.
   size_t keywords_size = keywords.size();
   if (curr_tok == ENDLINE || curr_tok == END)
@@ -40,7 +40,7 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
   bool found_digit = false;
 
   char ch;
-  do { if (!input_stream.get(ch)) 
+  do { if (!input_stream.get(ch))
        {
          keywords += '\n';
          return curr_tok = END;
@@ -52,14 +52,14 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
 
   //if line continuation, skip all spaces including \n
   if ((ch == '&') || (ch == '\\'))
-    do { if (!input_stream.get(ch)) 
+    do { if (!input_stream.get(ch))
          {
            keywords += '\n';
            return curr_tok = END;
          }
          else
            keywords += ch;
-       } while ((std::isspace)(ch)); 
+       } while ((std::isspace)(ch));
 
   switch (ch)
   {
@@ -73,25 +73,25 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
     case '\n':
       return curr_tok=ENDLINE;
       break;
-    
-    case '=': 
+
+    case '=':
       return curr_tok=ASSIGN;
-      break; 
-   
+      break;
+
     case '+': case '-': case '.':
     case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':    
+    case '5': case '6': case '7': case '8': case '9':
       found_digit = std::isdigit(ch);
       string_value = ch;
-      // Obsolete: allow digits and dots only for subsequent chars with 
+      // Obsolete: allow digits and dots only for subsequent chars with
       // while(input_stream.get(ch) && (isdigit(ch) || ch=='.')) here
-      while(input_stream.get(ch) && (std::isprint)(ch) && !(std::isspace)(ch) && ch != '=' && ch !='#') 
+      while(input_stream.get(ch) && (std::isprint)(ch) && !(std::isspace)(ch) && ch != '=' && ch !='#')
       {
 //rest of string is all digits or . or e or E or + or -(exponent)
-        if (!((std::isdigit)(ch) || ch=='.' || ch=='e' || ch=='E' || ch=='+'|| ch=='-')) 
+        if (!((std::isdigit)(ch) || ch=='.' || ch=='e' || ch=='E' || ch=='+'|| ch=='-'))
           test_number = false;
-        string_value += ch; 
-	if (std::isdigit(ch)) found_digit = true;
+        string_value += ch;
+        if (std::isdigit(ch)) found_digit = true;
       }
       input_stream.putback(ch); // oops - read one too far
       tmp = string_value;
@@ -104,30 +104,30 @@ Token_value CCP4base::get_token(std::istringstream& input_stream)
       }
       else //this allows std::strings starting with a any character except = or #
         return curr_tok = NAME;
-      break; 
+      break;
 
     default:
       if ((std::isprint)(ch)) {
-	bool inquote = false;
+        bool inquote = false;
         string_value = ch;
-	if (isquote(ch)) {inquote = true;}
+        if (isquote(ch)) {inquote = true;}
         //allow printable characters except spaces and ASSIGN
         while(input_stream.get(ch)) {
-	  // end string if:
-	  //   a) end get, or
-	  //   b) non-printing character, or
-	  //   c) space, or
-	  //   d) "="
-	  //  unless it's in a quoted string 
-	  if (!inquote) {
-	    if (!(std::isprint)(ch) || (std::isspace)(ch) || ch == '=') {
-	      break; // end string
-	    }
-	  } else if (isquote(ch)) {
-	    inquote = false;
-	  }
+          // end string if:
+          //   a) end get, or
+          //   b) non-printing character, or
+          //   c) space, or
+          //   d) "="
+          //  unless it's in a quoted string
+          if (!inquote) {
+            if (!(std::isprint)(ch) || (std::isspace)(ch) || ch == '=') {
+              break; // end string
+            }
+          } else if (isquote(ch)) {
+            inquote = false;
+          }
           string_value += ch;
-	}
+        }
         input_stream.putback(ch); // oops - read one too far
         tmp = string_value;
         keywords += tmp.erase(0,1);
@@ -148,7 +148,7 @@ bool CCP4base::isquote(const char& ch)
 Token_value CCP4base::get_key(std::istringstream& input_stream)
 {
   get_token(input_stream);
-  
+
   switch (curr_tok)
   {
     case NAME:
@@ -156,24 +156,24 @@ Token_value CCP4base::get_key(std::istringstream& input_stream)
       Preprocessor p; //temporary, just to call end_keys
       std::vector<std::string> end_keys = p.getEndKeys();
       for (size_t i = 0; i < end_keys.size(); i++)
-        if (!stoup(string_value).find(end_keys[i])) 
+        if (!stoup(string_value).find(end_keys[i]))
           return curr_tok = END;
-      for (size_t i = 0; i < possible_keys.size(); i++) 
+      for (size_t i = 0; i < possible_keys.size(); i++)
         if (keyIs(possible_keys[i]))
           return curr_tok = possible_fns[i]->parse(input_stream);
     }
     break;
-     
+
     case ENDLINE:
       return ENDLINE;
       break;
-   
+
     case END:
       return END;
       break;
-    
+
     default:
-      ; 
+      ;
   }
   //Keyword not recognised
   std::string key = stoup(string_value);
@@ -207,10 +207,10 @@ std::string CCP4base::getFileName(std::istringstream& input_stream)
 {
  //allows =,#,! in filenames
   //skip leading spaces (there must be leading spaces)
-  for (;;) 
+  for (;;)
   {
     char ch;
-    if (input_stream.get(ch)) 
+    if (input_stream.get(ch))
     {
       if (ch == '\n')
       {
@@ -232,21 +232,21 @@ std::string CCP4base::getFileName(std::istringstream& input_stream)
       input_stream.putback(ch); //so that END can be found
       return "";
     }
-  } 
+  }
   std::string filename;
-  for (;;) 
+  for (;;)
   {
     char ch;
-    if (input_stream.get(ch)) 
+    if (input_stream.get(ch))
     {
       if ((std::isspace)(ch))
       {
         input_stream.putback(ch); //so that ENDLINE token is found
         return filename;
       }
-      else 
+      else
       {
-        keywords += ch; 
+        keywords += ch;
         filename += ch;
       }
     }
@@ -255,7 +255,7 @@ std::string CCP4base::getFileName(std::istringstream& input_stream)
       input_stream.putback(ch); //so that END can be found
       return filename;
     }
-  } 
+  }
   //  return filename; //should never be reached
 }
 
@@ -368,7 +368,7 @@ bool CCP4base::compulsoryKey(int va_len, ...)
       if (keyIs(std::string(va_arg(keys,char*))))
         keyFound = true;
   }
-  else  
+  else
     keyFound = false;
   va_end(keys);
 
@@ -384,7 +384,7 @@ bool CCP4base::compulsoryKey(int va_len, ...)
     }
     else
       useMessage += std::string(va_arg(keys,char*));
-     
+
     va_end(keys);
     throw SyntaxError(keywords,useMessage);
   }
@@ -404,7 +404,7 @@ bool CCP4base::compulsoryKey(std::istringstream& input_stream,int va_len, ...)
       if (keyIs(std::string(va_arg(keys,char*))))
         keyFound = true;
   }
-  else  
+  else
     keyFound = false;
   va_end(keys);
 
@@ -420,7 +420,7 @@ bool CCP4base::compulsoryKey(std::istringstream& input_stream,int va_len, ...)
     }
     else
       useMessage += std::string(va_arg(keys,char*));
-     
+
     va_end(keys);
     throw SyntaxError(keywords,useMessage);
   }
@@ -455,7 +455,7 @@ bool CCP4base::optionalKey(std::istringstream& input_stream,int va_len, ...)
     }
     else
       useMessage += std::string(va_arg(keys,char*));
-     
+
     va_end(keys);
     throw SyntaxError(keywords,useMessage);
   }
@@ -493,7 +493,7 @@ bool CCP4base::optionalKey(int va_len, ...)
     }
     else
       useMessage += std::string(va_arg(keys,char*));
-     
+
     va_end(keys);
     throw SyntaxError(keywords,useMessage);
   }
@@ -535,4 +535,3 @@ std::string CCP4base::Keywords()
 { return keywords; }
 
 }//phaser_io
-

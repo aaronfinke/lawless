@@ -9,12 +9,12 @@
 
 namespace phaser_io {
 
-Preprocessor::Preprocessor() 
+Preprocessor::Preprocessor()
 {}
 
-Preprocessor::Preprocessor(std::string e) 
+Preprocessor::Preprocessor(std::string e)
 { echo = e; }
-    
+
 Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
 {
   std::istream& input_stream = std::cin;
@@ -26,7 +26,7 @@ Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
   for(int i=1; i<argc; i++)
   {
     echo += std::string(argv[i]) + " " ;
-    if (argv[i][0] != '-') 
+    if (argv[i][0] != '-')
       // Add second of pair
       if (++i < argc) echo += std::string(argv[i]);
     echo += "\n";
@@ -35,7 +35,7 @@ Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
   if (! ReadInput) return;
 
   std::string new_line;
-  while (!input_stream.eof()) 
+  while (!input_stream.eof())
   {
     std::getline(input_stream, new_line,'\n');
     echo += new_line + '\n';
@@ -46,10 +46,10 @@ Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
     std::vector<std::string> end_keys = getEndKeys();
     bool exit_input_stream(false);
     for (size_t i = 0; i < end_keys.size(); i++)
-      if (!stoup(keyword).find(end_keys[i])) 
+      if (!stoup(keyword).find(end_keys[i]))
         exit_input_stream = true;
     if (exit_input_stream) break;
-    if (!stoup(keyword).find("@"))  
+    if (!stoup(keyword).find("@"))
     {
       std::string filename("");
       if (keyword.size() == 1) //just the @ character
@@ -65,7 +65,7 @@ Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
       }
       else
       {
-        //do not throw an error immediately 
+        //do not throw an error immediately
         //capture the rest of the input and then decide what to do with the unopened files later
         //user can either catch exception and forget it, or choose to exit
         files_not_found.push_back(filename);
@@ -75,26 +75,26 @@ Preprocessor::Preprocessor(int argc, char* argv[], bool ReadInput)
   if (files_not_found.size())
   throw PreprocessorError(echo,files_not_found);
 }
-  
+
 Preprocessor::~Preprocessor() { }
 
-std::string Preprocessor::Echo() 
+std::string Preprocessor::Echo()
 { return echo; }
 
-void  Preprocessor::addLine(std::string line) 
+void  Preprocessor::addLine(std::string line)
 {
   std::vector<std::string> end_keys = getEndKeys();
   for (size_t i = 0; i < end_keys.size(); i++)
     deleteLine(end_keys[i]);
-  echo += line + "\n"; 
+  echo += line + "\n";
 }
 
 void  Preprocessor::deleteLine(std::string key)
-{ 
+{
  // std::istringstream echo_stream(const_cast<char*>(echo.c_str()),echo.size());
  // echo = "";
   size_t pos(0);
-  while (pos < echo.size()) 
+  while (pos < echo.size())
   {
     size_t pos_return = echo.find('\n',pos);
     if (pos_return != std::string::npos);
@@ -108,7 +108,7 @@ void  Preprocessor::deleteLine(std::string key)
   }
 }
 
-void Preprocessor::addFile(std::string filename) 
+void Preprocessor::addFile(std::string filename)
 {
   std::vector<std::string> end_keys = getEndKeys();
   for (size_t i = 0; i < end_keys.size(); i++)
@@ -138,7 +138,7 @@ std::string Preprocessor::stoup(const std::string & str)
   return upper_str;
 }
 
-std::vector<std::string> Preprocessor::getEndKeys() 
+std::vector<std::string> Preprocessor::getEndKeys()
 {
   std::vector<std::string> end_keys;
   end_keys.push_back("END");
@@ -153,4 +153,3 @@ std::vector<std::string> Preprocessor::getEndKeys()
 }
 
 } // phaser_io
-

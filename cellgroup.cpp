@@ -12,7 +12,7 @@ namespace CCtbxSym
   {
     //  initialise space-group
     group.reset();
-    
+
     int Nsymp = spgp.num_primops();
     for (int k=0;k<Nsymp;k++) {
       // Make rt_mx matrices

@@ -9,7 +9,7 @@ namespace scala
   //------------------------------------------------------------
   void GlobalControls::set_Chiral(const Chirality& ChiralFlag)
   {chiral = ChiralFlag;}
-  
+
   //------------------------------------------------------------
   void GlobalControls::set_MinIsig(const double& MinIsig)
   {MinIsigRatio =  MinIsig;}
@@ -96,7 +96,7 @@ namespace scala
     std::string fname = "";
     // try logname environment variable
     if (getenv(logname.c_str()) != NULL) {
-	fname = std::string(getenv(logname.c_str()));
+        fname = std::string(getenv(logname.c_str()));
     }
     return fname;
   }
@@ -104,7 +104,7 @@ namespace scala
 
   //! set filenames from here or from environment
   void OutputControls::SetFilenames(const std::string& hkloutname, const std::string& hkloutunmergedname,
-				    const std::string& scaoutname, const std::string& scaoutunmergedname)
+                                    const std::string& scaoutname, const std::string& scaoutunmergedname)
   {
     mtzmergedfilename = MakeName(hkloutname, "HKLOUT");
 
@@ -147,7 +147,7 @@ namespace scala
   //------------------------------------------------------------
   // return output filename, with optional dataset name appended
   std::string OutputControls::FileDatasetName(const std::string& name,
-					      const std::string& datasetname) const
+                                              const std::string& datasetname) const
   {
     if (datasetname == "") {return name;}
     std::string ext = FileNameExtension(name);
@@ -156,7 +156,7 @@ namespace scala
   //------------------------------------------------------------
   //------------------------------------------------------------
   ScoreAccept::ScoreAccept(const double& AcceptanceFraction,
-			   const double& MaximumScore)
+                           const double& MaximumScore)
     : threshold(AcceptanceFraction), scoremax(MaximumScore)
   {}
   //------------------------------------------------------------

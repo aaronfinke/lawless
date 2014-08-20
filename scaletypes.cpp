@@ -116,7 +116,7 @@ namespace scala {
   //--------------------------------------------------------------
   void SmoothedValue::SetSmoothing(const int& Naverage, const double& Sigma)
   // Set smoothing values: number of points, sigma
-  // If sigma < 0, set to "optimum" (!) (or at least suitable) value from Naverage 
+  // If sigma < 0, set to "optimum" (!) (or at least suitable) value from Naverage
   {
     naverage = Naverage;
     sigma = Sigma;
@@ -136,14 +136,14 @@ namespace scala {
     //^
     //^    std::cout << "Nav, sigma " << naverage << " " << sigma << "\n";
   }
-  //--------------------------------------------------------------  
+  //--------------------------------------------------------------
   // Store values (nvalues points)
   void SmoothedValue::StoreValues(const std::vector<double>& Values)
   {
     ASSERT (int(Values.size()) == nvalues);
     values = Values;
   }
-  //--------------------------------------------------------------  
+  //--------------------------------------------------------------
   // Store values (nvalues points)
   void SmoothedValue::StoreValues(const std::vector<float>& Values)
   {
@@ -152,7 +152,7 @@ namespace scala {
       values[i] = Values[i];
     }
   }
-  //--------------------------------------------------------------  
+  //--------------------------------------------------------------
   // Store values (nvalues points) to same value
   void SmoothedValue::StoreValue(const double& Value)
   {
@@ -228,7 +228,7 @@ namespace scala {
       //^      std::cout << "  Value " << value << "\n";
     }
     return value;
-  }  
+  }
   //--------------------------------------------------------------
   std::string SmoothedValue::FormatSave() const
   // format for save/restore
@@ -287,7 +287,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   PrimaryScale::PrimaryScale(const double& scaleSpacing, const Range& phirange)
-  // Construct smooth scaling from scale spacing 
+  // Construct smooth scaling from scale spacing
   //  scalespacing will be adjusted to give an integral number of intervals
   // Always at least 2 scales
   // note that phirange may be descending
@@ -449,14 +449,14 @@ namespace scala {
     ASSERT (jb < nscales);
     if (jb < 0) {
       if (Deriv) {
-	dgdp.assign(nscales,0.0);
+        dgdp.assign(nscales,0.0);
       }
       scale =  1.0;
     } else {
       scale = batchscales[jb];
       if (Deriv) {
-	dgdp.assign(nscales,0.0);
-	dgdp[jb] = 1.0;
+        dgdp.assign(nscales,0.0);
+        dgdp[jb] = 1.0;
       }
     }
   }
@@ -467,12 +467,12 @@ namespace scala {
     ASSERT (int(Scales.size()) == nscales);
     if (batchscale) {
       if (allbatches) {
-	batchscales = Scales;
+        batchscales = Scales;
       } else {
-	for (size_t i=0; i<Scales.size(); i++) { 
-	  batchscales.at(scalebatchindex[i]) = Scales[i];
-	  //	  std::cout <<i<<" "<<scalebatchindex[i]<<" scdx bidx (StoreScales)\n";
-	}
+        for (size_t i=0; i<Scales.size(); i++) {
+          batchscales.at(scalebatchindex[i]) = Scales[i];
+          //      std::cout <<i<<" "<<scalebatchindex[i]<<" scdx bidx (StoreScales)\n";
+        }
       }
     } else {
       smoothscale.StoreValues(Scales);
@@ -487,7 +487,7 @@ namespace scala {
       nobsPar = Nobs;
     } else {
       for (size_t i=0; i<Nobs.size(); i++) {
-	  nobsPar.at(scalebatchindex[i]) = Nobs[i];
+          nobsPar.at(scalebatchindex[i]) = Nobs[i];
       }
     }
   }
@@ -497,17 +497,17 @@ namespace scala {
   {
     if (batchscale) {
       if (allbatches) {
-	return batchscales;
+        return batchscales;
       } else {
-	std::vector<double> scales(nscales);
-	for (size_t ib=0; ib<batchscaleindex.size(); ib++) { 
-	  int k = batchscaleindex[ib];
-	  if (k >= 0) {
-	    scales.at(k) = batchscales[ib];
-	    k++;
-	  }
-	}
-	return scales;
+        std::vector<double> scales(nscales);
+        for (size_t ib=0; ib<batchscaleindex.size(); ib++) {
+          int k = batchscaleindex[ib];
+          if (k >= 0) {
+            scales.at(k) = batchscales[ib];
+            k++;
+          }
+        }
+        return scales;
       }
     } else {
       return smoothscale.Values();
@@ -519,17 +519,17 @@ namespace scala {
   {
     if (batchscale) {
       if (allbatches) {
-	return nobsPar;
+        return nobsPar;
       } else {
-	std::vector<int> nobs(nscales);
-	for (size_t ib=0; ib<batchscaleindex.size(); ib++) { 
-	  int k = batchscaleindex[ib];
-	  if (k >= 0) {
-	    nobs.at(k) = nobsPar[ib];
-	    k++;
-	  }
-	}
-	return nobs;
+        std::vector<int> nobs(nscales);
+        for (size_t ib=0; ib<batchscaleindex.size(); ib++) {
+          int k = batchscaleindex[ib];
+          if (k >= 0) {
+            nobs.at(k) = nobsPar[ib];
+            k++;
+          }
+        }
+        return nobs;
       }
     } else {
       return nobsPar;
@@ -570,7 +570,7 @@ namespace scala {
   std::string PrimaryScale::FormatSave() const
   // Format all information into a labelled save format for later restoration
   {
-    std::string dump = "PrimaryScale V2 {\n"; 
+    std::string dump = "PrimaryScale V2 {\n";
     dump += "NscaleIntervals "+itos(nscaleintervals)+"\n";
     dump += "Nscales "+itos(nscales)+"\n";
     dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
@@ -578,16 +578,16 @@ namespace scala {
       dump += "Batch\n";
       dump += batch_lookup.FormatSave();
       if (allbatches) {
-	ASSERT (int(batchscales.size()) == nscales);
-	dump += "Allbatches\n";
-	dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
+        ASSERT (int(batchscales.size()) == nscales);
+        dump += "Allbatches\n";
+        dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
       } else {
-	dump += "Somebatches\n";
-	dump += "Nbatches "+itos(batchscaleindex.size())+"\n";
-	dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
-	dump += "Batchscaleindex\n"+StringUtil::FormatSaveVector(batchscaleindex);
-	dump += "Nscaleindex "+itos(scalebatchindex.size())+"\n";
-	dump += "Scalebatchindex\n"+StringUtil::FormatSaveVector(scalebatchindex);
+        dump += "Somebatches\n";
+        dump += "Nbatches "+itos(batchscaleindex.size())+"\n";
+        dump += "BatchScales\n"+StringUtil::FormatSaveVector(batchscales);
+        dump += "Batchscaleindex\n"+StringUtil::FormatSaveVector(batchscaleindex);
+        dump += "Nscaleindex "+itos(scalebatchindex.size())+"\n";
+        dump += "Scalebatchindex\n"+StringUtil::FormatSaveVector(scalebatchindex);
       }
     } else { // smooth
       dump += "Smooth\n";
@@ -617,23 +617,23 @@ namespace scala {
       batchscale = true;
       batch_lookup.Restore(FR);  // batch lookup table
       if (versionnumber >= 2) {
-	std::string tag = FR.GetTag();
-	if (tag == "Allbatches") {
-	  allbatches = true;
-	  FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
-	} else if (tag == "Somebatches") {
-	  FR.ReadTag("Nbatches"); int nbatches = FR.Int();
-	  FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
-	  FR.ReadTag("Batchscaleindex"); batchscaleindex = FR.IntVec(nbatches);
-	  FR.ReadTag("Nscaleindex"); int nscaleindex = FR.Int();
-	  FR.ReadTag("Scalebatchindex"); scalebatchindex = FR.IntVec(nscaleindex);
-	} else {
-	  Message::message(Message_fatal
-			   ("PrimaryScale::Restore unrecognised tag "+tag+
-			    " in "+FR.Filename()));
-	}
+        std::string tag = FR.GetTag();
+        if (tag == "Allbatches") {
+          allbatches = true;
+          FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+        } else if (tag == "Somebatches") {
+          FR.ReadTag("Nbatches"); int nbatches = FR.Int();
+          FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+          FR.ReadTag("Batchscaleindex"); batchscaleindex = FR.IntVec(nbatches);
+          FR.ReadTag("Nscaleindex"); int nscaleindex = FR.Int();
+          FR.ReadTag("Scalebatchindex"); scalebatchindex = FR.IntVec(nscaleindex);
+        } else {
+          Message::message(Message_fatal
+                           ("PrimaryScale::Restore unrecognised tag "+tag+
+                            " in "+FR.Filename()));
+        }
       } else {
-	FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
+        FR.ReadTag("BatchScales"); batchscales = FR.DoubleVec(nscales);
       }
     } else if (tag == "Smooth") { // smooth
       batchscale = false;
@@ -648,23 +648,23 @@ namespace scala {
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
         ("PrimaryScale::Restore unexpected tag "+FR.Tag()));
-    }  
+    }
   }
   //--------------------------------------------------------------
   void PrimaryScale::setBatchReject(const std::vector<bool>& Usebatch,
-				    const std::vector<int>& batchnumbers)
+                                    const std::vector<int>& batchnumbers)
   {
     ASSERT (batchscale);
     ASSERT (allbatches == true);
     bool anyreject = false;
-    for (size_t ib=0; ib<Usebatch.size(); ib++) { 
+    for (size_t ib=0; ib<Usebatch.size(); ib++) {
       int batchnum = batchnumbers[ib];
       int jb = batch_lookup.lookup(batchnum);
       if (jb >= 0) { // we have this batch in this run
-	if (!Usebatch[ib]) {
-	  anyreject = true;
-	  break;
-	}}
+        if (!Usebatch[ib]) {
+          anyreject = true;
+          break;
+        }}
     }
     if (!anyreject) return;  // nothing to do
 
@@ -675,25 +675,25 @@ namespace scala {
     // set index lists
     //    std::vector<int> batchscaleindex; // if !allbatches, index into scale list for this batch
     //    std::vector<int> scalebatchindex; // if !allbatches, index into batch list for this scale
-    int nbatches = nscales;  
+    int nbatches = nscales;
     batchscaleindex.assign(nbatches, -1);  // for each batch in this run
     scalebatchindex.clear();
     int k = 0;
-    for (size_t ib=0; ib<batchnumbers.size(); ib++) { 
+    for (size_t ib=0; ib<batchnumbers.size(); ib++) {
       int batchnum = batchnumbers[ib];
       int jb = batch_lookup.lookup(batchnum);
       if (jb >= 0) { // we have this batch in this run
-	if (usebatch[ib]) {
-	  batchscaleindex[jb] = k;  // jb'th batch uses k'th scale
-	  scalebatchindex.push_back(jb);  // k'th scale corresponds to the jb'th batch
-	  //^
-	  //	  std::cout << "Use Batch " <<batchnum<<" serial " <<jb
-	  //		    <<" scale index "<<k<<"\n";
-	  //^-
-	  k++;
-	} else {
-	  //	  std::cout << "Reject batch " << batchnum <<"\n";
-	}
+        if (usebatch[ib]) {
+          batchscaleindex[jb] = k;  // jb'th batch uses k'th scale
+          scalebatchindex.push_back(jb);  // k'th scale corresponds to the jb'th batch
+          //^
+          //      std::cout << "Use Batch " <<batchnum<<" serial " <<jb
+          //                <<" scale index "<<k<<"\n";
+          //^-
+          k++;
+        } else {
+          //      std::cout << "Reject batch " << batchnum <<"\n";
+        }
       }
     }
     //    std::cout <<"nscales changed from "<<nscales<<" to "<<scalebatchindex.size()<<"\n"; //^
@@ -726,7 +726,7 @@ namespace scala {
   //--------------------------------------------------------------
   RelativeBfactor::RelativeBfactor(const double& bfacSpacing,
                                    const Range& timerange)
-  // Construct smooth B-factors from spacing 
+  // Construct smooth B-factors from spacing
   //  spacing will be adjusted to give an integral number of intervals
   // Always at least 2 B-factors
   {
@@ -855,7 +855,7 @@ namespace scala {
   {
     if (Deriv) {
       // get B-factor & weight vector
-      dgdp.assign(nbfac,0.0);   
+      dgdp.assign(nbfac,0.0);
       std::vector<double> w(nbfac);
       double sumw;
       gbfac = exp(0.5 * invresolsq * smoothB.ValueWeight(time, w, sumw));
@@ -910,7 +910,7 @@ namespace scala {
       jb = batchbfacindex[jb];
     }
     ASSERT (jb >= 0 && jb < nbfac);
-    gbfac = exp(0.5 * invresolsq * bfactors[jb]); 
+    gbfac = exp(0.5 * invresolsq * bfactors[jb]);
     if (Deriv) {
       dgdp = std::vector<double>(nbfac,0.0);
       dgdp[jb] = 0.5 * invresolsq * gbfac;
@@ -934,13 +934,13 @@ namespace scala {
     ASSERT (int(Bfacs.size()) == nbfac);
     if (batchbfac) {
       if (allbatches) {
-	bfactors = Bfacs;
+        bfactors = Bfacs;
       } else {
-	for (size_t i=0; i<Bfacs.size(); i++) { 
-	  bfactors.at(bfacbatchindex[i]) = Bfacs[i];
-	}
+        for (size_t i=0; i<Bfacs.size(); i++) {
+          bfactors.at(bfacbatchindex[i]) = Bfacs[i];
+        }
       }
-    } else { 
+    } else {
       smoothB.StoreValues(Bfacs);
     }
   }
@@ -952,8 +952,8 @@ namespace scala {
     if (allbatches) {
       nobsPar = Nobs;
     } else {
-      for (size_t i=0; i<Nobs.size(); i++) { 
-	  nobsPar.at(bfacbatchindex[i]) = Nobs[i];
+      for (size_t i=0; i<Nobs.size(); i++) {
+          nobsPar.at(bfacbatchindex[i]) = Nobs[i];
       }
     }
   }
@@ -965,17 +965,17 @@ namespace scala {
       return bfactors;  // should be empty
     } else if (batchbfac) {
       if (allbatches) {
-	return bfactors;
+        return bfactors;
       } else {
-	std::vector<double> bfacs(nbfac);
-	for (size_t ib=0; ib<batchbfacindex.size(); ib++) { 
-	  int k = batchbfacindex[ib];
-	  if (k >= 0) {
-	    bfacs.at(k) = bfactors[ib];
-	    k++;
-	  }
-	}
-	return bfacs;
+        std::vector<double> bfacs(nbfac);
+        for (size_t ib=0; ib<batchbfacindex.size(); ib++) {
+          int k = batchbfacindex[ib];
+          if (k >= 0) {
+            bfacs.at(k) = bfactors[ib];
+            k++;
+          }
+        }
+        return bfacs;
       }
     } else {
       return smoothB.Values();
@@ -987,17 +987,17 @@ namespace scala {
   {
     if (batchbfac) {
       if (allbatches) {
-	return nobsPar;
+        return nobsPar;
       } else {
-	std::vector<int> nobs(nbfac);
-	for (size_t ib=0; ib<batchbfacindex.size(); ib++) { 
-	  int k = batchbfacindex[ib];
-	  if (k >= 0) {
-	    nobs.at(k) = nobsPar[ib];
-	    k++;
-	  }
-	}
-	return nobs;
+        std::vector<int> nobs(nbfac);
+        for (size_t ib=0; ib<batchbfacindex.size(); ib++) {
+          int k = batchbfacindex[ib];
+          if (k >= 0) {
+            nobs.at(k) = nobsPar[ib];
+            k++;
+          }
+        }
+        return nobs;
       }
     } else {
       return nobsPar;
@@ -1031,7 +1031,7 @@ namespace scala {
   std::string RelativeBfactor::FormatSave() const
   // Format all information into a labelled save format for later restoration
   {
-    std::string dump = "RelativeBfactor V2 {\n"; 
+    std::string dump = "RelativeBfactor V2 {\n";
     dump += "NbfacIntervals "+itos(nbfacintervals)+"\n";
     dump += "Nbfac "+itos(nbfac)+"\n";
     dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
@@ -1039,16 +1039,16 @@ namespace scala {
       dump += "Batch\n";
       dump += batch_lookup.FormatSave();
       if (allbatches) {
-	ASSERT (int(bfactors.size()) == nbfac);
-	dump += "Allbatches\n";
-	dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+        ASSERT (int(bfactors.size()) == nbfac);
+        dump += "Allbatches\n";
+        dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
       } else {
-	dump += "Somebatches\n";
-	dump += "Nbatches "+itos(batchbfacindex.size())+"\n";
-	dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
-	dump += "Batchbfacindex\n"+StringUtil::FormatSaveVector(batchbfacindex);
-	dump += "Nbfacindex "+itos(bfacbatchindex.size())+"\n";
-	dump += "Bfacbatchindex\n"+StringUtil::FormatSaveVector(bfacbatchindex);
+        dump += "Somebatches\n";
+        dump += "Nbatches "+itos(batchbfacindex.size())+"\n";
+        dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+        dump += "Batchbfacindex\n"+StringUtil::FormatSaveVector(batchbfacindex);
+        dump += "Nbfacindex "+itos(bfacbatchindex.size())+"\n";
+        dump += "Bfacbatchindex\n"+StringUtil::FormatSaveVector(bfacbatchindex);
       }
     } else { // smooth
       dump += "Smooth\n";
@@ -1078,23 +1078,23 @@ namespace scala {
       batchbfac = true;
       batch_lookup.Restore(FR);
       if (versionnumber >= 2) {
-	std::string tag = FR.GetTag();
-	if (tag == "Allbatches") {
-	  allbatches = true;
-	  FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
-	} else if (tag == "Somebatches") {
-	  FR.ReadTag("Nbatches"); int nbatches = FR.Int();
-	  FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
-	  FR.ReadTag("Batchbfacindex"); batchbfacindex = FR.IntVec(nbfac);
-	  FR.ReadTag("Nbfacindex"); int nbfacindex = FR.Int();
-	  FR.ReadTag("Bfacbatchindex"); bfacbatchindex = FR.IntVec(nbfacindex);
-	} else {
-	  Message::message(Message_fatal
-			   ("RelativeBfactor::Restore unrecognised tag "+tag+
-			    " in "+FR.Filename()));
-	}
+        std::string tag = FR.GetTag();
+        if (tag == "Allbatches") {
+          allbatches = true;
+          FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+        } else if (tag == "Somebatches") {
+          FR.ReadTag("Nbatches"); int nbatches = FR.Int();
+          FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+          FR.ReadTag("Batchbfacindex"); batchbfacindex = FR.IntVec(nbfac);
+          FR.ReadTag("Nbfacindex"); int nbfacindex = FR.Int();
+          FR.ReadTag("Bfacbatchindex"); bfacbatchindex = FR.IntVec(nbfacindex);
+        } else {
+          Message::message(Message_fatal
+                           ("RelativeBfactor::Restore unrecognised tag "+tag+
+                            " in "+FR.Filename()));
+        }
       } else {
-	FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+        FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
       }
     } else if (tag == "Smooth") { // smooth
       batchbfac = false;
@@ -1113,19 +1113,19 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RelativeBfactor::setBatchReject(const std::vector<bool>& Usebatch,
-				       const std::vector<int>& batchnumbers)
+                                       const std::vector<int>& batchnumbers)
   {
     ASSERT (batchbfac);
     ASSERT (allbatches == true);
     bool anyreject = false;
-    for (size_t ib=0; ib<Usebatch.size(); ib++) { 
+    for (size_t ib=0; ib<Usebatch.size(); ib++) {
       int batchnum = batchnumbers[ib];
       int jb = batch_lookup.lookup(batchnum);
       if (jb >= 0) { // we have this batch in this run
-	if (!Usebatch[ib]) {
-	  anyreject = true;
-	  break;
-	}}
+        if (!Usebatch[ib]) {
+          anyreject = true;
+          break;
+        }}
     }
     if (!anyreject) return;  // nothing to do
 
@@ -1136,25 +1136,25 @@ namespace scala {
     // set index lists
     //    std::vector<int> batchbfacindex; // if !allbatches, index into bfac list for this batch
     //    std::vector<int> bfacbatchindex; // if !allbatches, index into batch list for this bfac
-    int nbatches = nbfac;  
+    int nbatches = nbfac;
     batchbfacindex.assign(nbatches, -1);  // for each batch in this run
     bfacbatchindex.clear();
     int k = 0;
-    for (size_t ib=0; ib<batchnumbers.size(); ib++) { 
+    for (size_t ib=0; ib<batchnumbers.size(); ib++) {
       int batchnum = batchnumbers[ib];
       int jb = batch_lookup.lookup(batchnum);
       if (jb >= 0) { // we have this batch in this run
-	if (usebatch[ib]) {
-	  batchbfacindex[jb] = k;  // jb'th batch uses k'th bfac
-	  bfacbatchindex.push_back(jb);  // k'th bfac corresponds to the jb'th batch
-	  //^
-	  //	  std::cout << "Use Batch " <<batchnum<<" serial " <<jb
-	  //		    <<" bfac index "<<k<<"\n";
-	  //^-
-	  k++;
-	} else {
-	  //	  std::cout << "Reject batch " << batchnum <<"\n";
-	}
+        if (usebatch[ib]) {
+          batchbfacindex[jb] = k;  // jb'th batch uses k'th bfac
+          bfacbatchindex.push_back(jb);  // k'th bfac corresponds to the jb'th batch
+          //^
+          //      std::cout << "Use Batch " <<batchnum<<" serial " <<jb
+          //                <<" bfac index "<<k<<"\n";
+          //^-
+          k++;
+        } else {
+          //      std::cout << "Reject batch " << batchnum <<"\n";
+        }
       }
     }
     //    std::cout <<"nbfacs changed from "<<nbfacs<<" to "<<bfacbatchindex.size()<<"\n"; //^
@@ -1177,7 +1177,7 @@ namespace scala {
   {
     sphHarmonic = SphericalHarmonic(lMax, lMaxOdd);
     ncoeffs = sphHarmonic.Nterms();  // excluding 00 term
-    sphcoefficients.assign(ncoeffs, 0.0);  // clear coefficients list 
+    sphcoefficients.assign(ncoeffs, 0.0);  // clear coefficients list
   }
   //--------------------------------------------------------------
   std::vector<Tie> SecondaryScale::Ties(const double& sdtie, const int& idx0)
@@ -1265,7 +1265,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::string SecondaryScale::formatPole(const int& pole) const
-  // Return h, k, l for pole = 1,2,3, else "none" 
+  // Return h, k, l for pole = 1,2,3, else "none"
   {
     std::string s = "automatic";
     if (pole == 1) {s = "h";}
@@ -1277,7 +1277,7 @@ namespace scala {
   std::string SecondaryScale::FormatSave() const
   // Format all information into a labelled save format for later restoration
   {
-    std::string dump = "SecondaryScale V1 {\n";    
+    std::string dump = "SecondaryScale V1 {\n";
     dump += "Lmax "+itos(lmax)+"\n";
     dump += "LmaxOdd "+itos(lmaxodd)+"\n";
     dump += "Pole "+itos(pole)+"\n";
@@ -1327,4 +1327,3 @@ namespace scala {
   }
   //--------------------------------------------------------------
 } // namespace scala
-

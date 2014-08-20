@@ -6,7 +6,7 @@
 
 namespace scala {
   // ------------------------------------------------------------
-  CumulativeCompleteness::CumulativeCompleteness(const int& Nbatches)		  
+  CumulativeCompleteness::CumulativeCompleteness(const int& Nbatches)
     : nbatches(Nbatches)
   {
     batchserialcount.assign(nbatches, 0);
@@ -47,14 +47,14 @@ namespace scala {
   // ------------------------------------------------------------
   int CumulativeCompleteness::LowestSerial(const std::vector<int>& bs)
   {
-    // Find lowest batch serial, returns index 
+    // Find lowest batch serial, returns index
     if (bs.size() <= 0) return -1;
     int lowb = 1000000000;
     int k = -1;
     for (size_t i=0;i<bs.size();++i) {
       if (bs[i] < lowb) {
-	lowb = bs[i];
-	k = bs[i];
+        lowb = bs[i];
+        k = bs[i];
       }
     }
     return k;
@@ -77,8 +77,8 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void CumulativeCompleteness::CalcSphere(const ResoRange& ResRange,
-					 const hkl_symmetry& symmetry,
-					 const Scell& cell)
+                                         const hkl_symmetry& symmetry,
+                                         const Scell& cell)
   // Totals in  sphere
   {
     ResoRange resrange = ResRange;
@@ -91,8 +91,8 @@ namespace scala {
   }
   // ------------------------------------------------------------
   std::vector<float> CumulativeCompleteness::BatchCompleteness(const ResoRange& ResRange,
-							       const hkl_symmetry& symmetry,
-							       const Scell& cell)
+                                                               const hkl_symmetry& symmetry,
+                                                               const Scell& cell)
   // return cumulative completeness for each batch serial
   {
     if (nref_sphere <= 0) CalcSphere(ResRange, symmetry, cell);
@@ -101,9 +101,9 @@ namespace scala {
     for (int i=0;i<nbatches;++i) {
       sofar += batchserialcount[i];
       if (nref_sphere == 0) {
-	complete.at(i) = 0.0;
+        complete.at(i) = 0.0;
       } else {
-	complete.at(i) = float(sofar)/nref_sphere;
+        complete.at(i) = float(sofar)/nref_sphere;
       }
     }
     return complete;
@@ -121,18 +121,18 @@ namespace scala {
     for (int i=0;i<nbatches;++i) {
       sofar += batchserialcountanom[i];
       if (nrefAcen_sphere == 0) {
-	complete.at(i) = 0.0;
+        complete.at(i) = 0.0;
       } else {
-	complete.at(i) = float(sofar)/nrefAcen_sphere;
+        complete.at(i) = float(sofar)/nrefAcen_sphere;
       }
     }
     return complete;
   }
   // ------------------------------------------------------------
   std::vector<float> CumulativeCompleteness::BatchMultiplicity(const std::vector<int>& NumObsBatch,
-							       const ResoRange& ResRange,
-							       const hkl_symmetry& symmetry,
-							       const Scell& cell)
+                                                               const ResoRange& ResRange,
+                                                               const hkl_symmetry& symmetry,
+                                                               const Scell& cell)
   // return cumulative multiplicity for each batch serial
   {
     if (nref_sphere <= 0) CalcSphere(ResRange, symmetry, cell);
@@ -141,9 +141,9 @@ namespace scala {
     for (int i=0;i<nbatches;++i) {
       sofar += NumObsBatch[i];
       if (nref_sphere == 0) {
-	multiplicity.at(i) = 0.0;
+        multiplicity.at(i) = 0.0;
       } else {
-	multiplicity.at(i) = float(sofar)/nref_sphere;
+        multiplicity.at(i) = float(sofar)/nref_sphere;
       }
     }
     return multiplicity;

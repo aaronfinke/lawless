@@ -19,7 +19,7 @@ namespace phaser_io {
 // master controller - every output goes through this function
 //----
 void Output::logOutput(outStream where, const std::string& text)
-{ 
+{
 //Everytime something is output the run_time gets updated.
   IncrementRunTime();
 
@@ -48,17 +48,17 @@ void Output::logOutput(outStream where, const std::string& text)
       verboseString += text;
       break;
     case DEBUG:
-      if (DEBUG_ON) 
+      if (DEBUG_ON)
         verboseString += text;
       break;
     case LXML:
       if (XMLOUT)
-	{
-	  bool open = xmlStream.is_open();
-	  if (!open)
-	    {xmlStream.open(XMLFILE.c_str());}
-	  xmlStream << text << std::flush;
-	}
+        {
+          bool open = xmlStream.is_open();
+          if (!open)
+            {xmlStream.open(XMLFILE.c_str());}
+          xmlStream << text << std::flush;
+        }
       break;
     case RESULT:
         resultString += text;
@@ -91,7 +91,7 @@ void Output::logOutput(outStream where, const std::string& text)
         }
         std::cout << text;
         break;
-      case VERBOSE: 
+      case VERBOSE:
         //verbose is sent directly to standard output
         if (VERBOSE_ON)
         {
@@ -103,19 +103,19 @@ void Output::logOutput(outStream where, const std::string& text)
           std::cout << text;
         }
         break;
-      case DEBUG: 
+      case DEBUG:
         //debug is sent to DEBUG file
         if (DEBUG_ON)
         {
-	  if (verboseStream.is_open()) verboseStream << text;
-	  if (verboseStream.is_open()) std::cout << text;  //^ & to stdout for now
+          if (verboseStream.is_open()) verboseStream << text;
+          if (verboseStream.is_open()) std::cout << text;  //^ & to stdout for now
         }
         break;
-      case RESULT: 
-	// Don't output yet
-	break;
-      case LXML: 
-	break;
+      case RESULT:
+        // Don't output yet
+        break;
+      case LXML:
+        break;
     }
   }
   else if (isPackageCIMR())
@@ -134,11 +134,11 @@ void Output::logOutput(outStream where, const std::string& text)
         if (logfileStream.is_open()) logfileStream << text;
         if (verboseStream.is_open()) verboseStream << text;
         break;
-      case VERBOSE: 
+      case VERBOSE:
         if (VERBOSE_ON && !SILENT) std::cout << text;
         if (verboseStream.is_open()) verboseStream << text;
         break;
-      case DEBUG: 
+      case DEBUG:
         if (DEBUG_ON)
         {
           if (!SILENT) std::cout << text;
@@ -296,7 +296,7 @@ void Output::IncrementRunTime()
 //This stops overflows in the number of ticks and prevents
 //negative times being output
 //Have to check that the integer std::clock() has increased,
-//otherwise just get accumulation of small numbers 
+//otherwise just get accumulation of small numbers
   std::clock_t now_clock = std::clock();
   if (now_clock > start_clock)
   {
@@ -306,7 +306,7 @@ void Output::IncrementRunTime()
   }
 //overflow - clock() has returned to start of long int
 //have to miss out the accumulated time between now_clock and start_clock
-  else if (now_clock < start_clock) 
+  else if (now_clock < start_clock)
   {
     start_clock = now_clock;
   }
@@ -329,7 +329,7 @@ void Output::startClock()
 
 void Output::logElapsedTime(outStream where)
 {
-  IncrementRunTime(); 
+  IncrementRunTime();
   logTabPrintf(1,where,"CPU Time: %i hrs %i mins %4.2f secs (%2.2f secs)\n",Hrs(elapsed_time),Mins(elapsed_time),Secs(elapsed_time),elapsed_time);
 }
 
@@ -391,7 +391,7 @@ std::string Output::getLine(unsigned len,char c)
 }
 
 void Output::logUnderLine(outStream where, const std::string text)
-{ 
+{
   logBlank(where);
   logTab(1,where,text);
   logTab(1,where,getLine(text.size(),'-'));
@@ -407,7 +407,7 @@ void Output::logKeywords(outStream where, const std::string text)
 { logOutput(where,formatMessage(text,0,true,true)); }
 
 void Output::logTab(unsigned t,outStream where, const std::string text,
-		    bool add_return)
+                    bool add_return)
 { logOutput(where,formatMessage(text,t,add_return)); }
 
 void Output::logEllipsisStart(outStream where, const std::string text)
@@ -415,12 +415,12 @@ void Output::logEllipsisStart(outStream where, const std::string text)
 
 void Output::logEllipsisEnd(outStream where)
 { logOutput(where,formatMessage("Done",2,true));  }
-  
+
 void Output::logWarning(outStream where,const std::string intext)
 {
   std::string text = formatMessage(intext,0,true);
   logBlank(where);
-  if (isPackageCCP4()) 
+  if (isPackageCCP4())
     { logTab(0,SUMMARY,"<B><FONT COLOR=\"#FF8800\">"); }
   int max_len(0),j(1);
   for (size_t i = 0; i < text.size(); i++)
@@ -431,7 +431,7 @@ void Output::logWarning(outStream where,const std::string intext)
   logTab(0,where,getLine(max_len,'-'));
   logTab(0,where,text);
   logTab(0,where,getLine(max_len,'-'));
-  if (isPackageCCP4()) 
+  if (isPackageCCP4())
     { logTab(0,SUMMARY,"</FONT></B>"); }
   logBlank(where);
 }
@@ -461,7 +461,7 @@ void Output::logProgressBarNext(outStream where)
 
   progressCount++;
   if (progressCount >= progressChunk) {
-    logOutput(where,"="); 
+    logOutput(where,"=");
     logFlush();
     progressCount -= progressChunk;
     progressBars++;
@@ -482,7 +482,7 @@ void Output::logProgressBarAgain(outStream where)
 void Output::logProgressBarEnd(outStream where)
 {
   logTab(0,where,"=| DONE");
-  logBlank(where); 
+  logBlank(where);
   logFlush();
 }
 
@@ -512,11 +512,11 @@ void Output::logSectionHeader(outStream where,std::string header)
     jumpstr += " <a href=\"#jump"+itos(jumpnum-1)+"\">last section</a>\n";
   }
   int len(0),max_len(0);
-  for (size_t i = 0; i < header.size(); i++) 
+  for (size_t i = 0; i < header.size(); i++)
     if (header[i] != '\n') max_len = std::max(max_len,++len);
     else len = 0;
   logTab(0,where,getLine(max_len,'-'));
-  logTab(0,where,header); 
+  logTab(0,where,header);
   logTab(0,where,getLine(max_len,'-'));
   logBlank(where);
   jumpnum++;
@@ -541,14 +541,14 @@ void Output::logHeader(outStream where)
     //#######################################################################
     //### CCP4 SUITE: PROGRAM_NAME                PROGRAM_VERSION ###
     //#######################################################################
-  
+
     std::string progtag = "### CCP4 SUITE: " + PROGRAM_NAME;
     std::string progversion =  " " + PROGRAM_VERSION + " ###";
     int max_len = max_line_width;
     int min_len = progtag.size() + progversion.size();
     int spacer_len = std::max(max_len - min_len,0);
     std::string  progheader = progtag + getLine(spacer_len,' ') + progversion;
-  
+
     outStream whereHtml(LOGFILE);
     //    logTab(0,whereHtml,"<pre>");
     //    logTab(0,whereHtml,"<B><FONT COLOR=\"#FF0000\">");
@@ -575,11 +575,11 @@ void Output::logHeader(outStream where)
     // Write XML stuff if activated
     if (XMLOUT)
       {
-	std::string time = std::string(std::ctime(&start_time));
-	time.resize(time.length()-1); // remove trailing \n
-	logTab(0, LXML,
-	"<"+PROGRAM_NAME+" version=\""+PROGRAM_VERSION+"\" RunTime=\""+
-		time+"\">");
+        std::string time = std::string(std::ctime(&start_time));
+        time.resize(time.length()-1); // remove trailing \n
+        logTab(0, LXML,
+        "<"+PROGRAM_NAME+" version=\""+PROGRAM_VERSION+"\" RunTime=\""+
+                time+"\">");
       }
   }
   logFlush();
@@ -590,11 +590,11 @@ void Output::logHeader(outStream where)
   {
     if (PACKAGE == PACKAGE_CCP4) {
       if (resultString.size() > 0) {
-	std::cout << "\n<!--SUMMARY_BEGIN--> $TEXT:Result: $$ $$"
-		  << std::endl;
-	std::cout << resultString;
-	std::cout << "\n$$ <!--SUMMARY_END-->" << std::endl;
-	resultString = ""; // Clear string
+        std::cout << "\n<!--SUMMARY_BEGIN--> $TEXT:Result: $$ $$"
+                  << std::endl;
+        std::cout << resultString;
+        std::cout << "\n$$ <!--SUMMARY_END-->" << std::endl;
+        resultString = ""; // Clear string
       }
     }
   }
@@ -618,7 +618,7 @@ void Output::logTrailer(PhaserError err)
   logBlank(where);
   IncrementRunTime();
   logTabPrintf(0,where,"CPU Time: %i days %i hrs %i mins %4.2f secs (%2.2f secs)\n",Days(run_time),Hrs(run_time),Mins(run_time),Secs(run_time),run_time);
-  logTab(0,where,"Finished: " + std::string(std::ctime(&finish_time))); 
+  logTab(0,where,"Finished: " + std::string(std::ctime(&finish_time)));
   logBlank(where);
   if (isPackageCCP4())
   {

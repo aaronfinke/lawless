@@ -59,7 +59,7 @@ namespace clipper
   {
 
     // modified version of I_sigI_ano without covariance
-    //! Reflection data type: I(+) I(+) sigI(+) sigI(-) 
+    //! Reflection data type: I(+) I(+) sigI(+) sigI(-)
     /*! Note that I_sigI_ano also has methods for returning I(),
       sigI(), so you can use this type in any template type where you
       would use I_sigI. */
@@ -94,8 +94,8 @@ namespace clipper
       dtype I_pl_, I_mi_, sigI_pl_, sigI_mi_ ;
     };
 
-	// modified version of F_sigF_ano without covariance
-    //! Reflection data type: F(+) F(+) sigF(+) sigF(-) 
+        // modified version of F_sigF_ano without covariance
+    //! Reflection data type: F(+) F(+) sigF(+) sigF(-)
     /*! Note that F_sigF_ano also has methods for returning f(),
       sigf(), so you can use this type in any template type where you
       would use F_sigF. */
@@ -136,13 +136,13 @@ namespace clipper
   namespace data32
   {
     typedef clipper::datatypes::J_sigJ_ano<ftype32> J_sigJ_ano;  //!< datatype
-	typedef clipper::datatypes::G_sigG_ano<ftype32> G_sigG_ano;  //!< datatype
+        typedef clipper::datatypes::G_sigG_ano<ftype32> G_sigG_ano;  //!< datatype
   }
 
   namespace data64
   {
     typedef clipper::datatypes::J_sigJ_ano<ftype64> J_sigJ_ano;  //!< datatype
-	typedef clipper::datatypes::G_sigG_ano<ftype64> G_sigG_ano;  //!< datatype
+        typedef clipper::datatypes::G_sigG_ano<ftype64> G_sigG_ano;  //!< datatype
 
   }
 

@@ -99,7 +99,7 @@ namespace scala
     for (int i=0;i<3;i++)
       {
         for (int j=0;j<3;j++)
-          // We want the transpose of the matrix since reindex operator H 
+          // We want the transpose of the matrix since reindex operator H
           // applies to index h such that h'T = hT H
           {H(j,i) = rt44[0][i][j];}
         v[i] = rt44[0][i][3];
@@ -183,7 +183,7 @@ namespace scala
 
     double besttot = 10000000.; // sum of absolute value of all elements
     int minneg = 100000; // minimum number of negatives
-    int kbest = -1;    
+    int kbest = -1;
 
     for (int isym=0;isym<symm.num_primops();++isym) {
       Mat33<double> Ht = H * symm.symop(isym).rot().inverse();
@@ -219,7 +219,7 @@ namespace scala
       //                  << symm.symop(isym).rot().inverse().format()
       //                << "\n\nReindex:\n" << Ht.format()
       //                << " total " << total << " nneg " << nneg
-      //                << "\n"; 
+      //                << "\n";
       //^-
     }
     rot() = Hbest;
@@ -472,7 +472,7 @@ namespace scala
     std::cout << "RecipMetricTensor:\n"
               << recip_metric_tensor_.format() << "\n";
 
-    std::cout << "Bmat:\n" 
+    std::cout << "Bmat:\n"
               << Bmat_.format() << "\n";
 
   }
@@ -603,9 +603,9 @@ namespace scala
     averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
-  void UnitCellSet::AddCell(const Scell& Cell) 
+  void UnitCellSet::AddCell(const Scell& Cell)
   {
-    cells.push_back(Cell); 
+    cells.push_back(Cell);
     averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
@@ -613,7 +613,7 @@ namespace scala
   void UnitCellSet::AddCellSet(const UnitCellSet& CellSet)
   {
     std::vector<Scell> newcells = CellSet.Cells();
-    for (size_t i=0; i<newcells.size(); i++) { 
+    for (size_t i=0; i<newcells.size(); i++) {
       AddCell(newcells[i]);
     }
   }
@@ -688,13 +688,13 @@ namespace scala
   std::string UnitCellSet::format() const
   {
     std::string s = "UnitCellSet\n";
-    for (size_t i=0; i<cells.size(); i++) { 
+    for (size_t i=0; i<cells.size(); i++) {
       s += cells[i].format()+"\n";
     }
     return s;
   }
   //--------------------------------------------------------------
-  // Change basis: new h' = h * reindex_op 
+  // Change basis: new h' = h * reindex_op
   // return false if indices are non-integral
   // reindex_op may include translations
   bool Hkl::change_basis(Hkl& Newhkl, const ReindexOp& reindex_op) const
@@ -706,7 +706,7 @@ namespace scala
     for (int i=0;i<3;i++) {
       if (std::abs(v[i]-double(Newhkl[i])) > 0.05) OK = false;
     }
-    return OK; 
+    return OK;
   }
   //--------------------------------------------------------------
   Hkl Hkl::change_basis(const ReindexOp& reindex_op) const
@@ -745,8 +745,8 @@ namespace scala
   }
   //--------------------------------------------------------------
   PxdName::PxdName(const std::string& pname_in,
-		   const std::string& xname_in,
-		   const std::string& dname_in)
+                   const std::string& xname_in,
+                   const std::string& dname_in)
     :  pname_(pname_in), xname_(xname_in), dname_(dname_in)
   {
     // set defaults if blank
@@ -799,7 +799,7 @@ namespace scala
     //^
     //    if (allcells_.Number() != int(allwavel_.size())) {
     //      std::cout << "Xdataset::ctr AddCellWavelength "<<
-    //	allcells_.Number() <<" "<<allwavel_.size()<<"\n";
+    //  allcells_.Number() <<" "<<allwavel_.size()<<"\n";
     //    } //^-
   }
   //--------------------------------------------------------------
@@ -914,7 +914,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   bool operator == (const Xdataset& a,const Xdataset& b)
-  // Equality just tests pxdname 
+  // Equality just tests pxdname
   {
     return (a.pxdname_ == b.pxdname_);
   }
@@ -949,7 +949,7 @@ namespace scala
     run_index = -1;
     accepted = true;
     valid_cell = false;
-    valid_Umat = false;  
+    valid_Umat = false;
     valid_time = 0;
     valid_phi = false;
     phioffset = 0;
@@ -973,9 +973,9 @@ namespace scala
       Message::message(Message_fatal
                        ("Batch::initBatchInfo fail"));
     }
-    strcpy(batchinfo.title, "");                /**< batch title */           
+    strcpy(batchinfo.title, "");                /**< batch title */
     strcpy(batchinfo.gonlab[0], "        ");    /**< names of the three axes */
-    strcpy(batchinfo.gonlab[1], "        ");    // 8-characters only! 
+    strcpy(batchinfo.gonlab[1], "        ");    // 8-characters only!
     strcpy(batchinfo.gonlab[2], "        ");
   }
   //--------------------------------------------------------------
@@ -1006,7 +1006,7 @@ namespace scala
 
     U = MVutil::SetCMat33(batchinfo.umat); // [U]
     valid_Umat = true;
-    if (U.det() <= 0.9)   valid_Umat = false;  
+    if (U.det() <= 0.9)   valid_Umat = false;
     // If Umat == Identity, it is probably invalid
     if (MVutil::is_mat33_ident(U)) {
       valid_Umat = false;
@@ -1100,7 +1100,7 @@ namespace scala
       U = DMat33::identity();
       DU =  scala::Rotation(spindle, 0.0).matrix() * U;
       DUB = DU * bcell.Bmat();
-    }    
+    }
     float phirange = batchinfo.phiend  - batchinfo.phistt;
     valid_phi = true;
     if (std::abs(phirange) < tolerance) valid_phi = false;
@@ -1225,7 +1225,7 @@ namespace scala
   //   2) 3-axis goniostat, spindle rotation by phi around e3
   //          [R] = [Omega][Chi/Kappa][Phi]     [D] = [Phi0]
   //              = [E1E2] [Phi]  (phi varying)
-  //              
+  //
   // Transformation operations:
   //   four useful reference frames
   //    (a) reciprocal lattice indices h
@@ -1391,11 +1391,11 @@ namespace scala
            "Mosaicity (horizontal, vertical)..",batchinfo.crydat[0],batchinfo.crydat[1]);
     }
     s += FormatOutput::logTabPrintf(0,"   Datum goniostat angles (degrees)..");
-    for (int i = 0; i < batchinfo.ngonax; ++i) 
+    for (int i = 0; i < batchinfo.ngonax; ++i)
       s += FormatOutput::logTabPrintf(0," %8.3f",batchinfo.datum[i]);
     s += FormatOutput::logTabPrintf(0,"\n");
 
-    if (batchinfo.jsaxs > 0 && batchinfo.jsaxs <= batchinfo.ngonax) 
+    if (batchinfo.jsaxs > 0 && batchinfo.jsaxs <= batchinfo.ngonax)
       s += FormatOutput::logTabPrintf(0,"   %s  %s \n",
       "Scan axis ........................",batchinfo.gonlab[batchinfo.jsaxs-1]);
     s += FormatOutput::logTabPrintf(0,"   %s %8.3f %8.3f \n   %s %8.3f \n   %s %8.2f %8.2f \n",
@@ -1434,7 +1434,7 @@ namespace scala
       "   Wavelength and dispersion ........",batchinfo.alambd,batchinfo.delamb,batchinfo.delcor,
       "   Divergence .......................",batchinfo.divhd,batchinfo.divvd);
     }
-    
+
     s += FormatOutput::logTabPrintf(0," Detector information :-\n   Number of detectors...............%7d \n",batchinfo.ndet);
     s += FormatOutput::logTabPrintf(0,"   %s%9.3f\n%s%9.3f\n%s%7.1f%7.1f%7.1f%7.1f\n",
     "   Crystal to Detector distance (mm).",batchinfo.dx[0],
@@ -1451,7 +1451,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   //! set lattice number (default = 0)
-  void Batch::SetLatticeNumber(const int& latticenumber) 
+  void Batch::SetLatticeNumber(const int& latticenumber)
   {latnum = latticenumber;}
   //--------------------------------------------------------------
   BatchSelection::BatchSelection()

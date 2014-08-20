@@ -37,15 +37,15 @@ std::string StringUtil::Trim(const std::string& s)
   if (s.size() > 0) {
       bool instring = false;  // first non-space character
       for (size_t i=0;i<s.size();i++) {
-	if (instring || s[i] != ' ') {
-	  ss.push_back(s[i]);
-	  instring = true;
-	}
+        if (instring || s[i] != ' ') {
+          ss.push_back(s[i]);
+          instring = true;
+        }
       }
       // now remove trailing spaces
       int j = ss.size()-1;
-      while (j >=0) 
-	{if (ss[j--] != ' ') break;}
+      while (j >=0)
+        {if (ss[j--] != ' ') break;}
       ss.resize(j+2);
     }
   return ss;
@@ -60,15 +60,15 @@ std::string StringUtil::Unquote(const std::string& sin)
     bool instring = false;  // first non-quote character
     for (size_t i=0;i<s.size();i++) {
       if (instring || ((s[i] != '\'') && (s[i] != '"'))) {
-	ss.push_back(s[i]);
-	instring = true;
+        ss.push_back(s[i]);
+        instring = true;
       }
     }
     // now remove trailing spaces
     int j = ss.size()-1;
     while (j >=0) {
       if ((ss[j] != '\'') && (ss[j] != '"')) {
-	break;
+        break;
       }
       j--;
     }
@@ -80,7 +80,7 @@ std::string StringUtil::Unquote(const std::string& sin)
 // Return string of length <fieldwidth> with text centred on position
 // cenpos (numbered from 0)
 std::string StringUtil::CentreString(const std::string& text, const int& fieldwidth,
-			 const int& cenposition)
+                         const int& cenposition)
 {
   int cenpos = cenposition;
   if (cenpos == 0) cenpos = fieldwidth/2;
@@ -89,7 +89,7 @@ std::string StringUtil::CentreString(const std::string& text, const int& fieldwi
   if (len >= fieldwidth) return text;
   // number of trailing spaces
   int p2 = clipper::Util::max(0,clipper::Util::min
-			      (fieldwidth-1-(cenpos+len/2), fieldwidth-1)); 
+                              (fieldwidth-1-(cenpos+len/2), fieldwidth-1));
   int p1 = fieldwidth - len - p2; // number of leading spaces
   std::string pad1;
   if (p1 > 0) pad1 = std::string(p1, ' ');
@@ -98,7 +98,7 @@ std::string StringUtil::CentreString(const std::string& text, const int& fieldwi
     pad2 = std::string(p2, ' ');
   }
   //    std::cout << "CS " << fieldwidth << " "
-  //	      << pad1.size() << " " << text.size()<< " " << pad2.size() << "\n"; //
+  //          << pad1.size() << " " << text.size()<< " " << pad2.size() << "\n"; //
   return pad1+text+pad2;
 }
 //--------------------------------------------------------------
@@ -130,7 +130,7 @@ std::string StringUtil::LeftString(const std::string& text, const int& fieldwidt
 }
 //--------------------------------------------------------------
 std::vector<std::string> StringUtil::split(const std::string& str,
-			       const std::string& sep)
+                               const std::string& sep)
 // Return substrings split at string "sep" (excluded)
 // modified from clipper_types.cpp
 {
@@ -146,7 +146,7 @@ std::vector<std::string> StringUtil::split(const std::string& str,
 }
 //--------------------------------------------------------------
 std::vector<std::string> StringUtil::split(const std::string& str,
-			       const std::string& sep1, const std::string& sep2)
+                               const std::string& sep1, const std::string& sep2)
 // Return substrings split at string "sep1" or "sep2" (excluded)
 // modified from clipper_types.cpp
 {
@@ -154,10 +154,10 @@ std::vector<std::string> StringUtil::split(const std::string& str,
   size_t tokbeg = 0, tokend = 0;
   while (1) {
     tokbeg = clipper::Util::max(str.find_first_not_of(sep1, tokend),
-		 str.find_first_not_of(sep2, tokend));
+                 str.find_first_not_of(sep2, tokend));
     if (tokbeg == std::string::npos) return splitstr;
     tokend = clipper::Util::min(str.find_first_of(sep1, tokbeg),
-		 str.find_first_of(sep2, tokbeg));
+                 str.find_first_of(sep2, tokbeg));
     if (tokend-tokbeg > 0) {
       splitstr.push_back(str.substr(tokbeg, tokend-tokbeg) );
     }
@@ -170,7 +170,7 @@ std::string StringUtil::onespace(const std::string& s)
 {
   std::vector<std::string> splitstring = StringUtil::split(s, " ");
   std::string sss;
-  for (size_t k=0; k<splitstring.size(); k++) { 
+  for (size_t k=0; k<splitstring.size(); k++) {
     sss += splitstring[k];
     if (k < splitstring.size()-1) {
       sss += " ";
@@ -184,7 +184,7 @@ std::string StringUtil::removespaces(const std::string& s)
 {
   std::vector<std::string> splitstring = StringUtil::split(s, " ");
   std::string sss;
-  for (size_t k=0; k<splitstring.size(); k++) { 
+  for (size_t k=0; k<splitstring.size(); k++) {
     sss += splitstring[k];
     if (k < splitstring.size()-1) {
       sss += "_";
@@ -195,7 +195,7 @@ std::string StringUtil::removespaces(const std::string& s)
 //--------------------------------------------------------------
 // <tag><data</tag>
 std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& data,
-				   const bool& edit)
+                                   const bool& edit)
 {
   if (edit) {
     return "<"+tag+">"+XMLstring(data)+"</"+tag+">"; // edited to remove "<" characters etc
@@ -206,7 +206,7 @@ std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& da
 //--------------------------------------------------------------
 //! make XML tag <tag>value</tag>
 std::string StringUtil::MakeXMLtag(const std::string& tag, const int& value,
-				   const int& w)
+                                   const int& w)
 {
   std::string s = StringUtil::Strip(StringUtil::itos(value, w));
   return MakeXMLtag(tag, s);
@@ -214,8 +214,8 @@ std::string StringUtil::MakeXMLtag(const std::string& tag, const int& value,
 //--------------------------------------------------------------
 //! make XML tag <tag>value</tag>
 std::string StringUtil::MakeXMLtag(const std::string& tag,
-				   const double& value,
-				   const int& w, const int& d)
+                                   const double& value,
+                                   const int& w, const int& d)
 {
   std::string s = StringUtil::Strip(StringUtil::ftos(value, w,d));
   return MakeXMLtag(tag, s);
@@ -259,7 +259,7 @@ std::string StringUtil::etos(const double f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::WrapLine(const std::string& line,
-	 const int& pagewidth, const int& nindent, const std::string& sepc)
+         const int& pagewidth, const int& nindent, const std::string& sepc)
 // wrap after field terminated by character sepc (default " ")
 // if sepc = " ", exclude it from field
 {
@@ -410,9 +410,9 @@ std::string StringUtil::FormatSaveVector(const std::vector<double> vec)
 }
 //--------------------------------------------------------------
 std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const std::string& tableid,
-					    const std::vector<std::string>& names,
-					    const std::string& valTag,
-					    const std::vector<std::pair<double,int> >& valCount)
+                                            const std::vector<std::string>& names,
+                                            const std::string& valTag,
+                                            const std::vector<std::pair<double,int> >& valCount)
 // valCount array is in order:-
 //   ab, ac, ad, ...
 //       bc, bd, ...
@@ -437,16 +437,16 @@ std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const 
     s += "<row><label>"+names[j]+"</label>";
     for (int i=1;i<nval;++i) { // loop columns
       if (i <= j) {
-	// blank (redundant) entry
-	v = StringUtil::MakeXMLtag(valTag, " ");
-	v += StringUtil::MakeXMLtag("Number", " ");
+        // blank (redundant) entry
+        v = StringUtil::MakeXMLtag(valTag, " ");
+        v += StringUtil::MakeXMLtag("Number", " ");
       } else {
-	//	std::cout <<"i,j,k " <<i<<" "<<j<<" "<<k<<"\n";
-	// values
-	v = StringUtil::MakeXMLtag
-	  (valTag, StringUtil::ftos(valCount[k].first,7,3));
-	v += StringUtil::MakeXMLtag("Number", StringUtil::itos(valCount[k].second,5));
-	k++;
+        //      std::cout <<"i,j,k " <<i<<" "<<j<<" "<<k<<"\n";
+        // values
+        v = StringUtil::MakeXMLtag
+          (valTag, StringUtil::ftos(valCount[k].first,7,3));
+        v += StringUtil::MakeXMLtag("Number", StringUtil::itos(valCount[k].second,5));
+        k++;
       }
       s += v;
     } // end column loop
@@ -466,7 +466,7 @@ std::string FormatOutput::logTab(const int& tab, const std::string& text)
 //--------------------------------------------------------------
 //! format using vsstringf
 std::string FormatOutput::logTabPrintf(const int& tab,
-				  const char* formattext,...)
+                                  const char* formattext,...)
 {
   static const std::size_t temp_size = 8192;
   char temp[temp_size];
@@ -490,7 +490,7 @@ std::string FormatOutput::logWarning(const std::string& text)
 //======================================================================
 //! constructor from type, maximum value, minimum field width, and precision
 Numberfield::Numberfield(const bool& IntType, const float& MaxValue,
-			 const int& MinWidth, const int& Precision)
+                         const int& MinWidth, const int& Precision)
   : width(-1)
 {
   init(IntType, MaxValue, MinWidth, Precision);
@@ -503,7 +503,7 @@ Numberfield::Numberfield(const bool& IntType, const float& MaxValue,
       \param Precision  number of significant figures
    */
 void Numberfield::init(const bool& IntType, const float& MaxValue,
-		       const int& MinWidth, const int& Precision)
+                       const int& MinWidth, const int& Precision)
 {
   type = (IntType) ? +1 : 0; ;
   if (width < 0) {  // unknown width
@@ -513,8 +513,8 @@ void Numberfield::init(const bool& IntType, const float& MaxValue,
     dec =  clipper::Util::max(0, prec-l-1);  // number after decimal point
     width = clipper::Util::max(MinWidth, l+dec+3);
     //^    std::cout <<"Numberfield "<<MinWidth <<" "<<width <<" "
-    //^	      <<Precision<<" "<<prec
-    //^	      <<" "<<l<<" "<<dec <<" "<<label1<<" "<<label2<<"\n";
+    //^       <<Precision<<" "<<prec
+    //^       <<" "<<l<<" "<<dec <<" "<<label1<<" "<<label2<<"\n";
   } else {
     // width from previous construction, reset to minimum if necessary
     if (width < MinWidth) {
@@ -526,13 +526,13 @@ void Numberfield::init(const bool& IntType, const float& MaxValue,
 //--------------------------------------------------------------
 //! (re)initialise from type, field width, and number of characters after decimal point
 void Numberfield::init(const int& Type, const int& Width, const int& Dec,
-	    const std::string& Label1, const std::string& Label2)
+            const std::string& Label1, const std::string& Label2)
 {type = Type; width = Width; dec = Dec; label1 = Label1; label2 = Label2;}
 //--------------------------------------------------------------
 //======================================================================
 //! construct with one citation
 Citation::Citation(const std::string& citation,
-		   const std::string& link)
+                   const std::string& link)
 {
   citations.assign(1, citation);
   links.assign(1,link);
@@ -540,7 +540,7 @@ Citation::Citation(const std::string& citation,
 //--------------------------------------------------------------
 //! add a citation
 void Citation::AddCitation(const std::string& citation,
-			   const std::string& link)
+                           const std::string& link)
 {
   citations.push_back(citation);
   links.push_back(link);
@@ -550,7 +550,7 @@ void Citation::AddCitation(const std::string& citation,
 std::string Citation::MakeLogCitation() const
 {
   std::string s = "$TEXT:Reference: $$ Please cite $$\n";
-  for (size_t i=0; i<citations.size(); i++) { 
+  for (size_t i=0; i<citations.size(); i++) {
     s += citations[i]+"\n";
     if (links[i] != "") {
       s += "<a href=\""+links[i]+"\">\n";
@@ -563,6 +563,3 @@ std::string Citation::MakeLogCitation() const
 //--------------------------------------------------------------
 //! make citation string for XML file, with html link  FIXME
 // std::string Citation::MakeXMLCitation() const;
-
-
-

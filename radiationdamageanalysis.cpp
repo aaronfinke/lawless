@@ -24,7 +24,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::init(const hkl_unmerge_list& hkl_list,
-				     const int& jrun, const int& nbatchgroup)
+                                     const int& jrun, const int& nbatchgroup)
   // jrun is run serial number
   // nbatchgroup is number of batches to group together, usually 1
   {
@@ -53,9 +53,9 @@ namespace scala {
     if (batchgroup <= 0) {
       double delphi = thisrun.PhiRange().AbsRange()/double(nbatches);
       if (delphi > 0.0001) {
-	batchgroup = Max(1, Nint(phibinsize/delphi));
+        batchgroup = Max(1, Nint(phibinsize/delphi));
       } else {
-	batchgroup = 1;
+        batchgroup = 1;
       }
     }
 
@@ -81,39 +81,39 @@ namespace scala {
       // resolution bin
       int rbin = resrange.tbin(this_refl.invresolsq());
       if (rbin >= 0) { // test that reflection is in range
-	observations.clear();
-	while (this_refl.next_observation(this_obs) >= 0) {
-	  observations.push_back(this_obs);
-	}
-	if (observations.size() > 1) {
-	  // we have a list of observations, now do a double loop over
-	  // different observations
-	  for (size_t j=0; j<observations.size()-1; j++) { 
-	    int batchj = batchIndex(observations[j].Batch());
-	    float Ij = std::abs(observations[j].kI());
-	    for (size_t i=j+1; i<observations.size(); i++) { 
-	      int batchi = batchIndex(observations[i].Batch());
-	      int bintime = Min(Max(batchi, batchj)/batchgroup, ntimebin-1);
-	      ASSERT ((bintime >= 0) && (bintime < ntimebin));
-	      //	      if (!((bintime >= 0) && (bintime < ntimebin))){
-	      //		std::cout <<batchi<<" "<<batchj<<" "<<bintime<<
-	      //		  " "<<bintime<<"\n";
-	      //	      } //^
-	      float Ii = std::abs(observations[i].kI());
-	      // R-factor and CC
-	      rfactor[rbin][bintime].add(std::abs(Ii-Ij),
-					 0.5*(Ii+Ij), w);
-	      cc[rbin][bintime].add(Ii, Ij, w);
-	    }}
-	}
+        observations.clear();
+        while (this_refl.next_observation(this_obs) >= 0) {
+          observations.push_back(this_obs);
+        }
+        if (observations.size() > 1) {
+          // we have a list of observations, now do a double loop over
+          // different observations
+          for (size_t j=0; j<observations.size()-1; j++) {
+            int batchj = batchIndex(observations[j].Batch());
+            float Ij = std::abs(observations[j].kI());
+            for (size_t i=j+1; i<observations.size(); i++) {
+              int batchi = batchIndex(observations[i].Batch());
+              int bintime = Min(Max(batchi, batchj)/batchgroup, ntimebin-1);
+              ASSERT ((bintime >= 0) && (bintime < ntimebin));
+              //              if (!((bintime >= 0) && (bintime < ntimebin))){
+              //                std::cout <<batchi<<" "<<batchj<<" "<<bintime<<
+              //                  " "<<bintime<<"\n";
+              //              } //^
+              float Ii = std::abs(observations[i].kI());
+              // R-factor and CC
+              rfactor[rbin][bintime].add(std::abs(Ii-Ij),
+                                         0.5*(Ii+Ij), w);
+              cc[rbin][bintime].add(Ii, Ij, w);
+            }}
+        }
       }
     } // end reflection loop
 
     // Cumulative R-factors and CC, up to time (batch, dose) point
     for (int rbin=0;rbin<nresbin;++rbin) { // for each resolution bin
       for (int bintime=1;bintime<ntimebin;++bintime) {
-	rfactor[rbin][bintime] += rfactor[rbin][bintime-1];
-	cc[rbin][bintime] += cc[rbin][bintime-1];
+        rfactor[rbin][bintime] += rfactor[rbin][bintime-1];
+        cc[rbin][bintime] += cc[rbin][bintime-1];
       }}
   }
   //--------------------------------------------------------------
@@ -207,8 +207,8 @@ namespace scala {
       vals.clear();
       Rfactor rall;  // all resolution bins
       for (int rbin=0;rbin<nresbin;++rbin) { // for each resolution bin
-	vals.push_back(rfactor[rbin][bintime].R());
-	rall += rfactor[rbin][bintime];
+        vals.push_back(rfactor[rbin][bintime].R());
+        rall += rfactor[rbin][bintime];
       }
       vals.push_back(rall.R());
 

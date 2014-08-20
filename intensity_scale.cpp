@@ -11,13 +11,11 @@
 #include "intensity_scale.h"
 
 namespace clipper {
-	// compile templates
-	
-	template class Iscale_aniso<ftype32>;
-	
-	template class Iscale_aniso<ftype64>;
-	
-	
+        // compile templates
+
+        template class Iscale_aniso<ftype32>;
+
+        template class Iscale_aniso<ftype64>;
+
+
 }
-
-

@@ -28,15 +28,15 @@ namespace phaser_io {
   {
     OnLine_ = OnLine;
       if (! OnLine)
-	{
-	  Preprocessor capture(0,0);
-	  if (echo) {
-	    output.logTab(0,phaser_io::LOGFILE, ">>>>> Input command lines <<<<<\n\n");
-	    output.logKeywords(phaser_io::LOGFILE, capture.Echo());
-	    output.logTab(0,phaser_io::LOGFILE, ">>>>>     End of input    <<<<<\n\n");
-	  }
-	  parseCCP4(capture);
-	}
+        {
+          Preprocessor capture(0,0);
+          if (echo) {
+            output.logTab(0,phaser_io::LOGFILE, ">>>>> Input command lines <<<<<\n\n");
+            output.logKeywords(phaser_io::LOGFILE, capture.Echo());
+            output.logTab(0,phaser_io::LOGFILE, ">>>>>     End of input    <<<<<\n\n");
+          }
+          parseCCP4(capture);
+        }
   }
 
   InputAll::~InputAll() {}

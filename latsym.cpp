@@ -9,7 +9,7 @@ using namespace cctbx;
 namespace CCtbxSym{
   //--------------------------------------------------------------
   bool centred_monoclinic(const int& sgn)
-  // true if space group number sgn is C/I-centred monoclinic  
+  // true if space group number sgn is C/I-centred monoclinic
   {
     if (sgn == 5 || sgn == 8 || sgn == 9 || sgn == 12 || sgn == 15) return true;
     return false;
@@ -20,7 +20,7 @@ namespace CCtbxSym{
   // if ReferenceSetting true (default), then use the reference setting
   // rather than the actual setting
   std::string SpaceGroupName(const sgtbx::space_group_type& SGtype,
-			     const char Rlattice, const bool& ReferenceSetting)
+                             const char Rlattice, const bool& ReferenceSetting)
   {
     std::string symbol = SGtype.lookup_symbol();
     sgtbx::space_group_symbols sgs(symbol);
@@ -47,13 +47,13 @@ namespace CCtbxSym{
   //--------------------------------------------------------------
   // Format spacegroup name in "standard" convention
   std::string SpaceGroupName(const sgtbx::space_group& SG,
-			     const char Rlattice, const bool& ReferenceSetting)
+                             const char Rlattice, const bool& ReferenceSetting)
   {
     return SpaceGroupName(SG.type(), Rlattice, ReferenceSetting);
   }
   //--------------------------------------------------------------
   std::string SpaceGroupName(const std::string& SGname,
-			     const char Rlattice, const bool& ReferenceSetting)
+                             const char Rlattice, const bool& ReferenceSetting)
   {
     sgtbx::space_group SG = sgtbx::space_group
       (sgtbx::space_group_symbols(SGname).hall());
@@ -61,7 +61,7 @@ namespace CCtbxSym{
   }
   //--------------------------------------------------------------
   std::string SpaceGroupName(const int& SpGpNumber,
-			     const char Rlattice, const bool& ReferenceSetting)
+                             const char Rlattice, const bool& ReferenceSetting)
   {
     std::string extension = "";
     if (Rlattice == 'R' || Rlattice == 'H') {extension = Rlattice;}
@@ -70,7 +70,7 @@ namespace CCtbxSym{
   }
   //--------------------------------------------------------------
   std::string SpaceGroup_xHM(const int& SpGpNumber,
-			      const char Rlattice)
+                              const char Rlattice)
   // return extended Hermann-Mauguin symbol
   // for rhombohedral space groups,set lattice type to
   // Rlattice = 'R' or 'H'
@@ -84,10 +84,10 @@ namespace CCtbxSym{
       {if (Rlattice == 'R' || Rlattice == 'H') {extension = Rlattice;}}
     SGS = sgtbx::space_group_symbols(SpGpNumber, extension);
     //    std::cout << "SGS: HM" << SGS.hermann_mauguin()
-    //	      << " extension :" << SGS.extension()
-    //	      << ": Hall " << SGS.hall()
-    //	      << " EHM " << SGS.extended_hermann_mauguin()
-    //	      << "\n";
+    //        << " extension :" << SGS.extension()
+    //        << ": Hall " << SGS.hall()
+    //        << " EHM " << SGS.extended_hermann_mauguin()
+    //        << "\n";
     //**  call changed in cctbx version 2
    #if defined (CCTBX_VERSION) && (CCTBX_VERSION <= 2006)
     return  SGS.extended_hermann_mauguin();
@@ -100,7 +100,7 @@ namespace CCtbxSym{
   show_space_group_type(const sgtbx::space_group_type& SG_type)
   {
     std::printf("%s (No. %d)", SpaceGroupName(SG_type).c_str(),
-		SG_type.number());
+                SG_type.number());
   }
 
   //--------------------------------------------------------------
@@ -109,9 +109,9 @@ namespace CCtbxSym{
   {
     for(std::size_t i=0;i<6;i++) {
       std::printf("%s%.6g%s",
-		  (i < 1 ? "(" : " "),
-		  unit_cell.parameters()[i],
-		  (i < 5 ? "," : ")"));
+                  (i < 1 ? "(" : " "),
+                  unit_cell.parameters()[i],
+                  (i < 5 ? "," : ")"));
     }
   }
   //--------------------------------------------------------------
@@ -137,7 +137,7 @@ namespace CCtbxSym{
   }
   //--------------------------------------------------------------
   void PrintChBasisOp(const sgtbx::change_of_basis_op ch_op,
-		      const std::string label)
+                      const std::string label)
   {
     std::printf("\nChange of basis operator for %s",label.c_str());
     std::printf(":  %s\n",ch_op.c().as_xyz().c_str());
@@ -146,7 +146,7 @@ namespace CCtbxSym{
   }
   //--------------------------------------------------------------
   sgtbx::space_group ChangeBasis(const sgtbx::space_group& SG,
-					const sgtbx::change_of_basis_op& CbOp)
+                                        const sgtbx::change_of_basis_op& CbOp)
   // Create new spacegroup with changed basis from
   // primitive operators only
   {
@@ -181,13 +181,13 @@ namespace CCtbxSym{
     double tol =  0.2;  // tolerance on angles
     if (Close<double,double>(unit_cell_dimensions.at(3), 90.0, tol))
       if (Close<double,double>(unit_cell_dimensions.at(4), 90.0, tol))
-	if (Close<double,double>(unit_cell_dimensions.at(5), 120.0, tol))
-	  return false;
+        if (Close<double,double>(unit_cell_dimensions.at(5), 120.0, tol))
+          return false;
     return true;
   }
   //--------------------------------------------------------------
   sgtbx::change_of_basis_op ReduceCell(const uctbx::unit_cell& cell,
-				       const sgtbx::change_of_basis_op RefOp)
+                                       const sgtbx::change_of_basis_op RefOp)
   {
     uctbx::fast_minimum_reduction<> red(cell);
     return sgtbx::change_of_basis_op
@@ -200,9 +200,9 @@ namespace CCtbxSym{
   // LatticeSymmetry class
 
   LatticeSymmetry::LatticeSymmetry(const std::vector<double>& unit_cell_dimensions,
-				   const char lattice_type,
-				   const int& AllowI2,
-				   const double max_delta)
+                                   const char lattice_type,
+                                   const int& AllowI2,
+                                   const double max_delta)
     : lattice_type_(lattice_type), max_delta_(max_delta)
   {
     // Symmetry object combines unit_cell object and
@@ -218,11 +218,11 @@ namespace CCtbxSym{
       // Hexagonal setting has angles 90,90,120
       // Rhombohedral has alpha=beta=gamma
       if(RhombohedralAxes(unit_cell_dimensions))
-	{lattice_type_ = 'P';}
+        {lattice_type_ = 'P';}
     }
 
     input_symmetry_ = crystal::symmetry(uctbx::unit_cell(dcell),
-					sgtbx::space_group(std::string(1,lattice_type_)+" 1"));
+                                        sgtbx::space_group(std::string(1,lattice_type_)+" 1"));
 
     // get an operator to convert centred cell to primitive
     //  == I if P already
@@ -251,20 +251,20 @@ namespace CCtbxSym{
     //**  call changed in cctbx version 2
     #if defined (CCTBX_VERSION) && (CCTBX_VERSION <= 2006)
         //** old version 1
-	sgtbx::lattice_symmetry::group_search lattice_symmetry_group;
+        sgtbx::lattice_symmetry::group_search lattice_symmetry_group;
         cctbx::sgtbx::space_group lattice_group =
-	  lattice_symmetry_group(primitive_symmetry.unit_cell(), max_delta);
+          lattice_symmetry_group(primitive_symmetry.unit_cell(), max_delta);
     #else
- 	//** for new cctbx **
-	cctbx::sgtbx::space_group lattice_group =
-	  cctbx::sgtbx::lattice_symmetry::group(primitive_symmetry.unit_cell(), max_delta);
+        //** for new cctbx **
+        cctbx::sgtbx::space_group lattice_group =
+          cctbx::sgtbx::lattice_symmetry::group(primitive_symmetry.unit_cell(), max_delta);
     #endif
 
     lattice_group.make_tidy();
-    
+
     lattice_symmetry_ = crystal::symmetry(primitive_symmetry.unit_cell(),
-					  lattice_group);
-     
+                                          lattice_group);
+
     // Adjust unit cell to fit lattice symmetry
     //   (eg force angles = 90 etc)
     crystal::symmetry adjust_sym
@@ -278,7 +278,7 @@ namespace CCtbxSym{
 
     //^
     //    std::cout << "\nLatticeSymmetry::BestSymmetry "
-    //	      << best_symmetry_.space_group().type().hall_symbol() << "\n";
+    //        << best_symmetry_.space_group().type().hall_symbol() << "\n";
     //    std::cout << "Cell: " <<  UcellFormat(best_symmetry_.unit_cell()) << "\n";
     //^-
     //  Select "best" orthorhombic or monoclinic cell
@@ -286,9 +286,9 @@ namespace CCtbxSym{
     LatticeGroup LatG(best_symmetry_.space_group());
     if (LatG.crystal_system() == ORTHORHOMBIC || LatG.crystal_system() == MONOCLINIC)
       {
-	cb_op_opt =
-	  GetBestCell(best_symmetry_.space_group(), best_symmetry_.unit_cell(), AllowI2);
-	best_symmetry_ = best_symmetry_.change_basis(cb_op_opt);
+        cb_op_opt =
+          GetBestCell(best_symmetry_.space_group(), best_symmetry_.unit_cell(), AllowI2);
+        best_symmetry_ = best_symmetry_.change_basis(cb_op_opt);
       }
 
     // Total basis transformation
@@ -299,25 +299,25 @@ namespace CCtbxSym{
       sgtbx::change_of_basis_op cb_op_corr = cb_op_inp_best.inverse();
       if (   best_symmetry_.change_basis(cb_op_corr).space_group()
              == best_symmetry_.space_group()) {
-	cb_op_inp_best = cb_op_corr * cb_op_inp_best;
+        cb_op_inp_best = cb_op_corr * cb_op_inp_best;
       }
     }
     // Maximum deviation from original cell
     delta = sgtbx::lattice_symmetry::
       find_max_delta(cb_op_inp_best.apply(input_symmetry_.unit_cell()),
-		     best_symmetry_.space_group().build_derived_point_group());
+                     best_symmetry_.space_group().build_derived_point_group());
   }
 
   //--------------------------------------------------------------
   void LatticeSymmetry::print() const
-  { 
+  {
     std::printf("\n\n***********\n\n");
     std::printf("Maximum (lattice) Symmetry : ");
     SymPrint(lattice_symmetry_);
     std::printf("Best (reference) Symmetry : ");
     SymPrint(best_symmetry_);
     std::printf("          Reindex operator (input->best): %s\n",
-		cb_op_inp_best.c_inv().as_xyz().c_str());
+                cb_op_inp_best.c_inv().as_xyz().c_str());
     std::printf("\n***********\n\n");
   }
 
@@ -334,8 +334,8 @@ namespace CCtbxSym{
     int k=0;
     for (int i=0;i<3;i++)
       for (int j=0;j<3;j++)
-	vop[k++] = op(i,j);
-    
+        vop[k++] = op(i,j);
+
     return vop;
   }
   //--------------------------------------------------------------

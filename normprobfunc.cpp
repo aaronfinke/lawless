@@ -50,13 +50,13 @@ NormalProbability::NormalProbability()
       double p = del * TabInterval;
       double sum = 1.0;
       for (int j=1;j<=27;j++)
-	{
-	  int k = (j+1)%2 - j%2;
-	  double psum = (2 * j) * log10(p) - den[j];
-	  if (psum + 7.0 < 0.0) break;
-	  psum = pow(10.0,psum);
-	  sum = sum + k * psum;
-	}
+        {
+          int k = (j+1)%2 - j%2;
+          double psum = (2 * j) * log10(p) - den[j];
+          if (psum + 7.0 < 0.0) break;
+          psum = pow(10.0,psum);
+          sum = sum + k * psum;
+        }
       prob[i] = TwoOvRoottwoPi * p * sum;
     }
 }
@@ -83,14 +83,14 @@ double NormalProbability::ExpectedDelta(const double& FracRank)
     {
       double del = px - prob[i-1];
          if (del > 0.0)
-	   {
-	     i = i + id;
-	   }
-	 else
-	   {
-	     i = i - id;
-	   }
-	 id = id / 2;
+           {
+             i = i + id;
+           }
+         else
+           {
+             i = i - id;
+           }
+         id = id / 2;
     }
   if (px < prob[i-1]) i = i - 1;
   double del = (px - prob[i-1]) / (prob[i] - prob[i-1]);
@@ -107,4 +107,3 @@ void NormalProbability::Print()
     }
 }
 //---------------------------------------------------------
-

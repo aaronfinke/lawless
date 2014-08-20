@@ -5,7 +5,7 @@
 //
 // Graph syntax (ccp4 6.1)
 // ============
-// 
+//
 //  $TABLE :table name:
 //  $GRAPHS :graph1 name:graphtype:column_list:
 //          :graph2 name:graphtype:column_list:
@@ -14,7 +14,7 @@
 //   numbers $$
 //
 //  graphtype is
-//  
+//
 //  A[UTO]
 //     for fully automatic scaling (e.g. ... :A:1,2,4,5:)
 //  N[OUGHT]
@@ -23,8 +23,8 @@
 //  XMIN|XMAXxYMIN|YMAX
 //    for user defined scaling where XMIN ... are axis limits
 //    (e.g. ... :0|100x-1|1:1,2,4,5:)
-//  
-//  
+//
+//
 
 #include "tablegraph.hh"
 
@@ -41,16 +41,16 @@ using clipper::Message_warn;
 //--------------------------------------------------------------
 // construct as explicit X,Y ranges
 GraphAxesType::GraphAxesType(const scala::Range& Xrange,
-			     const scala::Range& Yrange,
-			     const bool& ZeroY)
+                             const scala::Range& Yrange,
+                             const bool& ZeroY)
 {
   init(Xrange, Yrange, ZeroY);
 }
 //--------------------------------------------------------------
 // initialise as explicit X,Y ranges
 void GraphAxesType::init(const scala::Range& Xrange,
-			 const scala::Range& Yrange,
-			 const bool& ZeroY)
+                         const scala::Range& Yrange,
+                         const bool& ZeroY)
 {
   graphtype = XY_SPECIFIED;
   xrange = Xrange;
@@ -62,7 +62,7 @@ void GraphAxesType::init(const scala::Range& Xrange,
 //--------------------------------------------------------------
   // X-axis range and type flag (true for 1/d^2)
 void GraphAxesType::SetXaxis(const scala::Range& Xrange,
-			     const bool& isinvresolsq)
+                             const bool& isinvresolsq)
 {
   xrange = Xrange;
   xinvresolsq = isinvresolsq;
@@ -146,11 +146,11 @@ void TableGraphPlotline::init() {
 //--------------------------------------------------------------
 // set xcol, ycol from 1, etc
 void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
-			      const std::string& colr,
-			      const std::string& symb, const int& symbsize,
-			      const bool& symbedge,
-			      const std::string& linestyle,
-			      const int& linewidth)
+                              const std::string& colr,
+                              const std::string& symb, const int& symbsize,
+                              const bool& symbedge,
+                              const std::string& linestyle,
+                              const int& linewidth)
 {
   xcol = Xcol;
   ycol = Ycol;
@@ -161,8 +161,8 @@ void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::SetSymbol(const std::string& symb,
-				   const int& size,
-				   const bool& edge) {
+                                   const int& size,
+                                   const bool& edge) {
   // size default = -1 ie unspecified
   symbol = symb;
   symbolsize = size;
@@ -170,12 +170,12 @@ void TableGraphPlotline::SetSymbol(const std::string& symb,
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::SetLine(const std::string& linestyle,
-				 const int& width) {
+                                 const int& width) {
   slinestyle = Style(linestyle);  // standard value
   linesize = width; // default = -1, unspecified
   // The style of the line, allowed values:
   // '-','--','-.',':','.',
-  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'. 
+  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'.
   linestylevalue = "";
   if (slinestyle == "Solid") {
     linestylevalue = "-";
@@ -294,9 +294,9 @@ void TableGraphPlot::init(const std::string& ptitle) {
 }
 //--------------------------------------------------------------
 void TableGraphPlot::SetXaxis(const std::string& label,
-			      const bool& isinvresolsq,
-			      const scala::Range& range,
-			      const bool& integral)
+                              const bool& isinvresolsq,
+                              const scala::Range& range,
+                              const bool& integral)
 //  Define X-axis:
 //  label    for axis, "" to get from data table
 //  isinvresolsq true if x axis is 1/d^2
@@ -327,7 +327,7 @@ void TableGraphPlot::SetXbreak(const int& xcolbr, const scala::Range& xbreak)
 }
 //--------------------------------------------------------------
 void TableGraphPlot::SetXbreak(const int& xcolbr,
-			       const std::vector<scala::Range>& xbreak)
+                               const std::vector<scala::Range>& xbreak)
 {
   // all x-breaks must refer to the same column, check
   if (xcolbreak < 0) {
@@ -342,9 +342,9 @@ void TableGraphPlot::SetXbreak(const int& xcolbr,
 }
 //--------------------------------------------------------------
 void TableGraphPlot::SetYaxis(const std::string& label,
-			      const bool& ZeroY,
-			      const scala::Range& range,
-			      const bool& integral)
+                              const bool& ZeroY,
+                              const scala::Range& range,
+                              const bool& integral)
 // Define Y-axis:
 //  label    for axis, "" to get from data table
 //  ZeroY    true to run y from zero
@@ -364,9 +364,9 @@ void TableGraphPlot::SetYaxis(const std::string& label,
 }
 //--------------------------------------------------------------
 void TableGraphPlot::SetRightYaxis(const std::string& label,
-				   const bool& ZeroY,
-				   const scala::Range& range,
-				   const bool& integral)
+                                   const bool& ZeroY,
+                                   const scala::Range& range,
+                                   const bool& integral)
 // Define right-hand Y-axis:
 //  label    for axis, "" to get from data table
 //  ZeroY    true to run y from zero
@@ -436,17 +436,17 @@ std::string TableGraphPlot::XMLformat() const
     s += StringUtil::MakeXMLtag("xscale", "oneoversqrt")+"\n";
   }
   if (xrange.Valid()) {
-    // <xrange min="xmin" max="xmax"\>    
+    // <xrange min="xmin" max="xmax"\>
     std::string sxmin = StringUtil::ftos(xrange.min());
     std::string sxmax = StringUtil::ftos(xrange.max());
     s += "<xrange min=\""+sxmin+"\" max=\""+sxmax+"\"/>\n";
   }
-  
+
   if (zeroy) {
-    // <yrange min="0" max="None"\>    
+    // <yrange min="0" max="None"\>
     s += "<yrange min=\"0\" max=\"None\"/>\n";
   } else if (yrange.Valid()) {
-    // <yrange min="ymin" max="ymax"\>    
+    // <yrange min="ymin" max="ymax"\>
     std::string symin = StringUtil::ftos(yrange.min());
     std::string symax = StringUtil::ftos(yrange.max());
     s += "<yrange min=\""+symin+"\" max=\""+symax+"\"/>\n";
@@ -454,12 +454,12 @@ std::string TableGraphPlot::XMLformat() const
 
   if (zeroy_RH) {
     if (yrange_RH.Valid()) {
-      // <yrange min="ymin" max="ymax"\>    
+      // <yrange min="ymin" max="ymax"\>
       std::string symin = StringUtil::ftos(yrange_RH.min());
       std::string symax = StringUtil::ftos(yrange_RH.max());
       s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
     } else {
-      // <yrange min="0" max="None"\>    
+      // <yrange min="0" max="None"\>
       s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
     }
   }
@@ -493,7 +493,7 @@ std::string TableGraphPlot::format(const bool& first) const
   //  if (axistypes != "A" && axistypes != "N" &&
   //      (axistypes.find("|") == std::string::npos)) {
   //    Message::message(Message_fatal("TableGraph::Graph: invalid graph type:"+
-  //				   Graphtype));
+  //                               Graphtype));
   //  }
   if (first) {text += "$GRAPHS";}
   text += ":"+title+":"+axistypes.FormatType()+":";
@@ -505,7 +505,7 @@ std::string TableGraphPlot::format(const bool& first) const
   for (size_t i=0;i<plotlines.size();++i) {
     if (plotlines[i].Xcol() != xcol) {
       Message::message(Message_fatal
-		       ("TableGraph::Graph: all lines must have same x column"));
+                       ("TableGraph::Graph: all lines must have same x column"));
     }
     if (i==0) {columnNumbers.push_back(xcol);}
     columnNumbers.push_back(plotlines[i].Ycol());
@@ -538,15 +538,15 @@ void TableGraph::init(const std::string& Title)
 //--------------------------------------------------------------
 // Add a graph, return graph header
 std::string TableGraph::Graph(const std::string& GraphTitle,
-			      const GraphAxesType& Graphaxestype,
-			      const std::vector<int>& columnNumbers)
+                              const GraphAxesType& Graphaxestype,
+                              const std::vector<int>& columnNumbers)
 {
   return Graph(GraphTitle, Graphaxestype.FormatType(), columnNumbers);
 }
 //--------------------------------------------------------------
 std::string TableGraph::Graph(const std::string& GraphTitle,
-			      const std::string& Graphtype,
-			      const std::vector<int>& columnNumbers)
+                              const std::string& Graphtype,
+                              const std::vector<int>& columnNumbers)
 // Add a graph
 {
   std::string text;
@@ -554,7 +554,7 @@ std::string TableGraph::Graph(const std::string& GraphTitle,
   if (Graphtype != "A" && Graphtype != "N" &&
       (Graphtype.find("|") == std::string::npos)) {
     Message::message(Message_fatal("TableGraph::Graph: invalid graph type:"+
-				   Graphtype));
+                                   Graphtype));
   }
   if (ngraphs == 0) {text += "$GRAPHS";}
   ngraphs++;
@@ -576,8 +576,8 @@ void TableGraph::AddGraph(const TableGraphPlot& tgplot)
 }
 //--------------------------------------------------------------
 std::string TableGraph::AddInLabel(const std::string& label,
-				   const int& ifw_in, const int& ifd,
-				   int& overhang) const
+                                   const int& ifw_in, const int& ifd,
+                                   int& overhang) const
 // returns overhang = number of characters after field (maximum =1)
 // Private function
 {
@@ -604,13 +604,13 @@ std::string TableGraph::AddInLabel(const std::string& label,
 }
 //--------------------------------------------------------------
 std::string TableGraph::ColumnFields(const std::vector<std::string>& Labels,
-				     const std::vector<bool>& ZeroMark,
-				     const std::string& pformat,
-				     const bool& lastmark) 
+                                     const std::vector<bool>& ZeroMark,
+                                     const std::string& pformat,
+                                     const bool& lastmark)
 // Define format, & write out labels
 // ZeroMark = true to replace zero value with "-"
 // if lastmark true [default] add final "$$" after headers
-//   
+//
 {
   StoreColumnFields(Labels, ZeroMark, pformat);
   return GetLabels(lastmark);
@@ -626,11 +626,11 @@ std::string TableGraph::GetLabels(const bool& lastmark) const
 }
 //--------------------------------------------------------------
 void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
-				   const std::vector<bool>& ZeroMark,
-				   const std::string& pformat)
+                                   const std::vector<bool>& ZeroMark,
+                                   const std::string& pformat)
 // Define format for data table
 // ZeroMark = true to replace zero value with "-"
-//   
+//
 {
   ASSERT (Labels.size() == ZeroMark.size());
   ncolumns = Labels.size();
@@ -639,9 +639,9 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
   prtf_format = pformat;
   //  char bs = '\\';
   //^    std::cout << pformat << "\n"; //^
-	
+
   // Parse format
-  int i=-1; 
+  int i=-1;
   int ifield = -1;  // field count
   int i0=0;  // start of field
   int ifw = 0;
@@ -650,20 +650,20 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
   while (++i < int(pformat.size())) {
     if (pformat[i] == '%') {
       ifield++; // new field
-      // number format field 
+      // number format field
       i++;
       std::string fw;
       while (std::isdigit(pformat[i])) {
-	fw += pformat[i++];
+        fw += pformat[i++];
       }
       ifw += atoi(fw.c_str());
       ifd = 0;
       int tp = 0;
       if (pformat[i] == '.') {    // should be either '.' or 'd'
-	// Assume single digit decimal count
-	ifd = atoi(std::string(1,pformat[++i]).c_str());
-	i++;
-	tp = +1;
+        // Assume single digit decimal count
+        ifd = atoi(std::string(1,pformat[++i]).c_str());
+        i++;
+        tp = +1;
       }
       int ifww = ifw+overhang;  // add previous overhang
       // Store label
@@ -687,7 +687,7 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
   }
   if (ncolumns != ifield+1) {
     Message::message(Message_fatal
-		     ("TableGraph: wrong number of fields in format"));
+                     ("TableGraph: wrong number of fields in format"));
   }
   lablen = labels.size();
 }
@@ -741,19 +741,19 @@ std::string TableGraph::Line(const int nc, ...) const
       // Integer
       iv = va_arg(arglist, int);
       if (iv == 0 && fields[i].dashpos >= 0) {
-	sfld[fields[i].dashpos] = '-';
+        sfld[fields[i].dashpos] = '-';
       } else {
-	sprintf(buf, fields[i].fmt.c_str(), iv);
-	sfld.assign(buf, fields[i].fieldwidth);
+        sprintf(buf, fields[i].fmt.c_str(), iv);
+        sfld.assign(buf, fields[i].fieldwidth);
       }
     } else {
       // real
       fv = va_arg(arglist, double);
       if (fv == 0.0 && fields[i].dashpos >= 0) {
-	sfld[fields[i].dashpos] = '-';
+        sfld[fields[i].dashpos] = '-';
       } else {
-	sprintf(buf, fields[i].fmt.c_str(), fv);
-	sfld.assign(buf, fields[i].fieldwidth);
+        sprintf(buf, fields[i].fmt.c_str(), fv);
+        sfld.assign(buf, fields[i].fieldwidth);
       }
     }
     if (sfld[0] != ' ') {
@@ -793,28 +793,28 @@ std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) 
     if (fields[i].type == 0) {
       // Integer
       if (i >= nc) { // take from vector
-	iv = Nint(val[k++]);
+        iv = Nint(val[k++]);
       } else {
-	iv = va_arg(arglist, int);
+        iv = va_arg(arglist, int);
       }
       if (iv == 0 && fields[i].dashpos >= 0) {
-	sfld[fields[i].dashpos] = '-';
+        sfld[fields[i].dashpos] = '-';
       } else {
-	sprintf(buf, fields[i].fmt.c_str(), iv);
-	sfld.assign(buf, fields[i].fieldwidth);
+        sprintf(buf, fields[i].fmt.c_str(), iv);
+        sfld.assign(buf, fields[i].fieldwidth);
       }
     } else {
       // real
       if (i >= nc) { // take from vector
-	fv = val[k++];
+        fv = val[k++];
       } else {
-	fv = va_arg(arglist, double);
+        fv = va_arg(arglist, double);
       }
       if (fv == 0.0 && fields[i].dashpos >= 0) {
-	sfld[fields[i].dashpos] = '-';
+        sfld[fields[i].dashpos] = '-';
       } else {
-	sprintf(buf, fields[i].fmt.c_str(), fv);
-	sfld.assign(buf, fields[i].fieldwidth);
+        sprintf(buf, fields[i].fmt.c_str(), fv);
+        sfld.assign(buf, fields[i].fieldwidth);
       }
     }
     if (sfld[0] != ' ') {
@@ -837,7 +837,7 @@ void TableGraph::AddToLine(const int& iv)
 {
   if (fields[kfield].type != 0) {
     Message::message(Message_fatal
-		     ("TableGraph: adding integer to non-integer field "));
+                     ("TableGraph: adding integer to non-integer field "));
   }
   std::string sfld(fields[kfield].fieldwidth,' ');
   if (iv == 0 && fields[kfield].dashpos >= 0) {
@@ -859,7 +859,7 @@ void TableGraph::AddToLine(const float& v)
 {
   if (fields[kfield].type != +1) {
     Message::message(Message_fatal
-		     ("TableGraph: adding float to non-float field "));
+                     ("TableGraph: adding float to non-float field "));
   }
   std::string sfld(fields[kfield].fieldwidth,' ');
   if (v == 0.0 && fields[kfield].dashpos >= 0) {
@@ -942,4 +942,3 @@ std::string TableGraph::CloseTable() const
   return "$$\n";
 }
 //--------------------------------------------------------------
-

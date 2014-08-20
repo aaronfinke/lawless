@@ -60,7 +60,7 @@ namespace scala
     // Return slope only, fixed intercept b (eg = 0)
   {
     if (np > 0) {
-	return (sumwxy - b * sumwx)/sumwxx;
+        return (sumwxy - b * sumwx)/sumwxx;
     } else
       {return 0.0;}
   }
@@ -139,7 +139,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void correl_coeff::add(const Rtype& x, const Rtype& y,
-			 const Rtype& w, const Rtype& sx,const Rtype& sy)
+                         const Rtype& w, const Rtype& sx,const Rtype& sy)
   // Add in contributions to correlation coefficient with x,y weights
   // w is weight, sx, sy are sigma(x,y)
   {
@@ -167,14 +167,14 @@ namespace scala
   {
     std::cout << "CCdump:\n";
     std::cout  << "sum_wx sum_wx2 sum_wy sum_wy2 sum_wxy sum_w\n"
-	       << sum_wx << " " <<  sum_wx2 << " " <<  sum_wy << " "
-	       <<  sum_wy2 << " " <<  sum_wxy << " " <<  sum_w << "\n";
+               << sum_wx << " " <<  sum_wx2 << " " <<  sum_wy << " "
+               <<  sum_wy2 << " " <<  sum_wxy << " " <<  sum_w << "\n";
 
     std::cout << "sum_wwx sum_wwy sum_w2x sum_w2y\n"
-	      << sum_wwx << " " <<  sum_wwy << " " <<  sum_w2x << " "
-	      <<  sum_w2y << "\n";
+              << sum_wwx << " " <<  sum_wwy << " " <<  sum_w2x << " "
+              <<  sum_w2y << "\n";
     std::cout << "n, nw\n"
-	      << n << " " <<  nw << "\n";
+              << n << " " <<  nw << "\n";
   }
   //--------------------------------------------------------------
   // Number of contributions
@@ -201,7 +201,7 @@ namespace scala
     sum_w2x = 0.0;
     sum_w2y = 0.0;
     n = 4;
-    nw = 0;    
+    nw = 0;
   }
   //--------------------------------------------------------------
   ValCount correl_coeff::result() const
@@ -215,21 +215,21 @@ namespace scala
     double denom = 0.0;
     if (n > 4) {
       // Same or unit weighting for x & y
-      if (sum_w > 0.0) 
-	denom = (sum_wx2 - (sum_wx * sum_wx)/sum_w) *
-	  (sum_wy2 - (sum_wy * sum_wy)/sum_w);
+      if (sum_w > 0.0)
+        denom = (sum_wx2 - (sum_wx * sum_wx)/sum_w) *
+          (sum_wy2 - (sum_wy * sum_wy)/sum_w);
       if (denom > 0.0)
-	return ValCount((sum_wxy - sum_wx * sum_wy / sum_w)/sqrt(denom), n);
+        return ValCount((sum_wxy - sum_wx * sum_wy / sum_w)/sqrt(denom), n);
     }
     if (nw > 4) {
-      if (sum_w2x > 0.0 && sum_w2y > 0.0) 
-	denom = (sum_wx2 - (sum_wx * sum_wx)/sum_w2x) *
-	  (sum_wy2 - (sum_wy * sum_wy)/sum_w2y);
+      if (sum_w2x > 0.0 && sum_w2y > 0.0)
+        denom = (sum_wx2 - (sum_wx * sum_wx)/sum_w2x) *
+          (sum_wy2 - (sum_wy * sum_wy)/sum_w2y);
       if (denom > 0.0)
-	return ValCount((sum_wxy - sum_wx*sum_wwy/sum_w2x
-			 - sum_wy*sum_wwx/sum_w2y
-			 + sum_wx*sum_wy*sum_w/(sum_w2x*sum_w2y))
-			/sqrt(denom), nw);
+        return ValCount((sum_wxy - sum_wx*sum_wwy/sum_w2x
+                         - sum_wy*sum_wwx/sum_w2y
+                         + sum_wx*sum_wy*sum_w/(sum_w2x*sum_w2y))
+                        /sqrt(denom), nw);
     }
     return ValCount(0.0,n+nw);
   }
@@ -278,9 +278,9 @@ namespace scala
     n_f = 0;
   }
   //--------------------------------------------------------------
-  // add in contribution 
+  // add in contribution
   void MSdiff::add(const IsigI& Is1, const IsigI& Is2, const double& w,
-		   const double& VarK)
+                   const double& VarK)
   {
     double I1 = Is1.I();
     double sig1 = Is1.sigI();
@@ -296,7 +296,7 @@ namespace scala
     sum_ndf2 += other.sum_ndf2;
     sum_w += other.sum_w;
     n_f += other.n_f;
-  
+
     return *this;
   }
   //--------------------------------------------------------------
@@ -312,7 +312,7 @@ namespace scala
     sum_df += other.sum_df;
     sum_f  += other.sum_f;
     n_f += other.n_f;
-  
+
     return *this;
   }
   //--------------------------------------------------------------
@@ -333,7 +333,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   PairSet::PairSet(const int& I1, const int& I2, const int& SymElement,
-		   const double& wt, const float& fac1, const float& fac2)
+                   const double& wt, const float& fac1, const float& fac2)
     : weight(wt), SymElmt(SymElement)
   {
     pairs.push_back(IndexPair(I1,I2));
@@ -344,20 +344,20 @@ namespace scala
 
   //--------------------------------------------------------------
   bool PairSet::AddPair(const int& I1, const int& I2, const int& SymElement,
-			const float& fac1, const float& fac2)
+                        const float& fac1, const float& fac2)
   {
     if (SymElement != SymElmt) return false;  // Symmetry element does not match
     int Npair = pairs.size();
     if (Npair > 0)       {
       // Check if it matches
       bool found = false;
-      for (int l=0;l<Npair;l++)	{
-	// Check for common observation
-	if (I1 == pairs[l].first || I2 == pairs[l].first ||
-	    I1 == pairs[l].second || I2 == pairs[l].second) {
-	  found = true;
-	  break;
-	}
+      for (int l=0;l<Npair;l++) {
+        // Check for common observation
+        if (I1 == pairs[l].first || I2 == pairs[l].first ||
+            I1 == pairs[l].second || I2 == pairs[l].second) {
+          found = true;
+          break;
+        }
       }
       if (!found) return false;
     }
@@ -373,10 +373,10 @@ namespace scala
       bool l1 = true;
       bool l2 = true;
       for (int i=0;i<Nobs;i++)
-	{
-	  if (I1 == obsindices[i]) l1 = false;
-	  if (I2 == obsindices[i]) l2 = false;
-	}
+        {
+          if (I1 == obsindices[i]) l1 = false;
+          if (I2 == obsindices[i]) l2 = false;
+        }
       if (l2) obsindices.push_back(I2);
       if (l1) obsindices.push_back(I1);
     }
@@ -439,8 +439,8 @@ namespace scala
   {
     // Not clever!
     if (sgnumber >= 16 && sgnumber <= 74) {
-      if ((lauegroupname[0] == 'P') || (lauegroupname[0] == 'I') || (lauegroupname[0] == 'F')) 
-	{return true;}
+      if ((lauegroupname[0] == 'P') || (lauegroupname[0] == 'I') || (lauegroupname[0] == 'F'))
+        {return true;}
     }
     return false;
   }
@@ -452,7 +452,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   std::string PossibleSpaceGroup::Name(const bool& nameSG) const
-  // basic spacegroup name if SGname true, else reference space group name 
+  // basic spacegroup name if SGname true, else reference space group name
   {
     return (nameSG ? name : refname);
   }
@@ -483,13 +483,13 @@ namespace scala
     //^
     //    std::cout << "\n\n=== ReindexRhombohedral\nH to R reindex:\n" << htor.as_hkl() << "\n";
     //    std::cout << "\nCurrent reindex solution (Laue group) to reference setting [H]:\n"
-    //    	      << reindex.as_hkl() << "\n";
+    //                << reindex.as_hkl() << "\n";
     //    std::cout << "\nInverse:\n"
-    //    	      << reindex.inverse().as_hkl() << "\n";
+    //                << reindex.inverse().as_hkl() << "\n";
     //    std::cout << "\nCurrent reindex operator input to Laue group [H]:\n"
-    //    	      << reindex_orig.as_hkl() << "\n";
+    //                << reindex_orig.as_hkl() << "\n";
     //    std::cout << "\nInverse:\n"
-    //    	      << reindex_orig.inverse().as_hkl() << "\n";
+    //                << reindex_orig.inverse().as_hkl() << "\n";
     //    std::cout << "[HtoR] * [H]\n" << (htor * reindex_orig).as_hkl() << "\n";
     //^-
     // Change H to R in most names
@@ -509,7 +509,7 @@ namespace scala
     //^
     //    std::cout <<
     //      "ReindexRhombohedral: reindex operator original setting to Laue group "
-    //    	      << reindex_orig.as_hkl() << "\n===\n\n"; 
+    //                << reindex_orig.as_hkl() << "\n===\n\n";
     //^-
     return true;
   }

@@ -4,7 +4,7 @@
 
 #include "timer.hh"
 #include <iostream>
-#include <sstream> 
+#include <sstream>
 #include "string_util.hh"
 
 //--------------------------------------------------------------
@@ -52,4 +52,3 @@ std::string Timer::format(const bool& stop)
   //  return oss.str();
 }
 //--------------------------------------------------------------
-

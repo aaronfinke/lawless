@@ -17,8 +17,8 @@
 namespace scala {
   //--------------------------------------------------------------
   ReferenceScaleModel::ReferenceScaleModel(const MergedList& mergedobslist,
-					   const hkl_merge& hklmergelist,
-					   const double& toleranceratio)
+                                           const hkl_merge& hklmergelist,
+                                           const double& toleranceratio)
   {
     init(mergedobslist, hklmergelist, toleranceratio);
   }
@@ -33,8 +33,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ReferenceScaleModel::init(const MergedList& mergedobslist,
-				 const hkl_merge& hklmergelist,
-				 const double& toleranceratio)
+                                 const hkl_merge& hklmergelist,
+                                 const double& toleranceratio)
   //  initialise from unmerged list and a merged reference list
   {
     status = 0;
@@ -42,24 +42,24 @@ namespace scala {
     if (status != 0) {
       return;
     }
-    
+
     scell = Scell(mergedobslist.Cell());
     nties = 0;
-    
+
     // isotropic scaling on mean intensities
     // sets status = +2 if failed
     getWilsonScale(mergedobslist, hklmergelist);
-    
+
     anisomodel.init(scell.ClipperCell(),
-		    hkl_symmetry(mergedobslist.spacegroup()).CrysSys(),
-		    clipper::U_aniso_orth(0.0));
-		    
+                    hkl_symmetry(mergedobslist.spacegroup()).CrysSys(),
+                    clipper::U_aniso_orth(0.0));
+
     setNparameters();
   }
   //--------------------------------------------------------------
   bool ReferenceScaleModel::checkCompatible(const MergedList& mergedobslist,
-					    const hkl_merge& hklmergelist,
-					    const double& toleranceratio)
+                                            const hkl_merge& hklmergelist,
+                                            const double& toleranceratio)
   // toleranceratio = 1.0 for difference > maximum resolution,
   //    larger tolerance is more lax
   // set status = -1 if the two lists have different symmetry (point group),
@@ -75,7 +75,7 @@ namespace scala {
     clipper::Cell cellref  = hklmergelist.Cell().ClipperCell();
     // minimum high resolution  of the two datasets
     double minreshigh = std::max(mergedobslist.resHigh(),
-				 hklmergelist.resHigh());
+                                 hklmergelist.resHigh());
     // "difference" in A
     if (!celltest.equals(cellref, toleranceratio*minreshigh)) {
       status = +1;
@@ -84,8 +84,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   bool ReferenceScaleModel::checkCompatible(const hkl_unmerge_list& hkl_list,
-					    const hkl_merge& hklmergelist,
-					    const double& toleranceratio)
+                                            const hkl_merge& hklmergelist,
+                                            const double& toleranceratio)
   // toleranceratio = 1.0 for difference > maximum resolution,
   //    larger tolerance is more lax
   // set status = -1 if the two lists have different symmetry (point group),
@@ -102,7 +102,7 @@ namespace scala {
     clipper::Cell cellref  = hklmergelist.Cell().ClipperCell();
     // minimum high resolution  of the two datasets
     double minreshigh = std::max(hkl_list.ResRange().ResHigh(),
-				 hklmergelist.resHigh());
+                                 hklmergelist.resHigh());
     // "difference" in A
     if (!celltest.equals(cellref, toleranceratio*minreshigh)) {
       status = +1;
@@ -134,7 +134,7 @@ namespace scala {
       s = "Reference and test lists have different point groups";
     } else if (status == +1) {
       s = "Reference and test lists have different unit cells, difference "+
-	StringUtil::ftos(celldiff,7,3) + "A";
+        StringUtil::ftos(celldiff,7,3) + "A";
     } else if (status == +2) {
       s = "Wilson scaling between reference and test lists failed";
     } else {
@@ -144,12 +144,12 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ReferenceScaleModel::getWilsonScale(const MergedList& mergedobslist,
-					   const hkl_merge& hklmergelist)
+                                           const hkl_merge& hklmergelist)
   // sets status = +2 if failed
   {
     // minimum high resolution  of the two datasets
     double minreshigh = std::max(mergedobslist.resHigh(),
-				 hklmergelist.resHigh());
+                                 hklmergelist.resHigh());
     ResoRange resrange(100000.0, minreshigh, mergedobslist.num_reflections());
     int nbins = resrange.Nbins();
 
@@ -158,7 +158,7 @@ namespace scala {
 
     // loop all test reflections
     nrefcommon = 0;
-  
+
     typedef clipper::HKL_data_base::HKL_reference_index HRI;
     // Observed data
     mergedobslist.start(0); // dataset 0, should be only one
@@ -169,17 +169,17 @@ namespace scala {
       // find equivalent in reference list, if present
       IsigI Isref = hklmergelist.Isig(hkl);
       if (Isref.sigI() > 0.0) {
-	ftype  I = Iobs.I();     // Iobs
-	ftype sd = Iobs.sigI();
-	if (sd > 0.0) {
+        ftype  I = Iobs.I();     // Iobs
+        ftype sd = Iobs.sigI();
+        if (sd > 0.0) {
 
-	  ftype invresolsq = mergedobslist.invresolsq();
-	  // Resolution bin
-	  int mres = resrange.bin(invresolsq);
-	  nrefcommon++;
-	  Imeantest[mres].Add(I);
-	  Imeanref[mres].Add(Isref.I());
-	}
+          ftype invresolsq = mergedobslist.invresolsq();
+          // Resolution bin
+          int mres = resrange.bin(invresolsq);
+          nrefcommon++;
+          Imeantest[mres].Add(I);
+          Imeanref[mres].Add(Isref.I());
+        }
       }
     }
 
@@ -192,12 +192,12 @@ namespace scala {
 
     for (int mres=0;mres<nbins;++mres) {
       if (Imeanref[mres].Mean() != 0.0) {
-	double ratio = Imeantest[mres].Mean()/Imeanref[mres].Mean();
-	double s2 = 0.25*resrange.middle(mres); // 1/(4d^2)
-	double w = 1.0;
-	// downweight 1st & last bins
-	if (mres == 0 || mres == nbins-1) {w = 0.5;}
-	line.add(s2, log(ratio), w);
+        double ratio = Imeantest[mres].Mean()/Imeanref[mres].Mean();
+        double s2 = 0.25*resrange.middle(mres); // 1/(4d^2)
+        double w = 1.0;
+        // downweight 1st & last bins
+        if (mres == 0 || mres == nbins-1) {w = 0.5;}
+        line.add(s2, log(ratio), w);
       }
     }
     if (line.Number() > 0) {
@@ -232,7 +232,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double ReferenceScaleModel::fderiv(const bool& deriv, const scala::Hkl& hkl,
-			     std::vector<double>& dvdp) const
+                             std::vector<double>& dvdp) const
   {
     dvdp.resize(nparams);
     std::vector<double> dadp; // anisotropy
@@ -240,14 +240,14 @@ namespace scala {
     double biso = exp (-0.5 * isoB * hkl.invresolsq(scell));
     double radial = kscale * biso;
     double drdp = biso;  // scale
-    
+
     double aniso = anisomodel.fderiv(true, hkl, dadp);
 
     // radial dvdp = dradial/dp * aniso
     dvdp[0] = drdp * aniso;
 
     // aniso dvdp = radial * daniso/dp
-    for (size_t i=0; i<dadp.size(); i++) { 
+    for (size_t i=0; i<dadp.size(); i++) {
       dvdp[idx0aniso+i] = radial * dadp[i];
     }
 
@@ -256,10 +256,10 @@ namespace scala {
   //--------------------------------------------------------------
   // Return restraint target, and optionally gradient & Hessian contributions
   double ReferenceScaleModel::TieValues(const bool& DoGradient,
-				const bool& DoHessian,
-				const std::vector<double>& params,
-				std::vector<double>& dRdpi,
-				std::vector<TieHessian>& Htie)
+                                const bool& DoHessian,
+                                const std::vector<double>& params,
+                                std::vector<double>& dRdpi,
+                                std::vector<TieHessian>& Htie)
   // Return restraint target, and optionally gradient & Hessian contributions
   //
   // On entry:
@@ -269,26 +269,26 @@ namespace scala {
   // On exit:
   //  dRdpi(nparameters)  gradient contribution for each parameter
   //  Htie                list of indexed Hessian contributions
-  //  
+  //
   {
     if (DoGradient) {
       dRdpi.assign(nparams, 0.0); // clear derivatives
       if (DoHessian) {
-	Htie.clear();                   // and Hessian
+        Htie.clear();                   // and Hessian
       }}
 
     double R = 0.0;
     for (int itie=0;itie<nties;++itie) { // loop ties
       R += ties[itie].R(params);
       if (DoGradient) {
-	std::vector<TieGradient> grad = ties[itie].Gradient(params);
-	for (size_t i=0;i<grad.size();++i) {
-	  dRdpi[grad[i].index] = grad[i].Grad;
-	}
-	if (DoHessian) {
-	  std::vector<TieHessian> hessian = ties[itie].Hessian(params);
-	  Htie.insert(Htie.end(), hessian.begin(), hessian.end());
-	}
+        std::vector<TieGradient> grad = ties[itie].Gradient(params);
+        for (size_t i=0;i<grad.size();++i) {
+          dRdpi[grad[i].index] = grad[i].Grad;
+        }
+        if (DoHessian) {
+          std::vector<TieHessian> hessian = ties[itie].Hessian(params);
+          Htie.insert(Htie.end(), hessian.begin(), hessian.end());
+        }
       }
     }
     return R;

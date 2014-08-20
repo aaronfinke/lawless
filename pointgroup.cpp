@@ -38,21 +38,21 @@ namespace CCtbxSym
       // First character should be a lattice type
       char lattype = toupper(name[0]);
       if (lattype == 'H' || lattype == 'R') { // only do anything if H or R
-	std::vector<std::string> parts = StringUtil::split(name, ":");
-	if (parts.size() > 1) {
-	  // extension :H or :R found
-	  std::string ext = StringUtil::Trim(parts[1]);
-	  if (!(ext == "H" || ext == "R")) {
-	    // extension must be H or R
-	    clipper::Message::message(clipper::Message_fatal
-		("CCTBX_SGsymbol_HorR: Illegal space group name "+SName));
-	  }
-	} else {
-	  // No extension, so add one, :R or :H
-	  name += ":"+std::string(1,lattype);
-	}
-	// Change first character to R
-	name = "R"+name.substr(1);
+        std::vector<std::string> parts = StringUtil::split(name, ":");
+        if (parts.size() > 1) {
+          // extension :H or :R found
+          std::string ext = StringUtil::Trim(parts[1]);
+          if (!(ext == "H" || ext == "R")) {
+            // extension must be H or R
+            clipper::Message::message(clipper::Message_fatal
+                ("CCTBX_SGsymbol_HorR: Illegal space group name "+SName));
+          }
+        } else {
+          // No extension, so add one, :R or :H
+          name += ":"+std::string(1,lattype);
+        }
+        // Change first character to R
+        name = "R"+name.substr(1);
       }
     }
     return name;
@@ -104,15 +104,15 @@ namespace CCtbxSym
     std::string s = name;
     if (i < name.size()) {
       // ":" found
-	if (name.find("Hall") < name.size()) {
-	  std::string::size_type j = name.find("(");
-	  // Strip off starting "Hall:" & trailing "(" string 
-	  if (name[j-1] == ' ') j--;
-	  s = name.substr(i+2,j-i-2);
-	} else {
-	  if (name[i-1] == ' ') i--;
-	  s = name.substr(0,i);
-	}
+        if (name.find("Hall") < name.size()) {
+          std::string::size_type j = name.find("(");
+          // Strip off starting "Hall:" & trailing "(" string
+          if (name[j-1] == ' ') j--;
+          s = name.substr(i+2,j-i-2);
+        } else {
+          if (name[i-1] == ' ') i--;
+          s = name.substr(0,i);
+        }
     }
     return scala::SGnameHtoR(s,'H');
   }
@@ -126,12 +126,12 @@ namespace CCtbxSym
     if (Group.crystal_system() == sgtbx::crystal_system::trigonal)  {
       // Extract code from Hermann-Mauguin symbol, first non-blank
       std::string HMcode = sgtbx::space_group_symbols(Group.type().number())
-	.hermann_mauguin();
+        .hermann_mauguin();
       for (size_t i=0;i<HMcode.size();i++) {
-	if (HMcode[i] != ' ') {
-	  LT = HMcode[i];
-	  break;
-	}
+        if (HMcode[i] != ' ') {
+          LT = HMcode[i];
+          break;
+        }
       }
     } else {
       LT = Group.conventional_centring_type_symbol();
@@ -140,7 +140,7 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   bool GlidePresent(const sgtbx::space_group& sg, const scala::Zone& glidezone,
-		    const scala::ReindexOp& LatToSG)
+                    const scala::ReindexOp& LatToSG)
   // Return true if glidezone is present in spacegroup
   //   LatToSG is reindex operator from lattice (zone reference) frame to
   //   space group reference frame
@@ -151,14 +151,14 @@ namespace CCtbxSym
     bool sysabs = true;
     for (size_t i=0;i<Chkl.size();i++) {
       if (!sg.is_sys_absent
-	  (miller::index<int>(Chkl[i].h(),Chkl[i].k(),Chkl[i].l())))
-	{sysabs = false;}
+          (miller::index<int>(Chkl[i].h(),Chkl[i].k(),Chkl[i].l())))
+        {sysabs = false;}
     }
     return sysabs;
   }
   //--------------------------------------------------------------
   int ScrewPresent(const sgtbx::space_group& sg, const scala::Zone& axiszone,
-		    const scala::ReindexOp& LatToSG)
+                    const scala::ReindexOp& LatToSG)
     // Return > 0 if axiszone is present in spacegroup
     //  with value depending on which screw component found
     //  eg for 6-fold
@@ -176,24 +176,24 @@ namespace CCtbxSym
       ASSERT (nr == 2);
       ASSERT (int(screwabsence.size()) == np);
       for (ip=0;ip<np;ip++) {
-	if (screwabsence[ip][0] >= 0) {
-	  // skip if no test
-	  bool accept = true;
-	  for (int i=0;i<2;i++) {
-	    //^
-	    //^		    std::cout << "ScrewPresent:" << Chkl[i].h() << " "
-	    //^      << Chkl[i].k() << " " << Chkl[i].l() <<"\n";
-	    //^-
-	    bool absent = sg.is_sys_absent
-	      (miller::index<int>(Chkl[i].h(),Chkl[i].k(),Chkl[i].l()));
-	    // if absent in spacegroup, must be flagged as absent ie = +1
-	    // if present in spacegroup, must be flagged as present ie = 0
-	    // else not found
-	    if (!((absent && screwabsence[ip][i] > 0) ||
-		  (!absent && screwabsence[ip][i] == 0))) accept = false;
-	  }
-	  if (accept) break;
-	}
+        if (screwabsence[ip][0] >= 0) {
+          // skip if no test
+          bool accept = true;
+          for (int i=0;i<2;i++) {
+            //^
+            //^             std::cout << "ScrewPresent:" << Chkl[i].h() << " "
+            //^      << Chkl[i].k() << " " << Chkl[i].l() <<"\n";
+            //^-
+            bool absent = sg.is_sys_absent
+              (miller::index<int>(Chkl[i].h(),Chkl[i].k(),Chkl[i].l()));
+            // if absent in spacegroup, must be flagged as absent ie = +1
+            // if present in spacegroup, must be flagged as present ie = 0
+            // else not found
+            if (!((absent && screwabsence[ip][i] > 0) ||
+                  (!absent && screwabsence[ip][i] == 0))) accept = false;
+          }
+          if (accept) break;
+        }
       }
     }
     if (ip < 0 || ip >= np) ip = 0;
@@ -201,15 +201,15 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   sgtbx::change_of_basis_op GetBestCell(const sgtbx::space_group& Group,
-					const uctbx::unit_cell& uccell,
-					const int& AllowI2)
+                                        const uctbx::unit_cell& uccell,
+                                        const int& AllowI2)
   // Returns change of basis to "best" cell
   // only affects triclinic, monoclinic & orthorhombic cells
   {
     bool ExcludeIdentity = false, AnyCell = true, BestCell = true;
-    std::vector<AlternativeBases> CbOp_list = 
+    std::vector<AlternativeBases> CbOp_list =
       GetAlternativeBases(Group, ExcludeIdentity, AnyCell, BestCell,
-			  uccell, uccell, 3.0, 0.0001, AllowI2);
+                          uccell, uccell, 3.0, 0.0001, AllowI2);
     // should return only one value
     return  CbOp_list[0].FirstOp();
   }
@@ -222,13 +222,13 @@ namespace CCtbxSym
   LatticeGroup::LatticeGroup
   (const sgtbx::space_group& Group, const char LatType)
   {
-    init (Group, LatType);    
+    init (Group, LatType);
   }
   //--------------------------------------------------------------
   void LatticeGroup::init(const sgtbx::space_group& Group,
-			  const char LatType)
+                          const char LatType)
       // Determines lattice group corresponding to spacegroup
-    // (from lookup) 
+    // (from lookup)
     // and crystal system CrysSys (eg MONOCLINIC)
     // International Tables spacegroup number
     //   195-230 cubic
@@ -244,8 +244,8 @@ namespace CCtbxSym
     int SpaceGroupNumber = SpaceGroup.type().number();
     if ( ! scala::AllowedLatticeType(LatType))
       {
-	clipper::Message::message(clipper::Message_fatal
-		  ("LatticeGroup: Illegal lattice-type "+std::string(1,LatType)));
+        clipper::Message::message(clipper::Message_fatal
+                  ("LatticeGroup: Illegal lattice-type "+std::string(1,LatType)));
       }
 
     std::string LatGrpSymbol = "";
@@ -254,47 +254,47 @@ namespace CCtbxSym
       // Cubic
       CrysSys = CUBIC;
       if (LatType == 'P')
-	LatGrpSymbol = "P m -3 m";
+        LatGrpSymbol = "P m -3 m";
       else if (LatType == 'I')
-	LatGrpSymbol = "I m -3 m";
+        LatGrpSymbol = "I m -3 m";
       else if (LatType == 'F')
-	LatGrpSymbol = "F m -3 m";
+        LatGrpSymbol = "F m -3 m";
     } else if (SpaceGroupNumber > 142) {
       // Hexagonal or trigonal
       if (SpaceGroupNumber > 167)
-	CrysSys = HEXAGONAL;
+        CrysSys = HEXAGONAL;
       else
-	CrysSys = TRIGONAL;
+        CrysSys = TRIGONAL;
       if (LatType == 'P')
-	LatGrpSymbol = "P 6/m m m";
+        LatGrpSymbol = "P 6/m m m";
       else if (LatType == 'R' || LatType == 'H')
-	LatGrpSymbol = "R -3 m :H";
+        LatGrpSymbol = "R -3 m :H";
     } else if (SpaceGroupNumber > 74) {
       // Tetragonal
       CrysSys = TETRAGONAL;
       if (LatType == 'P')
-	LatGrpSymbol = "P 4/m m m";
+        LatGrpSymbol = "P 4/m m m";
       else if (LatType == 'I')
-	LatGrpSymbol = "I 4/m m m";
+        LatGrpSymbol = "I 4/m m m";
     } else if (SpaceGroupNumber > 15) {
       // Orthorhombic
       CrysSys = ORTHORHOMBIC;
       if (LatType == 'P')
-	LatGrpSymbol = "P m m m";
+        LatGrpSymbol = "P m m m";
       else if (LatType == 'I')
-	LatGrpSymbol = "I m m m";
+        LatGrpSymbol = "I m m m";
       else if (LatType == 'C')
-	LatGrpSymbol = "C m m m";
+        LatGrpSymbol = "C m m m";
       else if (LatType == 'F')
-	LatGrpSymbol = "F m m m";
+        LatGrpSymbol = "F m m m";
     } else if (SpaceGroupNumber > 2) {
       CrysSys = MONOCLINIC;
       if (LatType == 'P')
-	LatGrpSymbol = "P 1 2/m 1";
+        LatGrpSymbol = "P 1 2/m 1";
       else if (LatType == 'C')
-	LatGrpSymbol = "C 1 2/m 1";
+        LatGrpSymbol = "C 1 2/m 1";
       else if (LatType == 'I')
-	LatGrpSymbol = "I 1 2/m 1";
+        LatGrpSymbol = "I 1 2/m 1";
     } else {
       // Triclinic
       CrysSys = TRICLINIC;
@@ -302,13 +302,13 @@ namespace CCtbxSym
     }
     if (LatGrpSymbol != "") {
       LatGroup = sgtbx::space_group
-	(sgtbx::space_group_symbols(LatGrpSymbol).hall());
+        (sgtbx::space_group_symbols(LatGrpSymbol).hall());
       valid = true;
     }
   }
   //--------------------------------------------------------------
   AlternativeBases::AlternativeBases(const sgtbx::change_of_basis_op& cb_op,
-				     const double& celldiff)
+                                     const double& celldiff)
     : CbOps(1,cb_op), CellDiff_(celldiff) {}
   //--------------------------------------------------------------
   AlternativeBases::AlternativeBases
@@ -343,21 +343,21 @@ namespace CCtbxSym
       // 1) smallest sum of absolute value of all elements
       // 2) minimum number of negatives
       for (int i=0;i<3;i++) {
-	for (int j=0;j<3;j++) {
-	  total += std::abs(op(i,j));
-	  if (op(i,j) < 0.0) nneg += 1;
-	}
+        for (int j=0;j<3;j++) {
+          total += std::abs(op(i,j));
+          if (op(i,j) < 0.0) nneg += 1;
+        }
       }
       if (total < besttot-tol) {
-	besttot = total;
-	kbest = k;
-	minneg = nneg;
+        besttot = total;
+        kbest = k;
+        minneg = nneg;
       } else if (Close<float>(total, besttot, tol)) {
-	if (nneg < minneg) {
-	  besttot = total;
-	  kbest = k;
-	  minneg = nneg;
-	}
+        if (nneg < minneg) {
+          besttot = total;
+          kbest = k;
+          minneg = nneg;
+        }
       }
     }
     return CbOps[kbest];
@@ -388,28 +388,28 @@ namespace CCtbxSym
     if (ChBasisVec.size() > 0 && Group.n_smx() > 1) {
       // do we have a symmetry-related version of this one already?
       for (size_t j=0;j<Group.n_smx();j++) {
-	sgtbx::rt_mx S = Group.smx(j).multiply(cb_op_mx).
-	  new_denominators(cb_op_mx);
-	for (size_t k=0;k<ChBasisVec.size();k++) {
-	  if (S ==  ChBasisVec[k].FirstOp().c().new_denominators(S)) {
-	    if (j == 0) {
-	      // Identical
-	      ident = true;
-	    }
-	    equiv_op = true;
-	    kop = k;
-	    break;
-	  }
-	}
-      }		
+        sgtbx::rt_mx S = Group.smx(j).multiply(cb_op_mx).
+          new_denominators(cb_op_mx);
+        for (size_t k=0;k<ChBasisVec.size();k++) {
+          if (S ==  ChBasisVec[k].FirstOp().c().new_denominators(S)) {
+            if (j == 0) {
+              // Identical
+              ident = true;
+            }
+            equiv_op = true;
+            kop = k;
+            break;
+          }
+        }
+      }
     }
     if (!ident) {
       if (equiv_op) {
-	// Equivalent operator, accumulate in vector
-	ChBasisVec[kop].AddOp(cb_op);
+        // Equivalent operator, accumulate in vector
+        ChBasisVec[kop].AddOp(cb_op);
       } else {
-	// New operator
-	ChBasisVec.push_back(AlternativeBases(cb_op,celldiff));
+        // New operator
+        ChBasisVec.push_back(AlternativeBases(cb_op,celldiff));
       }
     }
   }
@@ -439,22 +439,22 @@ namespace CCtbxSym
     af::shared<sgtbx::rt_mx> symops = SpSgrp.all_ops();
     for (size_t i=0;i<symops.size();i++) {
       printf("Symmetry operator %3d: %s\n",int(i+1),symops[i].as_xyz().c_str());
-    } 
-  }   
+    }
+  }
   //--------------------------------------------------------------
   sgtbx::change_of_basis_op
   MakeChangeOfBasisOp(const scala::ReindexOp& reindex_op)
-    // Return change_of_basis_op based on reindex operator (its inverse)  
+    // Return change_of_basis_op based on reindex operator (its inverse)
   {
     // Reindex Op
     clipper::Mat33<double> R = reindex_op.rot();
     scitbx::mat3<double> CM(R(0,0), R(0,1), R(0,2),
-			    R(1,0), R(1,1), R(1,2),
-			    R(2,0), R(2,1), R(2,2));
+                            R(1,0), R(1,1), R(1,2),
+                            R(2,0), R(2,1), R(2,2));
 
     sgtbx::change_of_basis_op C(sgtbx::rt_mx(CM.inverse(),
-					     scitbx::vec3<double>(0.0,0.0,0.0),
-					     sgtbx::cb_r_den,sgtbx::cb_t_den));
+                                             scitbx::vec3<double>(0.0,0.0,0.0),
+                                             sgtbx::cb_r_den,sgtbx::cb_t_den));
     return C;
   }
   //--------------------------------------------------------------
@@ -465,8 +465,8 @@ namespace CCtbxSym
     clipper::Mat33<double> vop;
     for (int i=0;i<3;i++)
       for (int j=0;j<3;j++)
-	vop(i,j) = op(i,j);
-    
+        vop(i,j) = op(i,j);
+
     scala::ReindexOp vp(vop);
     return vp;
   }
@@ -478,7 +478,7 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   sgtbx::space_group LaueGroup(const sgtbx::space_group& RotGrp,
-			       const char& LatType)
+                               const char& LatType)
     // Make Laue group from rotation group by adding inversion centre
     // and lattice centring
   {
@@ -492,8 +492,8 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   bool OperatorInGroup(sgtbx::change_of_basis_op& ChBasis,
-		       const sgtbx::space_group& SG)
-    // Return true if change-of-basis operator is a member of 
+                       const sgtbx::space_group& SG)
+    // Return true if change-of-basis operator is a member of
     // the spacegroup
   {
     sgtbx::space_group::smx_array_type smx_list = SG.smx();
@@ -503,8 +503,8 @@ namespace CCtbxSym
 
     for (size_t i=0;i<smx_list.size();i++)
       {
-	if (smx_list[i].r().new_denominator(den) == ChBasis.c().r())
-	  return true;
+        if (smx_list[i].r().new_denominator(den) == ChBasis.c().r())
+          return true;
       }
     return false;
   }
@@ -529,17 +529,17 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   bool SymInGroup(const sgtbx::space_group& Group,
-		  const sgtbx::rt_mx& cb_op_mx)
+                  const sgtbx::rt_mx& cb_op_mx)
   {
     // Returns true if ChBoperator is in group (including identity)
     //^^
-    //    std::cout << "SymInGroup " << cb_op_mx.as_xyz() <<"\n"; 
+    //    std::cout << "SymInGroup " << cb_op_mx.as_xyz() <<"\n";
     for (size_t j=0;j<Group.n_smx();j++) {
       //^
-      //	std::cout << "   Symop   " << Group.smx(j).as_xyz() <<"\n"; 
+      //        std::cout << "   Symop   " << Group.smx(j).as_xyz() <<"\n";
       ///      if (cb_op_mx == Group.smx(j)) {
       if (cb_op_mx.r() == Group.smx(j).r()) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -571,25 +571,25 @@ namespace CCtbxSym
 
     CrystalSystem CrysSys = LatGroup.crystal_system();
 
-    if (CrysSys > ORTHORHOMBIC) {    
+    if (CrysSys > ORTHORHOMBIC) {
       // Higher symmetry than orthorhombic
       cb_ops.push_back(sgtbx::change_of_basis_op());  // add in identity
       // Test if there any symmetry operators which are in
-      // the lattice group but not the Laue group 
+      // the lattice group but not the Laue group
       // These are potential alternative bases
       sgtbx::space_group LatGrp =  LatGroup.lattice_group();
       for (size_t i=1;i<LatGrp.n_smx();i++) {
-	// Is this operator in Laue group?
-	bool found = false;
-	for (size_t j=1;j<Group.n_smx();j++) {
-	  if (LatGrp.smx(i) == Group.smx(j)) {
-	    found=true; break;
-	  }
-	}
-	if (!found) {
-	  // Add operator into vector as change of basis
-	  cb_ops.push_back(sgtbx::change_of_basis_op(LatGrp.smx(i)));
-	}
+        // Is this operator in Laue group?
+        bool found = false;
+        for (size_t j=1;j<Group.n_smx();j++) {
+          if (LatGrp.smx(i) == Group.smx(j)) {
+            found=true; break;
+          }
+        }
+        if (!found) {
+          // Add operator into vector as change of basis
+          cb_ops.push_back(sgtbx::change_of_basis_op(LatGrp.smx(i)));
+        }
       }
     } else if (CrysSys == ORTHORHOMBIC) {
       // Orthorhombic
@@ -597,18 +597,18 @@ namespace CCtbxSym
       //  Use cubic symmetry to generate permutation operators
       sgtbx::space_group affine_group("P 4 3*");
       for (std::size_t i_smx=1;i_smx<affine_group.n_smx();i_smx++) {
-	cb_ops.push_back(sgtbx::change_of_basis_op
-			 (affine_group(i_smx)).new_denominators(cb_op_def));
+        cb_ops.push_back(sgtbx::change_of_basis_op
+                         (affine_group(i_smx)).new_denominators(cb_op_def));
       }
     } else if (CrysSys == MONOCLINIC || CrysSys == TRICLINIC) {
       int ChooseI2 = 0;
       // Is this centred monoclinic?
       if (CrysSys == MONOCLINIC && (CentringSymbol(Group) == 'C')) {
-	if (AllowI2 > 0) {
-	  ChooseI2 = +1;  // allow I2
-	} else if (AllowI2 < 0) {
-	  ChooseI2 = -1;  // force I2
-	}
+        if (AllowI2 > 0) {
+          ChooseI2 = +1;  // allow I2
+        } else if (AllowI2 < 0) {
+          ChooseI2 = -1;  // force I2
+        }
       }
 
       // List of change-of-basis operators which leave
@@ -616,71 +616,71 @@ namespace CCtbxSym
 
       const int affine_range=4;  // default = 2
       if (ChooseI2 >= 0) {
-	sgtbx::find_affine affine(Group, affine_range);
-	af::const_ref<sgtbx::rt_mx> affine_cb_mx = affine.cb_mx().const_ref();
-	
-	// Loop and store potential change-of-basis operators
-	for(std::size_t i_cb_mx=0;i_cb_mx<affine_cb_mx.size();i_cb_mx++) {
-	  cb_ops.push_back(sgtbx::change_of_basis_op
-			   (affine_cb_mx[i_cb_mx]).new_denominators(cb_op_def));
-	}
+        sgtbx::find_affine affine(Group, affine_range);
+        af::const_ref<sgtbx::rt_mx> affine_cb_mx = affine.cb_mx().const_ref();
+
+        // Loop and store potential change-of-basis operators
+        for(std::size_t i_cb_mx=0;i_cb_mx<affine_cb_mx.size();i_cb_mx++) {
+          cb_ops.push_back(sgtbx::change_of_basis_op
+                           (affine_cb_mx[i_cb_mx]).new_denominators(cb_op_def));
+        }
       }
       if (ChooseI2 !=0) {
-	// Change of basis from C2 to I2
-	sgtbx::space_group SG_C2 = sgtbx::space_group(sgtbx::space_group_symbols("C2/m"));
-	sgtbx::space_group SG_I2 = sgtbx::space_group(sgtbx::space_group_symbols("I2/m"));
-	sgtbx::change_of_basis_op I2toC2 = SG_I2.type().cb_op().new_denominators(cb_op_def);
-	sgtbx::change_of_basis_op C2toI2 = I2toC2.inverse().new_denominators(cb_op_def);
-	
-	sgtbx::find_affine affineI2(Group.change_basis(C2toI2), affine_range);
-	af::const_ref<sgtbx::rt_mx> affine_cb_mxI2 = affineI2.cb_mx().const_ref();
-	
-	// Loop and store potential change-of-basis operators
-	for(std::size_t i_cb_mx=0;i_cb_mx<affine_cb_mxI2.size();i_cb_mx++)  {
-	  sgtbx::change_of_basis_op new_cbop =
-	    sgtbx::change_of_basis_op(affine_cb_mxI2[i_cb_mx]).new_denominators(cb_op_def);
-	  // Post-multiply each operator in I2 frame by I2 to C2 transformation
-	  cb_ops.push_back(new_cbop * I2toC2);
-	}
+        // Change of basis from C2 to I2
+        sgtbx::space_group SG_C2 = sgtbx::space_group(sgtbx::space_group_symbols("C2/m"));
+        sgtbx::space_group SG_I2 = sgtbx::space_group(sgtbx::space_group_symbols("I2/m"));
+        sgtbx::change_of_basis_op I2toC2 = SG_I2.type().cb_op().new_denominators(cb_op_def);
+        sgtbx::change_of_basis_op C2toI2 = I2toC2.inverse().new_denominators(cb_op_def);
+
+        sgtbx::find_affine affineI2(Group.change_basis(C2toI2), affine_range);
+        af::const_ref<sgtbx::rt_mx> affine_cb_mxI2 = affineI2.cb_mx().const_ref();
+
+        // Loop and store potential change-of-basis operators
+        for(std::size_t i_cb_mx=0;i_cb_mx<affine_cb_mxI2.size();i_cb_mx++)  {
+          sgtbx::change_of_basis_op new_cbop =
+            sgtbx::change_of_basis_op(affine_cb_mxI2[i_cb_mx]).new_denominators(cb_op_def);
+          // Post-multiply each operator in I2 frame by I2 to C2 transformation
+          cb_ops.push_back(new_cbop * I2toC2);
+        }
       }
     }
     return cb_ops;
   }
   //--------------------------------------------------------------
   bool UpdateBestCell(const bool& sameGroup,
-		      const CrystalSystem& CrysSys,
-		      const uctbx::unit_cell test_cell,
-		      const int& UniqueAxis,
-		      const sgtbx::change_of_basis_op& cb_op,
-		      const double& angular_tolerance,
-		      sgtbx::change_of_basis_op& best_cb_op,
-		      uctbx::unit_cell& best_cell)
+                      const CrystalSystem& CrysSys,
+                      const uctbx::unit_cell test_cell,
+                      const int& UniqueAxis,
+                      const sgtbx::change_of_basis_op& cb_op,
+                      const double& angular_tolerance,
+                      sgtbx::change_of_basis_op& best_cb_op,
+                      uctbx::unit_cell& best_cell)
   // If test_cell is closer to the "standard" cell than
   // best_cell, update best_cell := test_cell and best_cbop := cb_op
   // Monoclinic & orthorhombic (not C-centred, detected by sameGroup == false)
   //  only, no change otherwise
   // Return true if accepted
   {
-    // compare = -1 
+    // compare = -1
     int compare = -1;
     if (CrysSys == ORTHORHOMBIC && sameGroup) {
       compare = best_cell.compare_orthorhombic(test_cell);
     } else if (CrysSys == MONOCLINIC) {
       compare = best_cell.compare_monoclinic
-	(test_cell, UniqueAxis, angular_tolerance);
+        (test_cell, UniqueAxis, angular_tolerance);
       // Accept new one anyway if beta >= 90 and old best had beta < 90
       if (compare < 1) {
-	if (best_cell.parameters()[UniqueAxis+3] < 90.0 && test_cell.parameters()[UniqueAxis+3] >= 90.0) {
-	  compare = +1;
-	}}
+        if (best_cell.parameters()[UniqueAxis+3] < 90.0 && test_cell.parameters()[UniqueAxis+3] >= 90.0) {
+          compare = +1;
+        }}
     }
 
     if (compare > 0) {
       //^
       //      std::cout << "Updating cell: " << CrysSys << " "
-      //		<< sameGroup << " " << angular_tolerance << "\n"
-      //		<< "Old best cell: " << UcellFormat(best_cell) <<"\n"
-      //		<< "New best cell: " << UcellFormat(test_cell) <<"\n";
+      //                << sameGroup << " " << angular_tolerance << "\n"
+      //                << "Old best cell: " << UcellFormat(best_cell) <<"\n"
+      //                << "New best cell: " << UcellFormat(test_cell) <<"\n";
       //      for (int i=0;i<6;++i) {std::cout <<" "<<best_cell.parameters()[i];}
       //      std::cout <<"\n";
       //-!
@@ -692,13 +692,13 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   std::vector<AlternativeBases>
   GetAlternativeBases(const sgtbx::space_group& Group,
-		      const bool ExcludeIdentity, bool AnyCell,
-		      const bool BestCell,
-		      const uctbx::unit_cell& uccell,
-		      const uctbx::unit_cell& targetcell,
-		      const double& tolerance,
-		      const double& angular_tolerance,
-		      const int& AllowI2)
+                      const bool ExcludeIdentity, bool AnyCell,
+                      const bool BestCell,
+                      const uctbx::unit_cell& uccell,
+                      const uctbx::unit_cell& targetcell,
+                      const double& tolerance,
+                      const double& angular_tolerance,
+                      const int& AllowI2)
     // Get list of alternative basis sets for Laue group
     // subject to criteria set by flags
     //
@@ -737,7 +737,7 @@ namespace CCtbxSym
     //      If AllowI2 > 0, test I2 setting as well as C2 for centred monoclinic
     //   3) triclinic
     //      get reduced cell
-    //      
+    //
     //
   {
     //^
@@ -776,96 +776,96 @@ namespace CCtbxSym
     // First get standard "best" cell in all cases where it is needed
     if (AnyCell) {
       if (CrysSys == TRICLINIC) {
-	// triclinic, just get reduced cell
-	best_cb_op = ReduceCell(test_cell);
+        // triclinic, just get reduced cell
+        best_cb_op = ReduceCell(test_cell);
       } else {
-	//^ 
-	//	    std::cout << "First operator:\n";
-	//	    PrintChBOp(best_cb_op);
-	//-!
-	if (CrysSys == MONOCLINIC || CrysSys == ORTHORHOMBIC) {
-	  // Get list of possible change of basis operators to test,
-	  // depending on crystal system
-	  // This is independent of cell, but will run over a range
-	  // (+-affine_range) of cell offsets
-	  ChBops = PossibleChBOp(LatGroup, Group, AllowI2);
-	  //^
-	  //      std::cout << "Number of ChBOp " << ChBops.size() << "\n";
-	  //      for (int i=0;i< ChBops.size();++i) {
-	  //	PrintChBOp(ChBops[i]);
-	  //      }
-	  //-!
-	  GotPossibleChBOpList = true;
-	  int op1 = 0;
-	  if (AllowI2 < 0) {
-	    // Force I2 option - apply first operator
-	    best_cb_op = ChBops[0];
-	    best_cell = best_cb_op.apply(uccell);
-	    op1 = 1; // skip 1st op
-	  }
-	  //^
-	  //		std::cout << "\n**** Base cell :" << UcellFormat(uccell) << "\n"
-	  //			  << "Symmetry " << Group.type().hall_symbol() << "\n";
-	  //		std::cout << "First " << " cell "
-	  //			  << UcellFormat(best_cell) << "\n";
-	  //		PrintChBOp(best_cb_op);
-		//^-
-		// Loop potential change-of-basis operators
-	  for (size_t i=op1;i<ChBops.size();i++) {
-	    sgtbx::change_of_basis_op cb_op = ChBops[i];
-	    cb_op_mx = cb_op.c().new_denominators(Group.smx(0));
-		  
-	    AltGroup = Group.change_basis(cb_op);
-	    bool sameGroup = (AltGroup == Group);
-	    //		    if (AltGroup == Group) {
-	    // Exclude operators which change group
-	    //  (possibly never happens)
-	    test_cell = cb_op.apply(uccell);
-	    // Best standard cell
-	    bool updated = UpdateBestCell
-	      (sameGroup, CrysSys, test_cell, UniqueAxis, cb_op,
-	       angular_tolerance,
-	       best_cb_op, best_cell);
-	    updated = updated;
-	    //^
-	    //		    if (updated) {
-	    //		      std::cout <<"\nUpdated\n";
-	    //		      std::cout << "Alternative " << i
-	    //				<< " group "
-	    //				<< AltGroup.type().universal_hermann_mauguin_symbol()
-	    //				<< " lattice "<< AltGroup.conventional_centring_type_symbol()
-	    //				<< " cell " << UcellFormat(cb_op.apply(uccell)) << "\n";
-	    //		      PrintChBOp(cb_op);
-	    //		    } else {
-	    //		      std::cout << "Not accepted, groups "
-	    //				<< Group.type().hall_symbol() << " : "
-	    //				<< AltGroup.type().hall_symbol() << "\n";
-	    //		    		    }
-	    //-!
-	  }
-	}
+        //^
+        //          std::cout << "First operator:\n";
+        //          PrintChBOp(best_cb_op);
+        //-!
+        if (CrysSys == MONOCLINIC || CrysSys == ORTHORHOMBIC) {
+          // Get list of possible change of basis operators to test,
+          // depending on crystal system
+          // This is independent of cell, but will run over a range
+          // (+-affine_range) of cell offsets
+          ChBops = PossibleChBOp(LatGroup, Group, AllowI2);
+          //^
+          //      std::cout << "Number of ChBOp " << ChBops.size() << "\n";
+          //      for (int i=0;i< ChBops.size();++i) {
+          //    PrintChBOp(ChBops[i]);
+          //      }
+          //-!
+          GotPossibleChBOpList = true;
+          int op1 = 0;
+          if (AllowI2 < 0) {
+            // Force I2 option - apply first operator
+            best_cb_op = ChBops[0];
+            best_cell = best_cb_op.apply(uccell);
+            op1 = 1; // skip 1st op
+          }
+          //^
+          //            std::cout << "\n**** Base cell :" << UcellFormat(uccell) << "\n"
+          //                      << "Symmetry " << Group.type().hall_symbol() << "\n";
+          //            std::cout << "First " << " cell "
+          //                      << UcellFormat(best_cell) << "\n";
+          //            PrintChBOp(best_cb_op);
+                //^-
+                // Loop potential change-of-basis operators
+          for (size_t i=op1;i<ChBops.size();i++) {
+            sgtbx::change_of_basis_op cb_op = ChBops[i];
+            cb_op_mx = cb_op.c().new_denominators(Group.smx(0));
+
+            AltGroup = Group.change_basis(cb_op);
+            bool sameGroup = (AltGroup == Group);
+            //              if (AltGroup == Group) {
+            // Exclude operators which change group
+            //  (possibly never happens)
+            test_cell = cb_op.apply(uccell);
+            // Best standard cell
+            bool updated = UpdateBestCell
+              (sameGroup, CrysSys, test_cell, UniqueAxis, cb_op,
+               angular_tolerance,
+               best_cb_op, best_cell);
+            updated = updated;
+            //^
+            //              if (updated) {
+            //                std::cout <<"\nUpdated\n";
+            //                std::cout << "Alternative " << i
+            //                          << " group "
+            //                          << AltGroup.type().universal_hermann_mauguin_symbol()
+            //                          << " lattice "<< AltGroup.conventional_centring_type_symbol()
+            //                          << " cell " << UcellFormat(cb_op.apply(uccell)) << "\n";
+            //                PrintChBOp(cb_op);
+            //              } else {
+            //                std::cout << "Not accepted, groups "
+            //                          << Group.type().hall_symbol() << " : "
+            //                          << AltGroup.type().hall_symbol() << "\n";
+            //                              }
+            //-!
+          }
+        }
       }
       // We now have a "best" cell
       if (BestCell) {
-	// Store best operator as sole solution
-	// that is all we need
-	ChBasisVec.clear();
-	// Exclude identity option
-	cb_op_mx = best_cb_op.c().new_denominators(Group.smx(0));
-	if (! (ExcludeIdentity && SymInGroup(Group, cb_op_mx)) )
-	  {ChBasisVec.push_back(AlternativeBases(best_cb_op,0.0));}
-	//^
-	//	    std::cout << "**** Best cell " 
-	//		      << UcellFormat(best_cb_op.apply(uccell)) << "\n";
-	//	    PrintChBOp(best_cb_op);
-	//^-
-	return ChBasisVec;
+        // Store best operator as sole solution
+        // that is all we need
+        ChBasisVec.clear();
+        // Exclude identity option
+        cb_op_mx = best_cb_op.c().new_denominators(Group.smx(0));
+        if (! (ExcludeIdentity && SymInGroup(Group, cb_op_mx)) )
+          {ChBasisVec.push_back(AlternativeBases(best_cb_op,0.0));}
+        //^
+        //          std::cout << "**** Best cell "
+        //                    << UcellFormat(best_cb_op.apply(uccell)) << "\n";
+        //          PrintChBOp(best_cb_op);
+        //^-
+        return ChBasisVec;
       }
       best_cell = best_cb_op.apply(uccell);
     } else {
       best_cell = targetcell;
     }
-    
+
     //^
     //    std::cout << "* * Input cell        " << UcellFormat(uccell) << "\n";
     //    std::cout << "* * Target(best) cell " << UcellFormat(best_cell) << "\n";
@@ -886,28 +886,28 @@ namespace CCtbxSym
       cb_op_mx = cb_op.c().new_denominators(Group.smx(0));
 
       if (! (ExcludeIdentity && SymInGroup(Group, cb_op_mx)) ) {
-	// Not identity or symmetry-related, if excluded
-	AltGroup = Group.change_basis(cb_op);
-	if (AltGroup == Group) {
-	  // Exclude operators which change group
-	  test_cell = cb_op.apply(uccell);
-	  // Measure of difference between cells
-	  //  root mean square difference of bases
-	  celldiff = sqrt(best_cell.bases_mean_square_difference(test_cell));
-	  //^
-	  //	std::cout << "* * Test cell " << UcellFormat(test_cell) << "\n";
-	  if (AnyCell || celldiff < tolerance) {
-	    //		    targetcell.is_similar_to
-	    //		    (test_cell,length_tolerance,angular_tolerance))
-	    //^
-	    //		    std::cout << "**** Got it! " << UcellFormat(test_cell) << "\n";
-	    //		    PrintChBOp(cb_op);
-	    //^-
-	    // Cell acceptable on AnyCell or similar
-	    // or all acceptable cells (not BestCell)
-	    AppendUniqueChBasis(cb_op, cb_op_mx, celldiff, Group, ChBasisVec);
-	  }
-	}
+        // Not identity or symmetry-related, if excluded
+        AltGroup = Group.change_basis(cb_op);
+        if (AltGroup == Group) {
+          // Exclude operators which change group
+          test_cell = cb_op.apply(uccell);
+          // Measure of difference between cells
+          //  root mean square difference of bases
+          celldiff = sqrt(best_cell.bases_mean_square_difference(test_cell));
+          //^
+          //    std::cout << "* * Test cell " << UcellFormat(test_cell) << "\n";
+          if (AnyCell || celldiff < tolerance) {
+            //              targetcell.is_similar_to
+            //              (test_cell,length_tolerance,angular_tolerance))
+            //^
+            //              std::cout << "**** Got it! " << UcellFormat(test_cell) << "\n";
+            //              PrintChBOp(cb_op);
+            //^-
+            // Cell acceptable on AnyCell or similar
+            // or all acceptable cells (not BestCell)
+            AppendUniqueChBasis(cb_op, cb_op_mx, celldiff, Group, ChBasisVec);
+          }
+        }
       }  // end if ExcludeIdentity
     }  // end loop operators
     // Sort solutions of deviation from best or target cell
@@ -922,7 +922,7 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   std::vector<AlternativeBases>
   ChangeBasesList(const std::vector<AlternativeBases>& CBlist,
-		  const sgtbx::change_of_basis_op& cb_op)
+                  const sgtbx::change_of_basis_op& cb_op)
   // Apply change-of-basis operator to all operators in list
   // to allow for change of frame
   // Post-multiply operators by cb_op
@@ -932,21 +932,21 @@ namespace CCtbxSym
     std::vector<AlternativeBases> CB_newlist(CBlist.size());
     if (CBlist.size() > 0) {
       for (size_t i=0;i<CBlist.size();i++) {
-	int Nops = CBlist[i].Nop();
-	std::vector<sgtbx::change_of_basis_op> CbOps;
-	for (int j=0;j<Nops;j++) {
-	  // Operator relative to constructor frame
-	  sgtbx::change_of_basis_op cb_ij =
-	    CBlist[i].Op(j).new_denominators(cb_op);
-	  
-	  sgtbx::change_of_basis_op CB = cb_ij *  cb_op;
-	  if (CB.is_identity_op()) {
-	    CbOps.insert(CbOps.begin(), CB);
-	  } else {
-	    CbOps.push_back(CB);
-	  }
-	}
-	CB_newlist[i] = AlternativeBases(CbOps, CBlist[i].CellDiff());
+        int Nops = CBlist[i].Nop();
+        std::vector<sgtbx::change_of_basis_op> CbOps;
+        for (int j=0;j<Nops;j++) {
+          // Operator relative to constructor frame
+          sgtbx::change_of_basis_op cb_ij =
+            CBlist[i].Op(j).new_denominators(cb_op);
+
+          sgtbx::change_of_basis_op CB = cb_ij *  cb_op;
+          if (CB.is_identity_op()) {
+            CbOps.insert(CbOps.begin(), CB);
+          } else {
+            CbOps.push_back(CB);
+          }
+        }
+        CB_newlist[i] = AlternativeBases(CbOps, CBlist[i].CellDiff());
       }
     }
     return CB_newlist;
@@ -978,32 +978,32 @@ namespace CCtbxSym
     } else {
       sgtbx::space_group_symbols sgsymbol;
       try {  // try name
-	sgsymbol = sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name));
+        sgsymbol = sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name));
       }
       catch (cctbx::error) {
-	// Fall back via number (and CCP4 libraries) eg for I 1 21 1
-	sgsymbol = sgtbx::space_group_symbols(scala::SpaceGroup(Name).Spacegroup_number());
+        // Fall back via number (and CCP4 libraries) eg for I 1 21 1
+        sgsymbol = sgtbx::space_group_symbols(scala::SpaceGroup(Name).Spacegroup_number());
       }
-      
+
       sgtbx::space_group Pgroup =
-	sgtbx::space_group(sgsymbol.hall()).build_derived_reflection_intensity_group(false);
+        sgtbx::space_group(sgsymbol.hall()).build_derived_reflection_intensity_group(false);
       //^
       //      std::cout << "PGinitName " << Name << " " << CCTBX_SGsymbol_HorR(Name) << " "
-      //		<< sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
-      //		<< Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
+      //                << sgtbx::space_group_symbols(CCTBX_SGsymbol_HorR(Name)).hall() << " "
+      //                << Pgroup.type().lookup_symbol() << " " << CentringSymbol(Pgroup) << "\n";
       init(Pgroup, CentringSymbol(Pgroup));
     }
   }
   //--------------------------------------------------------------
   PointGroup::PointGroup(const int& Kelement1,
-			 const std::vector<double>& Rmatrix1,
-			 const int& Kelement2,
-			 const std::vector<double>& Rmatrix2,
-			 const char& LatticeType)
+                         const std::vector<double>& Rmatrix1,
+                         const int& Kelement2,
+                         const std::vector<double>& Rmatrix2,
+                         const char& LatticeType)
   {
     ASSERT(Rmatrix1.size() == 9);
     ASSERT(Rmatrix2.size() == 9);
-  
+
     // record unique element numbers
     ElementNums.push_back(Kelement1);
     // Make rt_mx matrices
@@ -1012,10 +1012,10 @@ namespace CCtbxSym
     sgtbx::rt_mx R1 = MVutil::SetRtMx(Rmatrix1).inverse();
 
     sgtbx::rt_mx R2;
-    if (Kelement2 != Kelement1) 
+    if (Kelement2 != Kelement1)
       {
-	ElementNums.push_back(Kelement2);
-	R2 = MVutil::SetRtMx(Rmatrix2).inverse();
+        ElementNums.push_back(Kelement2);
+        R2 = MVutil::SetRtMx(Rmatrix2).inverse();
       }
 
     //  initialise space-group, add  1st & 2nd operators
@@ -1051,7 +1051,7 @@ namespace CCtbxSym
     if (LatType == 'H') LatType = 'R';
 
     // Laue group in constructor frame
-    //  Add inversion & centering 
+    //  Add inversion & centering
     sgtbx::space_group LaueGrp = LaueGroup(RotGrp, LatType);
     //^
     //    std::cout <<"LaueGrp\n";
@@ -1079,7 +1079,7 @@ namespace CCtbxSym
 
     //^
     //    std::cout << "\nPGinit " <<  LaueGrp_type.lookup_symbol() << " "
-    //    	      <<  LaueGrp_ref_type.lookup_symbol() << "\n";
+    //                <<  LaueGrp_ref_type.lookup_symbol() << "\n";
     //    std::cout << "   ChBasis_ref\n";
     //    PrintChBOp(ChBasis_ref);
     //^-
@@ -1091,7 +1091,7 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   bool PointGroup::AddElement(const int& Kelement,
-			      const std::vector<double>& Rmatrix)
+                              const std::vector<double>& Rmatrix)
     // Test if this symmetry operator is present in pointgroup,
     // if it is return true & add element number to list
   {
@@ -1112,8 +1112,8 @@ namespace CCtbxSym
     bool found = false;
     for (size_t k=0;k<RotGrp.n_smx();k++) {
       if (R == RotGrp(0, 0, k)) {
-	found = true;
-	break;
+        found = true;
+        break;
       }
     }
     return found;
@@ -1123,18 +1123,18 @@ namespace CCtbxSym
     // Returns true if element is present in element list
   {
     if (std::find(ElementNums.begin(), ElementNums.end(), Kelement)
-	!=  ElementNums.end()) return true;
+        !=  ElementNums.end()) return true;
     return false;
   }
   //--------------------------------------------------------------
   double PointGroup::SetCell(const std::vector<double>& cellin,
-			     const scala::ReindexOp& reindex_op,
-			     const int& AllowI2)
+                             const scala::ReindexOp& reindex_op,
+                             const int& AllowI2)
     // Store cell, returns maximum angular deviation from imposing
     // symmetry constraints, and store change-of-basis from
     // cell frame to symmetry frame used to construct this object
     // Note the change of basis operator is inverse of reindex operator
-    // 
+    //
     // reindex_op is reindexing from cell frame to
     // "constructor" (lattice) frame
   {
@@ -1160,14 +1160,14 @@ namespace CCtbxSym
 
     //^
     //    std::cout << "\nPointGroup::SetCell\nReindex original->constructor ChBasis_cell): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
-    //	      << "Reindex original->reference ChBasis): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
-    //	      << "Reindex constructor->reference ChBasis_ref): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
-    //	      << "CellIn:  " << UcellFormat(uccell) << "\n"
-    //	      << "CellChB: " << UcellFormat(uccell_chb) << "\n"
-    //	      << "CellRef: " << UcellFormat(uccell_ref) << "\n";
+    //        <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
+    //        << "Reindex original->reference ChBasis): "
+    //        <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
+    //        << "Reindex constructor->reference ChBasis_ref): "
+    //        <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
+    //        << "CellIn:  " << UcellFormat(uccell) << "\n"
+    //        << "CellChB: " << UcellFormat(uccell_chb) << "\n"
+    //        << "CellRef: " << UcellFormat(uccell_ref) << "\n";
     //-!
 
     // Test for change of symmetry, C2 to I2
@@ -1182,7 +1182,7 @@ namespace CCtbxSym
       LatType = CentringSymbol(LaueGrp_ref);
       //^
       //      std::cout << "\n==== SetCell: updated groups " << LatType << " "
-      //      		<< LaueGrp_ref_type.hall_symbol() << "\n";
+      //                << LaueGrp_ref_type.hall_symbol() << "\n";
       //      std::cout << "Cell_ref: " << UcellFormat(uccell_ref) << "\n";
       //      std::cout << "ChBasis:\n";
       //      PrintChBOp(ChBasis);
@@ -1202,22 +1202,22 @@ namespace CCtbxSym
     // If unit cell and symmetry haven't changed, reset
     // change-of-basis to identity
     if (uccell_ref.is_similar_to(uccell)) {
-      //	if (OperatorInGroup(ChBasis, RotGrp_ref))
+      //        if (OperatorInGroup(ChBasis, RotGrp_ref))
       LatticeGroup LatGroup(RotGrp_ref);
       if (OperatorInGroup(ChBasis, LatGroup.lattice_group())) {
-	ChBasis = sgtbx::change_of_basis_op();  // identity
+        ChBasis = sgtbx::change_of_basis_op();  // identity
       }
     }
     //^
     //    std::cout << "End of SetCell:\n"
-    //	      << "  Reindex original->reference ChBasis): "
-    //	      <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
+    //        << "  Reindex original->reference ChBasis): "
+    //        <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n";
     //^-
     // Maximum angular deviation of cell from that
     // required by rotation group
     delta = sgtbx::lattice_symmetry::
       find_max_delta(uccell_ref,
-		     LatticeGroup(RotGrp_ref).lattice_group().build_derived_acentric_group());
+                     LatticeGroup(RotGrp_ref).lattice_group().build_derived_acentric_group());
 
     return delta;
   }
@@ -1230,7 +1230,7 @@ namespace CCtbxSym
     // All possible symbols
     sgtbx::space_group_symbols SGsymbols(LaueGrp_ref_type.number());
     printf("HM symbol %s || extension: %c\n",SGsymbols.hermann_mauguin().c_str(),
-	   SGsymbols.extension());
+           SGsymbols.extension());
 
     printf("Change of basis Cell -> Constructor (ChBasis_cell, SGreindexOrig)\n");
     PrintChBOp(ChBasis_cell);
@@ -1287,7 +1287,7 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   scala::ReindexOp PointGroup::SGreindex() const
-    // Reindex operator constructor to reference 
+    // Reindex operator constructor to reference
   {
     return SetReindexOp(ChBasis_ref);
   }
@@ -1301,7 +1301,7 @@ namespace CCtbxSym
   std::string PointGroup::RefSGreindexFormat() const
     // Return change-of-basis operator to standard setting
     // as string
-  {    
+  {
     return ChangeBasisFormat_as_Reindex(ChBasis);
   }
   //--------------------------------------------------------------
@@ -1323,10 +1323,10 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   std::vector<scala::ReindexOp>
   PointGroup::GetCloseCell(const scala::Scell& cell_target,
-			   const double& diff_tolerance,
-			   const bool& ExcludeIdentity, 
-			   std::vector<double>& celldiff,
-			   const int& AllowI2)
+                           const double& diff_tolerance,
+                           const bool& ExcludeIdentity,
+                           std::vector<double>& celldiff,
+                           const int& AllowI2)
   // Return list of reindex operators & cell differences for
   // alternative indexing schemes which preserve Laue group
   // and have cell close to target.
@@ -1351,11 +1351,11 @@ namespace CCtbxSym
     // Get list of alternative bases in "reference" frame
     bool AnyCell = false, BestCell = false;
     double max_delta = 180.0;  // angle tolerance
-    // List of bases 
-    std::vector<AlternativeBases> CbOp_list = 
+    // List of bases
+    std::vector<AlternativeBases> CbOp_list =
       GetAlternativeBases(LaueGrp_ref, ExcludeIdentity, AnyCell, BestCell,
-			  uccell_ref, uccell_target,
-			  diff_tolerance, max_delta, AllowI2);
+                          uccell_ref, uccell_target,
+                          diff_tolerance, max_delta, AllowI2);
     /*    //^
     std::cout << "\nLauegroup ";
     show_space_group_type(LaueGrp_ref_type);
@@ -1363,11 +1363,11 @@ namespace CCtbxSym
     std::cout << "\nCelltargetORIG" << UcellFormat(uccell_target) << "\n";
     std::cout << "\nPGCellREF" << UcellFormat(uccell_ref) << "\n";
     std::cout << "Nop " << CbOp_list.size() << "\n"
-	      << "ChBasis original -> reference\n";
-    PrintChBOp(ChBasis);   
+              << "ChBasis original -> reference\n";
+    PrintChBOp(ChBasis);
     std::cout << "ChBasis original -> constructor\n";
-    PrintChBOp(ChBasis_cell);   
-    //^-    
+    PrintChBOp(ChBasis_cell);
+    //^-
     */
 
     double diff0 = -1.0;
@@ -1382,100 +1382,100 @@ namespace CCtbxSym
     if (CbOp_list.size() >= 1) {
       // Change all operators to be relative original cell frame
       std::vector<AlternativeBases> CBlist =
-	ChangeBasesList(CbOp_list, ChBasis);
-      
+        ChangeBasesList(CbOp_list, ChBasis);
+
       // Best cell difference
       diff0 = CBlist[0].CellDiff();
 
       //^
       //^std::cout << "CBlist size " << CBlist.size() << "\n";
-      
+
       for (size_t k=0;k<CBlist.size();k++) {
-	// Deviation from target
-	diff = CBlist[k].CellDiff();
-	
-	/*//^!
-	  std::cout << "***ChBop " << k << "\n";
-	  PrintChBOp(CBlist[k].Op(0));
-	  std::cout << " Cell" << UcellFormat(CBlist[k].Op(0).apply(uccell))
-	  << " Diff: " << diff << "\n";
-	  //^*/
-	  
-	  if (diff < diff_tolerance &&
-	      (k == 0 || (diff-diff0) < diff_max)) {
-	    // Reindex operator + diff, save for sorting
-	    CloseBases.push_back
-	      (AlternativeBases(CBlist[k].SimplestOp(), diff));
-	  }
+        // Deviation from target
+        diff = CBlist[k].CellDiff();
+
+        /*//^!
+          std::cout << "***ChBop " << k << "\n";
+          PrintChBOp(CBlist[k].Op(0));
+          std::cout << " Cell" << UcellFormat(CBlist[k].Op(0).apply(uccell))
+          << " Diff: " << diff << "\n";
+          //^*/
+
+          if (diff < diff_tolerance &&
+              (k == 0 || (diff-diff0) < diff_max)) {
+            // Reindex operator + diff, save for sorting
+            CloseBases.push_back
+              (AlternativeBases(CBlist[k].SimplestOp(), diff));
+          }
       }
       // Sort list & transfer for output
       std::sort(CloseBases.begin(), CloseBases.end());
-      
+
       for (size_t k=0;k<CloseBases.size();k++) {
-	CloseReindex.push_back(SetReindexOp(CloseBases[k].FirstOp()));
-	celldiff.push_back(CloseBases[k].CellDiff());
+        CloseReindex.push_back(SetReindexOp(CloseBases[k].FirstOp()));
+        celldiff.push_back(CloseBases[k].CellDiff());
       }
     }
     return CloseReindex;
   }
   //--------------------------------------------------------------
   void PointGroup::PrintAlternativeCells(phaser_io::Output& output,
-					 const bool& OutputXML,
-					 const float& max_delta,
-					 const int& AllowI2) const
+                                         const bool& OutputXML,
+                                         const float& max_delta,
+                                         const int& AllowI2) const
   {
     bool ExcludeIdentity = true, AnyCell = false, BestCell = false;
-    double tolerance = 5.0; 
-    std::vector<AlternativeBases> CbOp_list = 
+    double tolerance = 5.0;
+    std::vector<AlternativeBases> CbOp_list =
       GetAlternativeBases(LaueGrp_ref, ExcludeIdentity, AnyCell, BestCell,
-			  uccell_ref, uccell_ref, tolerance, max_delta, AllowI2);
+                          uccell_ref, uccell_ref, tolerance, max_delta, AllowI2);
     // change-of-basis operators are relative to reference cell
 
     if (CbOp_list.size() > 0) {
       // Change basis of all operators to cell frame
       std::vector<AlternativeBases> CBlist =
-	ChangeBasesList(CbOp_list, ChBasis);
-      
-      for (size_t k=0;k<CBlist.size();k++) {
-	uctbx::unit_cell uccell_alt =
-	  CBlist[k].Op(0).apply(uccell);
-	//  Similarity: tolerance parameters are relative length,
-	//    absolute angle
-	if (OutputXML)
-	  {output.logTabPrintf(0,LXML,"<Alternative Number=\"%3d\">\n", k+1);}
-	if (uccell_ref.is_similar_to(uccell_alt, 0.005, 0.1)) {
-	  std::string s = "  Same cell";
-	  for (int i=0;i<6;i++) {s += "      ";}
-	  s += "         ";
-	  output.logTabPrintf(0,LOGFILE,"%s", s.c_str());
-	} else {
-	  output.logTabPrintf(0,LOGFILE," Other cell");
-	  std::vector<double> acell(6);
-	  for (int i=0;i<6;i++) {
-	    output.logTabPrintf(0,LOGFILE,"%6.1f",uccell_alt.parameters()[i]);
-	    acell[i] = uccell_alt.parameters()[i];
-	  }
+        ChangeBasesList(CbOp_list, ChBasis);
 
-	  output.logTabPrintf(0,LOGFILE," %7.2f ",CBlist[k].CellDiff());
-	  if (OutputXML) {
-	    output.logTab(1,LXML,scala::Scell(acell).xml());}
-	}
-	for (int j=0;j<CBlist[k].Nop();j++) {
-	  if (j>0) {
-	    output.logTabPrintf(0,LOGFILE,"\n                                                          ...");
-	  }
-	  output.logTabPrintf(0,LOGFILE," %s",
-			  ChangeBasisFormat_as_Reindex(CBlist[k].Op(j)).c_str());
-	  if (OutputXML) {
-	    output.logTabPrintf(1,LXML,"<ReindexNumber> %4d\n", j+1);
-	    output.logTab(1,LXML,SetReindexOp(CBlist[k].Op(j)).as_hkl_XML()+"\n");
-	    output.logTab(1,LXML,SetReindexOp(CBlist[k].Op(j)).as_XML());
-	    output.logTabPrintf(1,LXML,"</ReindexNumber>\n");
-	  }
-	}
-	output.logTab(0,LOGFILE,"\n");
-	if (OutputXML)
-	  {output.logTab(0,LXML,"</Alternative>");}
+      for (size_t k=0;k<CBlist.size();k++) {
+        uctbx::unit_cell uccell_alt =
+          CBlist[k].Op(0).apply(uccell);
+        //  Similarity: tolerance parameters are relative length,
+        //    absolute angle
+        if (OutputXML)
+          {output.logTabPrintf(0,LXML,"<Alternative Number=\"%3d\">\n", k+1);}
+        if (uccell_ref.is_similar_to(uccell_alt, 0.005, 0.1)) {
+          std::string s = "  Same cell";
+          for (int i=0;i<6;i++) {s += "      ";}
+          s += "         ";
+          output.logTabPrintf(0,LOGFILE,"%s", s.c_str());
+        } else {
+          output.logTabPrintf(0,LOGFILE," Other cell");
+          std::vector<double> acell(6);
+          for (int i=0;i<6;i++) {
+            output.logTabPrintf(0,LOGFILE,"%6.1f",uccell_alt.parameters()[i]);
+            acell[i] = uccell_alt.parameters()[i];
+          }
+
+          output.logTabPrintf(0,LOGFILE," %7.2f ",CBlist[k].CellDiff());
+          if (OutputXML) {
+            output.logTab(1,LXML,scala::Scell(acell).xml());}
+        }
+        for (int j=0;j<CBlist[k].Nop();j++) {
+          if (j>0) {
+            output.logTabPrintf(0,LOGFILE,"\n                                                          ...");
+          }
+          output.logTabPrintf(0,LOGFILE," %s",
+                          ChangeBasisFormat_as_Reindex(CBlist[k].Op(j)).c_str());
+          if (OutputXML) {
+            output.logTabPrintf(1,LXML,"<ReindexNumber> %4d\n", j+1);
+            output.logTab(1,LXML,SetReindexOp(CBlist[k].Op(j)).as_hkl_XML()+"\n");
+            output.logTab(1,LXML,SetReindexOp(CBlist[k].Op(j)).as_XML());
+            output.logTabPrintf(1,LXML,"</ReindexNumber>\n");
+          }
+        }
+        output.logTab(0,LOGFILE,"\n");
+        if (OutputXML)
+          {output.logTab(0,LXML,"</Alternative>");}
       }
     }
   }
@@ -1487,8 +1487,8 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   std::vector<std::string>
   PointGroup::SpaceGroupList(const Chirality chiral,
-			     const bool AllLattice) const
-    // Return list of all spacegroups compatible with Laue group (reference frame) 
+                             const bool AllLattice) const
+    // Return list of all spacegroups compatible with Laue group (reference frame)
     // If chiral = CHIRAL, list only chiral spacegroups
     // If AllLattice, include all spacegroups compatible with lattice group
   {
@@ -1511,34 +1511,34 @@ namespace CCtbxSym
       if (symbol.number() == 0) break;
       cctbx::sgtbx::space_group sg(symbol.hall());
       bool valid =
-	(chiral == scala::CHIRAL && sg.is_chiral()) ||
-	(chiral == scala::CENTROSYMMETRIC && sg.is_centric()) ||
-	(chiral == scala::NONCHIRAL);
+        (chiral == scala::CHIRAL && sg.is_chiral()) ||
+        (chiral == scala::CENTROSYMMETRIC && sg.is_centric()) ||
+        (chiral == scala::NONCHIRAL);
       char LT = CentringSymbol(sg);
       if (AllLattice) {
-	LatticeGroup LG(sg, LT);
-	if (! LG.Valid())
-	  {valid = false;}
-	else 
-	  {LSG = LG.lattice_group();}
+        LatticeGroup LG(sg, LT);
+        if (! LG.Valid())
+          {valid = false;}
+        else
+          {LSG = LG.lattice_group();}
       } else {
-	LSG = sg.build_derived_patterson_group();
+        LSG = sg.build_derived_patterson_group();
       }
       if (valid) {
-	if (LT == CLtype &&
-	    LSG == LG_ref) {
-	  // Name = sg.type().lookup_symbol();
-	  Name = SpaceGroupName(sg.type(), 'H');
-	  if (std::find(SGnames.begin(), SGnames.end(), Name) == SGnames.end())
-	    SGnames.push_back(Name);
-	}
+        if (LT == CLtype &&
+            LSG == LG_ref) {
+          // Name = sg.type().lookup_symbol();
+          Name = SpaceGroupName(sg.type(), 'H');
+          if (std::find(SGnames.begin(), SGnames.end(), Name) == SGnames.end())
+            SGnames.push_back(Name);
+        }
       }
     }
     return SGnames;
   }
   //--------------------------------------------------------------
   scala::SysAbsScore PointGroup::TestPossible(const cctbx::sgtbx::space_group& sg,
-					      std::vector<scala::Zone>& Zones) const
+                                              std::vector<scala::Zone>& Zones) const
   {
     bool DEBUG = false;
 
@@ -1546,7 +1546,7 @@ namespace CCtbxSym
     int sgnumber = sg.type().number();
     //^
     if (DEBUG) std::cout << "\n\n***** SG: " << Name << "  " << sgnumber << "\n";
-    // This spacegroup belongs to the right Laue group 
+    // This spacegroup belongs to the right Laue group
     // Loop systematic absence zones
     //?//    bool PossSG = true; // Start condition true, may then be falsified
 
@@ -1560,8 +1560,8 @@ namespace CCtbxSym
 
     if (DEBUG)
       {
-	std::cout << "Reindex Lat to Laue group ref:  " << LtoS.as_hkl() << "\n";
-	std::cout << "Reindex Lat to space group ref: " << LtoSPGref.as_hkl() << "\n";
+        std::cout << "Reindex Lat to Laue group ref:  " << LtoS.as_hkl() << "\n";
+        std::cout << "Reindex Lat to space group ref: " << LtoSPGref.as_hkl() << "\n";
       }
 
     std::string condition;
@@ -1575,103 +1575,103 @@ namespace CCtbxSym
       if (DEBUG) std::cout << "\nZone: " << Zones[iz].formatRefFrame();
       // Does this zone belong to this Laue group?
       if (RefLGname() == Zones[iz].LGsymm().symbol()) {
-	// Yes
-	// Does this zone have absences corresponding to
-	// this spacegroup?
-	if (!Zones[iz].Axis()) {
-	  // This is a glide plane (implies !CHIRAL)
-	  // (note all glides precede all axes)
-	  if (GlidePresent(sg, Zones[iz], LtoS)) {
-	    //^
-	    if (DEBUG) 
-	      std::cout << "   InSG, zone " << iz
-			<< " Cond: "
-			<< Zones[iz].FormatConditionNewFrame(LtoSPGref, 0)
-			<< " Nobs " << Zones[iz].Nobs();
-	    //^-
-	    if (!cond1) condition += ", ";
-	    if (!cond1LG) conditionLG += ", ";
-	    cond1 = false;
-	    cond1LG = false;
-	    condition   += Zones[iz].FormatConditionNewFrame(LtoSPGref, 0);
-	    conditionLG += Zones[iz].FormatConditionNewFrame(LtoS, 0);  // Laue group frame
-	    Pyes.AddZone(iz+1);
-	    // This glide is present in this spacegroup
-	    // Only last status point is interesting
-	    // ie 3rd (4n) point for d glide, else 2nd point (2n)
-	    // Glide may be observed,  score positive
-	    Pyes.ProbYes(Zones[iz].p().back());
-	    //^
-	    if (DEBUG) std::cout << "\nProbYes " << Zones[iz].p().back() 
-				 << " Ptot " << Pyes.TotalProbability() << "\n";
-	  } else {
-	    //^
-	    if (DEBUG) std::cout << "   NotInSG, zone " << iz << " Nobs " << Zones[iz].Nobs() << "\n";
-	    // This glide is NOT present in this spacegroup
-	    // Glide may be observed, score negative
-	    Pyes.ProbNo(Zones[iz].p().back());
-	    //^
-	    if (DEBUG) std::cout << "ProbNo " << 1.0-Zones[iz].p().back()
-				 << " Ptot " << Pyes.TotalProbability() << "\n";
-	  }
-	} else {
-	  // This is an axis
-	  // Does this spacegroup contain a screw along here?
-	  int jscrew = ScrewPresent(sg, Zones[iz], LtoS);
-	  
-	  if (jscrew > 0) {
-	    // This spacegroup contains the absence due to screw
-	    //  (including screw obscured by glide)
-	    //^
-	    if (DEBUG) std::cout << "   InSG, zone " << iz << " " << jscrew << "  "
-				 << Zones[iz].FormatConditionNewFrame(LtoSPGref, jscrew) << "  ";
-	    //^-
-	    if (!cond1)   condition += ", ";
-	    if (!cond1LG) conditionLG += ", ";
-	    cond1 = false;
-	    condition += Zones[iz].FormatConditionNewFrame(LtoSPGref, jscrew);
-	    cond1LG = false;
-	    conditionLG += Zones[iz].FormatConditionNewFrame(LtoS, jscrew);
-	    Pyes.AddZone(iz+1);
-	    // Axis may be observed, score positive
-	    Pyes.ProbYes(Zones[iz].p()[jscrew]);
-	    //^
-	    if (DEBUG) std::cout << "\nProbYes " << Zones[iz].p()[jscrew]
-				 << " Ptot " << Pyes.TotalProbability()
-				 << " Nobs " << Zones[iz].Nobs() << "\n";
-	  } else {
-	    // This spacegroup contains no screw
-	    //^
-	    if (DEBUG) std::cout << "   NotInSG, zone " << iz <<  "\n";
-	    // Axis may be observed, multiply in score for no screw
-	    // this is the 0'th element of the vector p
-	    Pyes.ProbYes(Zones[iz].p()[0]);
-	    //^
-	    if (DEBUG) std::cout << "\nProbNo " << Zones[iz].p()[0]
-				 << " Ptot " << Pyes.TotalProbability()
-				 << " Nobs " << Zones[iz].Nobs() << "\n";
-	  }
-	}
+        // Yes
+        // Does this zone have absences corresponding to
+        // this spacegroup?
+        if (!Zones[iz].Axis()) {
+          // This is a glide plane (implies !CHIRAL)
+          // (note all glides precede all axes)
+          if (GlidePresent(sg, Zones[iz], LtoS)) {
+            //^
+            if (DEBUG)
+              std::cout << "   InSG, zone " << iz
+                        << " Cond: "
+                        << Zones[iz].FormatConditionNewFrame(LtoSPGref, 0)
+                        << " Nobs " << Zones[iz].Nobs();
+            //^-
+            if (!cond1) condition += ", ";
+            if (!cond1LG) conditionLG += ", ";
+            cond1 = false;
+            cond1LG = false;
+            condition   += Zones[iz].FormatConditionNewFrame(LtoSPGref, 0);
+            conditionLG += Zones[iz].FormatConditionNewFrame(LtoS, 0);  // Laue group frame
+            Pyes.AddZone(iz+1);
+            // This glide is present in this spacegroup
+            // Only last status point is interesting
+            // ie 3rd (4n) point for d glide, else 2nd point (2n)
+            // Glide may be observed,  score positive
+            Pyes.ProbYes(Zones[iz].p().back());
+            //^
+            if (DEBUG) std::cout << "\nProbYes " << Zones[iz].p().back()
+                                 << " Ptot " << Pyes.TotalProbability() << "\n";
+          } else {
+            //^
+            if (DEBUG) std::cout << "   NotInSG, zone " << iz << " Nobs " << Zones[iz].Nobs() << "\n";
+            // This glide is NOT present in this spacegroup
+            // Glide may be observed, score negative
+            Pyes.ProbNo(Zones[iz].p().back());
+            //^
+            if (DEBUG) std::cout << "ProbNo " << 1.0-Zones[iz].p().back()
+                                 << " Ptot " << Pyes.TotalProbability() << "\n";
+          }
+        } else {
+          // This is an axis
+          // Does this spacegroup contain a screw along here?
+          int jscrew = ScrewPresent(sg, Zones[iz], LtoS);
+
+          if (jscrew > 0) {
+            // This spacegroup contains the absence due to screw
+            //  (including screw obscured by glide)
+            //^
+            if (DEBUG) std::cout << "   InSG, zone " << iz << " " << jscrew << "  "
+                                 << Zones[iz].FormatConditionNewFrame(LtoSPGref, jscrew) << "  ";
+            //^-
+            if (!cond1)   condition += ", ";
+            if (!cond1LG) conditionLG += ", ";
+            cond1 = false;
+            condition += Zones[iz].FormatConditionNewFrame(LtoSPGref, jscrew);
+            cond1LG = false;
+            conditionLG += Zones[iz].FormatConditionNewFrame(LtoS, jscrew);
+            Pyes.AddZone(iz+1);
+            // Axis may be observed, score positive
+            Pyes.ProbYes(Zones[iz].p()[jscrew]);
+            //^
+            if (DEBUG) std::cout << "\nProbYes " << Zones[iz].p()[jscrew]
+                                 << " Ptot " << Pyes.TotalProbability()
+                                 << " Nobs " << Zones[iz].Nobs() << "\n";
+          } else {
+            // This spacegroup contains no screw
+            //^
+            if (DEBUG) std::cout << "   NotInSG, zone " << iz <<  "\n";
+            // Axis may be observed, multiply in score for no screw
+            // this is the 0'th element of the vector p
+            Pyes.ProbYes(Zones[iz].p()[0]);
+            //^
+            if (DEBUG) std::cout << "\nProbNo " << Zones[iz].p()[0]
+                                 << " Ptot " << Pyes.TotalProbability()
+                                 << " Nobs " << Zones[iz].Nobs() << "\n";
+          }
+        }
       }
     }  // end zone loop
     Pyes.SetCondition(condition);
     Pyes.SetConditionLG(conditionLG);
-        
+
     Chirality ch;
     if (sg.is_chiral()) ch = scala::CHIRAL;
     else if (sg.is_centric()) ch = scala::CENTROSYMMETRIC;
     else ch = scala::NONCHIRAL;
 
     Pyes.SetSGposs(scala::PossibleSpaceGroup
-		    (DeColonName(Name),
-		     sgnumber,
-		     SpaceGroupName(sg.type(), 'H'),           // this should be reference name
-		     Pyes.Condition(), Pyes.ConditionLG(),
-		     //  Change of basis to reference frame
-		     SetReindexOp(sg.type().cb_op()),
-		     ch,
-		     Pyes.TotalProbability(),
-		     Pyes.ZoneList()));
+                    (DeColonName(Name),
+                     sgnumber,
+                     SpaceGroupName(sg.type(), 'H'),           // this should be reference name
+                     Pyes.Condition(), Pyes.ConditionLG(),
+                     //  Change of basis to reference frame
+                     SetReindexOp(sg.type().cb_op()),
+                     ch,
+                     Pyes.TotalProbability(),
+                     Pyes.ZoneList()));
 
     return Pyes;
   }
@@ -1709,50 +1709,50 @@ namespace CCtbxSym
       if (symbol.number() == 0) break;
       cctbx::sgtbx::space_group sg(symbol.hall());
       bool valid =
-	(chiral == scala::CHIRAL && sg.is_chiral()) ||
-	(chiral == scala::CENTROSYMMETRIC && sg.is_centric()) ||
-	(chiral == scala::NONCHIRAL);
-      
+        (chiral == scala::CHIRAL && sg.is_chiral()) ||
+        (chiral == scala::CENTROSYMMETRIC && sg.is_centric()) ||
+        (chiral == scala::NONCHIRAL);
+
       if (valid) {
-	std::string Name = sg.type().lookup_symbol();
-	int sgnumber = sg.type().number();
-	scala::SysAbsScore Pcomb;
-	char LT = CentringSymbol(sg);
-	LSG = sg.build_derived_patterson_group();
-	if (LT == CLtype &&
-	    LSG == LG) {
-	  Pcomb = TestPossible(sg, Zones);
-	  if (Pcomb.IsPossible()) {
-	    SGp = Pcomb.SGposs();
-	    // This is a possible spacegroup, add to list
-	    if (std::find(SGposs.begin(), SGposs.end(), SGp) == SGposs.end()) {
-	      SGposs.push_back(SGp);
-	      if (DEBUG) std::cout << "\n>> Spacegroup added: "
-				   << SGposs.size() << " " << SGp.Name() << "\n";		      
-	    }
-	    //^+
-	  } else {
-	    if (DEBUG) std::cout << "\n>> Spacegroup not possible: "
-				 << Name << "  " << sgnumber << "\n";
-	  }
-	  //^-
-	  // SPECIAL for space group 205 p 21/a -3
-	  // Try permuted version
-	  if (sgnumber == 205) {
-	    sgtbx::change_of_basis_op cb("l,k,-h");
-	    sg = sg.change_basis(cb);
-	    Pcomb = TestPossible(sg, Zones);
-	    if (Pcomb.IsPossible()) {
-	      scala::ReindexOp rindx = scala::ReindexOp("-l,k,h");
-	      scala::PossibleSpaceGroup SGp2
-		(Pcomb.SGposs().Name(true), SGp.Sgnumber(), SGp.Name(false),
-		 SGp.Condition(), SGp.ConditionLG(),
-		 rindx, SGp.Chiral(),
-		 Pcomb.SGposs().Prob(), SGp.ZoneList());
-	      SGposs.push_back(SGp2);
-	    }
-	  }  // end SPECIAL
-	}  // end possible Laue group
+        std::string Name = sg.type().lookup_symbol();
+        int sgnumber = sg.type().number();
+        scala::SysAbsScore Pcomb;
+        char LT = CentringSymbol(sg);
+        LSG = sg.build_derived_patterson_group();
+        if (LT == CLtype &&
+            LSG == LG) {
+          Pcomb = TestPossible(sg, Zones);
+          if (Pcomb.IsPossible()) {
+            SGp = Pcomb.SGposs();
+            // This is a possible spacegroup, add to list
+            if (std::find(SGposs.begin(), SGposs.end(), SGp) == SGposs.end()) {
+              SGposs.push_back(SGp);
+              if (DEBUG) std::cout << "\n>> Spacegroup added: "
+                                   << SGposs.size() << " " << SGp.Name() << "\n";
+            }
+            //^+
+          } else {
+            if (DEBUG) std::cout << "\n>> Spacegroup not possible: "
+                                 << Name << "  " << sgnumber << "\n";
+          }
+          //^-
+          // SPECIAL for space group 205 p 21/a -3
+          // Try permuted version
+          if (sgnumber == 205) {
+            sgtbx::change_of_basis_op cb("l,k,-h");
+            sg = sg.change_basis(cb);
+            Pcomb = TestPossible(sg, Zones);
+            if (Pcomb.IsPossible()) {
+              scala::ReindexOp rindx = scala::ReindexOp("-l,k,h");
+              scala::PossibleSpaceGroup SGp2
+                (Pcomb.SGposs().Name(true), SGp.Sgnumber(), SGp.Name(false),
+                 SGp.Condition(), SGp.ConditionLG(),
+                 rindx, SGp.Chiral(),
+                 Pcomb.SGposs().Prob(), SGp.ZoneList());
+              SGposs.push_back(SGp2);
+            }
+          }  // end SPECIAL
+        }  // end possible Laue group
       }
     }  // end sg loop
     if (DEBUG) {
@@ -1775,20 +1775,20 @@ namespace CCtbxSym
   }
   //--------------------------------------------------------------
   void PointGroup::PrintAllSpacegroups(phaser_io::Output& output,
-				       const Chirality chiral,
-				       const bool AllLattice) const
+                                       const Chirality chiral,
+                                       const bool AllLattice) const
   {
     std::vector<std::string> SGnames = SpaceGroupList(chiral, AllLattice);
     if (SGnames.size() > 0) {
       output.logTab(0,LOGFILE,"Possible spacegroups:\n");
       int nc = 0;
       for (size_t i=0;i<SGnames.size();i++) {
-	if (nc > 80) {
-	  output.logTab(0,LOGFILE,"\n");
-	  nc = 0;
-	}
-	output.logTab(0,LOGFILE," <"+SGnames[i]+">");
-	nc += SGnames[i].size() + 3;
+        if (nc > 80) {
+          output.logTab(0,LOGFILE,"\n");
+          nc = 0;
+        }
+        output.logTab(0,LOGFILE," <"+SGnames[i]+">");
+        nc += SGnames[i].size() + 3;
       }
       output.logTab(0,LOGFILE,"\n");
     } else {
@@ -1798,17 +1798,17 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   std::vector<scala::ReindexOp>
   AlternativeIndexing(const PointGroup& PG, const PointGroup& TG,
-		      const bool& strict,
-		      const scala::Scell target_cell,
-		      const float& max_delta,
-		      const int& AllowI2)
+                      const bool& strict,
+                      const scala::Scell target_cell,
+                      const float& max_delta,
+                      const int& AllowI2)
   //  PG is reference group, with a unit cell
   //  TG is test group, with a unit cell
   // Return list of possible alternative indexing schemes
   // compatible with cell or with lattice symmetry
   //
   // (1) If strict = true
-  //   return symmetry operators from symmetry elements 
+  //   return symmetry operators from symmetry elements
   //   present in lattice group but not in pointgroup
   //   (max_delta & target_cell are ignored)
   //   This can only happen for symmetries > orthorhombic
@@ -1838,23 +1838,23 @@ namespace CCtbxSym
 
     if (strict) {
       if (LatticeGroup(PG.LaueGrp_ref).crystal_system() <= ORTHORHOMBIC)
-	// strict option only valid for high symmetry
-	{return ReindexList;}
+        // strict option only valid for high symmetry
+        {return ReindexList;}
 
       bool ExcludeIdentity = false, AnyCell = false, BestCell = false;
-      std::vector<AlternativeBases> CbOp_list = 
-	GetAlternativeBases(PG.LaueGrp_ref, ExcludeIdentity, AnyCell, BestCell,
-			    PG.uccell_ref, PG.uccell_ref, 3.0, max_delta, AllowI2);
+      std::vector<AlternativeBases> CbOp_list =
+        GetAlternativeBases(PG.LaueGrp_ref, ExcludeIdentity, AnyCell, BestCell,
+                            PG.uccell_ref, PG.uccell_ref, 3.0, max_delta, AllowI2);
       // change-of-basis operators are relative to reference cell
       if (CbOp_list.size() > 0) {
-	// Change basis of all operators to cell frame
-	std::vector<AlternativeBases> CBlist =
-	  ChangeBasesList(CbOp_list, PG.ChBasis);
-	
-	for (size_t k=0;k<CBlist.size();k++) {
-	  ReindexList.push_back(SetReindexOp(CBlist[k].SimplestOp()));
-	  ReindexList.back().SetStrict(true);
-	}
+        // Change basis of all operators to cell frame
+        std::vector<AlternativeBases> CBlist =
+          ChangeBasesList(CbOp_list, PG.ChBasis);
+
+        for (size_t k=0;k<CBlist.size();k++) {
+          ReindexList.push_back(SetReindexOp(CBlist[k].SimplestOp()));
+          ReindexList.back().SetStrict(true);
+        }
       }
     } else {
       // not strict
@@ -1863,12 +1863,12 @@ namespace CCtbxSym
       // List of possible "strict" bases (high symmetry only)
       std::vector<scala::ReindexOp> StrictOps;
       if (LG.crystal_system() > ORTHORHOMBIC) {
-	std::vector<sgtbx::change_of_basis_op> StrictCB
-	  = PossibleChBOp(LG, PG.LaueGrp_ref, AllowI2);
-	for (size_t i=0;i< StrictCB.size();i++)
-	  {StrictOps.push_back(SetReindexOp(StrictCB[i]));}
+        std::vector<sgtbx::change_of_basis_op> StrictCB
+          = PossibleChBOp(LG, PG.LaueGrp_ref, AllowI2);
+        for (size_t i=0;i< StrictCB.size();i++)
+          {StrictOps.push_back(SetReindexOp(StrictCB[i]));}
       }
-      // Maximum lattice symmetry 
+      // Maximum lattice symmetry
       CCtbxSym::LatticeSymmetry lat(TG.input_cell, TG.LatType, AllowI2, max_delta);
       ///      CCtbxSym::LatticeSymmetry lat(TG.TransformedCell(), TG.LatType, AllowI2, max_delta);
       ///      CCtbxSym::LatticeSymmetry lat(PG.input_cell, PG.LatType, AllowI2, max_delta);
@@ -1879,55 +1879,55 @@ namespace CCtbxSym
       //      std::cout << "reindex_op " << reindex_op.as_hkl() <<"\n";  //^-
       // All subgroups
       std::vector<PointGroup> subgroups =
-	scala::GetSubGroups(scala::hkl_symmetry(lat.best_spacegroup_symbol()));
+        scala::GetSubGroups(scala::hkl_symmetry(lat.best_spacegroup_symbol()));
       if (subgroups.size() > 0) {
-	// Loop subgroups to find any which are the same as this
-	for (size_t k=0;k<subgroups.size();k++) {
-	  //^
-	  //	  std::cout << "AlternativeIndexing "
-	  //		    << " subgroups[k].LaueGrp_ref " <<
-	  //	    subgroups[k].LaueGrp_ref.type().hall_symbol()
-	  //		    << " PG.LaueGrp_ref " <<
-	  //	    PG.LaueGrp_ref.type().hall_symbol() <<"\n";
-	  //^-1
-	  if (subgroups[k].LaueGrp_ref == PG.LaueGrp_ref) {
-	    // Yes it is
-	    //	    double celldiff = subgroups[k].SetCell(TG.TransformedCell(),
-	    //						   reindex_op, AllowI2);
-	    double celldiff = subgroups[k].SetCell(TG.input_cell,
-						   reindex_op, AllowI2);
-	    celldiff = celldiff;
-	    //^ debug
-	    //	    std::cout << "\nAlternative found: reindex "
-	    //		      << subgroups[k].RefSGreindexFormat() << "\n";
-	    //	    std::cout << "Cell: ";
-	    //	    std::vector<double> tcell =
-	    //	      subgroups[k].TransformedCell();
-	    //	    for (int i=0;i<6;i++) std:: cout << " " << tcell[i];
-	    //	    std::cout << "\nInput Cell: ";
-	    //	    for (int i=0;i<6;i++) std:: cout << " " << PG.input_cell[i];
-	    //	    std::cout << "\n"; 
-	    //^
-	    
-	    std::vector<double> cell_diffs;
+        // Loop subgroups to find any which are the same as this
+        for (size_t k=0;k<subgroups.size();k++) {
+          //^
+          //      std::cout << "AlternativeIndexing "
+          //                << " subgroups[k].LaueGrp_ref " <<
+          //        subgroups[k].LaueGrp_ref.type().hall_symbol()
+          //                << " PG.LaueGrp_ref " <<
+          //        PG.LaueGrp_ref.type().hall_symbol() <<"\n";
+          //^-1
+          if (subgroups[k].LaueGrp_ref == PG.LaueGrp_ref) {
+            // Yes it is
+            //      double celldiff = subgroups[k].SetCell(TG.TransformedCell(),
+            //                                             reindex_op, AllowI2);
+            double celldiff = subgroups[k].SetCell(TG.input_cell,
+                                                   reindex_op, AllowI2);
+            celldiff = celldiff;
+            //^ debug
+            //      std::cout << "\nAlternative found: reindex "
+            //                << subgroups[k].RefSGreindexFormat() << "\n";
+            //      std::cout << "Cell: ";
+            //      std::vector<double> tcell =
+            //        subgroups[k].TransformedCell();
+            //      for (int i=0;i<6;i++) std:: cout << " " << tcell[i];
+            //      std::cout << "\nInput Cell: ";
+            //      for (int i=0;i<6;i++) std:: cout << " " << PG.input_cell[i];
+            //      std::cout << "\n";
+            //^
 
-	    std::vector<scala::ReindexOp> possible_reindex =
-	      subgroups[k].GetCloseCell(target_cell,
-					max_delta, false,
-					cell_diffs, AllowI2);
-	    
-	    for (size_t i=0;i<possible_reindex.size();i++) {
-	      // Is this a "strict" operator?
-	      possible_reindex[i].
-		SetStrict(IsInList<scala::ReindexOp>
-			  (StrictOps,possible_reindex[i]));
-	      possible_reindex[i].SetDeviation(cell_diffs[i]);
-	      ReindexList.push_back(possible_reindex[i]);
-	    }
-	  }
-	} 
+            std::vector<double> cell_diffs;
+
+            std::vector<scala::ReindexOp> possible_reindex =
+              subgroups[k].GetCloseCell(target_cell,
+                                        max_delta, false,
+                                        cell_diffs, AllowI2);
+
+            for (size_t i=0;i<possible_reindex.size();i++) {
+              // Is this a "strict" operator?
+              possible_reindex[i].
+                SetStrict(IsInList<scala::ReindexOp>
+                          (StrictOps,possible_reindex[i]));
+              possible_reindex[i].SetDeviation(cell_diffs[i]);
+              ReindexList.push_back(possible_reindex[i]);
+            }
+          }
+        }
       }
-    }  
+    }
     std::sort(ReindexList.begin(),ReindexList.end());
 
     return ReindexList;

@@ -23,10 +23,10 @@ namespace scala {
     // Do we have this one already?
     if (xdatasets.size() > 0) {
       for (size_t i=0;i<xdatasets.size();++i) {
-	if (xdataset.pxdname().dname() == xdatasets[i].pxdname().dname()) {
-	  added = true; // same Dname, so add it
-	  break;
-	}
+        if (xdataset.pxdname().dname() == xdatasets[i].pxdname().dname()) {
+          added = true; // same Dname, so add it
+          break;
+        }
       }
     } else {
       added = true;  // add anyway if list is empty
@@ -44,7 +44,7 @@ namespace scala {
     int idx = XdatasetIndex(setid);
     if (idx < 0) { // not found
       Message::message(Message_fatal
-		       ("Dataset::add_batch, setid not found "+clipper::String(setid)));
+                       ("Dataset::add_batch, setid not found "+clipper::String(setid)));
     }
     xdatasets[idx].add_batch(batch_num);  // add it
   }
@@ -55,7 +55,7 @@ namespace scala {
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
       Message::message(Message_fatal
-		       ("Dataset::add_batch, pxdname not found "+pxdname.format()));
+                       ("Dataset::add_batch, pxdname not found "+pxdname.format()));
     }
     xdatasets[idx].add_batch(batch_num);  // add it
   }
@@ -76,7 +76,7 @@ namespace scala {
     int idx = XdatasetIndex(setid);
     if (idx < 0) { // not found
       Message::message(Message_fatal
-		       ("Dataset::pxdname, setid not found "+clipper::String(setid)));
+                       ("Dataset::pxdname, setid not found "+clipper::String(setid)));
     }
     return xdatasets[idx].pxdname();
   }
@@ -91,7 +91,7 @@ namespace scala {
     // Pname and Dname should all be the same (Pname doesn't matter)
     std::string pname = xdatasets[0].pxdname().pname(); // use 1st Pname
     std::string dname = xdatasets[0].pxdname().dname(); // use 1st Dname
-    // 
+    //
     std::string xname = "MultiCrystal"; // can't see how to be clever!
     return PxdName(pname, xname, dname);
   }
@@ -141,7 +141,7 @@ namespace scala {
     for (size_t k=0; k<xdatasets.size(); k++) {
       std::vector<float> wvl = xdatasets[k].AllWavelengths();
       allwavelengths.insert(allwavelengths.end(),
-			    wvl.begin(), wvl.end());
+                            wvl.begin(), wvl.end());
     }
     return allwavelengths;
   }
@@ -169,7 +169,7 @@ namespace scala {
     int idx = XdatasetIndex(xname);
     if (idx < 0) {
       Message::message(Message_fatal
-		       ("Dataset::wavelength, xname not found "+xname));
+                       ("Dataset::wavelength, xname not found "+xname));
     }
     return xdatasets[idx].wavelength();
   }
@@ -219,7 +219,7 @@ namespace scala {
     ResoRange maxresrange = xdatasets[0].ResRange();
     if (xdatasets.size() > 1) {
       for (size_t k=1; k<xdatasets.size(); k++) { // loop from 2nd
-	maxresrange = maxresrange.MaxRange(xdatasets[k].ResRange());
+        maxresrange = maxresrange.MaxRange(xdatasets[k].ResRange());
       }
     }
     return maxresrange;
@@ -266,7 +266,7 @@ namespace scala {
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
       Message::message(Message_fatal
-		       ("Dataset::AddRunIndex, pxdname not found "+pxdname.format()));
+                       ("Dataset::AddRunIndex, pxdname not found "+pxdname.format()));
     }
     xdatasets[idx].AddRunIndex(RunIndex);  // add it
   }
@@ -292,7 +292,7 @@ namespace scala {
     for (size_t k=0; k<xdatasets.size(); k++) {
       std::vector<int> ril = xdatasets[k].RunIndexList();
       runindexlist.insert(runindexlist.end(),
-			  ril.begin(), ril.end());
+                          ril.begin(), ril.end());
     }
     return runindexlist;
   }
@@ -315,7 +315,7 @@ namespace scala {
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
       Message::message(Message_fatal
-		       ("Dataset::GetID, pxdname not found "+pxdname.format()));
+                       ("Dataset::GetID, pxdname not found "+pxdname.format()));
     }
     return xdatasets[idx].setid();
   }
@@ -335,7 +335,7 @@ namespace scala {
   bool Dataset::IsPxdPresent(const PxdName& pxdname) const
   {
     int setid = XdatasetIndex(pxdname);
-    if (setid >= 0) { // found, 
+    if (setid >= 0) { // found,
       return true;
     }
     return false;
@@ -345,7 +345,7 @@ namespace scala {
   bool Dataset::IsSetidPresent(const int& setid) const
   {
     int idx = XdatasetIndex(setid);
-    if (idx >= 0) { // found, 
+    if (idx >= 0) { // found,
       return true;
     }
     return false;
@@ -392,7 +392,7 @@ namespace scala {
     for (size_t k=0; k<xdatasets.size(); k++) {
       s += xdatasets[k].pxdname().format();
       if (k < ndts-1) { // not last
-	s += " and ";
+        s += " and ";
       }
     }
     return s;
@@ -406,7 +406,7 @@ namespace scala {
     for (size_t k=0; k<xdatasets.size(); k++) {
       s += xdatasets[k].formatPrint();
       if (k < ndts-1) { // not last
-	s += "\n";
+        s += "\n";
       }
     }
     return s;
@@ -421,7 +421,7 @@ namespace scala {
       bool first = (k==0);
       s += xdatasets[k].formatPrint(first);
       if (k < ndts-1) { // not last
-      	s += "\n";
+        s += "\n";
       }
     }
     return s;
@@ -446,7 +446,7 @@ namespace scala {
     if (xdatasets.size() <= 0) return idx;
     for (size_t i=0;i<xdatasets.size();++i) {
       if (setid == xdatasets[i].setid()) {
-	return i;
+        return i;
       }}
     return idx;
   }
@@ -458,7 +458,7 @@ namespace scala {
     if (xdatasets.size() <= 0) return idx;
     for (size_t i=0;i<xdatasets.size();++i) {
       if (pxdname == xdatasets[i].pxdname()) {
-	return i;
+        return i;
       }}
     return idx;
   }
@@ -470,7 +470,7 @@ namespace scala {
     if (xdatasets.size() <= 0) return idx;
     for (size_t i=0;i<xdatasets.size();++i) {
       if (xname == xdatasets[i].pxdname().xname()) {
-	return i;
+        return i;
       }}
     return idx;
   }
@@ -482,11 +482,11 @@ namespace scala {
     if (xdatasets.size() <= 1) return;
     for (size_t i=1;i<xdatasets.size();++i) { // loop from 2nd
       if (xdatasets[0].pxdname().dname() != xdatasets[i].pxdname().dname()) {
-	// Die, die, die!
-	std::string names = xdatasets[0].pxdname().dname()+" != "
-	  +xdatasets[i].pxdname().dname();
-	Message::message(Message_fatal
-			 ("Dataset::check failed "+names));
+        // Die, die, die!
+        std::string names = xdatasets[0].pxdname().dname()+" != "
+          +xdatasets[i].pxdname().dname();
+        Message::message(Message_fatal
+                         ("Dataset::check failed "+names));
       }
     }
   }
@@ -496,7 +496,7 @@ namespace scala {
   {
     if (xdatasets.size() <= 0) {
       Message::message(Message_fatal
-		       ("Dataset:: empty dataset list, function: "+where));
+                       ("Dataset:: empty dataset list, function: "+where));
     }
   }
   //--------------------------------------------------------------
@@ -504,7 +504,7 @@ namespace scala {
   int Dataset::NumberofCells() const
   {
     int n = 0;
-    for (size_t i=0; i<xdatasets.size(); i++) { 
+    for (size_t i=0; i<xdatasets.size(); i++) {
       n += xdatasets[i].NumberofCells();
     }
     return n;
@@ -559,7 +559,7 @@ namespace scala {
   double Dataset::WorstDeviation() const
   {
     double worst = -100000.;
-    for (size_t i=0; i<xdatasets.size(); i++) { 
+    for (size_t i=0; i<xdatasets.size(); i++) {
       worst = Max(worst, xdatasets[i].WorstDeviation());
     }
     return worst;
@@ -571,7 +571,7 @@ namespace scala {
                    int& idataset)
   // Return true if dataset setid is in datasets list
   //  & return dataset index idataset (-1 if not)
-  // If setid == 0, assign to first dataset 
+  // If setid == 0, assign to first dataset
   {
     ASSERT (datasets.size() > 0);
     if (setid <= 0) {
@@ -593,7 +593,7 @@ namespace scala {
                    int& idataset)
   // Return true if dataset pxdname is in datasets list
   //  & return dataset index idataset (-1 if not)
-  // If pxdname is blank, assign to first dataset 
+  // If pxdname is blank, assign to first dataset
   {
     ASSERT (datasets.size() > 0);
     if (pxdname.is_blank()) {

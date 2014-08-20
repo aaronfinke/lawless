@@ -14,7 +14,7 @@ using clipper::Message_warn;
 namespace scala {
   //--------------------------------------------------------------
   ReindexOp SpacegroupReindexOp(const std::string& from_SGname,
-				const std::string& to_SGname)
+                                const std::string& to_SGname)
   // return reindex operator to convert alternative space groups
   // in same crystal system
   // Mainly (only?) for C2<->I2 and H3<->R3
@@ -33,7 +33,7 @@ namespace scala {
     // to space group
     sgtbx::space_group to_SG =
       sgtbx::space_group(sgtbx::space_group_symbols
-			 (CCtbxSym::CCTBX_SGsymbol_HorR(to_SGname)).hall());
+                         (CCtbxSym::CCTBX_SGsymbol_HorR(to_SGname)).hall());
     // Change of basis to reference setting
     sgtbx::change_of_basis_op ChB_ref_to = to_SG.type().cb_op();
     sgtbx::space_group to_SG_ref = to_SG.change_basis(ChB_ref_to);
@@ -42,11 +42,11 @@ namespace scala {
     // Reference groups should be the same
     if (from_SG_ref != to_SG_ref) {
       std::string message =
-	CCtbxSym::SpaceGroupName(from_SG_ref.type(), 'H')+
-	" has different reference setting from "+
-	CCtbxSym::SpaceGroupName(to_SG_ref.type(), 'H')+"\n";
-      Message::message(Message_warn(message));      
-      throw Message_warn(message);      
+        CCtbxSym::SpaceGroupName(from_SG_ref.type(), 'H')+
+        " has different reference setting from "+
+        CCtbxSym::SpaceGroupName(to_SG_ref.type(), 'H')+"\n";
+      Message::message(Message_warn(message));
+      throw Message_warn(message);
     }
 
     // We want the transformation from HKLIN to input
@@ -62,8 +62,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   bool SpacegroupReindex(const GlobalControls& GC,
-			 const hkl_symmetry& HKLINsymm, const Scell& cell,
-			 ReindexOp& Reindex, phaser_io::Output& output)
+                         const hkl_symmetry& HKLINsymm, const Scell& cell,
+                         ReindexOp& Reindex, phaser_io::Output& output)
   // If SPACEGROUP is specified but no REINDEX operator, generate appropriate reindexing
   // to convert from input HKLIN file HKLINsymm to desired spacegroup
   // Probably really only useful (or indeed valid) for C2 <-> I2 & H3<->R3, or P222 groups
@@ -80,9 +80,9 @@ namespace scala {
   std::string Input_SGname = NewSymm.symbol_xHM();
   if (NewSymm.CrysSys() != HKLINsymm.CrysSys()) {
       std::string message =
-	"Specified SPACEGROUP "+GC.Spacegroup()+
-	" must belong to same crystal system as input symmetry "+HKLIN_SGname+
-	" unless REINDEX is explicitly given.\n";
+        "Specified SPACEGROUP "+GC.Spacegroup()+
+        " must belong to same crystal system as input symmetry "+HKLIN_SGname+
+        " unless REINDEX is explicitly given.\n";
       Message::message(Message_fatal(message));
   }
 
@@ -94,7 +94,7 @@ namespace scala {
     std::string message =
       "Specified SPACEGROUP "+GC.Spacegroup()+
       " must have the same 'reference' space group as the input file symmetry "+HKLIN_SGname+
-	" unless REINDEX is explicitly given.\n";
+        " unless REINDEX is explicitly given.\n";
       Message::message(Message_fatal(message));
   }
 
@@ -115,8 +115,8 @@ namespace scala {
   }
 
   output.logTab(0,LOGFILE,
-		"\nReindexing data with operator "+Reindex.as_hkl()+
-		" from space group "+HKLIN_SGname+" to "+Input_SGname);
+                "\nReindexing data with operator "+Reindex.as_hkl()+
+                " from space group "+HKLIN_SGname+" to "+Input_SGname);
 
   return true;
 }

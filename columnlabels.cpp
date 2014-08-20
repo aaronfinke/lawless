@@ -3,7 +3,7 @@
 // Classes:
 //  column_labels
 //  column_select
-//  
+//
 
 
 #include "columnlabels.hh"
@@ -12,7 +12,7 @@
 #include <assert.h>
 #define ASSERT assert
 
-namespace MtzIO {  
+namespace MtzIO {
   //--------------------------------------------------------------
   bool ColumnData::SameXDname(const ColumnData& other) const
   // true if two objects have the same xname & dname
@@ -21,9 +21,9 @@ namespace MtzIO {
   }
   //--------------------------------------------------------------
   ClipperLabelPair::ClipperLabelPair(const std::string& Xname,
-				     const std::string& Dname,
-				     const std::string& Label1,
-				     const std::string& Label2)
+                                     const std::string& Dname,
+                                     const std::string& Label1,
+                                     const std::string& Label2)
     : xname(Xname), dname(Dname), label1(Label1), label2(Label2)
   {
     // Make MTZ path string
@@ -38,11 +38,11 @@ namespace MtzIO {
   {
     if ((col1 == 0 && col2 != 0) || (col2 == 0 && col1 != 0))
       Message::message(Message_fatal
-       ( "Column pair must be both present or both absent: "+text+"\n")); 
+       ( "Column pair must be both present or both absent: "+text+"\n"));
   }
   //--------------------------------------------------------------
   void column_labels::add(const std::string& loglabel,
-			  const col_opt_flag& cflag)
+                          const col_opt_flag& cflag)
   // Add a column label entry into list, initialised to
   // column -1 if COMPULSORY [default] or 0 if OPTIONAL
   {
@@ -71,7 +71,7 @@ namespace MtzIO {
   // return column number (from 0) for requested column, else -1
   {
     if (!setup)
-      Message::message(Message_fatal("column_labels::lookup_col - list not set up")); 
+      Message::message(Message_fatal("column_labels::lookup_col - list not set up"));
     std::map<std::string, ColumnNumberLabel>::const_iterator p = columns.find(loglabel);
     if (p == columns.end()) {
       // Label not found
@@ -123,7 +123,7 @@ namespace MtzIO {
     if (p == columns.end()) {
       // Label not found
       Message::message(Message_fatal
-       ( "Column label not found: "+loglabel+"\n")); 
+       ( "Column label not found: "+loglabel+"\n"));
     }
     return p->second;
   }
@@ -134,17 +134,17 @@ namespace MtzIO {
     start();
     while (pcl != columns.end()) {
       s += pcl->second.loglabel + " : " + pcl->second.label +
-	clipper::String(pcl->second.number);
+        clipper::String(pcl->second.number);
       if (pcl->second.number == 0) {
-	s += " Absent column";
+        s += " Absent column";
       } else {
-	Range range = pcl->second.valuerange;
-	if (range.Valid()) {
-	  s += " Range: " + clipper::String(range.min()) 
-	    + " - " + clipper::String(range.max());
-	} else {
-	  s += " Invalid value range";
-	}
+        Range range = pcl->second.valuerange;
+        if (range.Valid()) {
+          s += " Range: " + clipper::String(range.min())
+            + " - " + clipper::String(range.max());
+        } else {
+          s += " Invalid value range";
+        }
       }
       s += "\n";
       pcl++;
@@ -202,25 +202,25 @@ namespace MtzIO {
       std::string label;
       int colnum;
       for (int i=0;i<nlatticecolumns;++i) {
-	// Scheme 2, LATTNUMn
-	if (scheme2) {
-	  label = "LATTNUM"+StringUtil::Strip(StringUtil::itos(i+1));
-	  colnum = column_label_list.lookup_col(label);  // column number from 0
-	  label = "SCALE"+StringUtil::Strip(StringUtil::itos(i+1));
-	  if (column_label_list.lookup_col(label) >= 0) {
-	    col_latscale = true;
-	  } else if (col_latscale) {
-	    Message::message(Message_fatal
-			     ( "Inconsistent SCALEn columns\n")); 
-	  }
-	} else {
-	  // Scheme 2, label should be Hn where n is 1->9
-	  label = "H"+StringUtil::Strip(StringUtil::itos(i+1));
-	  colnum = column_label_list.lookup_col(label);  // column number from 0
-	}
-	if (colnum >= 0) {
-	  col_lathkl.push_back(colnum);  // column number for "Hn"
-	}
+        // Scheme 2, LATTNUMn
+        if (scheme2) {
+          label = "LATTNUM"+StringUtil::Strip(StringUtil::itos(i+1));
+          colnum = column_label_list.lookup_col(label);  // column number from 0
+          label = "SCALE"+StringUtil::Strip(StringUtil::itos(i+1));
+          if (column_label_list.lookup_col(label) >= 0) {
+            col_latscale = true;
+          } else if (col_latscale) {
+            Message::message(Message_fatal
+                             ( "Inconsistent SCALEn columns\n"));
+          }
+        } else {
+          // Scheme 2, label should be Hn where n is 1->9
+          label = "H"+StringUtil::Strip(StringUtil::itos(i+1));
+          colnum = column_label_list.lookup_col(label);  // column number from 0
+        }
+        if (colnum >= 0) {
+          col_lathkl.push_back(colnum);  // column number for "Hn"
+        }
       } // end loop nlatticecolumns
       ASSERT (int(col_lathkl.size()) == nlatticecolumns);
     }
@@ -249,14 +249,14 @@ namespace MtzIO {
       flags.is_latnum = true;
       flags.n_latinfo = nlatticecolumns;
       if (scheme2) {
-	// scheme 2 multiple lattices
-	if (col_latscale) flags.is_latscale = true;
-	flags.is_latinfo = true;
-	flags.is_lathkl = false;
+        // scheme 2 multiple lattices
+        if (col_latscale) flags.is_latscale = true;
+        flags.is_latinfo = true;
+        flags.is_lathkl = false;
       } else { // scheme 1
-	if (col_lathkl.size() >= 0) flags.is_lathkl = true;
-	flags.is_latscale = false;
-	flags.is_latinfo = false;
+        if (col_lathkl.size() >= 0) flags.is_lathkl = true;
+        flags.is_latscale = false;
+        flags.is_latinfo = false;
       }
     }
     return flags;
@@ -278,21 +278,21 @@ namespace MtzIO {
   }
   //--------------------------------------------------------------
   int FindColumn(const std::vector<ColumnData>& ColumnInfo,
-		  const std::string& type)
+                  const std::string& type)
   //  searches ColumnInfo array for the first column of type "type"
   // returns column number found or -1 if not found
   {
     for (size_t i=0;i<ColumnInfo.size();i++) {
       if (ColumnInfo[i].type == type) {
-	return i;
+        return i;
       }
     }
     return -1;
   }
   //--------------------------------------------------------------
   ClipperLabelPair ProcessLabels(const std::vector<clipper::String>& ColLab,
-				 const column_labels& ColumnLabels,
-				 bool& IorF)
+                                 const column_labels& ColumnLabels,
+                                 bool& IorF)
   // This is for merged files
   // A ColLab element is formatted as "/crystal/dataset/label type"
   //    (clipper format)
@@ -300,12 +300,12 @@ namespace MtzIO {
   // On entry:
   //  ColLab  clipper column labels from MTZ file
   //  ColumnLabels column labels for "FI" and "SIGFI" if set on input
-  //  
+  //
   // Returns:
   //  ClipperLabelPair   Clipper path & labels for pair of items eg F, SIGF
   //    SIGF omitted from label if not present
   //  IorF true if column is F, false if J (intensity)
-  //  
+  //
   {
     //......................................................
     // Column assignments
@@ -313,7 +313,7 @@ namespace MtzIO {
     int colsigI = -1;
     IorF = false; // true if column is F, false if J (intensity)
     int fail = +1;
-    
+
     std::vector<ColumnData> ColumnInfo(ColLab.size()); // data for each column
 
     clipper::String M_ISYM_label = "M_ISYM"; // a marker for unmerged file
@@ -322,102 +322,102 @@ namespace MtzIO {
       //  each element of ColumnInfo contains xname, dname, label, type
       ColumnInfo[i] = ExtractLabelType(ColLab[i]);
       if (ColumnInfo[i].label == M_ISYM_label) {
-	return ClipperLabelPair();
+        return ClipperLabelPair();
       }
     }
 
     if (ColumnLabels.size() > 0) {
       // We have column label(s) specified for (IorF) & optionally SIG(IorF)
       for (size_t i=0;i<ColumnInfo.size();i++) {
-	// Look for a given label
-	if (colsigI < 0 && ColumnLabels.Label("FI") == ColumnInfo[i].label) {
-	  colI = i;
-	  if (ColumnInfo[i].type == "J")
-	    IorF = false;
-	  else if(ColumnInfo[i].type == "F")
-	    IorF = true;
-	  else
-	    Message::message(Message_fatal
-			     ("hkl_merged_list: column is not of type J or F"));
-	} else if (colsigI < 0 && ColumnLabels.size() > 1) {
-	  // Test SIG label
-	  if (ColumnLabels.Label("SIGFI") == ColumnInfo[i].label) {
-	    colsigI = i;
-	    if (ColumnInfo[i].type != "Q") {
-	      Message::message(Message_fatal
-			       ("hkl_merged_list: SIG column is not of type Q"));
-	      fail = +3;
-	    }
-	  }
-	}
+        // Look for a given label
+        if (colsigI < 0 && ColumnLabels.Label("FI") == ColumnInfo[i].label) {
+          colI = i;
+          if (ColumnInfo[i].type == "J")
+            IorF = false;
+          else if(ColumnInfo[i].type == "F")
+            IorF = true;
+          else
+            Message::message(Message_fatal
+                             ("hkl_merged_list: column is not of type J or F"));
+        } else if (colsigI < 0 && ColumnLabels.size() > 1) {
+          // Test SIG label
+          if (ColumnLabels.Label("SIGFI") == ColumnInfo[i].label) {
+            colsigI = i;
+            if (ColumnInfo[i].type != "Q") {
+              Message::message(Message_fatal
+                               ("hkl_merged_list: SIG column is not of type Q"));
+              fail = +3;
+            }
+          }
+        }
       }  // loop columns in file
     } else {
       // No column labels specified on entry
       // Find first viable column of type J or F
       //  find type J if possible
       if ((colI=FindColumn(ColumnInfo, "J")) >= 0) {
-	IorF = false;
-	// Is the next column type "Q" ie sigma?
-	if (unsigned(colI+1) < ColumnInfo.size() &&
-	    ColumnInfo[colI+1].type == "Q") {
-	  //  Yes    
-	  colsigI = colI+1;
-	}
+        IorF = false;
+        // Is the next column type "Q" ie sigma?
+        if (unsigned(colI+1) < ColumnInfo.size() &&
+            ColumnInfo[colI+1].type == "Q") {
+          //  Yes
+          colsigI = colI+1;
+        }
       }
       if (colI < 0) {
-	// Search for column or type "F"
-	if ((colI=FindColumn(ColumnInfo, "F")) >= 0) {
-	  IorF = true;
-	  // Is the next column type "Q" ie sigma?
-	  if (unsigned(colI+1) < ColumnInfo.size() &&
-	      ColumnInfo[colI+1].type == "Q") {
-	    //  Yes    
-	    colsigI = colI+1;
-	  }
-	}
+        // Search for column or type "F"
+        if ((colI=FindColumn(ColumnInfo, "F")) >= 0) {
+          IorF = true;
+          // Is the next column type "Q" ie sigma?
+          if (unsigned(colI+1) < ColumnInfo.size() &&
+              ColumnInfo[colI+1].type == "Q") {
+            //  Yes
+            colsigI = colI+1;
+          }
+        }
       }
       if (colI < 0) {
-	//  find type K if possible
-	if ((colI=FindColumn(ColumnInfo, "K")) >= 0) {
-	  IorF = false;
-	  // Is the next column type "M" ie sigma?
-	  if (unsigned(colI+1) < ColumnInfo.size() &&
-	      ColumnInfo[colI+1].type == "M") {
-	    //  Yes    
-	    colsigI = colI+1;
-	  }
-	}
+        //  find type K if possible
+        if ((colI=FindColumn(ColumnInfo, "K")) >= 0) {
+          IorF = false;
+          // Is the next column type "M" ie sigma?
+          if (unsigned(colI+1) < ColumnInfo.size() &&
+              ColumnInfo[colI+1].type == "M") {
+            //  Yes
+            colsigI = colI+1;
+          }
+        }
       }
     }  // end no labels specified
 
     if (colI >= 0 && colsigI > 0) {
-      fail = 0; 
+      fail = 0;
     } else if (colI >= 0 && colsigI < 0) {
       // Ior F found but not SIG, look for it
       fail = +2;  //no sigI found
       if (unsigned(colI+1) < ColLab.size()) {
-	// I or F is not last column
-	// Next column might  be sigma
-	if (ColumnInfo[colI+1].type == "Q") {
-	  colsigI = colI+1;
-	  fail = 0;
-	} else {
-	  fail = +2;  //no sigI found
-	}
+        // I or F is not last column
+        // Next column might  be sigma
+        if (ColumnInfo[colI+1].type == "Q") {
+          colsigI = colI+1;
+          fail = 0;
+        } else {
+          fail = +2;  //no sigI found
+        }
       }
     }
-  
+
     if (fail == +1) {
       if (ColumnLabels.size() > 0)
-	  Message::message(Message_fatal
-			 ("no column found with name "+ColumnInfo[colI].label));
-	else
-	  Message::message(Message_fatal
-			 ("no intensity or F column found"));
+          Message::message(Message_fatal
+                         ("no column found with name "+ColumnInfo[colI].label));
+        else
+          Message::message(Message_fatal
+                         ("no intensity or F column found"));
       }
     if (fail == +3)
       Message::message(Message_fatal
-		       ("sigma column is not of type Q"));
+                       ("sigma column is not of type Q"));
 
     if (fail == +2) {
       // colI found but not colsigI
@@ -425,18 +425,17 @@ namespace MtzIO {
     } else {
       // Check that FI & SIG columns come from same dataset
       if (!ColumnInfo[colI].SameXDname(ColumnInfo[colsigI])) {
-	Message::message(Message_fatal
-			 ("IorF column belongs to a different dataset from the SIG column"));
+        Message::message(Message_fatal
+                         ("IorF column belongs to a different dataset from the SIG column"));
       }
     }
 
     std::string sigLabel;
     if (colsigI >= 0) {sigLabel =  ColumnInfo[colsigI].label;}
     return ClipperLabelPair(ColumnInfo[colI].xname, ColumnInfo[colI].dname,
-			    ColumnInfo[colI].label, sigLabel);
+                            ColumnInfo[colI].label, sigLabel);
 
   }  // ProcessLabels
 
 
 } // namespace MtzIO
-

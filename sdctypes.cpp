@@ -24,8 +24,8 @@ namespace scala {
   // Reset minimum & maximum
   //--------------------------------------------------------------
   SDcorrection::SDcorrection(const double& SDfac,
-			     const double& SDb, const double& SDadd,
-			     const bool& fixSDb)
+                             const double& SDb, const double& SDadd,
+                             const bool& fixSDb)
     : sdfac(SDfac), sdb(SDb), sdadd(SDadd), fixsdb(fixSDb),
       weights(std::vector<double>(3,0.0))
   {
@@ -44,12 +44,12 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double SDcorrection::SigmaPrime(const double& sigma, const double& gscale,
-				  const double& Iav) const
+                                  const double& Iav) const
   // Correct sigma on Ihl scale
   // sigma  uncorrected sigma(Ihl)
   // gscale inverse scale for Ihl
   // Iav    average <Ih>
-  // 
+  //
   // Ih = gscale * Iav
   // sigma' = SdFac * sqrt ( sigma^2 + SdB * Ih + (SdAdd * Iav)^2)
   //        = SdFac * sqrt ( sigma^2 + SdB * Ih + SdAdd2 * Iav^2)
@@ -66,7 +66,7 @@ namespace scala {
   // returns original uncorrected but scaled sd(I)
   {
     float sig0 = Observation.ksigI();  // scaled sigI
-    // sd' on Ihl scale 
+    // sd' on Ihl scale
     double sd = SigmaPrime(Observation.sigI(), Observation.Gscale(), Iav);
     double corr = sd/Observation.sigI();
     mincorr = Min(corr, mincorr);
@@ -81,7 +81,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   IsigI SDcorrection::Correct(const IsigI& Is, const double& gscale,
-				const float& Iav) const
+                                const float& Iav) const
   {
     double sd = SigmaPrime(Is.sigI(), gscale, Iav);
     double corr = sd/Is.sigI();
@@ -121,7 +121,7 @@ namespace scala {
   //--------------------------------------------------------------
   void SDcorrection::SetRefineParameters()
   // Set internal vector p (2 or 3) from Sdfac etc
-  //  vector p is (p1,p2,p3), p2 may be missing 
+  //  vector p is (p1,p2,p3), p2 may be missing
   {
     p.clear();
     double sdf2 = sdfac*sdfac;
@@ -135,7 +135,7 @@ namespace scala {
   //--------------------------------------------------------------
   void SDcorrection::SetParameters(const std::vector<double>& params)
   // Set all parameters from vector (2 or 3)
-  //  vector params is (p1,p2,p3), p2 may be missing 
+  //  vector params is (p1,p2,p3), p2 may be missing
   {
     p = params;  // save
     if (params[0] > 0.0) {
@@ -146,7 +146,7 @@ namespace scala {
     }
     sdfac = Max(sdfac, MINSDFAC);
     int k=1;
-    if (!fixsdb) sdb = params[k++]/(sdfac*sdfac);	 
+    if (!fixsdb) sdb = params[k++]/(sdfac*sdfac);
     sdadd2 = params[k]/(sdfac*sdfac);
     sdadd = sqrt(std::abs(sdadd2));
     if (sdadd2 < 0.0) sdadd = -sdadd;
@@ -166,7 +166,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::vector<double> SDcorrection::GetDerivatives(const float& sigma,
-						   const float& Iav) const
+                                                   const float& Iav) const
   // On entry:
   //  sigma    uncorrected sigma, scaled to Iav
   //  Iav      average I <Ih>
@@ -263,7 +263,7 @@ namespace scala {
   //! set targets & SD (=0 for no restraint), for 3 parameters always
   //! weight = 1/SD^2
   void SDcorrection::SetRestraints(const std::vector<double>& Targets,
-				   const std::vector<double>& SDtarget)
+                                   const std::vector<double>& SDtarget)
   // If FixSdB (ie 2 parameters), this can still specify 3 target/weight
   // pairs & the 2nd one will be ignored
   // Target for SdAdd is given here for SdAdd, but stored as target for SdAdd^2 = sdadd2
@@ -275,26 +275,26 @@ namespace scala {
     sdtargets = SDtarget;
     targets = rawtargets;
     weights = sdtargets;  // in case they are = 0.0
-    
+
     int k = 0;
     // SdFac
     // Check for sensible values
-    if (sdtargets[k] > 0.0 && 
-	(targets[k] < 0.01 || targets[k] > 100.0)) {
+    if (sdtargets[k] > 0.0 &&
+        (targets[k] < 0.01 || targets[k] > 100.0)) {
       OK = false;
     }
     k++;
     if (!fixsdb) { // SdB present
       // SdB
-      if (sdtargets[k] > 0.0 && 
-	  (targets[k] < -20 || targets[k] > 20.0)) {
-	OK = false;
+      if (sdtargets[k] > 0.0 &&
+          (targets[k] < -20 || targets[k] > 20.0)) {
+        OK = false;
       }
     }
     // SdAdd
     k++;
-    if (sdtargets[k] > 0.0 && 
-	(targets[k] < -0.2 || targets[k] > 0.2)) {
+    if (sdtargets[k] > 0.0 &&
+        (targets[k] < -0.2 || targets[k] > 0.2)) {
       OK = false;
     }
     for (k=0;k<int(sdtargets.size());++k) {
@@ -303,21 +303,21 @@ namespace scala {
     if (!OK) {
       std::string s = "SDcorrection::SetRestraints unreasonable values:";
       for (k=0;k<int(sdtargets.size());++k) {
-	s += " "+clipper::String(targets[k])+" "+clipper::String(sdtargets[k]);
+        s += " "+clipper::String(targets[k])+" "+clipper::String(sdtargets[k]);
       }
       Message::message(Message_fatal(s));
     }
     // Store weights = 1/SD^2
     for (k=0;k<int(sdtargets.size());++k) {
       if (sdtargets[k] > 0.0) {
-	weights[k] = sdtargets[k]*sdtargets[k];
-	if (k==int(sdtargets.size())-1) { // SdAdd
-	  // for SdAdd use target to SdAdd^2 = sdadd2
-	  targets[k] = targets[k]*targets[k];
-	  // and square SD as well (not necessarily correct!)
-	  weights[k] = sdtargets[k]*sdtargets[k];
-	}
-	weights[k] = 1.0/(weights[k]*weights[k]); // weight = 1/SD^2
+        weights[k] = sdtargets[k]*sdtargets[k];
+        if (k==int(sdtargets.size())-1) { // SdAdd
+          // for SdAdd use target to SdAdd^2 = sdadd2
+          targets[k] = targets[k]*targets[k];
+          // and square SD as well (not necessarily correct!)
+          weights[k] = sdtargets[k]*sdtargets[k];
+        }
+        weights[k] = 1.0/(weights[k]*weights[k]); // weight = 1/SD^2
       }
     }
    }
@@ -329,12 +329,12 @@ namespace scala {
     double dtarget[] = {0.0,0.0,0.0};
     double dweight[] = {0.0,10.0,0.0};  // SdB only
     SetRestraints(std::vector<double>(dtarget, dtarget+3),
-		  std::vector<double>(dweight, dweight+3));
+                  std::vector<double>(dweight, dweight+3));
   }
   //--------------------------------------------------------------
   //! return restraint values
   void SDcorrection::GetRestraints(std::vector<double>& Targets,
-				   std::vector<double>& SDtarget) const
+                                   std::vector<double>& SDtarget) const
   {
     Targets = rawtargets;
     SDtarget = sdtargets;
@@ -352,11 +352,11 @@ namespace scala {
     k++;
     if (!fixsdb) { // SdB
       if (weights[k] > 0.0) { // SdFac
-	R2 += weights[k] * (sdb - targets[k]) * (sdb - targets[k]);
+        R2 += weights[k] * (sdb - targets[k]) * (sdb - targets[k]);
       }}
     k++;
     if (weights[k] > 0.0) { // SdAdd
-	R2 += weights[k] * (sdadd2 - targets[k]) * (sdadd2 - targets[k]);
+        R2 += weights[k] * (sdadd2 - targets[k]) * (sdadd2 - targets[k]);
     }
     return 0.5*R2;
   }
@@ -374,7 +374,7 @@ namespace scala {
     // NB l = 0,npar-1, k = 0,NPARALL-1, ie different if fixsdb
 
     int l = 0;
-    int k = 0; // q[k]    
+    int k = 0; // q[k]
     int j = 0; // p[j]
     // --- p1 components, wk * Delk * dqk/dpj
     //  q1 (SdFac),p1  dq1/dp1 = 1/(2 q1)
@@ -384,8 +384,8 @@ namespace scala {
     k++;l++;
     if (!fixsdb) {
       if (weights[k] > 0.0) {
-	// q2 (SdB), p1 , dq2/dp1 = -p2/p1
-	dqdp(l,j) =  -p[1] / p[0];
+        // q2 (SdB), p1 , dq2/dp1 = -p2/p1
+        dqdp(l,j) =  -p[1] / p[0];
       }
       l++;
     }
@@ -393,7 +393,7 @@ namespace scala {
     // q3 (SdAdd^2), p1, dq3^2/dp1 = -p3/p1^2
     if (weights[k] > 0.0) {
       dqdp(l,j) =  -p[2]/(p[0]*p[0]);
-    }  // 
+    }  //
     // --- p2 components
     l = 1;  // for p2, only q2, dq1/dp2 = 0 = dq3^2/dp2
     k = 1;
@@ -402,9 +402,9 @@ namespace scala {
       j++;
       //  q2 (SdB),p2  dq1/dp2 = 1/p1
       if (weights[k] > 0.0) {
-	dqdp(l,j) = 1.0 / p[0];
+        dqdp(l,j) = 1.0 / p[0];
       }
-      l++;      
+      l++;
       l3 = 2;  // if SdB is used, SdAdd is 3rd parameter
     }
     k++;
@@ -424,24 +424,24 @@ namespace scala {
     for (j=0;j<npar;++j) { // loop parameter j
       l = 0;
       for (k=0;k<NPARALL;++k) { // loop parameter k
-	if (k != 1 || !fixsdb) {
-	  if (k == 0) { 
-	    wD = weights[k] * (sdfac - targets[k]);
-	  } else if (k == 1) {
-	    wD = weights[k] * (sdb - targets[k]);
-	  } else if (k == 2) {
-	    wD = weights[k] * (sdadd2 - targets[k]);
-	  }
-	  // Gradient = - w dR/dp  (NB negative!)
-	  dp[j] -= wD * dqdp(l,j);
-	  // Hessian
-	  for (int i=0;i<npar;++i) { // loop parameter i
-	    H(i,j) += weights[k] * dqdp(l,i) * dqdp(l,j);
-	  }
-	  l++;
-	} // not SdB
+        if (k != 1 || !fixsdb) {
+          if (k == 0) {
+            wD = weights[k] * (sdfac - targets[k]);
+          } else if (k == 1) {
+            wD = weights[k] * (sdb - targets[k]);
+          } else if (k == 2) {
+            wD = weights[k] * (sdadd2 - targets[k]);
+          }
+          // Gradient = - w dR/dp  (NB negative!)
+          dp[j] -= wD * dqdp(l,j);
+          // Hessian
+          for (int i=0;i<npar;++i) { // loop parameter i
+            H(i,j) += weights[k] * dqdp(l,i) * dqdp(l,j);
+          }
+          l++;
+        } // not SdB
       } // end loop k
-    } // end loop j 
+    } // end loop j
     //^
     //    std::cout << "Gradient: ";
     //    for (j=0;j<npar;++j) {std::cout << " " << dp[j];}
@@ -476,7 +476,7 @@ namespace scala {
     FR.ReadTag("SDcorrection"); // fails if tag does not match
     if (FR.GetTag() != "V1") {  // version check
       clipper::Message::message(Message_fatal
-	("SDcorrection::Restore incompatible version"));
+        ("SDcorrection::Restore incompatible version"));
     }
     FR.Skip();
     std::string fsdb = FR.GetTag();
@@ -490,7 +490,7 @@ namespace scala {
     sdadd = FR.Double();
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
-	("SDcorrection Restore unexpected tag "+FR.Tag()));
+        ("SDcorrection Restore unexpected tag "+FR.Tag()));
     }
 
     sdadd2 = sdadd*sdadd;

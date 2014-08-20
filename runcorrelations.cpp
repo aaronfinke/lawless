@@ -24,17 +24,17 @@ namespace scala {
 
   // ------------------------------------------------------------
   RunCorrelations::RunCorrelations(const hkl_unmerge_list& hkl_list,
-				   const SDmodel& SDM,
-				   const Normalise& NormRes,
-				   const int& nresbins)
+                                   const SDmodel& SDM,
+                                   const Normalise& NormRes,
+                                   const int& nresbins)
   {
     init(hkl_list, SDM, NormRes, nresbins);
   }
   // ------------------------------------------------------------
   void RunCorrelations::init(const hkl_unmerge_list& hkl_list,
-			     const SDmodel& SDM,
-			     const Normalise& NormRes,
-			     const int& nresbins)
+                             const SDmodel& SDM,
+                             const Normalise& NormRes,
+                             const int& nresbins)
   // Accumulate CC on I and E^2 for each run pair in resolution bins,
   // then average over resolution bins. This gives a better average
   // over resolution than calculating CC over all data
@@ -54,7 +54,7 @@ namespace scala {
     //    std::vector<std::vector<correl_coeff> > CC_E2_res;  // on E^2
 
     CC_E2_res.resize(nmatrix);
-    for (int k=0; k<nmatrix; k++) { 
+    for (int k=0; k<nmatrix; k++) {
       CC_E2_res[k].resize(nresbins);
     }
 
@@ -67,46 +67,46 @@ namespace scala {
     reflection this_refl;
     while (hkl_list.next_reflection(this_refl) >= 0)  {
       SDM.CorrectReflection(this_refl);
-   
+
       std::vector<MeanVariance> meanIrun(nruns);
-    
+
       // loop accepted observations to get weighted mean I by run
       while ((iobs = this_refl.next_observation(this_obs)) >= 0) {
-	int irun = this_obs.run();
-	float weight = 1.0/(this_obs.ksigI()*this_obs.ksigI());
-	meanIrun[irun].Add(this_obs.kI(), weight);
+        int irun = this_obs.run();
+        float weight = 1.0/(this_obs.ksigI()*this_obs.ksigI());
+        meanIrun[irun].Add(this_obs.kI(), weight);
       } // end loop observations
-      
+
       // Normalisation factor (multiplying)
       float normscale = normres->CorrAvg(this_refl.invresolsq());
-      // resolution bin      
+      // resolution bin
       int mres = resrange.bin(this_refl.invresolsq());
-      
+
       int k = 0;
       for (int i=1;i<nruns;++i) {
-	if (meanIrun[i].Count() > 0) {
-	  for (int j=0;j<i;++j) {
-	    if (meanIrun[j].Count() > 0) {
-	      double w = 1.0;
-	      if (VARIANCEWEIGHT) {
-		double mv = normscale*normscale*(meanIrun[i].VarianceFromWeights() +
-						 meanIrun[j].VarianceFromWeights());
-		if (mv <= 0.0) {
-		  w = 0.0;
-		} else {
-		  w = 1.0/mv;
-		}
-	      }
-	      if (w > 0.0) {
-		CC_E2_res[k][mres].add(normscale*meanIrun[i].Mean(),
-				       normscale*meanIrun[j].Mean(), w);
-	      }
-	    }
-	    k++;
-	  }
-	} else {
-	  k++;
-	}
+        if (meanIrun[i].Count() > 0) {
+          for (int j=0;j<i;++j) {
+            if (meanIrun[j].Count() > 0) {
+              double w = 1.0;
+              if (VARIANCEWEIGHT) {
+                double mv = normscale*normscale*(meanIrun[i].VarianceFromWeights() +
+                                                 meanIrun[j].VarianceFromWeights());
+                if (mv <= 0.0) {
+                  w = 0.0;
+                } else {
+                  w = 1.0/mv;
+                }
+              }
+              if (w > 0.0) {
+                CC_E2_res[k][mres].add(normscale*meanIrun[i].Mean(),
+                                       normscale*meanIrun[j].Mean(), w);
+              }
+            }
+            k++;
+          }
+        } else {
+          k++;
+        }
       }
     }  // end loop reflections
 
@@ -115,27 +115,27 @@ namespace scala {
     int k = 0;
     for (int i=1;i<nruns;++i) {
       for (int j=0;j<i;++j) {
-	MeanValue m2;
-	int n = 0;
-	for (int i=0;i<nresbins;++i) {
-	  double w = 1.0;
-	  if (resweighttype == +1) {
-	    double sdCC = CC_E2_res[k][i].SD();
-	    w = 0.0;
-	    if (sdCC > 0.0) {
-	      w = 1.0/(sdCC*sdCC);
-	    }
-	  } else if (resweighttype == +2) {
-	    w = CC_E2_res[k][i].Number();
-	  }
-	  if (w > 0.0) {
-	    m2.Add(CC_E2_res[k][i].CC(), w);
-	    n += CC_E2_res[k][i].Number();
-	  }
-	}
-	mnCC_E2[k] = m2.Mean();
-	nmeanCC[k] += n;
-	k++;
+        MeanValue m2;
+        int n = 0;
+        for (int i=0;i<nresbins;++i) {
+          double w = 1.0;
+          if (resweighttype == +1) {
+            double sdCC = CC_E2_res[k][i].SD();
+            w = 0.0;
+            if (sdCC > 0.0) {
+              w = 1.0/(sdCC*sdCC);
+            }
+          } else if (resweighttype == +2) {
+            w = CC_E2_res[k][i].Number();
+          }
+          if (w > 0.0) {
+            m2.Add(CC_E2_res[k][i].CC(), w);
+            n += CC_E2_res[k][i].Number();
+          }
+        }
+        mnCC_E2[k] = m2.Mean();
+        nmeanCC[k] += n;
+        k++;
       }
     }
 
@@ -153,13 +153,13 @@ namespace scala {
     if (nruns < 2) {return;}
 
     output.logTab(0, LOGFILE,
-		  "\nMatrix of correlations of E^2 between runs");
+                  "\nMatrix of correlations of E^2 between runs");
     output.logTab(0, LOGFILE,
-  		    "==========================================");
+                    "==========================================");
 
     output.logTab(0, LOGFILE,
-		  std::string("\nWeighted correlation coefficients are calculated for each")+
-		  " run pair in resolution ranges,\n  then averaged over bins\n\n");
+                  std::string("\nWeighted correlation coefficients are calculated for each")+
+                  " run pair in resolution ranges,\n  then averaged over bins\n\n");
 
     std::string s;
     if (resweighttype == 0) {
@@ -180,9 +180,9 @@ namespace scala {
     for (int irun=0;irun<nruns;++irun) {
       std::string sr = "Run "+StringUtil::itos(runlist[irun].RunNumber());
       sr += " maximum resolution "+
-	StringUtil::ftos(runlist[irun].GetResoRange().ResHigh(), 7, 3);
+        StringUtil::ftos(runlist[irun].GetResoRange().ResHigh(), 7, 3);
       sr += " Dataset: "+
-	hkl_list_p->dataset(runlist[irun].DatasetIndex()).pxdname().format();
+        hkl_list_p->dataset(runlist[irun].DatasetIndex()).pxdname().format();
       output.logTab(0, LOGFILE, sr);
     }
 
@@ -193,10 +193,10 @@ namespace scala {
     std::string line1 = "\n         Run  ";
     for (int j=0;j<nruns-1;++j) {
       if (j >= MAXCOLS) {
-	line1 += " ...";
-	break;
+        line1 += " ...";
+        break;
       } else {
-	line1 += StringUtil::itos(j+1, 7);
+        line1 += StringUtil::itos(j+1, 7);
       }
     }
     output.logTab(0, LOGFILE, line1);
@@ -206,26 +206,26 @@ namespace scala {
       line1 = "Run"+StringUtil::itos(i+1, 4) + " CC(E^2) ";
       std::string line2 = "          N     ";
       for (int j=0;j<i;++j) {
-	if (j >= MAXCOLS) {
-	  if (!clipped) {line1 += " ...";}
-	  clipped = true;
-	} else {
-	  line1 += StringUtil::ftos(mnCC_E2[k], 7, 3);
-	  line2 += StringUtil::itos(nmeanCC[k], 7);
-	}
-	k++;
+        if (j >= MAXCOLS) {
+          if (!clipped) {line1 += " ...";}
+          clipped = true;
+        } else {
+          line1 += StringUtil::ftos(mnCC_E2[k], 7, 3);
+          line2 += StringUtil::itos(nmeanCC[k], 7);
+        }
+        k++;
       }
       if (i <= MAXROWS) {
-	output.logTab(0, LOGFILE, line1);
-	output.logTab(0, LOGFILE, line2);
+        output.logTab(0, LOGFILE, line1);
+        output.logTab(0, LOGFILE, line2);
       }
     }
 
     if (clipped) {
       output.logTab(0, LOGFILE," ...");
       output.logTab(0, LOGFILE,
-	    std::string("\nSome matrix entries have been suppressed to save paper:")+
-		    " all entries are written to XML");
+            std::string("\nSome matrix entries have been suppressed to save paper:")+
+                    " all entries are written to XML");
     }
 
 
@@ -238,9 +238,9 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void RunCorrelations::resolutiongraph(const int& nrungraph,
-					phaser_io::Output& output) const
+                                        phaser_io::Output& output) const
   // graph pairs up to run index nrungraph
-  {    
+  {
     std::string s = "Run pair correlations by resolution";
     TableGraph table(" ==== "+s);
     table.StoreID("Graph-RunCorrelationsVsResolution");
@@ -249,10 +249,10 @@ namespace scala {
     int k = 0;
     for (int i=1;i<nrungraph;++i) {
       for (int j=0;j<i;++j) {
-	std::string s = "CC"+StringUtil::itos(i+1,3) + "-" +
-	  StringUtil::itos(j+1,3);
-	labels.push_back(StringUtil::Strip(s));
-	k++;
+        std::string s = "CC"+StringUtil::itos(i+1,3) + "-" +
+          StringUtil::itos(j+1,3);
+        labels.push_back(StringUtil::Strip(s));
+        k++;
       }
     }
     int ncc = labels.size();
@@ -288,8 +288,8 @@ namespace scala {
     }
     fmt += "\n";
     // store labels, zero flags and format
-    table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt); 
-    
+    table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
+
     std::vector<MeanValue> mnCC_E2(ncc);
 
     int n=1;
@@ -298,16 +298,16 @@ namespace scala {
       bool write = false;
       std::vector<double> val(ncc, 0.0);
       for (int k=0;k<ncc;++k) {
-	if (CC_E2_res[k][i].Number() > 0) {
-	  write = true;
-	  val[k] = CC_E2_res[k][i].CC();
-	  mnCC_E2[k].Add(CC_E2_res[k][i].CC());
-	}
+        if (CC_E2_res[k][i].Number() > 0) {
+          write = true;
+          val[k] = CC_E2_res[k][i].CC();
+          mnCC_E2[k].Add(CC_E2_res[k][i].CC());
+        }
       }
       if (write) {
-	// Store each table line
-	table.Line(val, nc3, n++, resrange.middle(i),
-		   resrange.middleA(i));
+        // Store each table line
+        table.Line(val, nc3, n++, resrange.middle(i),
+                   resrange.middleA(i));
       }
     }
     table.CloseTable();
@@ -328,41 +328,41 @@ namespace scala {
     // XML output
     output.logTab(0, LXML, "<runcorrelations>");
     output.logTab(0, LXML,
-		  StringUtil::MakeXMLtag("Nruns", StringUtil::itos(nruns,3)));
+                  StringUtil::MakeXMLtag("Nruns", StringUtil::itos(nruns,3)));
 
     output.logTab(0,LXML,
-	  StringUtil::MakeXMLtag("Nresolutionbins",
-				 StringUtil::itos(resrange.Nbins(), 3)));
+          StringUtil::MakeXMLtag("Nresolutionbins",
+                                 StringUtil::itos(resrange.Nbins(), 3)));
     std::string line;
     for (int i=0;i<resrange.Nbins();++i) {
       line += StringUtil::ftos(resrange.middle(i), 8, 4);
     }
     // middle of resolution bins as 1/d^2
     output.logTab(0,LXML,
-	  StringUtil::MakeXMLtag("invresolsqBins",
-				 StringUtil::onespace(line)));
+          StringUtil::MakeXMLtag("invresolsqBins",
+                                 StringUtil::onespace(line)));
     int k = 0;
     for (int i=1;i<nruns;++i) {
       std::string line1 = StringUtil::MakeXMLtag("runi",
-				     StringUtil::itos(i+1, 3));
+                                     StringUtil::itos(i+1, 3));
       for (int j=0;j<i;++j) {
-	std::string line = "<correlation>"+line1+
-	  StringUtil::MakeXMLtag("runj",
-				 StringUtil::itos(j+1, 3));
-	line += StringUtil::MakeXMLtag("CC",
-				    StringUtil::ftos(mnCC_E2[k], 6, 3));
-	line += StringUtil::MakeXMLtag("Number",
-				    StringUtil::itos(nmeanCC[k], 7));
-	line += "\n";
+        std::string line = "<correlation>"+line1+
+          StringUtil::MakeXMLtag("runj",
+                                 StringUtil::itos(j+1, 3));
+        line += StringUtil::MakeXMLtag("CC",
+                                    StringUtil::ftos(mnCC_E2[k], 6, 3));
+        line += StringUtil::MakeXMLtag("Number",
+                                    StringUtil::itos(nmeanCC[k], 7));
+        line += "\n";
 
-	std::string s;
-	for (int l=0;l<resrange.Nbins();++l) {
-	  s += " "+StringUtil::ftos(CC_E2_res[k][l].CC(),7,3);
-	}
-	line += "  "+StringUtil::MakeXMLtag("CCbyresolution", s, false);
-	line += "</correlation>\n";
-	output.logTab(0,LXML, StringUtil::onespace(line));
-	k++;
+        std::string s;
+        for (int l=0;l<resrange.Nbins();++l) {
+          s += " "+StringUtil::ftos(CC_E2_res[k][l].CC(),7,3);
+        }
+        line += "  "+StringUtil::MakeXMLtag("CCbyresolution", s, false);
+        line += "</correlation>\n";
+        output.logTab(0,LXML, StringUtil::onespace(line));
+        k++;
       }
     }
 

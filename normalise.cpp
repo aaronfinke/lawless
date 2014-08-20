@@ -48,7 +48,7 @@ namespace scala {
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   void BfactorModel::Setup(const bool& Constant,
-			   const double& Time0) {
+                           const double& Time0) {
       if (Constant) {nparam = 2;}
       else {nparam = 3;}
       time0 = Time0;
@@ -137,7 +137,7 @@ namespace scala {
     // Average "time" for each run
     std::vector<double> avgtime(Nruns, 0.0);
 
-    // + + + + + + + + + + + + 
+    // + + + + + + + + + + + +
     for (int ir=0;ir<Nruns;ir++) {        // loop runs
       int nbatch = sums_st[ir].cols();    // Number of batches in run
       float Time0 = sums_st[ir](0,0).Time0();  // Time start point
@@ -147,7 +147,7 @@ namespace scala {
       //  If the number of batches (proportional to time range) is "small", then it does not
       //  make sense to have a time variation in normalisation (ie radiation damage
       //  correction
-      bool Constant = false;      
+      bool Constant = false;
       if (nbatch < MIN_NBATCH_TIME_VARIATION) {Constant = true;}
       Bfactors[ir].Setup(Constant, Time0);  // store time0
       int Nparam = Bfactors[ir].Nparam();   // 2 or 3
@@ -156,34 +156,34 @@ namespace scala {
       std::vector<double> mv(Nparam);        // measurement vector
 
       for (int is=0;is<Nbins;is++) {         // loop resolution bins
-	for (int ib=0;ib<nbatch;ib++) {   // loop batches
-	  // Mean I & mean sSqr for this bin (is,ib)
-	  double mnI    = sums_st[ir](is,ib).MeanI();
-	  double mnSSqr = sums_st[ir](is,ib).MeanSSqr();
-	  double mnTime = sums_st[ir](is,ib).MeanTime(); // from start
-	  DTime = Max(DTime, sums_st[ir](is,ib).MaxTime());// maximum time from start of run
-	  if (mnI > 0.001) {
-	    // Measurement vector = (1 s2 [s2*t])
-	    mv = Bfactors[ir].MeasurementVector(mnSSqr, mnTime);
-	    RunFactor[ir].add(log(mnI), mv, w);  // add into LSQ sums
-	  }
-	}
+        for (int ib=0;ib<nbatch;ib++) {   // loop batches
+          // Mean I & mean sSqr for this bin (is,ib)
+          double mnI    = sums_st[ir](is,ib).MeanI();
+          double mnSSqr = sums_st[ir](is,ib).MeanSSqr();
+          double mnTime = sums_st[ir](is,ib).MeanTime(); // from start
+          DTime = Max(DTime, sums_st[ir](is,ib).MaxTime());// maximum time from start of run
+          if (mnI > 0.001) {
+            // Measurement vector = (1 s2 [s2*t])
+            mv = Bfactors[ir].MeasurementVector(mnSSqr, mnTime);
+            RunFactor[ir].add(log(mnI), mv, w);  // add into LSQ sums
+          }
+        }
       }
       // Solve for parameters for this run
       if (RunFactor[ir].Nobs() > 0) {
-	Bfactors[ir].Set(RunFactor[ir].solve()); // solve & store parameters
-	//  The number of parameters depends on "Constant" flag, 2 or 3
+        Bfactors[ir].Set(RunFactor[ir].solve()); // solve & store parameters
+        //  The number of parameters depends on "Constant" flag, 2 or 3
       } else {
-	Bfactors[ir].Invalid();
+        Bfactors[ir].Invalid();
       }
       DTime -= Time0;
       avgtime[ir] = 0.5*DTime;       // average time for run (relative)
       Bfactors[ir].DTime() = DTime;  // store maximum time for run
       //^
       //      std::cout << "run, time0, dtime " << ir << " "
-      //      		<< Time0 << " " << DTime << "\n";
+      //                << Time0 << " " << DTime << "\n";
     }   // end loop runs
-    // + + + + + + + + + + + + 
+    // + + + + + + + + + + + +
 
     // Get average correction term, over all runs & time,
     // ie just as function of s^2
@@ -192,19 +192,19 @@ namespace scala {
     int n=0;
     for (int ir=0;ir<Nruns;ir++) {        // loop runs
       if (Bfactors[ir].Valid()) {
-	p = Bfactors[ir].Params();
-	// Reset B-factor parameters to correspond to mid-time point
-	if (max_nparam > 2) {
-	  p[1] += avgtime[ir] * p[2];
-	  p[2] = 0.0;
-	}
-	for (int i=0;i<max_nparam;i++) {params[i] += p[i];}
-	n++;
+        p = Bfactors[ir].Params();
+        // Reset B-factor parameters to correspond to mid-time point
+        if (max_nparam > 2) {
+          p[1] += avgtime[ir] * p[2];
+          p[2] = 0.0;
+        }
+        for (int i=0;i<max_nparam;i++) {params[i] += p[i];}
+        n++;
       }
     }
     if (n > 0) {
       for (int i=0;i<max_nparam;i++) {
-	params[i] /= float(n);
+        params[i] /= float(n);
       }
     }
     AvgFactor.Setup(true);
@@ -217,31 +217,31 @@ namespace scala {
     if (type == +2) {
       MeanSD ImeanSD;  // for overall <I>
       imax = 0.0;
-      
+
       for (int ir=0;ir<Nruns;ir++) {        // loop runs
-	if (Bfactors[ir].Valid()) {
-	  int nbatch = sums_st[ir].cols();    // Number of batches in run
-	  for (int is=0;is<Nbins;is++) {         // loop resolution bins
-	    for (int ib=0;ib<nbatch;ib++) {   // loop batches
-	      if (sums_st[ir](is,ib).num() > 0) {
-		userun_[ir] = true;
-		// Mean I & mean sSqr for this bin (is,ib)
-		double mnI    = sums_st[ir](is,ib).MeanI();
-		double mnSSqr = sums_st[ir](is,ib).MeanSSqr();
-		ImeanSD.Add(sums_st[ir](is,ib).MeanI());
-		imax = Max(imax, sums_st[ir](is,ib).MeanI());
-		// Apply correction so far (for time relative to start)
-		double factor = Bfactors[ir].FactorT(mnSSqr, sums_st[ir](is,ib).MeanTime());
-		if (factor != 0.0) {
-		  // sums for overall resolution
-		  sSqrmnI[is].add(mnI/factor, mnSSqr);
-		}
-	      }
-	    }
-	  }
-	}
+        if (Bfactors[ir].Valid()) {
+          int nbatch = sums_st[ir].cols();    // Number of batches in run
+          for (int is=0;is<Nbins;is++) {         // loop resolution bins
+            for (int ib=0;ib<nbatch;ib++) {   // loop batches
+              if (sums_st[ir](is,ib).num() > 0) {
+                userun_[ir] = true;
+                // Mean I & mean sSqr for this bin (is,ib)
+                double mnI    = sums_st[ir](is,ib).MeanI();
+                double mnSSqr = sums_st[ir](is,ib).MeanSSqr();
+                ImeanSD.Add(sums_st[ir](is,ib).MeanI());
+                imax = Max(imax, sums_st[ir](is,ib).MeanI());
+                // Apply correction so far (for time relative to start)
+                double factor = Bfactors[ir].FactorT(mnSSqr, sums_st[ir](is,ib).MeanTime());
+                if (factor != 0.0) {
+                  // sums for overall resolution
+                  sSqrmnI[is].add(mnI/factor, mnSSqr);
+                }
+              }
+            }
+          }
+        }
       }
-      
+
       imean = ImeanSD.Mean();   // <I>
       sSqrmnIcorr.resize(Nbins+1);
       // First point at s = 0. at intercept of B-factor (= 1)
@@ -250,20 +250,20 @@ namespace scala {
       // Minimum value to avoid negatives
       bcmin = 1.0;
       int ismax = -2;
-      
+
       int k = 1;
       for (int i=0;i<Nbins;i++)  {
-	if (sSqrmnI[i].num() > 0) {
-	  sSqrmnIcorr[k].first = sSqrmnI[i].MeanSSqr();  // s^2
-	  double mnI = sSqrmnI[i].MeanI();    // <I> corrected
-	  sSqrmnIcorr[k].second = mnI;    // <I> corrected
-	  if (mnI > 0.00001) {
-	    bcmin = Min(bcmin, mnI);
-	    // Maximum bin
-	    ismax = k;
-	  }
-	  k++;	      
-	}
+        if (sSqrmnI[i].num() > 0) {
+          sSqrmnIcorr[k].first = sSqrmnI[i].MeanSSqr();  // s^2
+          double mnI = sSqrmnI[i].MeanI();    // <I> corrected
+          sSqrmnIcorr[k].second = mnI;    // <I> corrected
+          if (mnI > 0.00001) {
+            bcmin = Min(bcmin, mnI);
+            // Maximum bin
+            ismax = k;
+          }
+          k++;
+        }
       }
       if (ismax > 0) {sSqrmnIcorr.resize(ismax+1);}
       bincorr = Spline(sSqrmnIcorr);
@@ -273,24 +273,24 @@ namespace scala {
   }
   //--------------------------------------------------------------
   float Normalise::apply(const float& I, const float& sSqr,
-			 const int& irun, const float& time) const
+                         const int& irun, const float& time) const
   // "time" here is actual time or rotation, not relative to start of run:
   // offset to make relative to start of run is done internally
   {
     // Dividing scale
     float c = Bfactors.at(irun).Factor(sSqr, time);
-    if (type == +1) 
+    if (type == +1)
       return I / c;
     if (type == +2)
       {
-	float scorr = Max(bcmin, bincorr.Interpolate(sSqr));
-	return I / (c * scorr);
+        float scorr = Max(bcmin, bincorr.Interpolate(sSqr));
+        return I / (c * scorr);
       }
     return 0.0; // dummy
   }
   //--------------------------------------------------------------
   IsigI Normalise::apply(const IsigI& Is, const float& sSqr,
-			 const int& irun, const float& time) const
+                         const int& irun, const float& time) const
   // "time" here is actual time or rotation, not relative to start of run:
   // offset to make relative to start of run is done internally
   {
@@ -340,7 +340,7 @@ namespace scala {
   //--------------------------------------------------------------
   // Total correction factor (multiplying factor)
   float Normalise::Corr(const float& sSqr,
-			const int& irun, const float& time) const
+                        const int& irun, const float& time) const
   {
     float c = apply(1.0, sSqr, irun, time);
     return c;
@@ -364,9 +364,9 @@ namespace scala {
   //--------------------------------------------------------------
   int normdumpnumber = 0;
   void NormDump(const Normalise& NormRes,
-		const std::vector<int>& Batch0,
-		const int& Nbin,
-		const std::vector<clipper::Array2d<BinSums> >& sums_st)
+                const std::vector<int>& Batch0,
+                const int& Nbin,
+                const std::vector<clipper::Array2d<BinSums> >& sums_st)
   {
     // **** Open files for dumping  ****
     FILE* file;
@@ -375,42 +375,42 @@ namespace scala {
     file = fopen(name.c_str(), "w");
     if (file == NULL)
       Message::message(Message_fatal("Can't open file "+name));
-    
+
     int Nruns = sums_st.size();
     // Constant term (intercept), dividing scale
     float SclC = NormRes.SclCor();
     std::vector<float> vsSqr;
-    
+
     for (int ir=0;ir<Nruns;ir++) {        // loop runs
       fprintf(file, "# Run %6d\n", ir);
       int nbatch = sums_st[ir].cols();    // Number of batches in run
       for (int ib=0;ib<nbatch;ib++) {   // loop batches
-	fprintf(file, "# Batch %6d\n", ib);
-	for (int is=0;is<Nbin;is++) {         // loop resolution bins
-	  if (sums_st[ir](is,ib).num() > 0) {
-	    float mnI  = sums_st[ir](is,ib).MeanI();
-	    if (mnI > 0.01) {
-	      float mnsSqr = sums_st[ir](is,ib).MeanSSqr();
-	      vsSqr.push_back(mnsSqr);
-	      float Icorr = NormRes.apply(mnI, mnsSqr, ir, float(ib+Batch0[ir]));
-	      fprintf(file, " %8.5f %8.4f  %10.6f %8d\n",
-		      mnsSqr,mnI/SclC,Icorr,sums_st[ir](is,ib).num());
-	    }
-	  }
-	}
-	fprintf(file, "&\n");
+        fprintf(file, "# Batch %6d\n", ib);
+        for (int is=0;is<Nbin;is++) {         // loop resolution bins
+          if (sums_st[ir](is,ib).num() > 0) {
+            float mnI  = sums_st[ir](is,ib).MeanI();
+            if (mnI > 0.01) {
+              float mnsSqr = sums_st[ir](is,ib).MeanSSqr();
+              vsSqr.push_back(mnsSqr);
+              float Icorr = NormRes.apply(mnI, mnsSqr, ir, float(ib+Batch0[ir]));
+              fprintf(file, " %8.5f %8.4f  %10.6f %8d\n",
+                      mnsSqr,mnI/SclC,Icorr,sums_st[ir](is,ib).num());
+            }
+          }
+        }
+        fprintf(file, "&\n");
       }
       // Interpolated values
       const int DIV = 5;
       if (vsSqr.size() > 0) {
-	for (size_t i=0;i<vsSqr.size()-1;++i) {
-	  for (int j=0;j<DIV;++j) {
-	    float s = vsSqr[i] + j*(vsSqr[i+1]-vsSqr[i])/float(DIV);
-	    float Icorr = NormRes.apply(1.0, s, ir, 0.0);
-	    fprintf(file, " %8.5f %10.6f\n",
-		    s, Icorr);
-	  }
-	}
+        for (size_t i=0;i<vsSqr.size()-1;++i) {
+          for (int j=0;j<DIV;++j) {
+            float s = vsSqr[i] + j*(vsSqr[i+1]-vsSqr[i])/float(DIV);
+            float Icorr = NormRes.apply(1.0, s, ir, 0.0);
+            fprintf(file, " %8.5f %10.6f\n",
+                    s, Icorr);
+          }
+        }
       }
       fprintf(file, "&\n");
     }
@@ -426,18 +426,18 @@ namespace scala {
       }
       fprintf(file, "&\n");
     */
-    
+
     int status = fclose(file);
     status = status;
   // **** end dump  ****
   }
   //--------------------------------------------------------------
   Normalise SetNormalise(const hkl_unmerge_list& hkl_list,
-			 const double& MinIsigRatio,
-			 const bool& Overall,
-			 ResoRange& ResRange,
-			 Rings& Icerings,
-			 const int PrintLevel)
+                         const double& MinIsigRatio,
+                         const bool& Overall,
+                         ResoRange& ResRange,
+                         Rings& Icerings,
+                         const int PrintLevel)
   // Set up intensity normalisation object NormRes
   //
   // Use binned <I> to get normalisation object
@@ -454,17 +454,17 @@ namespace scala {
   {
     observation this_obs;
     int Nbin = ResRange.Nbins();
-    
+
     // Sums for overall I/sigI etc by resolution for resolution cut-off
     std::vector<double> sum_I(Nbin);
     std::vector<double> sum_sigI(Nbin);
     std::vector<double> sum_sSqr(Nbin);
     std::vector<int> n_I(Nbin);
-    
+
     // Ice rings
     Icerings.ClearSums();
     float IceTolerance = 3.0;  // changed from 4 in 1.6.14
-    
+
     // Binning by resolution and "time" (often rotation relative to start of run)
     // for each run
     int Nruns = hkl_list.num_runs();
@@ -474,23 +474,23 @@ namespace scala {
     std::vector<clipper::Array2d<BinSums> > sums_st(Nruns);
     std::vector<int> Batch0(Nruns);
     std::vector<int> NBatch(Nruns);
-    
+
     for (int ir=0;ir<Nruns;ir++) {
       std::pair<int,int> batchrange = Runs[ir].BatchRange(); // min & max batch number
       int nbatches = batchrange.second - batchrange.first + 1; // not all may be present
       Batch0[ir] = batchrange.first;
       if (Overall) {   // for overall normalisation, only one "batch"
-	nbatches = 1;
-	Batch0[ir] = 1;
+        nbatches = 1;
+        Batch0[ir] = 1;
       }
       NBatch[ir] = nbatches;
       sums_st[ir] = clipper::Array2d<BinSums>(Nbin, nbatches);
       for (int i=0;i<Nbin;i++) {
-	for (int j=0;j<nbatches;j++) {
-	  sums_st[ir](i,j).clear(double(Runs[ir].TimeRange().min()));  // Set time0
-	}}
+        for (int j=0;j<nbatches;j++) {
+          sums_st[ir](i,j).clear(double(Runs[ir].TimeRange().min()));  // Set time0
+        }}
     }
-    
+
     int irun;
     int ib;
 
@@ -508,50 +508,50 @@ namespace scala {
       // use only general reflections h!=k!=l!=0 to avoid
       // problems with unknown epsilon
       if (this_refl.hkl().IsGeneral()) {
-	// Resolution 
-	float sSqr = this_refl.invresolsq();
-	int rbin = ResRange.tbin(sSqr);
-	if (rbin >= 0) { // test that reflection is in range
-	  // Is this in an ice ring? Omit these from averages
-	  int Iring = Icerings.InRing(sSqr);
-	  while (this_refl.next_observation(this_obs) >= 0) {
-	    if (Iring >= 0) {
-	      Icerings.AddObs(Iring, this_obs.kI_sigI(), sSqr);
-	    } else {
-	      sum_I[rbin] += this_obs.kI();
-	      sum_sigI[rbin] += this_obs.ksigI();
-	      sum_sSqr[rbin] += sSqr;
-	      //^
-	      //	      if (rbin == 0) { /// inner bin only
-	      //		///		fprintf(ndump,"%8.5f %8.1f\n", sSqr, this_obs.ksigI());
-	      //		fprintf(ndump,"%10.1f %8.1f %8.5f\n", this_obs.kI(), this_obs.ksigI(), sSqr);
-	      //	      } //^-
-	      resmnI[rbin].Add(this_obs.kI());
-	      resmnSdI[rbin].Add(this_obs.ksigI());
-	      n_I[rbin]++;
-	      // By run things
-	      if (Overall) {
-		irun = 0;
-		ib = 0;
-	      } else {
-		irun = this_obs.run();
-		ib = this_obs.Batch() - Batch0[irun];
-		ASSERT (ib < NBatch[irun]);
-		//^		if (ib >= NBatch[irun]) {
-		//^		  std::cout << ib << " relative batch\n";
-		//^		}
-	      }
-	      // I, s^2, time
-	      sums_st[irun](rbin,ib).add(this_obs.kI(), sSqr, this_obs.time());
-	      numobs++;
-	      //^
-	      //	      std::cout << "sums_st[irun](rbin,ib) " << irun <<" "<< rbin <<" "<< ib <<" "
-	      //			<< this_obs.kI() <<"\n"; //^-
-	    }
-	  }
-	}
+        // Resolution
+        float sSqr = this_refl.invresolsq();
+        int rbin = ResRange.tbin(sSqr);
+        if (rbin >= 0) { // test that reflection is in range
+          // Is this in an ice ring? Omit these from averages
+          int Iring = Icerings.InRing(sSqr);
+          while (this_refl.next_observation(this_obs) >= 0) {
+            if (Iring >= 0) {
+              Icerings.AddObs(Iring, this_obs.kI_sigI(), sSqr);
+            } else {
+              sum_I[rbin] += this_obs.kI();
+              sum_sigI[rbin] += this_obs.ksigI();
+              sum_sSqr[rbin] += sSqr;
+              //^
+              //              if (rbin == 0) { /// inner bin only
+              //                ///             fprintf(ndump,"%8.5f %8.1f\n", sSqr, this_obs.ksigI());
+              //                fprintf(ndump,"%10.1f %8.1f %8.5f\n", this_obs.kI(), this_obs.ksigI(), sSqr);
+              //              } //^-
+              resmnI[rbin].Add(this_obs.kI());
+              resmnSdI[rbin].Add(this_obs.ksigI());
+              n_I[rbin]++;
+              // By run things
+              if (Overall) {
+                irun = 0;
+                ib = 0;
+              } else {
+                irun = this_obs.run();
+                ib = this_obs.Batch() - Batch0[irun];
+                ASSERT (ib < NBatch[irun]);
+                //^             if (ib >= NBatch[irun]) {
+                //^               std::cout << ib << " relative batch\n";
+                //^             }
+              }
+              // I, s^2, time
+              sums_st[irun](rbin,ib).add(this_obs.kI(), sSqr, this_obs.time());
+              numobs++;
+              //^
+              //              std::cout << "sums_st[irun](rbin,ib) " << irun <<" "<< rbin <<" "<< ib <<" "
+              //                        << this_obs.kI() <<"\n"; //^-
+            }
+          }
+        }
       } else {
-	zonalrefs++; // count reflections in potential zones
+        zonalrefs++; // count reflections in potential zones
       }
     }
 
@@ -565,7 +565,7 @@ namespace scala {
 
     // (<I>) v. sSqr & time
     Normalise NormRes(sums_st);
-     
+
     // Means in resolution bins
     std::vector<MeanIsdIsSqr> meanisdissqr(Nbin);
     //^
@@ -573,17 +573,17 @@ namespace scala {
     //^-
     for (int i=0;i<Nbin;++i) {
       if (n_I[i] > 0) {
-	meanisdissqr[i].MnI = resmnI[i].Mean();
-	meanisdissqr[i].SdMnI = resmnI[i].SD();
-	meanisdissqr[i].MnSdI = resmnSdI[i].Mean();
-	meanisdissqr[i].SdMnSdI = resmnSdI[i].SD();
-	meanisdissqr[i].MnsSqr = sum_sSqr[i]/n_I[i];
-	meanisdissqr[i].N = n_I[i];
-	//^
-	//^	std::cout << meanisdissqr[i].MnsSqr
-	//^		  << " " << meanisdissqr[i].MnI << " " << meanisdissqr[i].SdMnI 		  <<" "<<meanisdissqr[i].MnSdI<<" "<<meanisdissqr[i].SdMnSdI
-	//^		  <<" "<<meanisdissqr[i].N <<"\n";
-	//^-
+        meanisdissqr[i].MnI = resmnI[i].Mean();
+        meanisdissqr[i].SdMnI = resmnI[i].SD();
+        meanisdissqr[i].MnSdI = resmnSdI[i].Mean();
+        meanisdissqr[i].SdMnSdI = resmnSdI[i].SD();
+        meanisdissqr[i].MnsSqr = sum_sSqr[i]/n_I[i];
+        meanisdissqr[i].N = n_I[i];
+        //^
+        //^     std::cout << meanisdissqr[i].MnsSqr
+        //^               << " " << meanisdissqr[i].MnI << " " << meanisdissqr[i].SdMnI                   <<" "<<meanisdissqr[i].MnSdI<<" "<<meanisdissqr[i].SdMnSdI
+        //^               <<" "<<meanisdissqr[i].N <<"\n";
+        //^-
       }
     }
     NormRes.StoreMeanIsdIsSqr(meanisdissqr);
@@ -595,9 +595,9 @@ namespace scala {
       // Skip 0'th bin in case of low resolution funnies
       int i = Nbin-1;
       for (i=1;i<Nbin;i++) {
-	if (n_I[i] > 0) {
-	  if (sum_I[i]/sum_sigI[i] < MinIsigRatio) break;
-	}
+        if (n_I[i] > 0) {
+          if (sum_I[i]/sum_sigI[i] < MinIsigRatio) break;
+        }
       }
       if (i > 0) i--;
       smax = ResRange.bounds(i).second;
@@ -613,19 +613,19 @@ namespace scala {
       bool IceReject = false;
       float sSqr = Icerings.MeanSSqr(Iring);
       if (sSqr <= smax) {
-	float Imean = Icerings.MeanI(Iring);
-	float sigImean = Icerings.MeanSigI(Iring);
-	float expectedI = 1./NormRes.applyAvg(1.0, sSqr);
-	if ((Imean-expectedI)/sigImean > IceTolerance) {
-	  IceReject = true;}
-	//^
-	//	std::cout << "Ring " << Iring <<" "<<1./sqrt(sSqr)<<" "<<Imean<<" "<<expectedI
-	//		  <<" "<<sigImean<<" "<<(Imean-expectedI)/sigImean<<"\n";
-	//^-
+        float Imean = Icerings.MeanI(Iring);
+        float sigImean = Icerings.MeanSigI(Iring);
+        float expectedI = 1./NormRes.applyAvg(1.0, sSqr);
+        if ((Imean-expectedI)/sigImean > IceTolerance) {
+          IceReject = true;}
+        //^
+        //      std::cout << "Ring " << Iring <<" "<<1./sqrt(sSqr)<<" "<<Imean<<" "<<expectedI
+        //                <<" "<<sigImean<<" "<<(Imean-expectedI)/sigImean<<"\n";
+        //^-
       }
       Icerings.SetReject(Iring, IceReject);
     }
-    
+
     // **** Open files for dumping  ****
     if (PrintLevel > 0) {
       NormDump(NormRes, Batch0, Nbin, sums_st);

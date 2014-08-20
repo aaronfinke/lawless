@@ -39,20 +39,20 @@ namespace MtzIO
   }
   //--------------------------------------------------------------
   void WriteUnmerged::OptAddCol(const bool& coln,
-				MTZCOL* col[], int& ic, MTZ* mtzout, MTZSET* baseset,
-				const char* label, const char* type)
-    // Conditional column addition, only if coln > 0    
+                                MTZCOL* col[], int& ic, MTZ* mtzout, MTZSET* baseset,
+                                const char* label, const char* type)
+    // Conditional column addition, only if coln > 0
   {
     if (coln)
-	col[ic++] = MtzAddColumn(mtzout, baseset, label, type);
+        col[ic++] = MtzAddColumn(mtzout, baseset, label, type);
   }
   //--------------------------------------------------------------
   int WriteUnmerged::writeUnmergedMTZ(const scala::hkl_unmerge_list& hkl_list,
-				      const SDmodel& SDM,
-				      const bool& summedpartials,
-				      const int& datasetIndex,
-				      const std::string& filename_out,
-				      const std::string& title)
+                                      const SDmodel& SDM,
+                                      const bool& summedpartials,
+                                      const int& datasetIndex,
+                                      const std::string& filename_out,
+                                      const std::string& title)
   // Write unmerged MTZ file from hkl_unmerge_list object
   // returns number written
   //
@@ -81,7 +81,7 @@ namespace MtzIO
     char HorR = 'H'; // default H setting
     if (NewSymm.lattice_type() == 'H' || NewSymm.lattice_type() == 'R') {
       if (RhombohedralAxes(hkl_list.Cell().UnitCell())) { // true if not H
-	HorR = 'R';
+        HorR = 'R';
       }}
     char spg_status = hkl_list.MtzSym().spg_confidence;
     mtzout->mtzsymm = spg_to_mtz(NewSymm.GetSpaceGroup(), HorR, spg_status);
@@ -101,7 +101,7 @@ namespace MtzIO
     for (int i=0;i<6;i++)
       {ucell[i] = HKLcell[i];}
     xtal = MtzAddXtal(mtzout, "HKL_base", "HKL_base",
-		      ucell);
+                      ucell);
     MTZSET* baseset = MtzAddDataset(mtzout, xtal, "HKL_base", 0.0);
 
     int j1=0;
@@ -120,23 +120,23 @@ namespace MtzIO
       Dataset dataset = hkl_list.dataset(jxd);
       std::vector<PxdName> pxdnames = dataset.pxdnames(); // names for this dataset (maybe only one)
       for (size_t ixt=0;ixt<pxdnames.size();++ixt) { // loop crystals
-	std::string xname = pxdnames[ixt].xname();
-	if (xtals[xname] == 0) { // new crystal
-	  HKLcell = CG.constrain(hkl_list.dataset(jxd).cell());
-	  for (int i=0;i<6;i++) {
-	    ucell[i] = HKLcell[i];
-	  }
-	  xtal = MtzAddXtal(mtzout, xname.c_str(),
-			    hkl_list.dataset(jxd).Pname().c_str(),
-			    ucell);
-	  xtals[xname] = xtal; // store pointer
-	} else { // this dataset belongs to a crystal we have already
-	  xtal = xtals[xname];
-	}
-	// Add this Xdataset
-	set = MtzAddDataset(mtzout, xtal,
-			    hkl_list.dataset(jxd).Dname().c_str(),
-			    hkl_list.dataset(jxd).wavelength(xname));
+        std::string xname = pxdnames[ixt].xname();
+        if (xtals[xname] == 0) { // new crystal
+          HKLcell = CG.constrain(hkl_list.dataset(jxd).cell());
+          for (int i=0;i<6;i++) {
+            ucell[i] = HKLcell[i];
+          }
+          xtal = MtzAddXtal(mtzout, xname.c_str(),
+                            hkl_list.dataset(jxd).Pname().c_str(),
+                            ucell);
+          xtals[xname] = xtal; // store pointer
+        } else { // this dataset belongs to a crystal we have already
+          xtal = xtals[xname];
+        }
+        // Add this Xdataset
+        set = MtzAddDataset(mtzout, xtal,
+                            hkl_list.dataset(jxd).Dname().c_str(),
+                            hkl_list.dataset(jxd).wavelength(xname));
       } // end loop Xdatasets (ie crystals)
     } // end loop datasets
 
@@ -194,20 +194,20 @@ namespace MtzIO
     if (nlattices > 1) { // multilattice
       OptAddCol(true, col, ic, mtzout, baseset, "LATTNUM", "I");
       for (int l=0;l<maxhkloverlap;++l) {
-	std::string ns = StringUtil::Strip(StringUtil::itos(l+1,3));
-	OptAddCol(true, col, ic, mtzout, baseset, ("LATTNUM"+ns).c_str(), "I");
-	OptAddCol(true, col, ic, mtzout, baseset, ("H"+ns).c_str(), "H");
-	OptAddCol(true, col, ic, mtzout, baseset, ("K"+ns).c_str(), "H");
-	OptAddCol(true, col, ic, mtzout, baseset, ("L"+ns).c_str(), "H");
-	OptAddCol(true, col, ic, mtzout, baseset, ("SCALE"+ns).c_str(), "R");
+        std::string ns = StringUtil::Strip(StringUtil::itos(l+1,3));
+        OptAddCol(true, col, ic, mtzout, baseset, ("LATTNUM"+ns).c_str(), "I");
+        OptAddCol(true, col, ic, mtzout, baseset, ("H"+ns).c_str(), "H");
+        OptAddCol(true, col, ic, mtzout, baseset, ("K"+ns).c_str(), "H");
+        OptAddCol(true, col, ic, mtzout, baseset, ("L"+ns).c_str(), "H");
+        OptAddCol(true, col, ic, mtzout, baseset, ("SCALE"+ns).c_str(), "R");
       }
     }
     int NumCol = ic;
-    
+
     // List is sorted on the first 5 columns
     MtzSetSortOrder(mtzout, col);
-    
-    // History    
+
+    // History
     MtzIO::MTZaddHistory(hkl_list.getHistory(), mtzout);
 
     std::vector<int> nobsbatch;
@@ -216,7 +216,7 @@ namespace MtzIO
     if (summedpartials) {
       // write out summed observations, for selected dataset(s)
       nobsbatch =  writeObservations(hkl_list, SDM, NumCol, datasetIndex,
-				     mtzout, col);
+                                     mtzout, col);
     } else {
       // write out unsummed parts, for all datasets
       nobsbatch =  writeParts(hkl_list, NumCol, mtzout, col);
@@ -232,42 +232,42 @@ namespace MtzIO
     for (int jbat=0;jbat<hkl_list.num_batches();jbat++)  {
       // Only output accepted batches
       if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
-	batch = MtzMallocBatch(); // make space for batch data
-	
-	if (nbat == 0) {
-	  mtzout->batch = batch; // pointer to first batch
-	} else {
-	  // Link previous batch to this one
-	  previous_batch->next = batch;
-	}
-	nbat++;
-	previous_batch = batch;
+        batch = MtzMallocBatch(); // make space for batch data
 
-	*batch = hkl_list.batch(jbat).batchdata(); // copy data
-	// reset time limits if no time data
-	if (!col_sel.is_time) {
-	  batch->time1 = 0.0;
-	  batch->time2 = 0.0;
-	}
-	// Fix up cell, constrain to symmetry
-	scala::Scell Bcell = scala::Scell(batch->cell);
-	// Is this a valid cell?
-	bool valid = true;
-	for (int i=0;i<6;i++) {
-	  if (Bcell[i] <= 0.001) {valid = false;}
-	}
-	if (valid) {
-	  scala::Scell Bcell = CG.constrain(scala::Scell(batch->cell));
-	  for (int i=0;i<6;i++) {batch->cell[i] = Bcell[i];}
-	}
-	// Update NBsetid if required, ie index in dataset list
-	// look it up in new mtzout structure
+        if (nbat == 0) {
+          mtzout->batch = batch; // pointer to first batch
+        } else {
+          // Link previous batch to this one
+          previous_batch->next = batch;
+        }
+        nbat++;
+        previous_batch = batch;
 
-	int nbsetid = hkl_list.batch(jbat).DatasetID();
-	PxdName pxdname =  hkl_list.dataset(hkl_list.batch(jbat).datasetindex()).pxdname(nbsetid);
-	std::string path = "/"+pxdname.xname()+"/"+pxdname.dname();
-	batch->nbsetid = MtzSetLookup(mtzout, path.c_str())->setid;  // setid
-	batch->next = NULL;  // for last one
+        *batch = hkl_list.batch(jbat).batchdata(); // copy data
+        // reset time limits if no time data
+        if (!col_sel.is_time) {
+          batch->time1 = 0.0;
+          batch->time2 = 0.0;
+        }
+        // Fix up cell, constrain to symmetry
+        scala::Scell Bcell = scala::Scell(batch->cell);
+        // Is this a valid cell?
+        bool valid = true;
+        for (int i=0;i<6;i++) {
+          if (Bcell[i] <= 0.001) {valid = false;}
+        }
+        if (valid) {
+          scala::Scell Bcell = CG.constrain(scala::Scell(batch->cell));
+          for (int i=0;i<6;i++) {batch->cell[i] = Bcell[i];}
+        }
+        // Update NBsetid if required, ie index in dataset list
+        // look it up in new mtzout structure
+
+        int nbsetid = hkl_list.batch(jbat).DatasetID();
+        PxdName pxdname =  hkl_list.dataset(hkl_list.batch(jbat).datasetindex()).pxdname(nbsetid);
+        std::string path = "/"+pxdname.xname()+"/"+pxdname.dname();
+        batch->nbsetid = MtzSetLookup(mtzout, path.c_str())->setid;  // setid
+        batch->next = NULL;  // for last one
       }
     }
 
@@ -281,10 +281,10 @@ namespace MtzIO
   }
   //--------------------------------------------------------------
   int WriteUnmerged::writeUnmergedSCA(const scala::hkl_unmerge_list& hkl_list,
-				      const SDmodel& SDM,
-				      const int& datasetIndex,
-				      const std::string& filename_out,
-				      const float& maxintensity)
+                                      const SDmodel& SDM,
+                                      const int& datasetIndex,
+                                      const std::string& filename_out,
+                                      const float& maxintensity)
   // Write unmerged scalepack file from hkl_unmerge_list object
   // returns number written
   // Skip multiples
@@ -310,15 +310,15 @@ namespace MtzIO
     int nsym = SG.num_symops();
 
     fprintf(scafile, "%5d %s\n", nsym,
-	    StringUtil::Strip(SG.Symbol_hm()).c_str());
+            StringUtil::Strip(SG.Symbol_hm()).c_str());
     for (int k=0;k<nsym;++k) {
       clipper::Symop symop = SG.Symop(k);
       for (int i=0;i<3;++i) for(int j=0;j<3;++j) {
-	fprintf(scafile, "%3d", Nint(symop.rot()(i,j)));
+        fprintf(scafile, "%3d", Nint(symop.rot()(i,j)));
       }
       fprintf(scafile, "\n");
       for (int i=0;i<3;++i) {
-	fprintf(scafile, "%3d", Nint(symop.trn()[i]));
+        fprintf(scafile, "%3d", Nint(symop.trn()[i]));
       }
       fprintf(scafile, "\n");
     }
@@ -337,37 +337,37 @@ namespace MtzIO
 
       // loop observations
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
-	if (this_obs.IsSingleton()) {
-	  if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
-	    scala::Hkl hkl_orig = this_obs.hkl_original();
-	    int isym = this_obs.Isym();
-	    int iasym = ((isym-1)/2+1);
-	    int batch = this_obs.Batch();
-	    int icn = 0; // centric
-	    int ispndle=0;  // dummy here
-	    if (!Centric) {
-	      if (isym%2 == 0) icn = 2;  // I-
-	      else icn = 1;             // I+
-	    }
-	    fprintf(scafile, "%4d%4d%4d%4d%4d%4d%6d%2d%2d%3d%8.1f%8.1f\n",
-		    hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
-		    hkl.h(), hkl.k(), hkl.l(),
-		    batch, icn, ispndle, iasym,
-		    scale*this_obs.kI(), scale*this_obs.ksigI());
-	    nref++;
-	  }
-	} else {
-	  nmultiple++; // omitted
-	}
+        if (this_obs.IsSingleton()) {
+          if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
+            scala::Hkl hkl_orig = this_obs.hkl_original();
+            int isym = this_obs.Isym();
+            int iasym = ((isym-1)/2+1);
+            int batch = this_obs.Batch();
+            int icn = 0; // centric
+            int ispndle=0;  // dummy here
+            if (!Centric) {
+              if (isym%2 == 0) icn = 2;  // I-
+              else icn = 1;             // I+
+            }
+            fprintf(scafile, "%4d%4d%4d%4d%4d%4d%6d%2d%2d%3d%8.1f%8.1f\n",
+                    hkl_orig.h(), hkl_orig.k(), hkl_orig.l(),
+                    hkl.h(), hkl.k(), hkl.l(),
+                    batch, icn, ispndle, iasym,
+                    scale*this_obs.kI(), scale*this_obs.ksigI());
+            nref++;
+          }
+        } else {
+          nmultiple++; // omitted
+        }
       } // end loop observations
     }  // end loop reflections
     return nref;
   }
   //--------------------------------------------------------------
   std::vector<int>  WriteUnmerged::writeParts(const scala::hkl_unmerge_list& hkl_list,
-					      const int& NumCol,
-					      MTZ* mtzout,
-					      MTZCOL* col[])
+                                              const int& NumCol,
+                                              MTZ* mtzout,
+                                              MTZCOL* col[])
   // write out all parts, all datasets
   {
     // Count observation parts in each batch
@@ -387,11 +387,11 @@ namespace MtzIO
       int M_Isym = isym;
       if (part.Npart() != 1) M_Isym = 256 + isym;
       data[3] = M_Isym;
-     
+
       data[4] = part.batch();
       data[5] = part.Ic();
       data[6] = part.sigIc();
-      
+
       // Optional columns
       int ic = 7;
       if (col_sel.is_Ipr) data[ic++] = part.Ipr();
@@ -403,9 +403,9 @@ namespace MtzIO
       if (col_sel.is_Width) data[ic++] = part.width();
       if (col_sel.is_LP) data[ic++] = part.LP();
       if (col_sel.is_Mpart) {
-	int Mpart = 0;
-	if (part.Npart() > 1) Mpart = 100*part.Npart() + part.Ipart();
-	data[ic++] = Mpart;
+        int Mpart = 0;
+        if (part.Npart() > 1) Mpart = 100*part.Npart() + part.Ipart();
+        data[ic++] = Mpart;
       }
       if (col_sel.is_ObsFlag) data[ic++] = part.ObsFlag().Flags();
       if (col_sel.is_BgPkRatio) data[ic++] = part.ObsFlag().BgPk();
@@ -417,18 +417,18 @@ namespace MtzIO
 
       // count observation parts by batch serial
       nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;
-      
+
       ccp4_lwrefl(mtzout, data, col, NumCol, i+1);
     }
     return nobsbatch;
   }
   //--------------------------------------------------------------
   std::vector<int>  WriteUnmerged::writeObservations(const scala::hkl_unmerge_list& hkl_list,
-						     const SDmodel& SDM,
-						     const int& NumCol,
-						     const int& datasetIndex,
-						     MTZ* mtzout,
-						     MTZCOL* col[])
+                                                     const SDmodel& SDM,
+                                                     const int& NumCol,
+                                                     const int& datasetIndex,
+                                                     MTZ* mtzout,
+                                                     MTZCOL* col[])
   // write out summed observations, for selected dataset(s)
   // omitting rejections
   {
@@ -454,59 +454,59 @@ namespace MtzIO
 
       // loop observations
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
-	if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
-	  // Packed M/ISYM
-	  // always M = 0 for "full" since partials have been summed (but see NPART)
-	  int isym = this_obs.Isym();
-	  ic = 3;
-	  data[ic++] = isym;
-	  data[ic++] = this_obs.Batch();
-	  data[ic++] = this_obs.kI();
-	  data[ic++] = this_obs.ksigI();
-	  // Applied scale
-	  float g = this_obs.Gscale();
-	  if (g != 0.0) g = 1.0f/g;
-	  data[ic++] = g;
-	  data[ic++] = 0.0;
-	  data[ic] = this_obs.num_parts(); // NPART = number of parts
-	  // negate for scaled partial
-	  if (this_obs.PartFlag() == SCALE) {data[ic] = -data[ic];}
-	  ic++;
+        if (datasetIndex < 0 || this_obs.datasetIndex() == datasetIndex) {
+          // Packed M/ISYM
+          // always M = 0 for "full" since partials have been summed (but see NPART)
+          int isym = this_obs.Isym();
+          ic = 3;
+          data[ic++] = isym;
+          data[ic++] = this_obs.Batch();
+          data[ic++] = this_obs.kI();
+          data[ic++] = this_obs.ksigI();
+          // Applied scale
+          float g = this_obs.Gscale();
+          if (g != 0.0) g = 1.0f/g;
+          data[ic++] = g;
+          data[ic++] = 0.0;
+          data[ic] = this_obs.num_parts(); // NPART = number of parts
+          // negate for scaled partial
+          if (this_obs.PartFlag() == SCALE) {data[ic] = -data[ic];}
+          ic++;
 
-	  // Optional columns
-	  if (col_sel.is_fractioncalc) data[ic++] = this_obs.TotalFraction();
-	  std::pair<float,float> xydet = this_obs.XYdet();
-	  if (col_sel.is_Xdet) data[ic++] = xydet.first;
-	  if (col_sel.is_Ydet) data[ic++] = xydet.second;
-	  if (col_sel.is_Rot) data[ic++]  = this_obs.phi();
-	  if (col_sel.is_Width) data[ic++] = this_obs.width();
-	  if (col_sel.is_LP) data[ic++] = this_obs.LP();
-	  if (col_sel.is_time) data[ic++] = this_obs.time();
+          // Optional columns
+          if (col_sel.is_fractioncalc) data[ic++] = this_obs.TotalFraction();
+          std::pair<float,float> xydet = this_obs.XYdet();
+          if (col_sel.is_Xdet) data[ic++] = xydet.first;
+          if (col_sel.is_Ydet) data[ic++] = xydet.second;
+          if (col_sel.is_Rot) data[ic++]  = this_obs.phi();
+          if (col_sel.is_Width) data[ic++] = this_obs.width();
+          if (col_sel.is_LP) data[ic++] = this_obs.LP();
+          if (col_sel.is_time) data[ic++] = this_obs.time();
 
-	  if (col_sel.is_latnum) {
-	    data[ic++] = this_obs.MainLatticeNumber();
-	    for (int j=0;j<maxhkloverlap*5;++j) {
-	      data[ic+j] = 0.0; // clear multilattice columns
-	    }
-	    std::vector<LatticeIndexInfo> lathkl = this_obs.lathkl();
-	    if (lathkl.size() > 0) {
-	      nmultiple++;
-	      for (size_t l=0; l<lathkl.size(); l++) { 
-		data[ic++] = lathkl[l].latnum;
-		data[ic++] = lathkl[l].hkl[0];
-		data[ic++] = lathkl[l].hkl[1];
-		data[ic++] = lathkl[l].hkl[2];
-		data[ic++] = lathkl[l].gscale;
-	      }
-	    }
-	  }
-	  
-	  // count observation parts by batch serial
-	  nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;
-	  
-	  ccp4_lwrefl(mtzout, data, col, NumCol, i+1);
-	  i++;
-	}  // end dataset selection
+          if (col_sel.is_latnum) {
+            data[ic++] = this_obs.MainLatticeNumber();
+            for (int j=0;j<maxhkloverlap*5;++j) {
+              data[ic+j] = 0.0; // clear multilattice columns
+            }
+            std::vector<LatticeIndexInfo> lathkl = this_obs.lathkl();
+            if (lathkl.size() > 0) {
+              nmultiple++;
+              for (size_t l=0; l<lathkl.size(); l++) {
+                data[ic++] = lathkl[l].latnum;
+                data[ic++] = lathkl[l].hkl[0];
+                data[ic++] = lathkl[l].hkl[1];
+                data[ic++] = lathkl[l].hkl[2];
+                data[ic++] = lathkl[l].gscale;
+              }
+            }
+          }
+
+          // count observation parts by batch serial
+          nobsbatch.at(hkl_list.batch_serial(Nint(data[4])))++;
+
+          ccp4_lwrefl(mtzout, data, col, NumCol, i+1);
+          i++;
+        }  // end dataset selection
       } // end loop observations
     }  // end loop reflections
     return nobsbatch;

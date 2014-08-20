@@ -1,6 +1,6 @@
 // controls.cpp
 
-#include <sstream> 
+#include <sstream>
 #if _OPENMP
 #include <omp.h>
 #endif
@@ -19,7 +19,7 @@ namespace scala
   {
     if (batchrangesruns.Null()) return 0; // no selections
     return batchrangesruns.FlagNumber(batchnumber);
-  } 
+  }
  //------------------------------------------------------------
   std::vector<int> run_controls::RunNumberList() const
   // List of run numbers specified
@@ -48,8 +48,8 @@ namespace scala
   }
   //------------------------------------------------------------
   partial_controls::partial_controls(const double& FrMin, const double& FrMax,
-				     const double& FrCorr, const bool& Check,
-				     const int& MaxGap)
+                                     const double& FrCorr, const bool& Check,
+                                     const int& MaxGap)
   {
     accept_fract_min_ = FrMin;
     accept_fract_max_ = FrMax;
@@ -78,32 +78,32 @@ namespace scala
     std::string s;
     if (nopartials) {
       {s += FormatOutput::logTab
-	  (0,"\nNo partially recorded reflections\n");}
+          (0,"\nNo partially recorded reflections\n");}
     } else {
       if (check_)
-	{s += FormatOutput::logTab
-	    (0,"\nHandling of partials:\n  MPART flags are checked\n");}
+        {s += FormatOutput::logTab
+            (0,"\nHandling of partials:\n  MPART flags are checked\n");}
       else
-	{s += FormatOutput::logTab
-	    (0,"\nHandling of partials:\n  MPART flags are not checked\n");}
+        {s += FormatOutput::logTab
+            (0,"\nHandling of partials:\n  MPART flags are not checked\n");}
       s += FormatOutput::logTabPrintf
-	(0,"  Summed partials accepted if total fraction is between %5.2f & %5.2f\n",
-	 accept_fract_min_, accept_fract_max_);
+        (0,"  Summed partials accepted if total fraction is between %5.2f & %5.2f\n",
+         accept_fract_min_, accept_fract_max_);
       if (correct_fract_min_ > 0.001)
-	{s += FormatOutput::logTabPrintf(0,
-					 "  Incomplete partials scaled by 1/fraction_calc if fraction is > %5.2f\n",
-					 correct_fract_min_);
-	}
+        {s += FormatOutput::logTabPrintf(0,
+                                         "  Incomplete partials scaled by 1/fraction_calc if fraction is > %5.2f\n",
+                                         correct_fract_min_);
+        }
       if (maxgap_ > 0)
-	{s += FormatOutput::logTabPrintf(0,"  Partials with up to %2d missing parts in the middle will be accepted\n",
-					 maxgap_);
-	}
+        {s += FormatOutput::logTabPrintf(0,"  Partials with up to %2d missing parts in the middle will be accepted\n",
+                                         maxgap_);
+        }
     }
     return s;
   }
   //------------------------------------------------------------
   void col_controls::SetIcolFlag(const int& IcolFlag, const double& Imid,
-				 const int Ipower)
+                                 const int Ipower)
   // Set column selection flags
   // see class observation_part (hkl_unmerge.hh) for implementation
   //   INTEGRATED   integrated intensity I                  (SelectIcolFlag=0)
@@ -198,16 +198,16 @@ namespace scala
   //------------------------------------------------------------
   // rejection criteria, within I+, I-  or between I+ & I-
   void OutlierControl::SetReject(const RejectFlags& flags,
-				 const AnomalousClass& selclass, const int& dts_index)
+                                 const AnomalousClass& selclass, const int& dts_index)
   // Set
   // if selclass == BOTH, dts_index may be = -1 for all datasets, in which case set all
   {
     if (selclass == BOTH) {
       if (dts_index >= 0) {
-	rejectanom.at(dts_index) = flags;
+        rejectanom.at(dts_index) = flags;
       } else {
-	int ndts = rejectanom.size();
-	rejectanom.assign(ndts, flags); // set all datasets
+        int ndts = rejectanom.size();
+        rejectanom.assign(ndts, flags); // set all datasets
       }
     } else {
       reject = flags;
@@ -223,7 +223,7 @@ namespace scala
   {
     if (selclass == BOTH) {
       if (dts_index > int(rejectanom.size())-1) {
-	std::cout << "OutlierControl::Reject " << dts_index <<" " << rejectanom.size() <<"\n"; //^
+        std::cout << "OutlierControl::Reject " << dts_index <<" " << rejectanom.size() <<"\n"; //^
       }
       return rejectanom.at(Max(0,dts_index));
     } else {return reject;}
@@ -278,7 +278,7 @@ namespace scala
     } else if (nprocs > 1) {
       s = FormatOutput::logTabPrintf(0,
    "Number of processors used for refinement stages = %2d of maximum %2d\n",
-				     nprocs, maxprocs);
+                                     nprocs, maxprocs);
     } else {
       s =
      "Number of processors for refinement stages will be determined from number of observations\n";
@@ -291,7 +291,7 @@ namespace scala
   {
     Anomalous = false;   // true if "anomalous on"
     AnomalousSDcorr = false;   // true to separate I+ & I- for SD correction
-  
+
     // At present, anomalous scattering is considered to be present if any one of
     // the following is true (defaults in brackets):
     //  1) Anomplot slope > anomslopethreshold (1.3)

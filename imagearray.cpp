@@ -28,7 +28,7 @@ Imagearray::Imagearray(const clipper::Array2d<double>& array)
 //--------------------------------------------------------------
 void Imagearray::init(const clipper::Array2d<double>& array)
 //! initialise from 2D array
-//   input array is (x,y), output data has 
+//   input array is (x,y), output data has
 {
   lenheader = 512;
   title = "ADSC format image";
@@ -70,9 +70,9 @@ void Imagearray::init(const clipper::Array2d<scala::MeanSD>& array, const bool& 
   for (int i=0;i<size1;++i) { // loop x
     for (int j=0;j<size2;++j) { // loop y
       if (Mean) {
-	value = array(i,j).Mean();
+        value = array(i,j).Mean();
       } else {
-	value = array(i,j).SD();
+        value = array(i,j).SD();
       }
       uint16_t d = scale*value;
       size_t k = i + j*size1;
@@ -89,13 +89,13 @@ void Imagearray::Write(const std::string& filename) const
   int n = fwrite(header.c_str(), sizeof(char), lenheader, opfile);
   if (n < int(header.size())) {
     Message::message(Message_fatal
-		     ("Imagearray::Write failed to write header: "+
-		      StringUtil::itos(n,5)+", "+StringUtil::itos(int(header.size()),5)));
+                     ("Imagearray::Write failed to write header: "+
+                      StringUtil::itos(n,5)+", "+StringUtil::itos(int(header.size()),5)));
   }
   n = fwrite(&*data.begin(), sizeof(uint16_t), data.size(), opfile);
   if (n < int(data.size())) {
     Message::message(Message_fatal
-		     ("Imagearray::Write failed to write data"));
+                     ("Imagearray::Write failed to write data"));
   }
   fclose(opfile);
 }
@@ -134,7 +134,7 @@ void Imagearray::Write(const std::string& filename) const
   header += HeaderLineInt("IMG_SIZE2", imgsize2, 6);
   header += "DISTANCE=100.;\n";
   header += "}\f";
-  // Pad to length lenheader 
+  // Pad to length lenheader
   int nextra = lenheader - header.size();
   header += std::string(nextra, ' ');
   ASSERT (int(header.size()) == lenheader);
@@ -142,16 +142,16 @@ void Imagearray::Write(const std::string& filename) const
 }
 //--------------------------------------------------------------
 std::string Imagearray::HeaderLineReal(const std::string& label,
-				      const double& value,
-				      const int& fw,const int& dw) const
+                                      const double& value,
+                                      const int& fw,const int& dw) const
 {
   // format real number line
   return StringUtil::Strip(label+"="+StringUtil::ftos(value,fw,dw)+";\n");
 }
 //--------------------------------------------------------------
 std::string Imagearray::HeaderLineInt(const std::string& label,
-				     const int& value,
-				     const int& fw) const
+                                     const int& value,
+                                     const int& fw) const
 {
   // format integer number line
   return StringUtil::Strip(label+"="+StringUtil::itos(value,fw)+";\n");
@@ -177,17 +177,17 @@ void Imagearray::ReadFile(const std::string& filename)
       std::vector<clipper::String> tokens = lines[l].split("=");
       //^      for (size_t i=0;i<tokens.size();++i) {std::cout <<" "<<tokens[i];}
       if (tokens[0] == "SIZE1") {
-	size1 = tokens[1].i();
+        size1 = tokens[1].i();
       } else if (tokens[0] == "SIZE2") {
-	size2 = tokens[1].i();
+        size2 = tokens[1].i();
       } else if (tokens[0] == "SIZE2") {
-	size2 = tokens[1].i();
+        size2 = tokens[1].i();
       } else if (tokens[0] == "IMG_SIZE1") {
-	imgsize1 = tokens[1].i();
+        imgsize1 = tokens[1].i();
       } else if (tokens[0] == "IMG_SIZE2") {
-	imgsize2 = tokens[1].i();
+        imgsize2 = tokens[1].i();
       } else if (tokens[0] == "SCALE") {
-	  scale = tokens[1].f64();
+          scale = tokens[1].f64();
       }
     }
   } // end loop lines
@@ -215,9 +215,9 @@ clipper::Array2d<double> Imagearray::GetImage(const bool& invert) const
     for (int j=0;j<size2;++j) { // loop y
       size_t k = i*size1 + j;
       if (!invert && dataread < 0) { // data =scale/value
-	array(i,j) = scale/data[k];
+        array(i,j) = scale/data[k];
       } else { // data = scale*value
-	array(i,j) = data[k]/scale;
+        array(i,j) = data[k]/scale;
       }
     }}
   return array;

@@ -13,7 +13,7 @@ float SampleGaussian::Get(const float& Mean, const float& SD)
 float SampleGaussian::Get()
 // generate a random number with mean 0 & unit variance,
 // using mysterious Box-Muller transformation
-//   see Numerical Recipes 
+//   see Numerical Recipes
 {
   if (gotone)
     {

@@ -25,7 +25,7 @@ namespace scala {
       batchinclude = input.RunBatches();
       // Check that fileSeries specified on selection commands match
       // specified files. Fail here if not
-      batchexclude.CheckSeries(NumFileSeries); 
+      batchexclude.CheckSeries(NumFileSeries);
       nullResolutionfraction = input.NullResolutionfraction();
       nullNegativeReject = input.NullNegativeReject();
     }

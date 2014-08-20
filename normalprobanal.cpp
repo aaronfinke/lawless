@@ -41,7 +41,7 @@ void NormalProbAnal::Fit()
   scala::LinearFit LineSel;
   NormalProbability NormProb;
   float w = 1.0; // unit weights
-  
+
   for (int i=0;i<Nobs;i++)
     {
       // Expected delta
@@ -49,7 +49,7 @@ void NormalProbAnal::Fit()
       float DeltaExp = NormProb.ExpectedDelta(i+1, Nobs);
       LineAll.add(DeltaExp, deltalist[i], w);
       if (std::abs(DeltaExp) < dltlim)
-	LineSel.add(DeltaExp, deltalist[i], w);
+        LineSel.add(DeltaExp, deltalist[i], w);
     }
 
   RPair FitAll = LineAll.result();
@@ -95,7 +95,7 @@ int NormalProbAnal::Number(const float& DltLim, const bool& All)
 }
 //-------------------------------------------------------------
 void NormalProbAnal::Plot(NormalProbPlot& NormPlot,
-			  const std::string& legend)
+                          const std::string& legend)
 {
   int Nobs = deltalist.size();
   if (Nobs > 0)  {

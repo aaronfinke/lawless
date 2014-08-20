@@ -10,28 +10,28 @@ const int hash_table::MinPrime = 1009;
 
   //--------------------------------------------------------------
 int hash_table::prime(const int& min_value)
-  //  Returns smallest prime >= argument 
-{ 
+  //  Returns smallest prime >= argument
+{
   // Force odd and >=  MinPrime
   int prime_number = Max((min_value/2)*2+1, MinPrime);
 
   for( ; ; )
-    { 
+    {
       bool prime_found = true;
       int max_times = ( prime_number / 2 );
       for ( int i = Min(3, max_times-1); i < max_times; ++i )
-	{
-	  if ( ( ( prime_number / i ) * i ) == prime_number )
-	    {
-	      prime_found = false;
-	      break;
-	    }
-	}
-      if ( prime_found ) 
-	break;
+        {
+          if ( ( ( prime_number / i ) * i ) == prime_number )
+            {
+              prime_found = false;
+              break;
+            }
+        }
+      if ( prime_found )
+        break;
       prime_number += 2;
     }
-  
+
   return (prime_number);
 }
 //--------------------------------------------------------------
@@ -45,19 +45,19 @@ void hash_table::setup()
   Nfind_list.assign(table_size, -1);
 }
 //--------------------------------------------------------------
-hash_table::hash_table (const int& size) 
+hash_table::hash_table (const int& size)
   // Set up hash table with size = the smallest prime >= size
 {
   table_size = prime(size);
   setup();
-} 
+}
 //--------------------------------------------------------------
-void hash_table::set_size(const int& size) 
+void hash_table::set_size(const int& size)
   // Set size for hash table with size = the smallest prime >= size
 {
   table_size = prime(size);
   setup();
-} 
+}
 //--------------------------------------------------------------
 // Add pair to list
 void hash_table::add(const int& Nstore, const int& Nfind)
@@ -74,7 +74,7 @@ void hash_table::add(const int& Nstore, const int& Nfind)
     {
       index = n % table_size;
       if ((n-Nstore) >= 3*table_size)
-	{Message::message(Message_fatal( "hash_table::setup - overflowed hash table"));}
+        {Message::message(Message_fatal( "hash_table::setup - overflowed hash table"));}
       if (Nstore_list[index] < 0) break;
       n += 3;
     }
@@ -95,7 +95,7 @@ int hash_table::lookup(const int& Nstore) const
     {
       index = n % table_size;
       if (Nstore == Nstore_list[index])
-	return Nfind_list[index];
+        return Nfind_list[index];
       n += 3;
     }
   return -1;
@@ -103,12 +103,12 @@ int hash_table::lookup(const int& Nstore) const
 //--------------------------------------------------------------
 // Returns actual stored number for index
 // = -1 if out of range
-int hash_table::number(const int& index) const 
+int hash_table::number(const int& index) const
 {
   if (index < 0 || index > table_size) {return -1;}
   for (int i=1;i<table_size;i++) {
     if (index == Nfind_list[i])
-	return Nstore_list[i];
+        return Nstore_list[i];
   }
   return -1;
 }
@@ -122,15 +122,15 @@ std::string hash_table::FormatSave() const
   for (int i=0;i<table_size;++i) {
     if (Nstore_list[i] >= 0) {
       dump += "HashIndexStoreFind "+clipper::String(i)+" "+
-	clipper::String(Nstore_list[i])+
-	" "+clipper::String(Nfind_list[i]);
+        clipper::String(Nstore_list[i])+
+        " "+clipper::String(Nfind_list[i]);
       dump += "\n";
     }
   }
   return dump+"}\n";
 }
 //--------------------------------------------------------------
-void hash_table::Restore(Fileread& FR) 
+void hash_table::Restore(Fileread& FR)
 // Restore from file
 {
   FR.ReadTag("HashTable"); // fails if tag does not match
@@ -146,7 +146,7 @@ void hash_table::Restore(Fileread& FR)
     if (tag == "}") break;  // end of list
     if (tag != "HashIndexStoreFind") {
       clipper::Message::message(Message_fatal
-	("hash_table::Restore unrecognised tag "+tag));
+        ("hash_table::Restore unrecognised tag "+tag));
     }
     int i = FR.Int();
     Nstore_list.at(i) = FR.Int();

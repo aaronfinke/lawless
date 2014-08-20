@@ -26,7 +26,7 @@ void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isig
   // uanorth is U matrix to apply to intensities, divide by 2 for amplitude equivalent
 
 
-  clipper::Matrix<double> Uorth(3,3); 
+  clipper::Matrix<double> Uorth(3,3);
   for (int j=0;j<3;++j) {
     for (int i=0;i<3;++i) {
       Uorth(i,j) = uanorth(i,j);
@@ -49,13 +49,13 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
   std::vector<DVect3> eigvecsrt(3);
   DVect3 eigvalsrt;
   std::vector<int> close(3, -1);
-  
+
   for (int i=0;i<3;++i) { // loop a*, b*, c*
     double evcmax = 0.0;
     for (int j=0;j<3;++j) { // loop vectors
       if (std::abs(eigvec[j][i]) > evcmax) {
-	evcmax = std::abs(eigvec[j][i]);
-	close[i] = j;
+        evcmax = std::abs(eigvec[j][i]);
+        close[i] = j;
       }
     }
   }
@@ -77,16 +77,16 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
 //--------------------------------------------------------------------------
   //! construct from unmerged list
   AnisotropicAnalysis::AnisotropicAnalysis(const hkl_unmerge_list& hkl_list,
-					   const int& datasetindex,
-					   const SDmodel& SDM)
+                                           const int& datasetindex,
+                                           const SDmodel& SDM)
   {
     init(hkl_list,datasetindex,SDM);
   }
 //--------------------------------------------------------------------------
   //! initialise from unmerged list
   void AnisotropicAnalysis::init(const hkl_unmerge_list& hkl_list,
-				 const int& datasetindex,
-				 const SDmodel& SDM)
+                                 const int& datasetindex,
+                                 const SDmodel& SDM)
   {
     // Anisotropy analysis is based on 3 directions, sometimes 2
     // Cases
@@ -119,19 +119,19 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));
       for (int i=0;i<3;++i) {
-	principalaxes[i][i] = 1.0;
+        principalaxes[i][i] = 1.0;
       }
     // case (3)
     } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
-	       || cryssys == HEXAGONAL) {
+               || cryssys == HEXAGONAL) {
       abplane = true;  // analysis against plane perpendicular to c*
       principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
 
       // Is it rhombohedral in R setting?
       if (cryssys == TRIGONAL && RhombohedralAxes(hkl_list.Cell().UnitCell())) {
-	rlattice = true;
-	DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
-	principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
+        rlattice = true;
+        DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
+        principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
       }
       // case (4)
     } else if (cryssys == CUBIC) {
@@ -139,13 +139,13 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
     } else { // shouldn't happen
       Message::message(Message_fatal
-		       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
+                       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
     }
   }
 //--------------------------------------------------------------------------
   //! initialise (for testing)
 void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
-			       const Scell& cscell)
+                               const Scell& cscell)
   {
     // Anisotropy analysis is based on 3 directions, sometimes 2
     // Cases
@@ -169,22 +169,22 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
 
     // case (1), (2)  (not for real use)
     if (cryssys == TRICLINIC || cryssys == MONOCLINIC ||
-	cryssys == ORTHORHOMBIC){  // just set to a*, b*, c*
+        cryssys == ORTHORHOMBIC){  // just set to a*, b*, c*
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));
       for (int i=0;i<3;++i) {
-	principalaxes[i][i] = 1.0;
+        principalaxes[i][i] = 1.0;
       }
     // case (3)
     } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
-	       || cryssys == HEXAGONAL) {
+               || cryssys == HEXAGONAL) {
       abplane = true;  // analysis against plane perpendicular to c*
       principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
 
       // Is it rhombohedral in R setting?
       if (cryssys == TRIGONAL && RhombohedralAxes(cscell.UnitCell())) {
-	rlattice = true;
-	DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
-	principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
+        rlattice = true;
+        DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
+        principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
       }
       // case (4)
     } else if (cryssys == CUBIC) {
@@ -192,14 +192,14 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
       principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
     } else { // shouldn't happen
       Message::message(Message_fatal
-		       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
+                       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
     }
   }
 //--------------------------------------------------------------------------
 //! initialise from intensity list
 void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
-			       const Scell& cscell,
-			       clipper::HKL_data<clipper::data32::I_sigI>& isigi)
+                               const Scell& cscell,
+                               clipper::HKL_data<clipper::data32::I_sigI>& isigi)
 {
   init(ssymmetry, cscell);  // initialise symmetry etc
   if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
@@ -250,7 +250,7 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
     coneangle = clipper::Util::d2rad(angledegrees);
     cosconeangle = cos(coneangle);
     sinconeangle = sin(coneangle);
-  }  
+  }
   // ------------------------------------------------------------
   //! return cone angle in degrees
   double AnisotropicAnalysis::ConeAngle() const
@@ -278,34 +278,34 @@ std::pair<int,double> AnisotropicAnalysis::Axis(const Hkl& hkl, const Rtype& inv
       cosang = Min(1.0,std::abs(projections[2])/dstar);
       //^
       //      std::cout << hkl.format() <<" " <<dstar<<" "<<projections[2]/dstar
-      //		<<" " <<ang <<" angles\n"; 
+      //                <<" " <<ang <<" angles\n";
       //^-
       if (cosang > cosconeangle) { // within cone around axis?
-	jaxis = 2;
+        jaxis = 2;
       } else if (Close(cosang, 0.0, sinconeangle)) {
-	// within coneangle of 90 degrees from axis
-	jaxis = 0;
-	cosang = sqrt(1.0 - cosang*cosang);
-	//^	std::cout << hkl.format() <<" " << clipper::Util::rad2d(ang) <<" plane\n"; //^
+        // within coneangle of 90 degrees from axis
+        jaxis = 0;
+        cosang = sqrt(1.0 - cosang*cosang);
+        //^     std::cout << hkl.format() <<" " << clipper::Util::rad2d(ang) <<" plane\n"; //^
       }
     } else {
       double maxcosang = 0.0; // cos angle
       for (int i=0;i<3;++i) { //angles from each axis
-	// dot products of x with principal axis vectors (unit length)
-	// dot products, projections, have length = d*
-	cosang = Min(1.0,std::abs(projections[i])/dstar);
-	if (cosang > cosconeangle && cosang > maxcosang) {
-	  jaxis = i;
-	  maxcosang = Max(maxcosang, cosang);
-	}
+        // dot products of x with principal axis vectors (unit length)
+        // dot products, projections, have length = d*
+        cosang = Min(1.0,std::abs(projections[i])/dstar);
+        if (cosang > cosconeangle && cosang > maxcosang) {
+          jaxis = i;
+          maxcosang = Max(maxcosang, cosang);
+        }
       }
       cosang = maxcosang;
     }
     if (jaxis >= 0) {
-	wt = (cosang - cosconeangle)/(1-cosconeangle);
-	//^
-	//	std::cout <<"coneaxis wt " <<hkl.format()<<" "<<clipper::Util::rad2d(acos(cosang))
-	//		  <<" "<<wt<<"\n"; //^-
+        wt = (cosang - cosconeangle)/(1-cosconeangle);
+        //^
+        //      std::cout <<"coneaxis wt " <<hkl.format()<<" "<<clipper::Util::rad2d(acos(cosang))
+        //                <<" "<<wt<<"\n"; //^-
     }
     return std::pair<int,double>(jaxis, wt);
   }
@@ -324,14 +324,14 @@ std::pair<int,double> AnisotropicAnalysis::Axis(const Hkl& hkl, const Rtype& inv
     if (abplane) { // For testing against axis & plane, abplane = true
       projections[2] = horth * principalaxes[2];
       if (doplane) { // radius of projection on to plane
-	projections[0] = sqrt(Max(0.0,horth*horth - projections[2]*projections[2]));
-	projections[1] = projections[0];
+        projections[0] = sqrt(Max(0.0,horth*horth - projections[2]*projections[2]));
+        projections[1] = projections[0];
       }
     } else {
       // 3 directions to test
       for (int i=0;i<3;++i) { //angles from each axis
-	// dot products of x with principal axis vectors (unit length)
-	projections[i] = horth * principalaxes[i];
+        // dot products of x with principal axis vectors (unit length)
+        projections[i] = horth * principalaxes[i];
       }
     }
     return projections;
@@ -345,12 +345,12 @@ std::pair<int,double> AnisotropicAnalysis::Axis(const Hkl& hkl, const Rtype& inv
     }
     std::string s =
       "within an maxangle of "+StringUtil::Strip(clipper::String(ConeAngle()))+" degrees";
-     
+
     if (abplane) {
       if (rlattice) {
-	s+= " perpendicular to and along the (111) axis";
+        s+= " perpendicular to and along the (111) axis";
       } else {
-	s += " of h k plane and of l axis";
+        s += " of h k plane and of l axis";
       }
     } else {
       s+= " of principal axes of anisotropy";
@@ -389,12 +389,12 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
       //^-
       int jz = 0;  // count "zeroes"
       for (int i=0;i<3;++i) {
-	if (std::abs(crdrf[i]) < tol) {jz++;}
+        if (std::abs(crdrf[i]) < tol) {jz++;}
       }
       // jz == 2 if along reciprocal cell axis, leave alone
       if (jz < 2) {
-	// not along axis
-	labels[j] = formatHvector(crdrf);
+        // not along axis
+        labels[j] = formatHvector(crdrf);
       }
     } // end loop axes
   }
@@ -406,7 +406,7 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
 {
   clipper::Coord_reci_frac nc = NormaliseVector(crdrf);
   std::string s;
-  const double TOL = 0.0001; 
+  const double TOL = 0.0001;
   bool started = false;
   char chkl[] = {'h','k','l'};
   for (int i=0;i<3;++i) {
@@ -414,11 +414,11 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
     if (std::abs(nc[i]) > TOL) {
       double c = nc[i];
       if (started) {
-	sign = "+";
-	if (nc[i] < 0.0) {
-	  sign = "-";
-	  c = std::abs(c);
-	}
+        sign = "+";
+        if (nc[i] < 0.0) {
+          sign = "-";
+          c = std::abs(c);
+        }
       }
       if (sign != "") {s += " "+sign+" ";}
       s += StringUtil::Strip(StringUtil::ftos(c,8,2))+" "+chkl[i];
@@ -443,8 +443,8 @@ double AnisotropicAnalysis::BfactorDifference() const
 {
   DVect3 eigenvalues = EigenValuesOrth();
   // get min & max values
-  double minB =  Min(Min(eigenvalues[0], eigenvalues[1]), eigenvalues[2]); 
-  double maxB =  Max(Max(eigenvalues[0], eigenvalues[1]), eigenvalues[2]); 
+  double minB =  Min(Min(eigenvalues[0], eigenvalues[1]), eigenvalues[2]);
+  double maxB =  Max(Max(eigenvalues[0], eigenvalues[1]), eigenvalues[2]);
   return maxB - minB;
 }
 //--------------------------------------------------------------------------

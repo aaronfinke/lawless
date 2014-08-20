@@ -37,11 +37,11 @@ namespace scala {
       ubs.newsize(Np);
       // For now, just sqrt(diagonal)
       for (int i=0;i<Np;++i) {
-	if (hessian(i+1,i+1) < 0.0) {
-	  Message::message(Message_fatal("Negative Hessian diagonal"));
-	}
-	ubs[i] = hessian(i+1,i+1);
-	if (ubs[i] > 0.0) {ubs[i] = sqrt(ubs[i]);}
+        if (hessian(i+1,i+1) < 0.0) {
+          Message::message(Message_fatal("Negative Hessian diagonal"));
+        }
+        ubs[i] = hessian(i+1,i+1);
+        if (ubs[i] > 0.0) {ubs[i] = sqrt(ubs[i]);}
       }
     //^
       //    std::cout << "UBS  ";
@@ -66,11 +66,11 @@ namespace scala {
     // Scale Hessian
     for (int i=0;i<Np;++i) {
       if (ubs[i] > 0.0) {
-	for (int j=0;j<Np;++j) {
-	  if (ubs[j] > 0.0) {
-	    hessian(i+1,j+1) /= (ubs[i]*ubs[j]);
-	  }
-	}
+        for (int j=0;j<Np;++j) {
+          if (ubs[j] > 0.0) {
+            hessian(i+1,j+1) /= (ubs[i]*ubs[j]);
+          }
+        }
       }
     }
     //    std::cout << "Scaled Hessian:\n" << format() << "\n";
@@ -83,11 +83,11 @@ namespace scala {
     // rescale inverse Hessian
     for (int i=0;i<Np;++i) {
       if (ubs[i] > 0.0) {
-	for (int j=0;j<Np;++j) {
-	  if (ubs[j] > 0.0) {
-	    hessian(i+1,j+1) /= (ubs[i]*ubs[j]);
-	  }
-	}
+        for (int j=0;j<Np;++j) {
+          if (ubs[j] > 0.0) {
+            hessian(i+1,j+1) /= (ubs[i]*ubs[j]);
+          }
+        }
       }
     }
     //^    std::cout << "Rescaled inverse Hessian:\n" << format() << "\n";
@@ -101,8 +101,8 @@ namespace scala {
     std::string s("");
     for (int i=0;i<Np;++i) {
       for (int j=0;j<Np;++j) {
-	double h = hessian(i+1,j+1);
-	s += " "+clipper::String(h,8,3);
+        double h = hessian(i+1,j+1);
+        s += " "+clipper::String(h,8,3);
       }
       s += "\n";
     }
@@ -114,15 +114,15 @@ namespace scala {
 
 // ---------------------------------------------------------
   void ScaleRefineFH(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
-		     const all_controls& controls, const int& Ncycles,
-		     phaser_io::Output& output)
+                     const all_controls& controls, const int& Ncycles,
+                     phaser_io::Output& output)
   //  Main scaling
-  // 
+  //
   {
     // Set up up refinement object:
-    //  store addresses of reflection & scale objects 
+    //  store addresses of reflection & scale objects
     RefineScale refscl(hkl_list, AllScales, SDmodel(), 1);
-    
+
     int minFiltered = 2;
     if (AllScales.NBfactors() == 0) minFiltered = 1;  // case of no Bfactors
 
@@ -143,7 +143,7 @@ namespace scala {
 
       // Get scales to condition Hessian
       ubs = H.Ubs();
-      // Get filtered inverse Hessian  
+      // Get filtered inverse Hessian
       hessian = H.FilteredInverse(minFiltered);
       TNT::Vector<floatType> shift = hessian * gradient; // shift vector
       // Apply shift
@@ -151,8 +151,8 @@ namespace scala {
       std::vector<double> params = AllScales.GetParameters();
       TNT::Vector<floatType> newparams(Np);
       for (int i=0;i<Np;++i) {
-	params[i] -= shift[i];
-	newparams[i] = params[i];
+        params[i] -= shift[i];
+        newparams[i] = params[i];
       }
       refscl.applyShift(newparams);
       // no needed?      AllScales.SetParameters(params, refscl.Nobservations());

@@ -7,7 +7,7 @@
 using clipper::Message;
 using clipper::Message_fatal;
 
-namespace scala 
+namespace scala
 {
   //--------------------------------------------------------------
   Range::Range()
@@ -18,7 +18,7 @@ namespace scala
     // Rfirst & Rlast will be swapped if necessary so that Rfirst < Rlast
     //  unless ascending == false
   Range::Range(const double& Rfirst, const double& Rlast,
-	       const bool& Ascending, const int& Nbin)
+               const bool& Ascending, const int& Nbin)
     : first_(Rfirst), last_(Rlast), Nbin_(Nbin), ascending(Ascending),
       valid(true)
   {
@@ -34,7 +34,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void Range::SetRange(const double& Rfirst, const double& Rlast,
-		       const bool& Ascending, const int& Nbin)
+                       const bool& Ascending, const int& Nbin)
   {
     first_ = Rfirst;
     last_ = Rlast;
@@ -49,9 +49,9 @@ namespace scala
     // Allow first > last if ascending false
     if (ascending) {
       if (last_ < first_) {
-	double a = last_;
-	last_ = first_;
-	first_ = a;
+        double a = last_;
+        last_ = first_;
+        first_ = a;
       }}
     width = 0.0;
     tolerance = 0.0001;
@@ -87,16 +87,16 @@ namespace scala
   {
     if (width == 0.0) {
       if (Nbin_ <= 0)
-	clipper::Message::message(Message_fatal("Range: Nbin <= 0 "
-						  +clipper::String(Nbin_)));
+        clipper::Message::message(Message_fatal("Range: Nbin <= 0 "
+                                                  +clipper::String(Nbin_)));
       width = (double(last_ - first_))/double(Nbin_);
       if (ascending && width <= 0.0) {
-	clipper::Message::message(Message_fatal("Range: width <= 0  "
+        clipper::Message::message(Message_fatal("Range: width <= 0  "
 
-						+clipper::String(width)));
+                                                +clipper::String(width)));
       } else if (width == 0.0) {
-	// If width == 0, reset Nbin to 1
-	Nbin_ = 1;
+        // If width == 0, reset Nbin to 1
+        Nbin_ = 1;
       }
     }
     if (width > 0.0) {tolerance = std::abs(tolerance);}
@@ -164,7 +164,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   ResoRange::ResoRange(const double& lowreso, const double& hireso,
-		       const int& Nobs)
+                       const int& Nobs)
     : Range(), LowReso(lowreso), HiReso(hireso), Nobservations(Nobs)
   {
     init_reso();
@@ -210,7 +210,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void ResoRange::SetRange(const double& lowreso, const double& hireso,
-			   const int& Nobs)
+                           const int& Nobs)
   {
     Nobservations = Nobs;
     SetRange(lowreso, hireso);
@@ -226,14 +226,14 @@ namespace scala
   {
     // Force width irrespective of Nobservations
     delta_sSqr = width;
-    
+
     Nobservations = 0;
     Nbin = sSqrmax/delta_sSqr;
     Range::SetRange(sSqrmin, sSqrmax, true, Nbin);
     set = true;
     //^
     //    std::cout << "ResoRange::SetWidth " << width
-    //	      << " " << Range::format() <<"\n"; //^-
+    //        << " " << Range::format() <<"\n"; //^-
 
   }
   //--------------------------------------------------------------
@@ -252,11 +252,11 @@ namespace scala
   {
     if (LowReso < HiReso)
       std::swap(LowReso, HiReso);
-    
-    if (LowReso <= 0.0) 
+
+    if (LowReso <= 0.0)
       LowReso = LowDef;
     sSqrmin = 1./(LowReso*LowReso);
-    if (HiReso <= 0.0) 
+    if (HiReso <= 0.0)
       HiReso = HiDef;
     sSqrmax = 1./(HiReso*HiReso);
     set = true;
@@ -280,7 +280,7 @@ namespace scala
       if (Nobservations/n < MinNrefBin) n = Max(1,Nobservations/MinNrefBin);
       if (Nobservations/n > MaxNrefBin) n = Nobservations/MaxNrefBin;
     }
-  
+
     // Overall minimum & maximum
     Nbin = Min(Max(n, MinNbin), MaxNbin);
     delta_sSqr = (sSqrmax-sSqrmin)/double(Nbin);
@@ -329,21 +329,21 @@ namespace scala
   RPair ResoRange::boundsA(const int& bin) const
   {
     return RPair(1./sqrt(Range::bounds(bin).first),
-		 1./sqrt(Range::bounds(bin).second));
+                 1./sqrt(Range::bounds(bin).second));
   }
   //--------------------------------------------------------------
   // limits of bin (in 1/d^2)
   RPair ResoRange::boundsS(const int& bin) const
   {
     return RPair(Range::bounds(bin).first,
-		 Range::bounds(bin).second);
+                 Range::bounds(bin).second);
   }
   //--------------------------------------------------------------
   // Range of bin
   ResoRange ResoRange::BinRange(const int& bin) const
   {
     return ResoRange(1./sqrt(Range::bounds(bin).first),
-		     1./sqrt(Range::bounds(bin).second));
+                     1./sqrt(Range::bounds(bin).second));
   }
   //--------------------------------------------------------------
   // Returns maximum range
@@ -352,13 +352,13 @@ namespace scala
     int nobs = Nobservations + other.Nobservations;
     if (set) {
       if (other.set) {
-	// Both set
-	return ResoRange(Max(ResLow(), other.ResLow()),
-			 Min(ResHigh(), other.ResHigh()),
-			 nobs);
+        // Both set
+        return ResoRange(Max(ResLow(), other.ResLow()),
+                         Min(ResHigh(), other.ResHigh()),
+                         nobs);
       } else {
-	// other not set
-	return *this;
+        // other not set
+        return *this;
       }
     } else {
       // this not set
@@ -379,13 +379,13 @@ namespace scala
     int nobs = Nobservations + other.Nobservations;
     if (set) {
       if (other.set) {
-	// Both set
-	return ResoRange(Min(ResLow(), other.ResLow()),
-			 Max(ResHigh(), other.ResHigh()),
-			 nobs);
+        // Both set
+        return ResoRange(Min(ResLow(), other.ResLow()),
+                         Max(ResHigh(), other.ResHigh()),
+                         nobs);
       } else {
-	// other not set
-	return *this;
+        // other not set
+        return *this;
       }
     } else {
       // this not set
@@ -428,9 +428,9 @@ namespace scala
   {
     if (max_ < min_)
       {
-	int a = max_;
-	max_ = min_;
-	min_ = a;
+        int a = max_;
+        max_ = min_;
+        min_ = a;
       }
   }
   //--------------------------------------------------------------
@@ -463,14 +463,14 @@ namespace scala
     return max_;
   }
   //--------------------------------------------------------------
-  // Return true if in range 
+  // Return true if in range
   bool IntRange::InRange(const int& value) const
   {
     if (value >= min_) {
       if (value <= max_) {
-	return true;
+        return true;
       }}
-    return false;      
+    return false;
   }
   //--------------------------------------------------------------
   // Returns maximum range

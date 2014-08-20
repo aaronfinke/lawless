@@ -24,7 +24,7 @@ FracDeviationAnalysis::FracDeviationAnalysis(const IntensityBin& Irange)
     total_deviation.clear();
     for (int i=0;i<Nbin;i++)
       {
-	deviations[i].clear();
+        deviations[i].clear();
       }
     sum_delta2 = 0.0;
     sum_lnS = 0.0;
@@ -63,12 +63,12 @@ FracDeviationAnalysis::FracDeviationAnalysis(const IntensityBin& Irange)
     float w = 1.0;
     for (int i=0;i<Nbin;i++)
       {
-	if (irange.Count(i) > 0)
-	  {
-	    float x = irange.middle(i);
-	    float y = deviations[i].SD();
-	    line.add(x,y,w);
-	  }
+        if (irange.Count(i) > 0)
+          {
+            float x = irange.middle(i);
+            float y = deviations[i].SD();
+            line.add(x,y,w);
+          }
       }
     return line.result().first;
   }
@@ -78,23 +78,23 @@ void FracDeviationAnalysis::Print(const std::string& label, phaser_io::Output& o
 {
   output.logTabPrintf(0,LOGFILE,
       "\n\nTotal SD of fractional deviation = %12.4g for %d observations\n\n",
-		      total_deviation.SD(), total_deviation.Count());
+                      total_deviation.SD(), total_deviation.Count());
 
   output.logTab(0,LOGFILE,"\n$TABLE: "+label+" standard deviation v. Intensity:\n");
   output.logTab(0,LOGFILE,"$GRAPHS: Sigma(scatter/SD) :N:4,7: $$\n");
   output.logTab(0,LOGFILE,
-	" Range    Imin     Imax     Imean      Number    Mean   Sigma  $$ $$\n");
-  
-  
+        " Range    Imin     Imax     Imean      Number    Mean   Sigma  $$ $$\n");
+
+
   for (int i=0;i<Nbin;i++)
     {
       RPair bounds = irange.bounds(i);
 
       output.logTabPrintf(0,LOGFILE,
-			  "%5d%9.0f%9.0f  %9.0f  %9d%8.2f%8.2f\n",
-			  i+1, bounds.first, bounds.second,
-			  irange.middle(i), irange.Count(i),
-			  deviations[i].Mean(), deviations[i].SD());
+                          "%5d%9.0f%9.0f  %9.0f  %9d%8.2f%8.2f\n",
+                          i+1, bounds.first, bounds.second,
+                          irange.middle(i), irange.Count(i),
+                          deviations[i].Mean(), deviations[i].SD());
     }
 
   output.logTab(0,LOGFILE,"$$\n\n");

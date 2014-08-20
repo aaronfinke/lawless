@@ -29,7 +29,7 @@ namespace scala
     rings.clear();
     // use a constant width in reciprocal space
     // rings should get wider at higher resolution, but they
-    // probably get weaker as well 
+    // probably get weaker as well
     const double RWIDTH = 0.005;
     // resolution in A, full width in d* 1/A
     AddRing(3.8996, RWIDTH);
@@ -62,7 +62,7 @@ namespace scala
     rings.clear();
     for (int i=0;i<other.nrings;i++) {
       if (other.rings[i].Reject())
-	{rings.push_back(other.rings[i]);}
+        {rings.push_back(other.rings[i]);}
     }
     nrings = rings.size();
   }
@@ -74,12 +74,12 @@ namespace scala
     rings.clear();
   }
   //--------------------------------------------------------------
-  // If in ring, returns ring number (0,n-1), else = -1 
+  // If in ring, returns ring number (0,n-1), else = -1
   int Rings::InRing(const double& invresolsq) const
   {
     for (size_t i=0;i<rings.size();i++) {
       if (rings[i].InRing(invresolsq))
-	{return i;}
+        {return i;}
     }
     return -1;
   }
@@ -92,7 +92,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void Rings::AddObs(const int& Iring, const IsigI& I_sigI,
-		     const double& invresolsq)
+                     const double& invresolsq)
   {
     CheckRing(Iring);
     rings[Iring].AddObs(I_sigI, invresolsq);
@@ -151,7 +151,7 @@ namespace scala
   bool IceRing::InRing(const double& invresolsq) const
   {
     if (Close<double,double>(invresolsq,
-			     ring_invressqr,halfwidth_invressqr))
+                             ring_invressqr,halfwidth_invressqr))
       {return true;}
     return false;
   }

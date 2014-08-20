@@ -9,9 +9,9 @@ using clipper::Message_fatal;
 
 //--------------------------------------------------------------
 Fileread::Fileread(std::ifstream& File,
-		   const std::string& Filename,
-		   const std::string& Label)
-  : label(Label), file(File) 
+                   const std::string& Filename,
+                   const std::string& Label)
+  : label(Label), file(File)
 {
   if (!file) {
     filename = Filename;
@@ -40,13 +40,13 @@ void Fileread::ReadTag(const std::string& tag) const
 void Fileread::Skip() const
 //! skip to after next "{"
 {
-  while (GetTag() != "{") {}  
+  while (GetTag() != "{") {}
 }
 //--------------------------------------------------------------
 void Fileread::SkipToTag(const std::string& tag) const
 //! skip to after next <tag>
 {
-  while (GetTag() != tag) {}  
+  while (GetTag() != tag) {}
 }
 //--------------------------------------------------------------
 bool Fileread::CheckEnd() const
@@ -69,11 +69,11 @@ int Fileread::SkipSection(const int& level) const
       // new inner block found
       lev++;
       if (lev > 1) {
-	lev = SkipSection(lev);
-      }      
+        lev = SkipSection(lev);
+      }
     } else if (tag == "}") {
       return lev-1;
-    } 
+    }
   }
 }
 //--------------------------------------------------------------
@@ -130,4 +130,3 @@ void Fileread::EOFerror(const std::string& tag) const
     ("FILEREAD error:"+label+" end of file when looking for "+tag));
 }
 //--------------------------------------------------------------
-

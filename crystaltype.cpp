@@ -14,8 +14,8 @@ namespace scala
 {
   //--------------------------------------------------------------
   std::string CheckInputRhombohedralSGname(const std::string& tag,
-					   const std::string& sgname,
-					   std::string& outstring)
+                                           const std::string& sgname,
+                                           std::string& outstring)
   //! If sgname corresponds to a rhombohedral lattice, return in
   //! hexagonal setting unless specified as R xxx :R
   //! Print warning message with leading tag
@@ -25,21 +25,21 @@ namespace scala
     char newLatType = revisedname[0];
     if (initialLatType == 'R' && newLatType != 'R') {
       outstring = FormatOutput::logTab(0,
-		    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-		    tag+"\n   Rhombohedral group name "+sgname+
-		    " will be used in the hexagonal (H) setting "+revisedname+
-		    "\n   To get the rhombohedral lattice setting, give name as "+
-		    SGnameHtoR(sgname,'R')+" :R\n$$\n");
+                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
+                    tag+"\n   Rhombohedral group name "+sgname+
+                    " will be used in the hexagonal (H) setting "+revisedname+
+                    "\n   To get the rhombohedral lattice setting, give name as "+
+                    SGnameHtoR(sgname,'R')+" :R\n$$\n");
     } else if (initialLatType == 'R' && newLatType == 'R') {
       outstring = FormatOutput::logTab(0,
-		    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-		    tag+"\n   Rhombohedral group name "+sgname+
-		    " will be used in the rhombohedral setting "+revisedname+"\n$$\n");
+                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
+                    tag+"\n   Rhombohedral group name "+sgname+
+                    " will be used in the rhombohedral setting "+revisedname+"\n$$\n");
     } else if (newLatType == 'H') {
       outstring = FormatOutput::logTab(0,
-		    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-		    tag+"\n   Rhombohedral group name "+sgname+
-		    " will be used in the hexagonal [H] setting "+revisedname+"\n$$\n");
+                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
+                    tag+"\n   Rhombohedral group name "+sgname+
+                    " will be used in the hexagonal [H] setting "+revisedname+"\n$$\n");
     }
     return revisedname;
   }
@@ -59,9 +59,9 @@ namespace scala
   {
     if (type == 'R' || type == 'H') {
       if (!(RH == 'R' || RH == 'H')) {
-	// invalid rhombohedral lattice type
-	Message::message(Message_fatal("RhombohedralLatType must be R or H not "+
-				       std::string(1,RH)));
+        // invalid rhombohedral lattice type
+        Message::message(Message_fatal("RhombohedralLatType must be R or H not "+
+                                       std::string(1,RH)));
       }
       return RH;
     }
@@ -74,7 +74,7 @@ namespace scala
     std::string s = name;
     if (s[0] == 'R' || s[0] == 'H') {
       if (L == 'R' || L == 'H') {
-	s[0] = L;
+        s[0] = L;
       }
     }
     return s;
@@ -90,38 +90,38 @@ namespace scala
   {
     std::string CrysCode;
     if (shortform) {
-      // Short form 
+      // Short form
       if (crystalsystem == NOSYSTEM) return "00";
       if (crystalsystem == TRICLINIC)
-	{CrysCode = 'a';} 
+        {CrysCode = 'a';}
       else if (crystalsystem == MONOCLINIC)
-	{CrysCode = 'm';}
+        {CrysCode = 'm';}
       else if (crystalsystem == ORTHORHOMBIC)
-	{CrysCode = 'o';}
+        {CrysCode = 'o';}
       else if (crystalsystem == TETRAGONAL)
-	{CrysCode = 't';}
+        {CrysCode = 't';}
       else if (crystalsystem == TRIGONAL || crystalsystem == HEXAGONAL)
-	{CrysCode = 'h';}
+        {CrysCode = 'h';}
       else if (crystalsystem == CUBIC)
-	{CrysCode = 'c';}
+        {CrysCode = 'c';}
       return CrysCode+latticetype;
     } else {
       // Long form
       if (crystalsystem == NOSYSTEM) return "undefined";
       if (crystalsystem == TRICLINIC)
- 	{CrysCode = " triclinic";} 
+        {CrysCode = " triclinic";}
       else if (crystalsystem == MONOCLINIC)
-	{CrysCode = " monoclinic";}
+        {CrysCode = " monoclinic";}
       else if (crystalsystem == ORTHORHOMBIC)
-	{CrysCode = " orthorhombic";}
+        {CrysCode = " orthorhombic";}
       else if (crystalsystem == TETRAGONAL)
-	{CrysCode = " tetragonal";}
+        {CrysCode = " tetragonal";}
       else if (crystalsystem == TRIGONAL)
-	{CrysCode = " trigonal";}
+        {CrysCode = " trigonal";}
       else if (crystalsystem == HEXAGONAL)
-	{CrysCode = " hexagonal";}
+        {CrysCode = " hexagonal";}
       else if (crystalsystem == CUBIC)
-	{CrysCode = " cubic";}
+        {CrysCode = " cubic";}
       std::string latcent;
       // Lattice types: 'P','A','B','C','I','F','R','H'
       if (latticetype == 'P') {latcent = "primitive";}
@@ -156,8 +156,8 @@ namespace scala
     if (a == b) return true;
     if (a.crystalsystem == MONOCLINIC && b.crystalsystem == MONOCLINIC) {
       if ((a.latticetype == 'C' || a.latticetype == 'I') &&
-	  (b.latticetype == 'C' || b.latticetype == 'I')) {
-	return true;
+          (b.latticetype == 'C' || b.latticetype == 'I')) {
+        return true;
       }
     }
     return false;
@@ -169,8 +169,8 @@ namespace scala
     if (a == b) return true;
     if (a.crystalsystem == TRIGONAL && b.crystalsystem == TRIGONAL) {
       if ((a.latticetype == 'R' || a.latticetype == 'H') &&
-	  (b.latticetype == 'R' || b.latticetype == 'H')) {
-	return true;
+          (b.latticetype == 'R' || b.latticetype == 'H')) {
+        return true;
       }
     }
     return false;
@@ -182,8 +182,8 @@ namespace scala
     double tol =  0.2;  // tolerance on angles
     if (Close<double,double>(unit_cell_dimensions.at(3), 90.0, tol))
       if (Close<double,double>(unit_cell_dimensions.at(4), 90.0, tol))
-	if (Close<double,double>(unit_cell_dimensions.at(5), 120.0, tol))
-	  return false;
+        if (Close<double,double>(unit_cell_dimensions.at(5), 120.0, tol))
+          return false;
     return true;
   }
   //--------------------------------------------------------------
@@ -193,10 +193,10 @@ namespace scala
     double tol =  0.2;  // tolerance on angles
     if (Close<double,double>(cell[0], cell[1], tol*5.0)) { // tolerance on a=b
       if (Close<double,double>(cell[3], 90.0, tol)) {
-	if (Close<double,double>(cell[4], 90.0, tol)) {
-	  if (Close<double,double>(cell[5], 120.0, tol)) {
-	    return true;
-	  }}}}
+        if (Close<double,double>(cell[4], 90.0, tol)) {
+          if (Close<double,double>(cell[5], 120.0, tol)) {
+            return true;
+          }}}}
     return false;
   }
   //--------------------------------------------------------------

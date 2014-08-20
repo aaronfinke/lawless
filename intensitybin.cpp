@@ -7,7 +7,7 @@ using clipper::Message;
 using clipper::Message_fatal;
 
 
-namespace scala 
+namespace scala
 {
   //--------------------------------------------------------------
     // Constructor
@@ -16,11 +16,11 @@ namespace scala
     //  Ik      intensity at top of reference bin jk
     //  Imax    maximum possible intensity (top of (Nbin-1)'th bin)
   IntensityBin::IntensityBin(const int& Nbin, const int& jk, const float& Ik,
-			     const float& Imax)
+                             const float& Imax)
     /*
       Wilson distribution
         f(I) = p(I) dI = (1/pi.S) exp ( -I/S)
-	 where S = SigmaN
+         where S = SigmaN
 
         then f(0) = 1/pi.S
 
@@ -34,7 +34,7 @@ namespace scala
       S = - Ik / (ln(1 - (jk+1)/N))
       & Ij = - S ln(1-(j+1)/N)  (top of j'th bin, j = 0,Nbin-1)
     */
-  {    
+  {
     nbin = Nbin;
     float S = -Ik/log(1.-float(jk+1)/float(Nbin));
     bintop.resize(nbin);
@@ -47,7 +47,7 @@ namespace scala
       binrange[i].clear();
       binmean[i].clear();
       count[i] = 0;
-      //^	std::cout << "i, Itop" << i << " " << bintop[i] << "\n";
+      //^       std::cout << "i, Itop" << i << " " << bintop[i] << "\n";
     }
     bintop[nbin-1] = Imax;
     //^    std::cout << "i, Ibin " << nbin-1 << " " << bintop[nbin-1] << "\n";
@@ -60,8 +60,8 @@ namespace scala
     int j = -1;
     for (int i=0;i<nbin;i++)  {
       if (I < bintop[i]) {
-	j = i;
-	break;
+        j = i;
+        break;
       }
     }
     if (j < 0) j = nbin-1;

@@ -35,12 +35,12 @@ namespace scala
   }
 //--------------------------------------------------------------
   float PackFlagValues(const float& BGratio,
-		       const float& PKratio, const float& Gradient)
+                       const float& PKratio, const float& Gradient)
   {
     float pv = Min(Gradient, 0.99);
     int iv = Min(Nint(10.*BGratio), 99) + Nint(100.*PKratio)*100;
     return pv + float(iv);
-  }		 
+  }
 //--------------------------------------------------------------
   // Combine with another flags
   void ObservationFlag::AddFlag(const ObservationFlag& other)
@@ -93,7 +93,7 @@ namespace scala
     acceptoverload = false;
     acceptedge = false;
     Clear();
-    
+
   }
 //--------------------------------------------------------------
   void ObservationFlagControl::Clear()
@@ -114,7 +114,7 @@ namespace scala
     MaxBGratio = 0.0;
     MaxPKratio = 0.0;
     MaxGradient = 0.0;
-    
+
     MaxAccBGratio = 0.0;
     MaxAccPKratio = 0.0;
     MaxAccGradient = 0.0;
@@ -159,53 +159,53 @@ namespace scala
       MaxBGratio = Max(bgr, MaxBGratio);
       MaxPKratio = Max(pkr, MaxPKratio);
       MaxGradient = Max(grd, MaxGradient);
-      
+
       // BGratio
       if (flag.TestBGratio()) {
-	NBGratio++;
-	if (bgrlim > 0.0 && bgr < bgrlim) {
-	  NaccBGratio++;
-	  MaxAccBGratio = Max(bgr, MaxAccBGratio);
-	} else
-	  {OK = false;}
+        NBGratio++;
+        if (bgrlim > 0.0 && bgr < bgrlim) {
+          NaccBGratio++;
+          MaxAccBGratio = Max(bgr, MaxAccBGratio);
+        } else
+          {OK = false;}
       }
       if (flag.TestPKratio()) {
-	NPKratio++;
-	if (pkrlim > 0.0 && pkr < pkrlim) {
-	  NaccPKratio++;
-	  MaxAccPKratio = Max(pkr, MaxAccPKratio);
-	} else
-	  {OK = false;}
+        NPKratio++;
+        if (pkrlim > 0.0 && pkr < pkrlim) {
+          NaccPKratio++;
+          MaxAccPKratio = Max(pkr, MaxAccPKratio);
+        } else
+          {OK = false;}
       }
       // Gradient
       if (flag.TestGradient()) {
-	NGradient++;
-	if (grdlim > 0.0 && grd < grdlim) {
-	  NaccGradient++;
-	  MaxAccGradient = Max(grd, MaxAccGradient);
-	} else
-	  {OK = false;}
+        NGradient++;
+        if (grdlim > 0.0 && grd < grdlim) {
+          NaccGradient++;
+          MaxAccGradient = Max(grd, MaxAccGradient);
+        } else
+          {OK = false;}
       }
       // TooNeg
       if (flag.TestTooNeg()) {
-	NTooNeg++;
-	OK = false;
+        NTooNeg++;
+        OK = false;
       }
       // Overload
       if (flag.TestOverload()) {
-	Noverload++;
-	if (acceptoverload) 
-	  {Naccoverload++;}
-	else
-	  {OK = false;}
+        Noverload++;
+        if (acceptoverload)
+          {Naccoverload++;}
+        else
+          {OK = false;}
       }
       // Edge
       if (flag.TestEdge()) {
-	Nedge++;
-	if (acceptedge) 
-	  {Naccedge++;}
-	else
-	  {OK = false;}
+        Nedge++;
+        if (acceptedge)
+          {Naccedge++;}
+        else
+          {OK = false;}
       }
       return OK;
     }
@@ -217,31 +217,31 @@ namespace scala
     if (NBGratio+NPKratio+NTooNeg+NGradient+Noverload+Nedge == 0) return s;
 
     s += FormatOutput::logTab(0,
-		   "\n\nNumbers of observations marked in the FLAG column");
+                   "\n\nNumbers of observations marked in the FLAG column");
     s += FormatOutput::logTab(0,
-		   "By default all flagged observations are rejected");
+                   "By default all flagged observations are rejected");
     s += FormatOutput::logTab(0,
-		   "Observations may be counted in more than one category\n\n");
+                   "Observations may be counted in more than one category\n\n");
     s += FormatOutput::logTab(0,
-		   "                             Flagged  Accepted   Maximum   MaxAccepted");
+                   "                             Flagged  Accepted   Maximum   MaxAccepted");
     s += FormatOutput::logTabPrintf(0, "   BGratio too large       %8d%8d%12.3f%12.3f\n",
-			 NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio);
+                         NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio);
     s += FormatOutput::logTabPrintf(0, "   PKratio too large       %8d%8d%12.3f%12.3f\n",
-			 NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio);
+                         NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio);
     s += FormatOutput::logTabPrintf(0, "   Negative < 5sigma       %8d%8d\n",
-			 NTooNeg, NaccTooNeg);
+                         NTooNeg, NaccTooNeg);
     s += FormatOutput::logTabPrintf(0, "   Gradient too large      %8d%8d%12.3f%12.3f\n",
-			 NGradient, NaccGradient, MaxGradient, MaxAccGradient);
+                         NGradient, NaccGradient, MaxGradient, MaxAccGradient);
     s += FormatOutput::logTabPrintf(0, "   Profile-fitted overloads%8d%8d\n",
-			 Noverload, Naccoverload);
+                         Noverload, Naccoverload);
     s += FormatOutput::logTabPrintf(0, "   Spots on edge           %8d%8d\n\n",
-			 Nedge, Naccedge);
+                         Nedge, Naccedge);
     return s;
   }
   //--------------------------------------------------------------
   std::string ObservationFlagControl::XMLset(const int& nflagged, const int& naccepted,
-					     const float& maximumvalue,
-					     const float& maxaccepted) const
+                                             const float& maximumvalue,
+                                             const float& maxaccepted) const
   {
     std::string s;
     s += StringUtil::MakeXMLtag("NumberFlagged", nflagged);
@@ -260,17 +260,17 @@ namespace scala
 
     s += "<ObservationFlags>\n";
     s += StringUtil::MakeXMLtag("BGratioTooLarge",
-	XMLset(NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio), false);
+        XMLset(NBGratio, NaccBGratio, MaxBGratio, MaxAccBGratio), false);
     s += StringUtil::MakeXMLtag("PKratioTooLarge",
-	XMLset(NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio), false);
+        XMLset(NPKratio, NaccPKratio, MaxPKratio, MaxAccPKratio), false);
     s += StringUtil::MakeXMLtag("TooNegative",
-		XMLset(NTooNeg, NaccTooNeg), false);
+                XMLset(NTooNeg, NaccTooNeg), false);
     s += StringUtil::MakeXMLtag("GradientTooLarge",
-	XMLset(NGradient, NaccGradient, MaxGradient, MaxAccGradient), false);
+        XMLset(NGradient, NaccGradient, MaxGradient, MaxAccGradient), false);
     s += StringUtil::MakeXMLtag("ProfileFittedOverloads",
-				XMLset(Noverload, Naccoverload), false);
+                                XMLset(Noverload, Naccoverload), false);
     s += StringUtil::MakeXMLtag("Edge",
-				XMLset(Nedge, Naccedge), false);
+                                XMLset(Nedge, Naccedge), false);
     s += "</ObservationFlags>\n";
     return s;
   }

@@ -3,7 +3,7 @@
 // Phil Evans 2009
 //
 // MTZ io for merged files (read only)
-// 
+//
 
 #include "mtz_merge_io.hh"
 #include "hkl_datatypes.hh"
@@ -12,15 +12,15 @@
 namespace MtzIO {
   //--------------------------------------------------------------
   std::string FixRhombohedralSymbolMess(const std::string& SGsymbol,
-					const Scell& cell)
+                                        const Scell& cell)
   {
     std::string Symbol = SGsymbol;
     int kR = Symbol.find("R");
     if (kR < int(Symbol.size())) {
       // Symbol contains "R"
-      if (cell.AngleTest(90.,90.,120.))	{
-	// Cell is hexagonal (angles 90,90,120), reset lattice symbol to "H"
-	Symbol[kR] = 'H';
+      if (cell.AngleTest(90.,90.,120.)) {
+        // Cell is hexagonal (angles 90,90,120), reset lattice symbol to "H"
+        Symbol[kR] = 'H';
       }
     }
     return Symbol;
@@ -40,7 +40,7 @@ namespace MtzIO {
   {
     if (fileopen)
       Message::message( Message_fatal( "MtzMrgFile: open_read - File already open" ) );
-    if ( filename_in == "") 
+    if ( filename_in == "")
       Message::message( Message_fatal( "MtzMrgFile: open_read - no filename given" ) );
 
     // store filename
@@ -92,14 +92,14 @@ namespace MtzIO {
   }
   //--------------------------------------------------------------
   FileRead MtzMrgFile::MakeHklList(const std::string& mtzname,
-				   file_select& file_sel, 
-				   col_controls& column_selection,
-				   MtzIO::column_labels& column_list,
-				   const scala::PxdName& InputPxdName,
-				   const scala::Scell& cell,
-				   std::string& output,
-				   const int& verbose,
-				   hkl_unmerge_list& hkl_list)
+                                   file_select& file_sel,
+                                   col_controls& column_selection,
+                                   MtzIO::column_labels& column_list,
+                                   const scala::PxdName& InputPxdName,
+                                   const scala::Scell& cell,
+                                   std::string& output,
+                                   const int& verbose,
+                                   hkl_unmerge_list& hkl_list)
   // Fill an unmerged hkl_list from a merged file
   // On entry:
   //  mtzname            name of MTZ file (or logical name)
@@ -115,7 +115,7 @@ namespace MtzIO {
   //  verbose            set verbosity level
   //                      = 0 silent, = +1 usual summary
   //                      >= +2 debug
-  // 
+  //
   // On exit:
   //  hkl_list  has been filled and closed
   //
@@ -124,11 +124,11 @@ namespace MtzIO {
   {
     if (!merged) {  // file must be merged for this function
       Message::message
-	(Message_fatal("MtzMrgFile::MakeHklList: not a merged file"));
+        (Message_fatal("MtzMrgFile::MakeHklList: not a merged file"));
     }
     if (!hkl_list.IsEmpty()) {
       Message::message
-	(Message_fatal("MtzMrgFile::MakeHklList: hkl_list is not empty"));
+        (Message_fatal("MtzMrgFile::MakeHklList: hkl_list is not empty"));
     }
 
     clipper::CCP4MTZfile mtzin;
@@ -142,19 +142,19 @@ namespace MtzIO {
     output = "";
     if (verbose > 0) {
       output += FormatOutput::logTabPrintf(0,
-	  "\nReflection list generated from merged file: %s\n",filenamein.c_str());
+          "\nReflection list generated from merged file: %s\n",filenamein.c_str());
       output += FormatOutput::logTabPrintf(0,
-		   "\nTitle: %s\n\n", mtzin.title().c_str());
+                   "\nTitle: %s\n\n", mtzin.title().c_str());
       output += FormatOutput::logTabPrintf(0,
-	      "   Space group from HKLIN file : %s\n",
-		   mtzin.spacegroup().symbol_hm().c_str());
+              "   Space group from HKLIN file : %s\n",
+                   mtzin.spacegroup().symbol_hm().c_str());
       output += FormatOutput::logTabPrintf(0, "   Cell: ");
       for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.2f",
-				 mcell[i]);
+                                 mcell[i]);
       output += FormatOutput::logTab(0,"\n");
       output += FormatOutput::logTabPrintf(0,
-			  "   Maximum resolution in file:  %8.2f\n",
-			   mtzin.resolution().limit());
+                          "   Maximum resolution in file:  %8.2f\n",
+                           mtzin.resolution().limit());
     }
     mtzfile_resolution = mtzin.resolution();
     // Read all data into Clipper objects
@@ -162,8 +162,8 @@ namespace MtzIO {
     clipper::HKL_info hkl_info_list;
     clipper::HKL_data<clipper::data32::I_sigI> IsigData;
     ClipperLabelPair labelthings = ReadData(mtzin, ResoLimit, column_list,
-					    hkl_info_list, IsigData,
-					    mtzdataset, (verbose>0), output);
+                                            hkl_info_list, IsigData,
+                                            mtzdataset, (verbose>0), output);
 
     bool NoSigI = (labelthings.label2 == "");  // true if no sigma column
 
@@ -175,21 +175,21 @@ namespace MtzIO {
     std::vector<scala::Dataset> DataSets;
     PxdName pxdname("", labelthings.xname, labelthings.dname);
     DataSets.push_back(scala::Dataset(scala::Xdataset(pxdname,
-		      Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
+                      Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
     // One batch
     std::vector<Batch> Batches(1);
-    Batches[0].PXDname() = pxdname; 
+    Batches[0].PXDname() = pxdname;
     int setid = 1;
     Batches[0].DatasetID() = setid;
 
     hkl_list.init(title, Nref,
-		  hkl_symmetry(spacegroup), all_controls(),
-		  DataSets, Batches);
-    hkl_list.SetSpaceGroupStatus(spg_status); 
+                  hkl_symmetry(spacegroup), all_controls(),
+                  DataSets, Batches);
+    hkl_list.SetSpaceGroupStatus(spg_status);
 
     std::vector<clipper::String> chistory = mtzin.history();
     std::vector<std::string> history;
-    for (size_t i=0; i<chistory.size(); i++) { 
+    for (size_t i=0; i<chistory.size(); i++) {
       history.push_back(chistory[i]); // clipper:String to std::string
     }
     hkl_list.addHistory(history);
@@ -220,25 +220,25 @@ namespace MtzIO {
     while (next(hkl_index)) {
       Is = IsigData[hkl_index];
       if (!Is.missingI()) {  // I column OK
-	if (Is.I() > 0.0) {
-	  scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
-	  scala::Hkl hred = hkl_list.symmetry().put_in_asu(hkl, isym);
-	  I = Is.I();
-	  Ipr = Is.I();
-	  if (!NoSigI) {
-	    sigI = Is.sigI();
-	    sigIpr = Is.sigI();
-	  }
-	  // Store this observation
-	  hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-			      Xdet, Ydet, phi, time,
-			      fraction_calc, width, LP,
-			      Npart, Ipart, ObsFlag);
-	  InvResRange.update( hkl_index.invresolsq());  //smin, smax
-	}
+        if (Is.I() > 0.0) {
+          scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
+          scala::Hkl hred = hkl_list.symmetry().put_in_asu(hkl, isym);
+          I = Is.I();
+          Ipr = Is.I();
+          if (!NoSigI) {
+            sigI = Is.sigI();
+            sigIpr = Is.sigI();
+          }
+          // Store this observation
+          hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                              Xdet, Ydet, phi, time,
+                              fraction_calc, width, LP,
+                              Npart, Ipart, ObsFlag);
+          InvResRange.update( hkl_index.invresolsq());  //smin, smax
+        }
       }
     }
-    // 
+    //
     bool sorted = true;
     hkl_list.close_part_list(ResoRange(InvResRange), sorted);
 
@@ -255,13 +255,13 @@ namespace MtzIO {
   }
   //--------------------------------------------------------------
   ClipperLabelPair MtzMrgFile::ReadData(clipper::CCP4MTZfile& mtzin,
-			    const double& ResoLimit,
-			    const MtzIO::column_labels& column_list,
-			    clipper::HKL_info& hkl_info_list,
-		    clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
-			    clipper::MTZdataset& mtzdataset,
-			    const bool& verbose,
-			    std::string& output)
+                            const double& ResoLimit,
+                            const MtzIO::column_labels& column_list,
+                            clipper::HKL_info& hkl_info_list,
+                    clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
+                            clipper::MTZdataset& mtzdataset,
+                            const bool& verbose,
+                            std::string& output)
   // Read all selected data from MTZ file into clipper objects
   // hkl_info_list, IsigData, mtzdataset
   // Returns label things
@@ -270,20 +270,20 @@ namespace MtzIO {
     ResMax = mtzin.resolution().limit();
     if (ResoLimit > 0.0)
       ResMax = Max(ResoLimit, ResMax);
-    
+
     // Set hkl list to desired resolution
     // reflections outside limits will be discarded
     hkl_info_list =
       ///      clipper::HKL_info(mtzin.spacegroup(), mtzin.cell(),
       clipper::HKL_info(spacegroup, mtzin.cell(),
-			clipper::Resolution(ResMax));
+                        clipper::Resolution(ResMax));
 
     if (verbose) {
       if (ResoLimit > 0.0 && ResMax > mtzfile_resolution.limit()+0.001) {
-	output += FormatOutput::logTabPrintf(0, "Maximum resolution in file %s: %8.3f",
-					     filenamein.c_str(), mtzfile_resolution.limit());
-	output += FormatOutput::logTabPrintf(0,"  restricted to %8.3f", ResMax);
-	output += "\n";
+        output += FormatOutput::logTabPrintf(0, "Maximum resolution in file %s: %8.3f",
+                                             filenamein.c_str(), mtzfile_resolution.limit());
+        output += FormatOutput::logTabPrintf(0,"  restricted to %8.3f", ResMax);
+        output += "\n";
       }
     }
 
@@ -293,17 +293,17 @@ namespace MtzIO {
 
     clipper::String LabColI  = labelthings.label1;
     clipper::String LabColsigI  = labelthings.label2;
-    bool NoSigI = (LabColsigI == "");  // true if there is no sigI column 
+    bool NoSigI = (LabColsigI == "");  // true if there is no sigI column
 
     if (verbose) {
       if (IorF) {
-	// column found is F
-	output += FormatOutput::logTab(1, "Columns for F, sigF (squared to I): "+
-		      LabColI+"  "+LabColsigI+"\n");
+        // column found is F
+        output += FormatOutput::logTab(1, "Columns for F, sigF (squared to I): "+
+                      LabColI+"  "+LabColsigI+"\n");
       } else {
-	// column found is I
-	output += FormatOutput::logTab(1, "Columns for I, sigI: "+
-		      LabColI+"  "+LabColsigI+"\n");
+        // column found is I
+        output += FormatOutput::logTab(1, "Columns for I, sigI: "+
+                      LabColI+"  "+LabColsigI+"\n");
       }
     }
 
@@ -330,20 +330,20 @@ namespace MtzIO {
       const double iscale = 0.01;  // scale down F^2
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
-	// OK if
-	// 1. NoSigI && F OK, or
-	// 2. F OK
-	if (!clipper::Util::is_null(FsigData[ih].f())) { // F not null
-	  sigF = 1.0;
-	  if (!NoSigI && !clipper::Util::is_null(FsigData[ih].sigf())) {
-	    sigF = FsigData[ih].sigf();  // sigF if present and OK
-	  }
-	  F = FsigData[ih].f();
-	  Isig.I() = F * F;
-	  Isig.sigI() = 2.*F*sigF + sigF*sigF;
-	  Isig.scale(iscale);	  
-	  IsigData[ih] = Isig;
-	}
+        // OK if
+        // 1. NoSigI && F OK, or
+        // 2. F OK
+        if (!clipper::Util::is_null(FsigData[ih].f())) { // F not null
+          sigF = 1.0;
+          if (!NoSigI && !clipper::Util::is_null(FsigData[ih].sigf())) {
+            sigF = FsigData[ih].sigf();  // sigF if present and OK
+          }
+          F = FsigData[ih].f();
+          Isig.I() = F * F;
+          Isig.sigI() = 2.*F*sigF + sigF*sigF;
+          Isig.scale(iscale);
+          IsigData[ih] = Isig;
+        }
       }
     } else {
       // Read in data
@@ -368,4 +368,3 @@ namespace MtzIO {
   //--------------------------------------------------------------
   //--------------------------------------------------------------
 } // namespace MtzIO
-

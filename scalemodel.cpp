@@ -28,16 +28,16 @@ using phaser_io::LOGFILE;
 namespace scala {
   //--------------------------------------------------------------
   ScaleModel::ScaleModel(const phaser_io::InputAll& input,
-			 hkl_unmerge_list& hkl_list,
-			 phaser_io::Output& output)
+                         hkl_unmerge_list& hkl_list,
+                         phaser_io::Output& output)
   // Construct from input commands and reflection list
   {
     init (input, hkl_list, output);
   }
   //--------------------------------------------------------------
   void ScaleModel::init(const phaser_io::InputAll& input,
-			hkl_unmerge_list& hkl_list,
-			phaser_io::Output& output)
+                        hkl_unmerge_list& hkl_list,
+                        phaser_io::Output& output)
   // initialise from input commands and reflection list
   // Scale specification(s) from input
   {
@@ -59,7 +59,7 @@ namespace scala {
     for (int irun=0;irun<nruns;irun++) {
       int latnum = runlist[irun].LatticeNumber();
       if (latnum > 0) {
-	idxrunlattice.at(latnum-1) = irun;
+        idxrunlattice.at(latnum-1) = irun;
       }
     }
 
@@ -70,47 +70,47 @@ namespace scala {
 
     for (int irun=0;irun<nruns;irun++) {
       if (scalenormrun < 0) {
-	if (scalenormbatch >= 0) {
-	  // Normalisation batch specified, is it in this run?
-	  if (runlist[irun].IsInList(scalenormbatch)) {
-	    // Yes, locate it
-	    std::vector<int> batchnums = runlist[irun].BatchList(true); // accepted batches
-	    for (size_t i=0;i<batchnums.size();++i) {
-	      if (batchnums[i] == scalenormbatch) {
-		scalenormbatch = i;  // index
-		scalenormrun = irun; // run
-		break;
-	      }
-	    }
-	  }
-	} else {
-	  //  1st one
-	  scalenormbatch = 0;
-	  scalenormrun = irun;
-	  // If smoothed scales && more than one, use second one
-	  if (!primary_scales[scalenormrun].IsBatchScale() &&
-	      primary_scales[scalenormrun].Number() > 2) {
-	    scalenormbatch = 1;
-	  }
-	}
+        if (scalenormbatch >= 0) {
+          // Normalisation batch specified, is it in this run?
+          if (runlist[irun].IsInList(scalenormbatch)) {
+            // Yes, locate it
+            std::vector<int> batchnums = runlist[irun].BatchList(true); // accepted batches
+            for (size_t i=0;i<batchnums.size();++i) {
+              if (batchnums[i] == scalenormbatch) {
+                scalenormbatch = i;  // index
+                scalenormrun = irun; // run
+                break;
+              }
+            }
+          }
+        } else {
+          //  1st one
+          scalenormbatch = 0;
+          scalenormrun = irun;
+          // If smoothed scales && more than one, use second one
+          if (!primary_scales[scalenormrun].IsBatchScale() &&
+              primary_scales[scalenormrun].Number() > 2) {
+            scalenormbatch = 1;
+          }
+        }
       }
       // Bfactors
       if (bfacnormbatch >= 0) {
-	if (bfacnormrun < 0) {
-	  // Normalisation batch specified, is it in this run?
-	  if (runlist[irun].IsInList(bfacnormbatch)) {
-	    // Yes, locate it (index j)
-	    std::vector<int> batchnums = runlist[irun].BatchList(true);
-	    for (size_t i=0;i<batchnums.size();++i) {
-	      if (batchnums[i] == bfacnormbatch) {
-		bfacnormbatch = i;
-		bfacnormrun = irun;
-		break;
-	      }
-	    }
-	  }
-	} 
-	// else leave bfacnormbatch = -1, normalise on "best" batch later
+        if (bfacnormrun < 0) {
+          // Normalisation batch specified, is it in this run?
+          if (runlist[irun].IsInList(bfacnormbatch)) {
+            // Yes, locate it (index j)
+            std::vector<int> batchnums = runlist[irun].BatchList(true);
+            for (size_t i=0;i<batchnums.size();++i) {
+              if (batchnums[i] == bfacnormbatch) {
+                bfacnormbatch = i;
+                bfacnormrun = irun;
+                break;
+              }
+            }
+          }
+        }
+        // else leave bfacnormbatch = -1, normalise on "best" batch later
       }
     }    // normalisation .............................
 
@@ -119,11 +119,11 @@ namespace scala {
     // Always calculate all secondary beams & diffraction vectors
     bool secbeamsOK = hkl_list.CalcSecondaryBeams(pole);
 
-    if (nsecscales > 0 && !secbeamsOK) { 
+    if (nsecscales > 0 && !secbeamsOK) {
       // if we have secondary scales we must have secondary beams calculated
       //  but we shouldn't get here anyway!
       Message::message(Message_fatal
-	 ("ScaleModel: can't use Secondary Scale unless we have valid orientation information"));
+         ("ScaleModel: can't use Secondary Scale unless we have valid orientation information"));
     }
   }
   //--------------------------------------------------------------
@@ -138,8 +138,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::setup(const std::vector<scala::ScaleSpecification>& scaleSpecs,
-			 hkl_unmerge_list& hkl_list,
-			 phaser_io::Output& output)
+                         hkl_unmerge_list& hkl_list,
+                         phaser_io::Output& output)
   // Setup from scale specifications and reflection list
   // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
   {
@@ -185,85 +185,85 @@ namespace scala {
       // which spec belongs to this run?
       int isp = scaleSpecIndex(irun, scaleSpecs, runlist);
       if (isp < 0) {
-	// shouldn't happen
-	Message::message(Message_fatal
-			 ("ScaleModel: no scale specification for run "+
-			  clipper::String(irun)));
+        // shouldn't happen
+        Message::message(Message_fatal
+                         ("ScaleModel: no scale specification for run "+
+                          clipper::String(irun)));
       }
 
       // Secondary checks
       if (scaleSpecs[isp].sec_abs != scala::SecondaryScale::NONE &&
-	  validscalemodel.ValidSecondary(irun)) {
-	if (j0 < 0) {
-	  // first run with a secondary correction
-	  j0 = irun;  // 
-	  sec_scale_index_run[j0] = ++kscidx;  // index for 1st run = 0
-	  runDset[j0] = runlist[j0].DatasetIndex();
-	  if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
-	    //  ABSORPTION, store pole
-	    pole = scaleSpecs[isp].pole;
-	  } else {
-	    pole = 0;  // SECONDARY
-	  }
-	} else {
-	  // Check for all runs ABSORPTION or SECONDARY, not mixed
-	  bool OK = true;
-	  if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
-	    if (pole == 0) {OK = false;}
-	  } else {
-	    // SECONDARY
-	    if (pole != 0) {OK = false;}
-	  }
-	  if (!OK) {
-	    Message::message(Message_fatal
-			     ("You cannot mix SECONDARY and ABSORPTION"));
-	  }
-	  // check each run beyond 1st for same dataset
-	  int idset = runlist[irun].DatasetIndex();
-	  runDset[irun] =  idset;
-	  // search previous runs for same dataset
-	  bool found = false;
-	  for (int jrun=0;jrun<irun;jrun++) {
-	    if (runDset[jrun] == idset) {
-	      // irun is same dataset as jrun
-	      sec_scale_index_run[irun] = sec_scale_index_run[jrun];
-	      found = true;
-	      break;
-	    }
-	  }
-	  if (!found) {
-	    // irun is new dataset
-	    sec_scale_index_run[irun] = ++kscidx;
-	  }
-	}
+          validscalemodel.ValidSecondary(irun)) {
+        if (j0 < 0) {
+          // first run with a secondary correction
+          j0 = irun;  //
+          sec_scale_index_run[j0] = ++kscidx;  // index for 1st run = 0
+          runDset[j0] = runlist[j0].DatasetIndex();
+          if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
+            //  ABSORPTION, store pole
+            pole = scaleSpecs[isp].pole;
+          } else {
+            pole = 0;  // SECONDARY
+          }
+        } else {
+          // Check for all runs ABSORPTION or SECONDARY, not mixed
+          bool OK = true;
+          if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
+            if (pole == 0) {OK = false;}
+          } else {
+            // SECONDARY
+            if (pole != 0) {OK = false;}
+          }
+          if (!OK) {
+            Message::message(Message_fatal
+                             ("You cannot mix SECONDARY and ABSORPTION"));
+          }
+          // check each run beyond 1st for same dataset
+          int idset = runlist[irun].DatasetIndex();
+          runDset[irun] =  idset;
+          // search previous runs for same dataset
+          bool found = false;
+          for (int jrun=0;jrun<irun;jrun++) {
+            if (runDset[jrun] == idset) {
+              // irun is same dataset as jrun
+              sec_scale_index_run[irun] = sec_scale_index_run[jrun];
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            // irun is new dataset
+            sec_scale_index_run[irun] = ++kscidx;
+          }
+        }
       } // end secondary checks
       // Detector (tile) checks
       if (scaleSpecs[isp].ntilex >= 0) {
-	// Pick up detector size for 1st batch in this run
-	int b0 = runlist[irun].BatchSerial0();  // batch serial 
-	Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
-	detectortypes[irun] = DetectorType(bat0);
+        // Pick up detector size for 1st batch in this run
+        int b0 = runlist[irun].BatchSerial0();  // batch serial
+        Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
+        detectortypes[irun] = DetectorType(bat0);
 
-	if (k0 < 0) { // first run with tile correction
-	  k0 = irun;
-	  detector_scale_index_run[k0] = ++ktlidx;
-	} else { // not first run
-	  // check each run beyond 1st for same detector
-	  // search previous runs for same detector
-	  bool found = false;
-	  for (int jrun=0;jrun<irun;jrun++) {
-	    if (detectortypes[jrun] == detectortypes[k0]) {
-	      // irun is same detector as jrun
-	      detector_scale_index_run[irun] = detector_scale_index_run[jrun];
-	      found = true;
-	      break;
-	    }
-	  }
-	  if (!found) {
-	    // irun is new dataset
-	    detector_scale_index_run[irun] = ++ktlidx;
-	  }
-	}
+        if (k0 < 0) { // first run with tile correction
+          k0 = irun;
+          detector_scale_index_run[k0] = ++ktlidx;
+        } else { // not first run
+          // check each run beyond 1st for same detector
+          // search previous runs for same detector
+          bool found = false;
+          for (int jrun=0;jrun<irun;jrun++) {
+            if (detectortypes[jrun] == detectortypes[k0]) {
+              // irun is same detector as jrun
+              detector_scale_index_run[irun] = detector_scale_index_run[jrun];
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            // irun is new dataset
+            detector_scale_index_run[irun] = ++ktlidx;
+          }
+        }
       } // end detector check
     }  // end run loop for initial checks
     nsecscales  = ++kscidx;
@@ -272,9 +272,9 @@ namespace scala {
     //  ... when I've written them  FIXME
     //    (re)define sec_scale_index_run & nsecscales
 
-    // make list of secondary scales, initialised to null 
+    // make list of secondary scales, initialised to null
     if (nsecscales > 0) {secondary_scales.assign(nsecscales, SecondaryScale());}
-    // make list of detector scales, initialised to null 
+    // make list of detector scales, initialised to null
     if (ndetscales > 0) {detector_scales.assign(ndetscales, DetectorScale());}
     // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
     // Set up runs
@@ -285,22 +285,22 @@ namespace scala {
     for (size_t isp=1;isp<scaleSpecs.size();isp++) {
       int runNumber = scaleSpecs[isp].run;
       if (runNumber > 0) {
-	int irun = FindRunIndex(runNumber, runlist);
-	if (irun >= 0) {
-	  // Specification for this run
-	  std::string s = SetupScale(irun, scaleSpecs[isp], runlist[irun], validscalemodel);
-	  if (s != "") {output.logTab(0,LOGFILE,s);}
-	  runSetup[irun] = true;
-	}
+        int irun = FindRunIndex(runNumber, runlist);
+        if (irun >= 0) {
+          // Specification for this run
+          std::string s = SetupScale(irun, scaleSpecs[isp], runlist[irun], validscalemodel);
+          if (s != "") {output.logTab(0,LOGFILE,s);}
+          runSetup[irun] = true;
+        }
       }
     }
     // Then fill in the rest from the default specs
     for (int irun=0;irun<nruns;irun++) {
       if (!runSetup[irun]) {
-	// Specification for this run
-	std::string s = SetupScale(irun, scaleSpecs[0], runlist[irun], validscalemodel);
-	if (s != "") {output.logTab(0,LOGFILE,s);}
-	runSetup[irun] = true;
+        // Specification for this run
+        std::string s = SetupScale(irun, scaleSpecs[0], runlist[irun], validscalemodel);
+        if (s != "") {output.logTab(0,LOGFILE,s);}
+        runSetup[irun] = true;
       }
     }
     // Count parameters, set nparameters & idxrun indices
@@ -308,8 +308,8 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::autoTiles(std::vector<scala::ScaleSpecification>& scaleSpecs,
-			 hkl_unmerge_list& hkl_list,
-			 phaser_io::Output& output)
+                         hkl_unmerge_list& hkl_list,
+                         phaser_io::Output& output)
   // set automatic TILE settings if appropriate
   // modifies scaleSpecs
   {
@@ -317,56 +317,56 @@ namespace scala {
     std::vector<Run> runlist = hkl_list.RunList();
     for (size_t isp=0; isp<scaleSpecs.size(); isp++) { // loop specifications
       if ((scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) ||
-	  (scaleSpecs[isp].ntilex < 0)) { // no TILE specified for this run
-	int irun = scaleSpecs[isp].run;
-	bool generalspec = false;
-	if (irun < 0) { // the general specification, always the 1st slot
-	  generalspec = true;
-	  if (nruns > 1) {
-	    // find a run which does not have a specific spec
-	    int krun = -1;
-	    for (size_t ksp=0; ksp<scaleSpecs.size(); ksp++) {
-	      if (scaleSpecs[ksp].run < 0) {
-		krun = ksp;
-		break;
-	      }
-	    }
-	    if (krun >= 0) {
-	      irun = krun;
-	    }
-	  } else {
-	    irun = 0;
-	  }
-	  if (irun < 0) {irun = 0;}
-	}
-	// Pick up detector size for 1st batch in this run
-	int b0 = runlist[irun].BatchSerial0();  // batch serial 
-	Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
-	DetectorType detectortype(bat0);
-	//	std::cout << "\nScaleModel::autoTiles DetectorType = "
-	//		  << detectortype.TypeLabel() << "\n"; //^
-	if (detectortype.type() == DetectorType::CCD3x3) {
-	  scaleSpecs[isp].ntilex = detectortype.NtileX();
-	  scaleSpecs[isp].ntiley = detectortype.NtileY();
-	  scaleSpecs[isp].detectorscaletype = scala::DetectorScale::CCD2;
-	  std::string rn = StringUtil::itos(runlist[irun].RunNumber(),3);
-	  std::string s = "\nNB The detector type for run "+rn+
-	    " appears to be a 3x3 tiled CCD detector";
-	  output.logTab(0,LOGFILE,s);
-	  if (generalspec) {
-	    output.logTab(0,LOGFILE,
+          (scaleSpecs[isp].ntilex < 0)) { // no TILE specified for this run
+        int irun = scaleSpecs[isp].run;
+        bool generalspec = false;
+        if (irun < 0) { // the general specification, always the 1st slot
+          generalspec = true;
+          if (nruns > 1) {
+            // find a run which does not have a specific spec
+            int krun = -1;
+            for (size_t ksp=0; ksp<scaleSpecs.size(); ksp++) {
+              if (scaleSpecs[ksp].run < 0) {
+                krun = ksp;
+                break;
+              }
+            }
+            if (krun >= 0) {
+              irun = krun;
+            }
+          } else {
+            irun = 0;
+          }
+          if (irun < 0) {irun = 0;}
+        }
+        // Pick up detector size for 1st batch in this run
+        int b0 = runlist[irun].BatchSerial0();  // batch serial
+        Batch bat0 = hkl_list.Batches()[b0];    // first batch in run
+        DetectorType detectortype(bat0);
+        //      std::cout << "\nScaleModel::autoTiles DetectorType = "
+        //                << detectortype.TypeLabel() << "\n"; //^
+        if (detectortype.type() == DetectorType::CCD3x3) {
+          scaleSpecs[isp].ntilex = detectortype.NtileX();
+          scaleSpecs[isp].ntiley = detectortype.NtileY();
+          scaleSpecs[isp].detectorscaletype = scala::DetectorScale::CCD2;
+          std::string rn = StringUtil::itos(runlist[irun].RunNumber(),3);
+          std::string s = "\nNB The detector type for run "+rn+
+            " appears to be a 3x3 tiled CCD detector";
+          output.logTab(0,LOGFILE,s);
+          if (generalspec) {
+            output.logTab(0,LOGFILE,
   " A TILE scale model has therefore been added to the general SCALES specification");
-	  } else {
-	    output.logTab(0,LOGFILE,
+          } else {
+            output.logTab(0,LOGFILE,
   " A TILE scale model has therefore been added to the SCALES specification for run "+rn);
-	  }
-	  output.logTab(0,LOGFILE,
-	" This may be switched off using the command SCALES NOTILE\n");
-	} else if (scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) {
-	  // Undefined detector type
-	  Message::message(Message_fatal
-			   ("\nERROR in ScaleModel: undefined detector type for TILE"));
-	}
+          }
+          output.logTab(0,LOGFILE,
+        " This may be switched off using the command SCALES NOTILE\n");
+        } else if (scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) {
+          // Undefined detector type
+          Message::message(Message_fatal
+                           ("\nERROR in ScaleModel: undefined detector type for TILE"));
+        }
       } // end if !TILE
 
     } // end loop specs
@@ -395,59 +395,59 @@ namespace scala {
     if (sd_rotation > 0.0) {
       //  ... within each run
       for (int irun=0;irun<nruns;irun++) {
-	// Set up ties for this run, using 1st global parameter index
-	//  idxrun_primary_scales, append these to total list
-	std::vector<Tie> these_ties = primary_scales[irun].
-	  Ties(sd_rotation, idxrun_primary_scales[irun]);
-	ties.insert(ties.end(), these_ties.begin(), these_ties.end());
-	nties_rot += these_ties.size();
+        // Set up ties for this run, using 1st global parameter index
+        //  idxrun_primary_scales, append these to total list
+        std::vector<Tie> these_ties = primary_scales[irun].
+          Ties(sd_rotation, idxrun_primary_scales[irun]);
+        ties.insert(ties.end(), these_ties.begin(), these_ties.end());
+        nties_rot += these_ties.size();
       }
     }
     // Ties on B-factors
     if (sd_bfactor > 0.0) {
       //  ... within each run
       for (int irun=0;irun<nruns;irun++) {
-	// Set up ties for this run, using 1st global parameter index
-	//  idxrun_bfactors, append these to total list
-	std::vector<Tie> these_ties = relative_bfactors[irun].
-	  Ties(sd_bfactor, idxrun_bfactors[irun]);
-	ties.insert(ties.end(), these_ties.begin(), these_ties.end());
-	nties_bfac += these_ties.size();
+        // Set up ties for this run, using 1st global parameter index
+        //  idxrun_bfactors, append these to total list
+        std::vector<Tie> these_ties = relative_bfactors[irun].
+          Ties(sd_bfactor, idxrun_bfactors[irun]);
+        ties.insert(ties.end(), these_ties.begin(), these_ties.end());
+        nties_bfac += these_ties.size();
       }
     }
     // Ties on B-factors to zero
     if (sd_zerob > 0.0) {
       //  ... within each run
       for (int irun=0;irun<nruns;irun++) {
-	// Set up ties for this run, using 1st global parameter index
-	//  idxrun_bfactors, append these to total list
-	std::vector<Tie> these_ties = relative_bfactors[irun].
-	  ZeroTies(sd_zerob, idxrun_bfactors[irun]);
-	ties.insert(ties.end(), these_ties.begin(), these_ties.end());
-	nties_zerob += these_ties.size();
+        // Set up ties for this run, using 1st global parameter index
+        //  idxrun_bfactors, append these to total list
+        std::vector<Tie> these_ties = relative_bfactors[irun].
+          ZeroTies(sd_zerob, idxrun_bfactors[irun]);
+        ties.insert(ties.end(), these_ties.begin(), these_ties.end());
+        nties_zerob += these_ties.size();
       }
     }
     // Ties on secondary beam scales
     if (sd_surface > 0.0) {
       //  ... for each surface
       if (nsecscales > 0) {
-	for (int i=0;i<nsecscales;++i) {
-	  std::vector<Tie> these_ties = secondary_scales[i].
-	    Ties(sd_surface, idxrun_secondary[i]);
-	  ties.insert(ties.end(), these_ties.begin(), these_ties.end());
-	  nties_surf += these_ties.size();
-	}
+        for (int i=0;i<nsecscales;++i) {
+          std::vector<Tie> these_ties = secondary_scales[i].
+            Ties(sd_surface, idxrun_secondary[i]);
+          ties.insert(ties.end(), these_ties.begin(), these_ties.end());
+          nties_surf += these_ties.size();
+        }
       }
     }
     // Ties on detector (tiles)
     if (ndetscales > 0) {
       if (sd_tile.size() > 0 && sd_tile[0] > 0.0) {
-	for (int i=0;i<ndetscales;++i) {
-	  std::vector<Tie> these_ties =
-	    detector_scales[i].Ties(sd_tile, idxrun_detector[i]);
-	  ties.insert(ties.end(), these_ties.begin(), these_ties.end());
-	  nties_tiles += these_ties.size();
-	}
+        for (int i=0;i<ndetscales;++i) {
+          std::vector<Tie> these_ties =
+            detector_scales[i].Ties(sd_tile, idxrun_detector[i]);
+          ties.insert(ties.end(), these_ties.begin(), these_ties.end());
+          nties_tiles += these_ties.size();
+        }
       }
     }
 
@@ -459,7 +459,7 @@ namespace scala {
   void ScaleModel::symmetricTiles(const bool& symmetric)
   {
     if (ndetscales <= 0) {return;} // no tiles
-    for (size_t i=0; i<detector_scales.size(); i++) { 
+    for (size_t i=0; i<detector_scales.size(); i++) {
       detector_scales[i].setSymmetric(symmetric);
     }
     // Recalculate number of parameters and indices etc
@@ -467,8 +467,8 @@ namespace scala {
     SetupTies();  // reset tie list
   }
   //--------------------------------------------------------------
-  void ScaleModel::setBatchReject(const std::vector<bool>& usebatch, 
-				  const std::vector<int>& batchnumbers)
+  void ScaleModel::setBatchReject(const std::vector<bool>& usebatch,
+                                  const std::vector<int>& batchnumbers)
   // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
   {
     if (!isAllBatch()) {
@@ -479,7 +479,7 @@ namespace scala {
     for (int irun=0;irun<nruns;irun++) {
       primary_scales[irun].setBatchReject(usebatch, batchnumbers);
       if (relative_bfactors[irun].Number() > 0) {
-	relative_bfactors[irun].setBatchReject(usebatch, batchnumbers);
+        relative_bfactors[irun].setBatchReject(usebatch, batchnumbers);
       }
     }
     // Fix up things that may have changed
@@ -505,12 +505,12 @@ namespace scala {
     default:
       return "UNKNOWN";
     }
-  } 
+  }
   //--------------------------------------------------------------
   std::string ScaleModel::SetupScale(const int& irun,
-			      const ScaleSpecification& scaleSpec,
-			      const Run& run,
-			      const ValidScaleModel&  validscalemodel)
+                              const ScaleSpecification& scaleSpec,
+                              const Run& run,
+                              const ValidScaleModel&  validscalemodel)
   // Setup scales & B-factors for run irun
   // returns any warning messages
   {
@@ -518,117 +518,117 @@ namespace scala {
     bool batchscale = scaleSpec.batch; // true if BATCH mode
     // Check for valid smooth scaling if requested, fail is not
     if (scaleSpec.nscales > 1 ||
-	scaleSpec.spacing > 0.0 ||
-	scaleSpec.nbfac > 1 ||
-	scaleSpec.bspacing > 0.0) {
+        scaleSpec.spacing > 0.0 ||
+        scaleSpec.nbfac > 1 ||
+        scaleSpec.bspacing > 0.0) {
       if (!batchscale) { // smooth mode
-	if (!validscalemodel.ValidPrimary(irun)) {
-	  Message::message(Message_fatal
-			   ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
-			    " has insuffient information for smooth scaling\n"));
-	}
+        if (!validscalemodel.ValidPrimary(irun)) {
+          Message::message(Message_fatal
+                           ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
+                            " has insuffient information for smooth scaling\n"));
+        }
       } else if (batchscale) {
-	if (!validscalemodel.ValidBatch(irun)) { 
-	  Message::message(Message_fatal
-			   ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
-			    " has no useful batch information for BATCH scaling\n"));
-	}
+        if (!validscalemodel.ValidBatch(irun)) {
+          Message::message(Message_fatal
+                           ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
+                            " has no useful batch information for BATCH scaling\n"));
+        }
       }
     } // end check
 
     // Scales
     if (scaleSpec.nscales != 0) {
       if (batchscale) {
-	// BATCH mode
-	primary_scales[irun] =
-	  PrimaryScale(run.BatchList(true));
+        // BATCH mode
+        primary_scales[irun] =
+          PrimaryScale(run.BatchList(true));
       } else {
-	// ROTATION mode
-	if (scaleSpec.nscales > 0) {
-	  // number given, number of intervals is one less
-	  int NscaleIntervals = scaleSpec.nscales - 1;
-	  primary_scales[irun] =
-	    PrimaryScale(NscaleIntervals, run.PhiRange());
-	} else if (scaleSpec.nscales < 0) {
-	  // spacing given
-	  primary_scales[irun] =
-	    PrimaryScale(scaleSpec.spacing,
-			 run.PhiRange());
-	}
+        // ROTATION mode
+        if (scaleSpec.nscales > 0) {
+          // number given, number of intervals is one less
+          int NscaleIntervals = scaleSpec.nscales - 1;
+          primary_scales[irun] =
+            PrimaryScale(NscaleIntervals, run.PhiRange());
+        } else if (scaleSpec.nscales < 0) {
+          // spacing given
+          primary_scales[irun] =
+            PrimaryScale(scaleSpec.spacing,
+                         run.PhiRange());
+        }
       }
     }
     // B-factors
     if (scaleSpec.nbfac != 0) {
       if (batchscale) {
-	// BATCH mode
-	relative_bfactors[irun] =
-	  RelativeBfactor(run.BatchList(true));
+        // BATCH mode
+        relative_bfactors[irun] =
+          RelativeBfactor(run.BatchList(true));
       } else {
-	// BROTATION mode
-	if (scaleSpec.nbfac > 0) {
-	  // number given, number of intervals is one less
-	  int NbfacIntervals = scaleSpec.nbfac - 1;
-	  relative_bfactors[irun] =
-	    RelativeBfactor(NbfacIntervals, run.TimeRange());
-	} else if (scaleSpec.nbfac < 0) {
-	  // spacing given
-	  relative_bfactors[irun] =
-	    RelativeBfactor(scaleSpec.bspacing,
-			    run.TimeRange());
-	}
+        // BROTATION mode
+        if (scaleSpec.nbfac > 0) {
+          // number given, number of intervals is one less
+          int NbfacIntervals = scaleSpec.nbfac - 1;
+          relative_bfactors[irun] =
+            RelativeBfactor(NbfacIntervals, run.TimeRange());
+        } else if (scaleSpec.nbfac < 0) {
+          // spacing given
+          relative_bfactors[irun] =
+            RelativeBfactor(scaleSpec.bspacing,
+                            run.TimeRange());
+        }
       }
     }
     // Secondary scales
     if (scaleSpec.sec_abs != SecondaryScale::NONE) {
       // Check for valid data: note that if primary data is missing, then so must be secondary
       if (!validscalemodel.ValidSecondary(irun)) {
-	  s += FormatOutput::logTabPrintf(0,
+          s += FormatOutput::logTabPrintf(0,
      "WARNING: Run %3d has insuffient information for secondary beam scaling\n",
-					  run.RunNumber());
+                                          run.RunNumber());
       } else {
-	// Which secondary scale object corresponds to this run?
-	int jsc = sec_scale_index_run.at(irun);
-	// Is this one already set up?
-	if (secondary_scales[jsc].Type() == SecondaryScale::NONE) {
-	  // No, so do it
-	  secondary_scales[jsc] = SecondaryScale(scaleSpec.sec_abs,
-						 scaleSpec.lmax, scaleSpec.lmaxodd,
-						 scaleSpec.pole);
-	}
+        // Which secondary scale object corresponds to this run?
+        int jsc = sec_scale_index_run.at(irun);
+        // Is this one already set up?
+        if (secondary_scales[jsc].Type() == SecondaryScale::NONE) {
+          // No, so do it
+          secondary_scales[jsc] = SecondaryScale(scaleSpec.sec_abs,
+                                                 scaleSpec.lmax, scaleSpec.lmaxodd,
+                                                 scaleSpec.pole);
+        }
       }
     }
     // Tiles, detector
     if (scaleSpec.detectorscaletype != DetectorScale::NONE) {
       if (!validscalemodel.ValidTile(irun)) {
-	  s += FormatOutput::logTabPrintf(0,
+          s += FormatOutput::logTabPrintf(0,
      "WARNING: Run %3d has insuffient information for detector (tile) scaling\n",
-					  run.RunNumber());
+                                          run.RunNumber());
       } else {
-	int jsc = detector_scale_index_run.at(irun);
-	// Is this one set up?
-	if (detector_scales[jsc].Type() ==
-	    DetectorScale::NONE) { // if not, do it
-	  DetectorScale detscale(scaleSpec.detectorscaletype,
-				 scaleSpec.ntilex, scaleSpec.ntiley,
-				 detectortypes[irun]);
-	  if (detscale.Valid()) {
-	    detector_scales[jsc].init(scaleSpec.detectorscaletype,
-				      scaleSpec.ntilex, scaleSpec.ntiley,
-				      detectortypes[irun]);
-	  } else {
-	    s += FormatOutput::logTabPrintf(0,
+        int jsc = detector_scale_index_run.at(irun);
+        // Is this one set up?
+        if (detector_scales[jsc].Type() ==
+            DetectorScale::NONE) { // if not, do it
+          DetectorScale detscale(scaleSpec.detectorscaletype,
+                                 scaleSpec.ntilex, scaleSpec.ntiley,
+                                 detectortypes[irun]);
+          if (detscale.Valid()) {
+            detector_scales[jsc].init(scaleSpec.detectorscaletype,
+                                      scaleSpec.ntilex, scaleSpec.ntiley,
+                                      detectortypes[irun]);
+          } else {
+            s += FormatOutput::logTabPrintf(0,
      "WARNING: Run %3d has insuffient information for detector (tile) scaling\n",
-					  run.RunNumber());
-	  }
-	}
+                                          run.RunNumber());
+          }
+        }
       }
     } // end detector
     return s;
   }
   //--------------------------------------------------------------
   int ScaleModel::scaleSpecIndex(const int& irun,
-				 const std::vector<ScaleSpecification>& scaleSpecs,
-				 const std::vector<Run>& runList) const
+                                 const std::vector<ScaleSpecification>& scaleSpecs,
+                                 const std::vector<Run>& runList) const
   // Returns index into scale specification list for run index irun
   //  returns -1 if not found
   {
@@ -637,10 +637,10 @@ namespace scala {
     for (size_t isp=0;isp<scaleSpecs.size();isp++) {
       int runNumber = scaleSpecs[isp].run;
       if (runNumber > 0) {
-	int ir = FindRunIndex(runNumber, runList);
-	if (ir == irun) {return isp;}
+        int ir = FindRunIndex(runNumber, runList);
+        if (ir == irun) {return isp;}
       } else {
-	isp0 = isp;  // this is the general spec
+        isp0 = isp;  // this is the general spec
       }
     }
     return isp0;
@@ -651,64 +651,64 @@ namespace scala {
     output.logTab(0,LOGFILE,"\n>>>> Layout of scale factors: <<<<\n");
     for (size_t irun=0;irun<runnumbers.size();++irun) {
       output.logTabPrintf(0,LOGFILE,
-			  "\nRun %5d\n", runnumbers[irun]);
+                          "\nRun %5d\n", runnumbers[irun]);
       output.logTab(0,LOGFILE, primary_scales.at(irun).format());
       if (nbfactors == 0) {
-	output.logTab(0,LOGFILE, "No relative B-factors");
+        output.logTab(0,LOGFILE, "No relative B-factors");
       } else {
-	output.logTab(0,LOGFILE, relative_bfactors.at(irun).format());
+        output.logTab(0,LOGFILE, relative_bfactors.at(irun).format());
       }
       if (nsecscales > 0) {
-	if (sec_scale_index_run.at(irun) >= 0) {
-	  output.logTab(0,LOGFILE,
-			secondary_scales[sec_scale_index_run.at(irun)].format());
-	}
+        if (sec_scale_index_run.at(irun) >= 0) {
+          output.logTab(0,LOGFILE,
+                        secondary_scales[sec_scale_index_run.at(irun)].format());
+        }
       }
       if (detector_scale_index_run.at(irun) >= 0) {
-	output.logTab(0,LOGFILE,
-		      detector_scales[detector_scale_index_run.at(irun)].format());
+        output.logTab(0,LOGFILE,
+                      detector_scales[detector_scale_index_run.at(irun)].format());
       }
     }
     if (nties > 0) {
       output.logTab(0,LOGFILE,"\n");
       if (nties_rot > 0) {
-	output.logTabPrintf(0,LOGFILE,
-			    (std::string("Primary scales will be TIED together along ")+
-			     "the rotation axis with a standard deviation of %6.3f, "+
-			     "number of ties %5d\n").c_str(), sd_rotation, nties_rot);
+        output.logTabPrintf(0,LOGFILE,
+                            (std::string("Primary scales will be TIED together along ")+
+                             "the rotation axis with a standard deviation of %6.3f, "+
+                             "number of ties %5d\n").c_str(), sd_rotation, nties_rot);
       }
       if (nties_bfac > 0) {
-	output.logTabPrintf(0,LOGFILE,
-			    (std::string("B-factors will be TIED together along ")+
-			     "the rotation axis with a standard deviation of %6.3f, "+
-			     "number of ties %5d\n").c_str(), sd_bfactor, nties_bfac);
+        output.logTabPrintf(0,LOGFILE,
+                            (std::string("B-factors will be TIED together along ")+
+                             "the rotation axis with a standard deviation of %6.3f, "+
+                             "number of ties %5d\n").c_str(), sd_bfactor, nties_bfac);
       }
       if (nties_zerob > 0) {
-	output.logTabPrintf(0,LOGFILE,
-			    (std::string("B-factors will be TIED to zero ")+
-			     "with a standard deviation of %6.3f, "+
-			     "number of ties %5d\n").c_str(), sd_zerob, nties_zerob);
+        output.logTabPrintf(0,LOGFILE,
+                            (std::string("B-factors will be TIED to zero ")+
+                             "with a standard deviation of %6.3f, "+
+                             "number of ties %5d\n").c_str(), sd_zerob, nties_zerob);
       }
       if (nties_surf > 0) {
-	output.logTabPrintf(0,LOGFILE,
-			    (std::string("Secondary beam parameters will be TIED to zero, ")+
-			     "ie restrained to a sphere, \n"+
-			     "      with a standard deviation of %6.3f, "+
-			     "number of ties %5d\n").c_str(), sd_surface, nties_surf);
+        output.logTabPrintf(0,LOGFILE,
+                            (std::string("Secondary beam parameters will be TIED to zero, ")+
+                             "ie restrained to a sphere, \n"+
+                             "      with a standard deviation of %6.3f, "+
+                             "number of ties %5d\n").c_str(), sd_surface, nties_surf);
       }
       if (nties_tiles > 0) {
-	output.logTab(0,LOGFILE, detector_scales[0].formatTies());
+        output.logTab(0,LOGFILE, detector_scales[0].formatTies());
       }
     }
     output.logTabPrintf(0,LOGFILE,"\n");
   }
   //--------------------------------------------------------------
   std::string ScaleModel::PrintTwoWrappingLines(const std::vector<double>& v,
-						const std::string& t1,
-						const std::vector<int>& n,
-						const std::string& t2,
-						const int& fw,
-						const int& fd)
+                                                const std::string& t1,
+                                                const std::vector<int>& n,
+                                                const std::string& t2,
+                                                const int& fw,
+                                                const int& fd)
   // Print wrapping lines:
   //   line 1, values v (double), label t1
   //   line 2, values n (int),    label t2
@@ -729,13 +729,13 @@ namespace scala {
       // v
       ss += StringUtil::LeftString(t1+":", tlen+1);
       for (int i=i1;i<=i2;++i) {
-	ss += StringUtil::ftos(float(v[i]), fw, fd);
+        ss += StringUtil::ftos(float(v[i]), fw, fd);
       }
       ss += "\n"; // end of line
       // n
       ss += StringUtil::LeftString(t2+":", tlen+1);
       for (int i=i1;i<=i2;++i) {
-	ss += clipper::String(n[i], fw);
+        ss += clipper::String(n[i], fw);
       }
       ss += "\n"; // end of line
       i1 = i2+1;
@@ -750,38 +750,38 @@ namespace scala {
     output.logTab(0,LOGFILE,"\nScale parameters:\n");
     for (size_t irun=0;irun<runnumbers.size();++irun) {
       output.logTabPrintf(0,LOGFILE,
-			  "\nRun %5d\n", runnumbers[irun]);
+                          "\nRun %5d\n", runnumbers[irun]);
       // Primary
       output.logTab(0,LOGFILE,"Primary scales and number of observations");
       std::vector<double> pscales = primary_scales[irun].Scales();
       for (size_t i=0;i<pscales.size();++i) {pscales[i]=1.0/pscales[i];}
       std::vector<int> nobsPar = primary_scales[irun].Nobservations();
       output.logTab(0,LOGFILE,
-		    PrintTwoWrappingLines(pscales, "Scales", nobsPar, "Nobs",9,3));
+                    PrintTwoWrappingLines(pscales, "Scales", nobsPar, "Nobs",9,3));
       // B-factors
       std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
       nobsPar = relative_bfactors[irun].Nobservations();
       if (bfacs.size() > 0) {
-	output.logTab(0,LOGFILE,"\nRelative B-factors and number of observations");
-	output.logTab(0,LOGFILE,
-		      PrintTwoWrappingLines(bfacs, "B-factors", nobsPar, "Nobs",9,3));
-	output.logTabPrintf(0,LOGFILE,"\n");
+        output.logTab(0,LOGFILE,"\nRelative B-factors and number of observations");
+        output.logTab(0,LOGFILE,
+                      PrintTwoWrappingLines(bfacs, "B-factors", nobsPar, "Nobs",9,3));
+        output.logTabPrintf(0,LOGFILE,"\n");
       }
     } // end run loop
     if (nsecscales > 0) {   // Secondary
       output.logTab(0,LOGFILE,"Secondary scales");
       for (int j=0;j<nsecscales;++j) {
-	std::vector<double> secsclpar = secondary_scales[j].Coefficients();
-	for (size_t i=0;i<secsclpar.size();++i) {
-	  if (i%nperline == 0) {output.logTabPrintf(0,LOGFILE,"\n");}
-	  output.logTabPrintf(0,LOGFILE," %9.3f", secsclpar[i]);
-	}
+        std::vector<double> secsclpar = secondary_scales[j].Coefficients();
+        for (size_t i=0;i<secsclpar.size();++i) {
+          if (i%nperline == 0) {output.logTabPrintf(0,LOGFILE,"\n");}
+          output.logTabPrintf(0,LOGFILE," %9.3f", secsclpar[i]);
+        }
       }
     } // End Secondary
     if (ndetscales > 0) { // Tiles
       output.logTabPrintf(0,LOGFILE,"\n\n");
       for (int i=0;i<ndetscales;++i) {
-	output.logTab(0,LOGFILE,detector_scales[i].formatparameters());
+        output.logTab(0,LOGFILE,detector_scales[i].formatparameters());
       }
     }
     output.logTabPrintf(0,LOGFILE,"\n\n");
@@ -825,9 +825,9 @@ namespace scala {
     nsecondaryscale = 0;
     if (nsecscales > 0) {
       for (int i=0;i<nsecscales;++i) {
-	idxrun_secondary[i] = nparameters;   // index to 1st secondary parameter
-	nsecondaryscale += secondary_scales[i].Number();
-	nparameters += secondary_scales[i].Number();
+        idxrun_secondary[i] = nparameters;   // index to 1st secondary parameter
+        nsecondaryscale += secondary_scales[i].Number();
+        nparameters += secondary_scales[i].Number();
       }
     }
     // Detector
@@ -835,9 +835,9 @@ namespace scala {
     ntilescale = 0;
     if (ndetscales > 0) {
       for (int i=0;i<ndetscales;++i) {
-	idxrun_detector[i] = nparameters;   // index to 1st detector parameter
-	ntilescale += detector_scales[i].Number();
-	nparameters += detector_scales[i].Number();
+        idxrun_detector[i] = nparameters;   // index to 1st detector parameter
+        ntilescale += detector_scales[i].Number();
+        nparameters += detector_scales[i].Number();
       }
     }
     // Other things ...
@@ -885,7 +885,7 @@ namespace scala {
     // Just check numbers
     ASSERT (int(params.size()) == nparameters);
     return params;
-  }      
+  }
   //--------------------------------------------------------------
   std::vector<ScaleModel::ScaleParameterType> ScaleModel::GetParameterType() const
   // get type for all parameters
@@ -911,8 +911,8 @@ namespace scala {
   {
     if (Ipar < 0 || Ipar >= nparameters) {
       clipper::Message::message(Message_fatal
-				("GetParameterType: parameter number out of range"+
-				 clipper::String(Ipar)));
+                                ("GetParameterType: parameter number out of range"+
+                                 clipper::String(Ipar)));
     }
     // Order of parameters:
     //   1. all primary scale parameters (nprimaryscale)
@@ -936,7 +936,7 @@ namespace scala {
     bool found = false;
     for (idetsc=0;idetsc<int(idxrun_detector.size());++idetsc) {
       if (Ipar >= idxrun_detector[idetsc]) {
-	found = true; break;
+        found = true; break;
       }
     }
     if (!found) {idetsc = idxrun_detector.size()-1;}
@@ -947,7 +947,7 @@ namespace scala {
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<float>& params,
-				 const std::vector<int>& Nobs)
+                                 const std::vector<int>& Nobs)
   {
     std::vector<double> pars(params.size());
     for (size_t i=0;i<params.size();++i) {pars[i] = params[i];}
@@ -956,7 +956,7 @@ namespace scala {
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<double>& params,
-				 const std::vector<int>& Nobs)
+                                 const std::vector<int>& Nobs)
   {
     ASSERT (int(params.size()) == nparameters);
     std::vector<double>::const_iterator pos1 = params.begin();  // start of range
@@ -1002,7 +1002,7 @@ namespace scala {
     NormaliseParameters();
   }
   //--------------------------------------------------------------
-  // 
+  //
   void ScaleModel::clearCounts()
     // Clear observation counts at beginning of cycle, mainly relevant for tiles
   {
@@ -1024,13 +1024,13 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::SetInitialScales(const std::vector<double>& gscales,
-				    const std::vector<int>& numobsrotrange)
+                                    const std::vector<int>& numobsrotrange)
   // Set initial primary scales, eg from InitialScales
   // also store count of number of observations
   {
     // For each run, number of initial scales = number of intervals, depends on type
     //  1) for batch scales, number = number of scales
-    //  2) for smooth scales, Nintervals = Nscales - 2 
+    //  2) for smooth scales, Nintervals = Nscales - 2
     //  3) ... unless Nscales = 1 or 2, in which case Nintervals = 1
     //  4) ... or Nscales = 3, in which case Nintervals = 2
     int niscl = 0;  // count number expected
@@ -1047,49 +1047,49 @@ namespace scala {
       std::vector<int>    nobsrun(primary_scales[ir].Number()); // number of observations for this run
 
       if (primary_scales[ir].IsBatchScale()) {  // Batch scale  -------
-	ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals());
-	for (int i=0;i<primary_scales[ir].Nintervals();++i) {
-	  gsclrun[i] = gscales[jsr];
-	  nobsrun[i] = numobsrotrange[jsr];
-	  jsr++;
-	}
+        ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals());
+        for (int i=0;i<primary_scales[ir].Nintervals();++i) {
+          gsclrun[i] = gscales[jsr];
+          nobsrun[i] = numobsrotrange[jsr];
+          jsr++;
+        }
       } else { // Smooth scale  -------
-	if (primary_scales[ir].Number() <= 2) { // 1 or 2 scales, 1 interval
-	  ASSERT (primary_scales[ir].Nintervals() == 1);
-	  for (int i=0;i<primary_scales[ir].Number();++i) {
-	    gsclrun[i] = gscales[jsr];
-	    nobsrun[i] = numobsrotrange[jsr];
-	  }
-	  jsr++;
-	} else if (primary_scales[ir].Number() == 3) { // 3 scales, 2 intervals
-	  ASSERT (primary_scales[ir].Nintervals() == 2);
-	  // Scales at 0,1,2 average for middle one
-	  gsclrun[0] = gscales[jsr];
-	  nobsrun[0] = numobsrotrange[jsr];
-	  gsclrun[2] = gscales.at(jsr+1);
-	  nobsrun[2] = numobsrotrange.at(jsr+1);
-	  gsclrun[1] = 0.5*(gscales[jsr] + gscales.at(jsr+1)); // average scale
-	  nobsrun[1] = (numobsrotrange[jsr] + numobsrotrange.at(jsr+1))/2; // average number
-	  jsr += 2;
-	} else { // >3 scales n-2 intervals
-	  ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals()+2);
-	  for (int i=0;i<primary_scales[ir].Nintervals();++i) {
-	    j = i+1;  
-	    // extra scale at start, duplicate of 1st interval
-	    if (i == 0) {
-	      gsclrun[i] = gscales[jsr];
-	      nobsrun[i] = numobsrotrange[jsr];
-	    }
-	    gsclrun[j] = gscales[jsr];
-	    nobsrun[j] = numobsrotrange[jsr];
-	    jsr++;
-	  } // end loop scales intervals
-	  // extra scale at end: j is one beyond intitial scales array
-	  gsclrun[j+1] = gsclrun[j];
-	  nobsrun[j+1] = numobsrotrange[j-1];
-	  j++;
-	  ASSERT (j+1 == primary_scales[ir].Number());
-	}
+        if (primary_scales[ir].Number() <= 2) { // 1 or 2 scales, 1 interval
+          ASSERT (primary_scales[ir].Nintervals() == 1);
+          for (int i=0;i<primary_scales[ir].Number();++i) {
+            gsclrun[i] = gscales[jsr];
+            nobsrun[i] = numobsrotrange[jsr];
+          }
+          jsr++;
+        } else if (primary_scales[ir].Number() == 3) { // 3 scales, 2 intervals
+          ASSERT (primary_scales[ir].Nintervals() == 2);
+          // Scales at 0,1,2 average for middle one
+          gsclrun[0] = gscales[jsr];
+          nobsrun[0] = numobsrotrange[jsr];
+          gsclrun[2] = gscales.at(jsr+1);
+          nobsrun[2] = numobsrotrange.at(jsr+1);
+          gsclrun[1] = 0.5*(gscales[jsr] + gscales.at(jsr+1)); // average scale
+          nobsrun[1] = (numobsrotrange[jsr] + numobsrotrange.at(jsr+1))/2; // average number
+          jsr += 2;
+        } else { // >3 scales n-2 intervals
+          ASSERT (primary_scales[ir].Number() == primary_scales[ir].Nintervals()+2);
+          for (int i=0;i<primary_scales[ir].Nintervals();++i) {
+            j = i+1;
+            // extra scale at start, duplicate of 1st interval
+            if (i == 0) {
+              gsclrun[i] = gscales[jsr];
+              nobsrun[i] = numobsrotrange[jsr];
+            }
+            gsclrun[j] = gscales[jsr];
+            nobsrun[j] = numobsrotrange[jsr];
+            jsr++;
+          } // end loop scales intervals
+          // extra scale at end: j is one beyond intitial scales array
+          gsclrun[j+1] = gsclrun[j];
+          nobsrun[j+1] = numobsrotrange[j-1];
+          j++;
+          ASSERT (j+1 == primary_scales[ir].Number());
+        }
       }
       primary_scales[ir].StoreScales(gsclrun);
       primary_scales[ir].StoreNobservations(nobsrun);
@@ -1109,21 +1109,21 @@ namespace scala {
     bool allbatch = true;
     for (int irun=0;irun<nruns;irun++) {
       if (!primary_scales[irun].IsBatchScale()) {
-	allbatch = false;
-	break;
+        allbatch = false;
+        break;
       }
       if (relative_bfactors[irun].Number() > 0) {
-	if (!relative_bfactors[irun].IsBatchBfactor()) {
-	  allbatch = false;
-	  break;
-	}
+        if (!relative_bfactors[irun].IsBatchBfactor()) {
+          allbatch = false;
+          break;
+        }
       }
     }
     return allbatch;
   }
   //--------------------------------------------------------------
   double ScaleModel::ScaleObs(observation& obs, const Rtype& invresolsq,
-			      const bool& onlyUseSingletons) const
+                              const bool& onlyUseSingletons) const
   // Scale observation, returns scale applied
   // if onlyUseSingletons true, do not attempt to apply scales to overlaps
   {
@@ -1137,27 +1137,27 @@ namespace scala {
       std::vector<LatticeIndexInfo> lathkl = obs.lathkl();
       //^
       //      if (lathkl.size() > 0) {
-      //	std::cout << "ScaleObs " << obs.hkl_original().format() <<
-      //	  " Mainlat "<< mainlatnum <<
-      //	  " Batch " << obs.Batch() << " gm " << g <<"\n";
+      //        std::cout << "ScaleObs " << obs.hkl_original().format() <<
+      //          " Mainlat "<< mainlatnum <<
+      //          " Batch " << obs.Batch() << " gm " << g <<"\n";
       //      }
       //^-
-      
-      for (size_t l=0; l<lathkl.size(); l++) { 
-	int latnum = lathkl[l].latnum;
-	if (latnum > 0) {
-	  double glat = 0.0;
-	  int jscale = idxrunlattice[latnum-1];
-	  if (jscale >= 0) {
-	    glat = ScaleFactor(jscale, obs, invresolsq);
-	  }
-	  lathkl[l].gscale = glat/g;  // relative lattice fraction from scales
-	  //^
-	  //	  std::cout << "  lattice " << latnum << " " <<
-	  //	    lathkl[l].hkl.format() << " g " << glat <<
-	  //	    " relative g " << lathkl[l].gscale <<"\n";
-	  //^-
-	}	  
+
+      for (size_t l=0; l<lathkl.size(); l++) {
+        int latnum = lathkl[l].latnum;
+        if (latnum > 0) {
+          double glat = 0.0;
+          int jscale = idxrunlattice[latnum-1];
+          if (jscale >= 0) {
+            glat = ScaleFactor(jscale, obs, invresolsq);
+          }
+          lathkl[l].gscale = glat/g;  // relative lattice fraction from scales
+          //^
+          //      std::cout << "  lattice " << latnum << " " <<
+          //        lathkl[l].hkl.format() << " g " << glat <<
+          //        " relative g " << lathkl[l].gscale <<"\n";
+          //^-
+        }
       }
       obs.StoreLathkl(lathkl);
     }
@@ -1165,7 +1165,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double ScaleModel::ScaleFactor(const int& jscale,
-			      const observation& obs, const Rtype& invresolsq) const
+                              const observation& obs, const Rtype& invresolsq) const
   // Returns scale for observation, using scale set jscale (== irun for main observation
   {
     double g = 1.0;
@@ -1181,25 +1181,25 @@ namespace scala {
 
     if (relative_bfactors[jscale].Number() > 0) {
       if (relative_bfactors[jscale].IsBatchBfactor()) {
-	bs = relative_bfactors[jscale].BfactorScale(obs.Batch(), invresolsq);
+        bs = relative_bfactors[jscale].BfactorScale(obs.Batch(), invresolsq);
       } else {
-	bs = relative_bfactors[jscale].BfactorScale(obs.time(), invresolsq);
+        bs = relative_bfactors[jscale].BfactorScale(obs.time(), invresolsq);
       }
     }
     // Secondary   FIXME (why?)
     double ss = 1.0;
     if (nsecscales > 0) {
       if (sec_scale_index_run[jscale] >= 0) {
-	double thetap, phip;
-	obs.GetS2(thetap, phip);
-	ss = secondary_scales[sec_scale_index_run[jscale]].Scale(thetap, phip);
+        double thetap, phip;
+        obs.GetS2(thetap, phip);
+        ss = secondary_scales[sec_scale_index_run[jscale]].Scale(thetap, phip);
       }
     }
     // Detector
     double ds = 1.0;
     if (ndetscales > 0) {
       if (detector_scale_index_run[jscale] >= 0) {
-	ds = detector_scales[detector_scale_index_run[jscale]].Scale(obs.XYdet());
+        ds = detector_scales[detector_scale_index_run[jscale]].Scale(obs.XYdet());
       }
     }
     g = ps*bs*ss*ds;
@@ -1207,7 +1207,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   double ScaleModel::ScaleObs(observation& obs, const Rtype& invresolsq,
-			      std::vector<double>& dghldp) const
+                              std::vector<double>& dghldp) const
   // Scale observation, returns scale applied and
   // partial derivative vector d(ghl)/dp
   {
@@ -1226,29 +1226,29 @@ namespace scala {
     } else {
       ps = primary_scales[irun].ScaleDeriv(obs.phi(), dgdpm);
     }
-    
+
     // B-factor scale
     std::vector<double> dgdB;  // derivatives for this run only
     double bs = 1.0;
     if (relative_bfactors[irun].Number() > 0) {
       if (relative_bfactors[irun].IsBatchBfactor()) {
-	bs = relative_bfactors[irun].BfactorScaleDeriv(obs.Batch(), invresolsq, dgdB);
+        bs = relative_bfactors[irun].BfactorScaleDeriv(obs.Batch(), invresolsq, dgdB);
       } else {
-	bs = relative_bfactors[irun].BfactorScaleDeriv(obs.time(), invresolsq, dgdB);
+        bs = relative_bfactors[irun].BfactorScaleDeriv(obs.time(), invresolsq, dgdB);
       }
     }
-    
-    // Secondary 
+
+    // Secondary
     double ss = 1.0;
     std::vector<double> dgds;  // derivatives for this run only
     if (nsecscales > 0) {
       if (sec_scale_index_run[irun] >= 0) {
-	// Return scale & derivatives for secondary beam directions
-	// polar angles thetap, phip (calculated in ScaleModel constructor)
-	double thetap, phip;
-	obs.GetS2(thetap, phip);
-	int k = sec_scale_index_run[irun];
-	ss = secondary_scales[k].ScaleDeriv(thetap, phip, dgds);
+        // Return scale & derivatives for secondary beam directions
+        // polar angles thetap, phip (calculated in ScaleModel constructor)
+        double thetap, phip;
+        obs.GetS2(thetap, phip);
+        int k = sec_scale_index_run[irun];
+        ss = secondary_scales[k].ScaleDeriv(thetap, phip, dgds);
       }
     }
 
@@ -1257,8 +1257,8 @@ namespace scala {
     std::vector<double> dgdd;  // derivatives for this run only
     if (ndetscales > 0) {
       if (detector_scale_index_run[irun] >= 0) {
-	ds = detector_scales[detector_scale_index_run[irun]].
-	  ScaleDeriv(obs.XYdet(), dgdd);
+        ds = detector_scales[detector_scale_index_run[irun]].
+          ScaleDeriv(obs.XYdet(), dgdd);
       }
     }
 
@@ -1267,19 +1267,19 @@ namespace scala {
       dgdpm[i] *= bs * ss *ds;
     }
     std::copy(dgdpm.begin(), dgdpm.end(),
-	      dghldp.begin() + idxrun_primary_scales[irun]);
+              dghldp.begin() + idxrun_primary_scales[irun]);
 
     // dghl/dp = dg(B)/dp * ps * ss * ds
     for (size_t i=0;i<dgdB.size();++i) {
       dgdB[i] *= ps * ss * ds;
     }
     std::copy(dgdB.begin(), dgdB.end(),
-	      dghldp.begin()+idxrun_bfactors[irun]);
+              dghldp.begin()+idxrun_bfactors[irun]);
 
     if (nsecscales > 0) {
       // dghl/dp = dg(sec)/dp * ps * bs
       for (size_t i=0;i<dgds.size();++i) {
-	dgds[i] *= ps * bs * ds;
+        dgds[i] *= ps * bs * ds;
       }
       int k = sec_scale_index_run[irun];
       std::copy(dgds.begin(), dgds.end(), dghldp.begin()+idxrun_secondary[k]);
@@ -1288,7 +1288,7 @@ namespace scala {
     if (ndetscales > 0) {
       // dghl/dp = dg(det)/dp * ps * bs *ss
       for (size_t i=0;i<dgdd.size();++i) {
-	dgdd[i] *= ps * bs * ss;
+        dgdd[i] *= ps * bs * ss;
       }
       int k = detector_scale_index_run[irun];
       std::copy(dgdd.begin(), dgdd.end(), dghldp.begin()+idxrun_detector[k]);
@@ -1316,55 +1316,55 @@ namespace scala {
     if (scnorm <= 0.0) {
       std::vector<double> pscales = primary_scales[scalenormrun].Scales();
       clipper::Message::message(Message_fatal
-				("Normalisation scale < 0"));
+                                ("Normalisation scale < 0"));
     }
     for (int irun=0;irun<nruns;irun++) {
       // Scales for this run
       std::vector<double> pscales = primary_scales[irun].Scales();
       for (size_t i=0;i<pscales.size();++i) {
-	pscales[i] /= scnorm;
+        pscales[i] /= scnorm;
       }
       primary_scales[irun].StoreScales(pscales);
     }
     // B-factors
-    double bfnorm = -1000000.;  
+    double bfnorm = -1000000.;
     if (bfacnormbatch >= 0) {
       // Normalisation batch specified
       bfnorm = relative_bfactors[bfacnormrun].Bfactors()[bfacnormbatch];
     } else {
       // Find largest Bfactor
       for (int irun=0;irun<nruns;irun++) {
-	//  B-factors for this run
-	std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
-	// Normalisation on "best" batch: if smoothed Bfactors && > 2, omit first & last
-	int i1 = 0;
-	int i2 = bfacs.size();
-	if (!relative_bfactors[irun].IsBatchBfactor() &&
-	    i2 > 2) {
-	  // ... but for smoothed values add in the mean of first & last pairs
-	  double bf = 0.5 * (bfacs[0] + bfacs[1]);
-	  bfnorm = Max(bfnorm, bf);
-	  bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
-	  bfnorm = Max(bfnorm, bf);
-	  i1 = 1;  // now omit 1st & last
-	  i2--;
-	}
-	for (int i=i1;i<i2;++i) {
-	  bfnorm = Max(bfnorm, bfacs[i]);
-	}
+        //  B-factors for this run
+        std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
+        // Normalisation on "best" batch: if smoothed Bfactors && > 2, omit first & last
+        int i1 = 0;
+        int i2 = bfacs.size();
+        if (!relative_bfactors[irun].IsBatchBfactor() &&
+            i2 > 2) {
+          // ... but for smoothed values add in the mean of first & last pairs
+          double bf = 0.5 * (bfacs[0] + bfacs[1]);
+          bfnorm = Max(bfnorm, bf);
+          bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
+          bfnorm = Max(bfnorm, bf);
+          i1 = 1;  // now omit 1st & last
+          i2--;
+        }
+        for (int i=i1;i<i2;++i) {
+          bfnorm = Max(bfnorm, bfacs[i]);
+        }
       } // end loop runs
       if (bfnorm > -999999.) {
-	for (int irun=0;irun<nruns;irun++) {
-	  //  B-factors for this run
-	  std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
-	  for (size_t i=0;i<bfacs.size();++i) {
-	    bfacs[i] -= bfnorm;
-	  }
-	  relative_bfactors[irun].StoreBfactors(bfacs);
-	}
+        for (int irun=0;irun<nruns;irun++) {
+          //  B-factors for this run
+          std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
+          for (size_t i=0;i<bfacs.size();++i) {
+            bfacs[i] -= bfnorm;
+          }
+          relative_bfactors[irun].StoreBfactors(bfacs);
+        }
       }
     }
-  }      
+  }
   //--------------------------------------------------------------
   double ScaleModel::TieValues
   (const bool& DoGradient, const bool& DoHessian,
@@ -1380,26 +1380,26 @@ namespace scala {
   // On exit:
   //  dRdpi(nparameters)  gradient contribution for each parameter
   //  Htie                list of indexed Hessian contributions
-  //  
+  //
   {
     if (DoGradient) {
       dRdpi.assign(nparameters, 0.0); // clear derivatives
       if (DoHessian) {
-	Htie.clear();                   // and Hessian
+        Htie.clear();                   // and Hessian
       }}
 
     double R = 0.0;
     for (int itie=0;itie<nties;++itie) { // loop ties
       R += ties[itie].R(params);
       if (DoGradient) {
-	std::vector<TieGradient> grad = ties[itie].Gradient(params);
-	for (size_t i=0;i<grad.size();++i) {
-	  dRdpi[grad[i].index] = grad[i].Grad;
-	}
-	if (DoHessian) {
-	  std::vector<TieHessian> hessian = ties[itie].Hessian(params);
-	  Htie.insert(Htie.end(), hessian.begin(), hessian.end());
-	}
+        std::vector<TieGradient> grad = ties[itie].Gradient(params);
+        for (size_t i=0;i<grad.size();++i) {
+          dRdpi[grad[i].index] = grad[i].Grad;
+        }
+        if (DoHessian) {
+          std::vector<TieHessian> hessian = ties[itie].Hessian(params);
+          Htie.insert(Htie.end(), hessian.begin(), hessian.end());
+        }
       }
     }
     return R;
@@ -1421,10 +1421,10 @@ namespace scala {
       // A secondary beam parameter, leave unbounded
       return false;
     case ScaleModel::TILE:
-      {    
-	// A detector beam parameter, but which one?
-	std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
-	return detector_scales[idxpar.first].LowerBound(idxpar.second, Lower);
+      {
+        // A detector beam parameter, but which one?
+        std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
+        return detector_scales[idxpar.first].LowerBound(idxpar.second, Lower);
       }
     default:
       return false;
@@ -1448,9 +1448,9 @@ namespace scala {
       return false;
     case ScaleModel::TILE:
       {
-	// A detector beam parameter, but which one?
-	std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
-	return detector_scales[idxpar.first].UpperBound(idxpar.second, Upper);
+        // A detector beam parameter, but which one?
+        std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
+        return detector_scales[idxpar.first].UpperBound(idxpar.second, Upper);
       }
     default:
       return false;
@@ -1472,10 +1472,10 @@ namespace scala {
       // A secondary beam parameter
       return 0.05;
     case ScaleModel::TILE:
-      {    
-	// A detector beam parameter, but which one?
-	std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
-	return detector_scales[idxpar.first].LargeShift(idxpar.second);
+      {
+        // A detector beam parameter, but which one?
+        std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
+        return detector_scales[idxpar.first].LargeShift(idxpar.second);
       }
     default:
       return 0.0;
@@ -1510,28 +1510,28 @@ namespace scala {
     if (nbfacs > 0) { // B-factors
       ASSERT (nruns == nbfacs);
       for (int j=0;j<nbfacs;++j) {
-	ds += relative_bfactors[j].FormatSave();
+        ds += relative_bfactors[j].FormatSave();
       }
     }
     // Secondary beam
     ds += "Nsecscales "+ clipper::String(nsecscales)+"\n";
     if (nsecscales > 0) {
       for (int i=0;i<nsecscales;++i) {
-	ds += secondary_scales[i].FormatSave();
+        ds += secondary_scales[i].FormatSave();
       }
       ASSERT (int(sec_scale_index_run.size()) == nruns);
       ds += "Sec_scale_index_run\n"+
-	StringUtil::FormatSaveVector(sec_scale_index_run);
+        StringUtil::FormatSaveVector(sec_scale_index_run);
     }
     // save tile parameters
     ds += "Ndetscales "+ clipper::String(ndetscales)+"\n";
     if (ndetscales > 0) {
       for (int i=0;i<ndetscales;++i) {
-	ds += detector_scales[i].FormatSave();
+        ds += detector_scales[i].FormatSave();
       }
       ASSERT (int(detector_scale_index_run.size()) == nruns);
       ds += "Detector_scale_index_run\n"+
-	StringUtil::FormatSaveVector(detector_scale_index_run);
+        StringUtil::FormatSaveVector(detector_scale_index_run);
     }
 
     // sds
@@ -1554,7 +1554,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::Restore(const std::string& restorefilename,
-			   const std::vector<Run>& runlist)
+                           const std::vector<Run>& runlist)
   // Restore from dump file, for those runs which are defined now
   // Note that ties are not restored
   {
@@ -1564,14 +1564,14 @@ namespace scala {
     FR.ReadTag("ScaleModel"); // Note ReadTag fails if tag is wrong
     if (FR.GetTag() != "V1.1") {  // version check
       clipper::Message::message(Message_fatal
-		("RESTORE incompatible version in "+restorefilename));
+                ("RESTORE incompatible version in "+restorefilename));
     }
     FR.Skip(); // skip "{"
 
     RunsFromSavefile savefileruns(FR, runlist);
     if (savefileruns.NumberRunsFound() < int(runlist.size())) {
       clipper::Message::message(Message_fatal
-			("RESTORE not all runs found in save file"));
+                        ("RESTORE not all runs found in save file"));
     }
 
     int svnruns = savefileruns.NumberRunsInSaveFile();
@@ -1585,11 +1585,11 @@ namespace scala {
     for (int ipr = 0;ipr<svnruns;++ipr) { // loop primary scales in file
       // Do we want this one?
       if (runsfromsavefile[ipr] < 0) {
-	// No, skip it
-	FR.SkipSection(0); // skip section
+        // No, skip it
+        FR.SkipSection(0); // skip section
       } else {
-	// Yes, read it
-	primary_scales[jpr++].Restore(FR);
+        // Yes, read it
+        primary_scales[jpr++].Restore(FR);
       }
     } // end loop primary scales
 
@@ -1597,56 +1597,56 @@ namespace scala {
     int nbf = FR.Int();
     if (nbf != svnruns) {
       clipper::Message::message(Message_fatal
-				("RESTORE number of B-factors != number of runs"));
+                                ("RESTORE number of B-factors != number of runs"));
     }
     jpr = 0;
     for (int ipr = 0;ipr<svnruns;++ipr) { // loop B-factors in file
       // Do we want this one?
       if (runsfromsavefile[ipr] < 0) {
-	// No, skip it
-	FR.SkipSection(0); // skip section
+        // No, skip it
+        FR.SkipSection(0); // skip section
       } else {
-	// Yes, read it
-	relative_bfactors[jpr++].Restore(FR);
+        // Yes, read it
+        relative_bfactors[jpr++].Restore(FR);
       }
     } // end loop B-factors
 
     FR.ReadTag("Nsecscales");
     int nssc = FR.Int();
     if (nssc != nsecscales) {
-	clipper::Message::message(Message_fatal
-	  ("RESTORE incompatible secondary scale models"));
+        clipper::Message::message(Message_fatal
+          ("RESTORE incompatible secondary scale models"));
     }
 
     sec_scale_index_run.clear();
     if (nssc > 0) {
       for (int i = 0;i<nssc;++i) { // loop secondary scales in file
-	secondary_scales[i].Restore(FR);
+        secondary_scales[i].Restore(FR);
       } // end loop secondary scales
       FR.ReadTag("Sec_scale_index_run");
       // Index for each run
       for (int ipr = 0;ipr<svnruns;++ipr) { // loop sec scale indices
-	int js = FR.Int();
-	// Do we want this one?
-	if (runsfromsavefile[ipr] >= 0) {
-	  sec_scale_index_run.push_back(js);
-	}
+        int js = FR.Int();
+        // Do we want this one?
+        if (runsfromsavefile[ipr] >= 0) {
+          sec_scale_index_run.push_back(js);
+        }
       }
       if (int(sec_scale_index_run.size()) != nruns) {
-	clipper::Message::message(Message_fatal
-				  ("RESTORE number of Sec_scale_index_runs != number of runs"));
+        clipper::Message::message(Message_fatal
+                                  ("RESTORE number of Sec_scale_index_runs != number of runs"));
       }
     }
-    
+
     FR.ReadTag("Ndetscales");
     int ndsc = FR.Int();
     if (ndsc != ndetscales) {
-	clipper::Message::message(Message_fatal
-	  ("RESTORE incompatible detector models"));
+        clipper::Message::message(Message_fatal
+          ("RESTORE incompatible detector models"));
     }
     if (ndetscales > 0) {
       for (int i=0;i<ndetscales;++i) {
-	detector_scales[i].Restore(FR);
+        detector_scales[i].Restore(FR);
       }
       FR.ReadTag("Detector_scale_index_run");
       ASSERT (int(detector_scale_index_run.size()) == nruns);
@@ -1675,7 +1675,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::WriteImage(const std::string fname,
-			      phaser_io::Output& output) const
+                              phaser_io::Output& output) const
   //! Write image[s] for each detector scale
   {
     std::string imagefilename = fname;
@@ -1690,13 +1690,13 @@ namespace scala {
       ext = "."+ext;
       std::string name = imagefilename;
       if (ndetscales > 1) {
-	name = basename+"_"+StringUtil::Strip(StringUtil::itos(idsc+1,4))+ext;
+        name = basename+"_"+StringUtil::Strip(StringUtil::itos(idsc+1,4))+ext;
       } else {
-	name = basename+ext;
+        name = basename+ext;
       }
       detector_scales[idsc].WriteImage(name);
       output.logTab(0,LOGFILE,
-		    "\nDetector scale image (x1000) written to file "+name);
+                    "\nDetector scale image (x1000) written to file "+name);
     }
   }
   //--------------------------------------------------------------
@@ -1727,7 +1727,7 @@ namespace scala {
     std::vector<Run> runs = hkl_list.RunList();
     for (int irun=0;irun<nruns;++irun) {
       if (runs[irun].Nbatches() <= 1) {
-	validbatch.at(irun) = false;
+        validbatch.at(irun) = false;
       }}
 
     std::vector<Batch> batches = hkl_list.Batches();  // all batch data
@@ -1736,24 +1736,24 @@ namespace scala {
     for (int ib=0;ib<nbatches;++ib) { // loop batches
       int irun = batches[ib].RunIndex();  // run serial number
       if (irun >= 0) {  // only for batches assigned to a run
-	// For smooth primary beam corrections (scale & B-factor) we need valid Phi values
-	if (!batches[ib].ValidPhi() || std::abs(batches[ib].PhiRange()) < 0.0001) {
-	  validprimary.at(irun) = false;
-	  // Primary data missing implies secondary as well
-	  validsecondary.at(irun) = false;
-	}
-	// For valid secondary beam calculation, we need full geometry
-	if (!batches[ib].ValidOrientation()) {
-	  validsecondary.at(irun) = false;
-	}
-	// For valid tile information, we need detector [pixel] coordinates
-	DetectorType dettype(batches[ib]);
-	if (dettype.XdetRange().AbsRange() < 0.001) {
-	  validtile.at(irun) = false;
-	}
-	if (dettype.YdetRange().AbsRange() < 0.001) {
-	  validtile.at(irun) = false;
-	}
+        // For smooth primary beam corrections (scale & B-factor) we need valid Phi values
+        if (!batches[ib].ValidPhi() || std::abs(batches[ib].PhiRange()) < 0.0001) {
+          validprimary.at(irun) = false;
+          // Primary data missing implies secondary as well
+          validsecondary.at(irun) = false;
+        }
+        // For valid secondary beam calculation, we need full geometry
+        if (!batches[ib].ValidOrientation()) {
+          validsecondary.at(irun) = false;
+        }
+        // For valid tile information, we need detector [pixel] coordinates
+        DetectorType dettype(batches[ib]);
+        if (dettype.XdetRange().AbsRange() < 0.001) {
+          validtile.at(irun) = false;
+        }
+        if (dettype.YdetRange().AbsRange() < 0.001) {
+          validtile.at(irun) = false;
+        }
       }   // if valid run
     } // end loop batches
   }

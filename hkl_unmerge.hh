@@ -75,7 +75,7 @@ namespace scala {
     //  Ipower default = 3
 
     // return true if COMBINE
-    static bool Combine() {return (selecticolflag > 0);}
+    static bool Combine();
     // If IcolFlag > 0, set selecticolflag and set imid = Imid, ie COMBINE
     // If IcolFlag = 0, select Iint, < 0 select Ipr
     static void SetIcolFlag(const int& IcolFlag, const double& Imid, const int Ipower=3);

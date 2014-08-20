@@ -18,23 +18,23 @@ namespace scala {
     // Store address of data array
     // Data is a 2D array(nrotranges, nresbins)
     avi = &AvI;
-    npall = avi->rows();  // number of parameters = number of rotation ranges   
+    npall = avi->rows();  // number of parameters = number of rotation ranges
     np = 0;
     validranges.assign(npall, true);
     for (int i=0;i<avi->rows();++i) {  // loop parameters (rotation ranges)
       next = -1;
       bool empty = true;
       while (++next < avi->cols()) { // loop resolution ranges
-	if ((*avi)(i,next) > 0.0) {
-	  empty = false;
-	  break;
-	}
+        if ((*avi)(i,next) > 0.0) {
+          empty = false;
+          break;
+        }
       }
       if (empty) {
-	// this rotation range is empty
-	validranges[i] = false;
+        // this rotation range is empty
+        validranges[i] = false;
       } else {
-	np++;    // count valid rotation ranges
+        np++;    // count valid rotation ranges
       }
     }
     next = -1;
@@ -49,11 +49,11 @@ namespace scala {
     double I, sd;
     while (++next < avi->cols()) {
       for (int i=0;i<avi->rows();++i) {
-	I = (*avi)(i,next);
-	sd = (I>0.0) ? sd1  : 0.0;  // sd = 0 if I = 0
-	obs[i] = DPair(I, sd);
-	//^
-	//	std::cout <<"ObsArray i, obs " <<i<<" "<<obs[i].first<<" "<<obs[i].second<<"\n";
+        I = (*avi)(i,next);
+        sd = (I>0.0) ? sd1  : 0.0;  // sd = 0 if I = 0
+        obs[i] = DPair(I, sd);
+        //^
+        //      std::cout <<"ObsArray i, obs " <<i<<" "<<obs[i].first<<" "<<obs[i].second<<"\n";
       }
       return true;
     }
@@ -62,13 +62,13 @@ namespace scala {
   }
   // ---------------------------------------------------------
   void InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
-		     const all_controls& controls,
-		     phaser_io::Output& output)
+                     const all_controls& controls,
+                     phaser_io::Output& output)
   // Get initial estimates of primary scales, from making intensity
   // averages equal
   {
     output.logTab(0,LOGFILE,
-		  "\n========= Initial scaling =========\n\n");
+                  "\n========= Initial scaling =========\n\n");
 
     std::vector<Run> runlist = hkl_list.RunList();   // runs
     int nruns = runlist.size();
@@ -85,11 +85,11 @@ namespace scala {
       //   for batch mode = Nbatches (excluding rejected ones)
       nranges_run[irun] = AllScales.primary_scale(irun).Nintervals();
       if (AllScales.primary_scale(irun).IsBatchScale()) {
-	// Batch scale
-	batch_scale_run[irun] = true;
+        // Batch scale
+        batch_scale_run[irun] = true;
       }
       // idxrun is 1st index in list for this run
-      idxrun[irun] = nrotranges;  
+      idxrun[irun] = nrotranges;
       nrotranges += nranges_run[irun];
       runlist[irun].PhiRange().SetNbin(nranges_run[irun]); // set up binning on phi
       //^
@@ -108,7 +108,7 @@ namespace scala {
     reflection this_refl;
     observation this_obs;
     int index;
-    
+
     int nrbins =  resrange.Nbins();
     // sum->mean I (rotation, resolution)
     clipper::Array2d<double> sumI(nrotranges, nrbins);
@@ -117,7 +117,7 @@ namespace scala {
 
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
-	sumI(i,j) = 0.0; nI(i,j) = 0;}
+        sumI(i,j) = 0.0; nI(i,j) = 0;}
     }
 
     hkl_list.rewind();
@@ -125,56 +125,56 @@ namespace scala {
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
       int ires = resrange.bin(this_refl.invresolsq());
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
-	// loop observations
-	int irun = this_obs.run();
-	Rtype phi = this_obs.phi();
-	if (AllScales.primary_scale(irun).IsBatchScale()) {
-	  // batch scale
-	  int batchnum = this_obs.Batch();
-	  // serial index in run
-	  int batchserial = AllScales.primary_scale(irun).batchSerialIndex(batchnum);
-	  irot = batchserial + idxrun[irun];
-	} else {
-	  irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
-	}
-	sumI(irot, ires) += this_obs.I(); 
-	nI(irot, ires)++;
+        // loop observations
+        int irun = this_obs.run();
+        Rtype phi = this_obs.phi();
+        if (AllScales.primary_scale(irun).IsBatchScale()) {
+          // batch scale
+          int batchnum = this_obs.Batch();
+          // serial index in run
+          int batchserial = AllScales.primary_scale(irun).batchSerialIndex(batchnum);
+          irot = batchserial + idxrun[irun];
+        } else {
+          irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
+        }
+        sumI(irot, ires) += this_obs.I();
+        nI(irot, ires)++;
       }
     }
-    
+
     // Compute average intensities
     std::vector<int> numobsrotrange(nrotranges, 0); // number of observations for rotrange
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
-	if (nI(i,j) > 0) {
-	  sumI(i,j) /= double(nI(i,j));
-	  numobsrotrange[i] += nI(i,j);
-	}
+        if (nI(i,j) > 0) {
+          sumI(i,j) /= double(nI(i,j));
+          numobsrotrange[i] += nI(i,j);
+        }
       }
     }
-    
+
     InitialData data(sumI);  // make data accessible to scale refinement
-    
+
     FoxHolmes fh(data);
     int Ncyc =  5;  // number of cycles
     phaser::protocolPtr cPtr(new phaser::ProtocolScale(Ncyc));   // default protocols
     //^   std::cout << " InitScales::Minimizer::run::Number of cycles " << cPtr->getNCYC() << "\n";
     phaser::Minimizer Min;
-    
+
     Min.run(fh, cPtr, output);
-    
+
     // Print initial scales
     const int nperline = 10;
-    
+
     std::vector<double> gscales = fh.getGscales();  // inverse scales (g)
     ASSERT (gscales.size() == size_t(nrotranges));
     std::vector<double> scales(nrotranges, 0.0);  // scales
-    
+
     std::vector<bool> validranges = data.validRanges();
-    
+
     for (int irun=0;irun<nruns;++irun) {
       output.logTabPrintf(0, LOGFILE,
-			  "\nInitial scales for run %5d\n", runlist[irun].RunNumber());
+                          "\nInitial scales for run %5d\n", runlist[irun].RunNumber());
       bool empty = false;
       int i1 = idxrun[irun];
       int i2 = nrotranges;
@@ -182,62 +182,62 @@ namespace scala {
       std::vector<bool> validinrun(i2-i1, true);
       // scales for irun go from i1 to i2-1
       for (int i=i1;i<i2;++i) {
-	if (gscales[i] != 0.0) {
-	  scales[i] = 1./gscales[i];
-	} else {
-	  empty = true;  // empty slot
-	  validinrun[i] = false;
-	}
-	if ((i-i1) > 0 && (i-i1)%nperline == 0) output.logTabPrintf(0,LOGFILE,"\n");
-	output.logTabPrintf(0,LOGFILE," %9.3f", scales[i]);
+        if (gscales[i] != 0.0) {
+          scales[i] = 1./gscales[i];
+        } else {
+          empty = true;  // empty slot
+          validinrun[i] = false;
+        }
+        if ((i-i1) > 0 && (i-i1)%nperline == 0) output.logTabPrintf(0,LOGFILE,"\n");
+        output.logTabPrintf(0,LOGFILE," %9.3f", scales[i]);
       }
       output.logTabPrintf(0,LOGFILE,"\n");
-      
+
       if (empty) {
-	// this run is missing at least one scale
-	int k = i1;
-	while (k < i2) {
-	  if (!validinrun[k]) { // k'th scale is missing
-	    // try to find valid ones to fill in
-	    // hunt backwards to k1
-	    int k1 = -1;
-	    if (k > i1) {
-	      for (int j=k-1;j>=i1;j--) {
-		if (validinrun[j]) {
-		  k1 = j;  // k1 is previous valid scale
-		  break;
-		}
-	      }
-	    }
-	    int k2 = -1;  // hunt forwards
-	    if (k < i2-1) {
-	      for (int j=k+1;j<i2;j++) {
-		if (validinrun[j]) {
-		  k2 = j;  // k2 is next valid scale
-		  break;
-		}
-	      }
-	    }
-	    // we need to fill in from k to k2-1
-	    floatType g = 0.0;
-	    int ng = 0;
-	    if (k1 >= 0) {g += gscales[k1]; ng++;}
-	    if (k2 >= 0) {g += gscales[k2]; ng++;}
-	    else {k2 = i2;}
-	    if (ng > 0) {
-	      g /= floatType(ng);
-	      for (int j=k;j<k2;j++) {  // to k2-1 or i2-1
-		gscales[j] = g;
-		//^      std::cout <<"fill in " << j <<" with "<<1.0/g<<"\n"; //^
-	      }
-	    }
-	    k = k2-1;
-	  }
-	  k++;
-	}
-      } 
+        // this run is missing at least one scale
+        int k = i1;
+        while (k < i2) {
+          if (!validinrun[k]) { // k'th scale is missing
+            // try to find valid ones to fill in
+            // hunt backwards to k1
+            int k1 = -1;
+            if (k > i1) {
+              for (int j=k-1;j>=i1;j--) {
+                if (validinrun[j]) {
+                  k1 = j;  // k1 is previous valid scale
+                  break;
+                }
+              }
+            }
+            int k2 = -1;  // hunt forwards
+            if (k < i2-1) {
+              for (int j=k+1;j<i2;j++) {
+                if (validinrun[j]) {
+                  k2 = j;  // k2 is next valid scale
+                  break;
+                }
+              }
+            }
+            // we need to fill in from k to k2-1
+            floatType g = 0.0;
+            int ng = 0;
+            if (k1 >= 0) {g += gscales[k1]; ng++;}
+            if (k2 >= 0) {g += gscales[k2]; ng++;}
+            else {k2 = i2;}
+            if (ng > 0) {
+              g /= floatType(ng);
+              for (int j=k;j<k2;j++) {  // to k2-1 or i2-1
+                gscales[j] = g;
+                //^      std::cout <<"fill in " << j <<" with "<<1.0/g<<"\n"; //^
+              }
+            }
+            k = k2-1;
+          }
+          k++;
+        }
+      }
     }  // end loop runs
-    // Store initial scales   
+    // Store initial scales
     AllScales.SetInitialScales(gscales, numobsrotrange);
   }  // InitialScales
 

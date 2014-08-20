@@ -1,5 +1,5 @@
 //
-// anomdistribution.cpp 
+// anomdistribution.cpp
 //
 
 #include "anomdistribution.hh"
@@ -15,11 +15,11 @@ using phaser_io::itos;
 
 namespace scala {
   AllAnomDistributions::AllAnomDistributions(const hkl_unmerge_list& hkl_list,
-					     const SDmodel& SDM,
-					     const all_controls& controls,
-					     const AnalyseAnom& analysanom,
-					     const ResoRange& ResRange,
-					     const Normalise& NormRes)
+                                             const SDmodel& SDM,
+                                             const all_controls& controls,
+                                             const AnalyseAnom& analysanom,
+                                             const ResoRange& ResRange,
+                                             const Normalise& NormRes)
   // Analyse distribution of anomalous differences to get estimate
   // of maximum likely values, for all datasets
   //
@@ -38,8 +38,8 @@ namespace scala {
     // Set number of resolution bins
     for (int id=0;id<ndatasets;++id) {
       anomdistributions[id].init(nresbin,
-				 hkl_list.dataset(id).pxdname(),
-				 analysanom.RmsDelAnom().at(id));
+                                 hkl_list.dataset(id).pxdname(),
+                                 analysanom.RmsDelAnom().at(id));
     }
     //  datasets
     std::vector<Dataset> datasets = hkl_list.AllDatasets();
@@ -61,39 +61,39 @@ namespace scala {
       for (int i=0;i<ncorrel;++i) {cca[i].resize(nresbin);}
       int k=0;
       for (int j=0;j<ndatasets-1;++j) {
-	for (int i=j+1;i<ndatasets;++i) {
-	  // for each CC, store pair of dataset indices
-	  ccadtsindex[k++] = std::pair<int,int>(j,i);
-	}}
+        for (int i=j+1;i<ndatasets;++i) {
+          // for each CC, store pair of dataset indices
+          ccadtsindex[k++] = std::pair<int,int>(j,i);
+        }}
       ASSERT (k == ncorrel);
       if (ndispcc > 0) {
-	ccd.resize(ndispcc); // CC between dispersive differences
-	ccddtsindex.resize(ndispcc);
-	for (int i=0;i<ndispcc;++i) {ccd[i].resize(nresbin);}
-	// Choose base dataset as the one with the shortest wavelength
-	// unless specified
-	if (basedataset < 0) {
-	  float wvl = 10000.;
-	  for (int id=0;id<ndatasets;id++) {
-	    if (wavelengths[id] < wvl) {
-	      wvl = wavelengths[id];
-	      basedataset = id;
-	    }
-	  }
-	  if (wvl < 0.001) basedataset = 0;
-	}
-	// Store dataset index pairs for each CC
-	k = 0;
-	for (int j=0;j<ndatasets-1;++j) {
-	  if (j != basedataset) {
-	    for (int i=j+1;i<ndatasets;++i) {
-	      if (i != basedataset) {
-		ccddtsindex[k++] = std::pair<int,int>(j,i);
-	      }
-	    }
-	  }
-	}
-	ASSERT (k == ndispcc);
+        ccd.resize(ndispcc); // CC between dispersive differences
+        ccddtsindex.resize(ndispcc);
+        for (int i=0;i<ndispcc;++i) {ccd[i].resize(nresbin);}
+        // Choose base dataset as the one with the shortest wavelength
+        // unless specified
+        if (basedataset < 0) {
+          float wvl = 10000.;
+          for (int id=0;id<ndatasets;id++) {
+            if (wavelengths[id] < wvl) {
+              wvl = wavelengths[id];
+              basedataset = id;
+            }
+          }
+          if (wvl < 0.001) basedataset = 0;
+        }
+        // Store dataset index pairs for each CC
+        k = 0;
+        for (int j=0;j<ndatasets-1;++j) {
+          if (j != basedataset) {
+            for (int i=j+1;i<ndatasets;++i) {
+              if (i != basedataset) {
+                ccddtsindex[k++] = std::pair<int,int>(j,i);
+              }
+            }
+          }
+        }
+        ASSERT (k == ndispcc);
       }
     }  // end ncorrel > 0
 
@@ -116,37 +116,37 @@ namespace scala {
       nacc = 0;
       danomdts.assign(ndatasets,0.0);
       for (int id=0;id<ndatasets;id++) {
-	obsall.init(this_refl, id, ALL);
-	if (obsall.Number() > 0) {
-	  Imeandts[id] = obsall.Average().I();
-	  if (!Centric) {
-	    obsplus.init(this_refl, id, IPLUS);
-	    if (obsplus.Number() > 0) {
-	      IsigI Iplus = obsplus.Average();
-	      if (obsplus.Number() <= 1) {correlAnom = false;}
-	      obsminus.init(this_refl, id, IMINUS);
-	      if (obsminus.Number() > 0) {
-		IsigI Iminus = obsminus.Average();
-		if (obsminus.Number() <= 1) {correlAnom = false;}
-		// DelAnom
-		float sig = Iplus.sigI()*Iplus.sigI() +
-		  Iminus.sigI()*Iminus.sigI();
-		if (sig > 0.0) {
-		  // Store delAnom, & count reflections used for
-		  // half-dataset correlations (ie with n+ & n- > 1)
-		  danom = (Iplus.I()-Iminus.I());
-		  anomdistributions[id].Add(mres, danom, correlAnom, obsplus, obsminus);
-		  danomdts[id] = danom;
-		  nacc++;
-		}
-	      }
-	    }
-	  }
-	}
+        obsall.init(this_refl, id, ALL);
+        if (obsall.Number() > 0) {
+          Imeandts[id] = obsall.Average().I();
+          if (!Centric) {
+            obsplus.init(this_refl, id, IPLUS);
+            if (obsplus.Number() > 0) {
+              IsigI Iplus = obsplus.Average();
+              if (obsplus.Number() <= 1) {correlAnom = false;}
+              obsminus.init(this_refl, id, IMINUS);
+              if (obsminus.Number() > 0) {
+                IsigI Iminus = obsminus.Average();
+                if (obsminus.Number() <= 1) {correlAnom = false;}
+                // DelAnom
+                float sig = Iplus.sigI()*Iplus.sigI() +
+                  Iminus.sigI()*Iminus.sigI();
+                if (sig > 0.0) {
+                  // Store delAnom, & count reflections used for
+                  // half-dataset correlations (ie with n+ & n- > 1)
+                  danom = (Iplus.I()-Iminus.I());
+                  anomdistributions[id].Add(mres, danom, correlAnom, obsplus, obsminus);
+                  danomdts[id] = danom;
+                  nacc++;
+                }
+              }
+            }
+          }
+        }
       } // end loop datasets
       if (nacc > 1) {
-	// correlations across datasets
-	AddCorrelations(danomdts, Imeandts, mres);
+        // correlations across datasets
+        AddCorrelations(danomdts, Imeandts, mres);
       }
     } // end loop reflections
   }
@@ -172,54 +172,54 @@ namespace scala {
   // It should be possible to estimate probabilities, but this will do for now
   {
     bool isanomalous = false;
-    
+
     for (size_t k=0; k<cca.size(); k++) {  // loop cross-correlation CCanom
       // Interdataset CCs
       int nccanom  = 0; // ... CCanom
       correl_coeff cc;
       for (size_t mres=0;mres<cca[k].size();++mres) {
-	if (cca[k][mres].result().val >
-	    controls.anomalouscontrol.anomCCthreshold) {
-	  nccanom++;
-	}
-	cc += cca[k][mres];
+        if (cca[k][mres].result().val >
+            controls.anomalouscontrol.anomCCthreshold) {
+          nccanom++;
+        }
+        cc += cca[k][mres];
       }    // resolution bin loop
       if (nccanom > controls.anomalouscontrol.anomNbinthreshold ||
-	  cc.result().val > controls.anomalouscontrol.anomCCthreshold) {
-	  isanomalous = true;   // overall value above threshold
+          cc.result().val > controls.anomalouscontrol.anomCCthreshold) {
+          isanomalous = true;   // overall value above threshold
       }
     }   // end loop cross terms
 
     for (int id=0;id<ndatasets;id++) { // loop datasets
       if (anomdistributions[id].Slope() >
-	  controls.anomalouscontrol.anomslopethreshold) {
-	isanomalous = true;
+          controls.anomalouscontrol.anomslopethreshold) {
+        isanomalous = true;
       }
       // count resolution bins above threshold for ...
       int nccanom  = 0; // ... CCanom
       int nrcranom = 0; // ... RCRanom
       int nbin = anomdistributions[id].Halfdataset().NresBin();
       if (anomdistributions[id].Halfdataset().CCanom().result().val >
-	    controls.anomalouscontrol.anomCCthreshold) {
-	isanomalous = true;   // overall value above threshold
+            controls.anomalouscontrol.anomCCthreshold) {
+        isanomalous = true;   // overall value above threshold
       }
       if (anomdistributions[id].Halfdataset().RMScorrelRatio() >
-	  controls.anomalouscontrol.anomRCRthreshold) {
-	isanomalous = true;   // overall value above threshold
+          controls.anomalouscontrol.anomRCRthreshold) {
+        isanomalous = true;   // overall value above threshold
       }
 
       for (int mres=0;mres<nbin;++mres) {
-	if (anomdistributions[id].Halfdataset().CCanom(mres).result().val >
-	    controls.anomalouscontrol.anomCCthreshold) {
-	  nccanom++;
-	}
-	if (anomdistributions[id].Halfdataset().RMScorrelRatio(mres) >
-	    controls.anomalouscontrol.anomRCRthreshold) {
-	  nrcranom++;
-	}
+        if (anomdistributions[id].Halfdataset().CCanom(mres).result().val >
+            controls.anomalouscontrol.anomCCthreshold) {
+          nccanom++;
+        }
+        if (anomdistributions[id].Halfdataset().RMScorrelRatio(mres) >
+            controls.anomalouscontrol.anomRCRthreshold) {
+          nrcranom++;
+        }
       }
       if (nccanom > controls.anomalouscontrol.anomNbinthreshold) {
-	isanomalous = true;
+        isanomalous = true;
       }
     } // end loop datasets
     return isanomalous;
@@ -235,25 +235,25 @@ namespace scala {
     int k = 0;
     for (int j=0;j<ndatasets-1;++j) {
       for (int i=j+1;i<ndatasets;++i) {
-	if (danomdts[i]!=0.0 && danomdts[j]!=0.0) {
-	  cca[k][mres].add(danomdts[i], danomdts[j]);
-	}
-	k++;
+        if (danomdts[i]!=0.0 && danomdts[j]!=0.0) {
+          cca[k][mres].add(danomdts[i], danomdts[j]);
+        }
+        k++;
       }}
     if (ndatasets > 2) { // no correlation if < 3 datasets
       k = 0;
       for (int j=0;j<ndatasets-1;++j) {
-	if (j != basedataset) {
-	  float dj = Imeandts[j] - Imeandts[basedataset];
-	  for (int i=j+1;i<ndatasets;++i) {
-	    if (i != basedataset) {
-	      if (dj!=0.0 && (Imeandts[i] - Imeandts[basedataset])!=0.0) {
-		ccd[k][mres].add(Imeandts[i] - Imeandts[basedataset], dj);
-	      }
-	      k++;
-	    }
-	  }
-	}
+        if (j != basedataset) {
+          float dj = Imeandts[j] - Imeandts[basedataset];
+          for (int i=j+1;i<ndatasets;++i) {
+            if (i != basedataset) {
+              if (dj!=0.0 && (Imeandts[i] - Imeandts[basedataset])!=0.0) {
+                ccd[k][mres].add(Imeandts[i] - Imeandts[basedataset], dj);
+              }
+              k++;
+            }
+          }
+        }
       }
     }
   }
@@ -265,16 +265,16 @@ namespace scala {
     output.logTab(0, LOGFILE,
   "\nCorrelation coefficients for anomalous & dispersive differences between different datasets");
     output.logTab(0, LOGFILE,
-		  "==========================================================================================\n");
+                  "==========================================================================================\n");
     output.logTab(0, LOGFILE,"\nDatasets and wavelengths:\n");
     for (int id=0;id<ndatasets;++id) {
       std::string s("    ");
       if (id == basedataset) s = "base";
       output.logTabPrintf(0, LOGFILE,"%4d %4s %8.5f %s\n",
-			  id+1, s.c_str(), wavelengths[id],
-			  pxdnames[id].format().c_str());
+                          id+1, s.c_str(), wavelengths[id],
+                          pxdnames[id].format().c_str());
     }
-    
+
     std::string title = ">>> Correlation of Anomalous Differences between datasets";
     std::string graphtitle = "Anom CCs v resln -";
     for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
@@ -282,7 +282,7 @@ namespace scala {
     std::string cl2 = "2nd dataset         ";
     std::vector<correl_coeff> allcc;  // totals
     FormatTable(title, graphtitle, cl1, cl2, cca,
-		ccadtsindex, false, allcc, output);
+                ccadtsindex, false, allcc, output);
 
     // Format cross-correlation table
     title = "\nOverall correlation of Anomalous Differences between datasets\n";
@@ -298,7 +298,7 @@ namespace scala {
     cl1 = "1st difference      ";
     cl2 = "2nd difference      ";
     FormatTable(title, graphtitle, cl1, cl2, ccd,
-		ccddtsindex, true, allcc, output);
+                ccddtsindex, true, allcc, output);
     // Format cross-correlation table
     title = "\nCorrelation between datasets of Dispersive Differences from base set\n";
     title += "      (Numbers in brackets)\n\n";
@@ -306,14 +306,14 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AllAnomDistributions::FormatTable(const std::string& title,
-					 const std::string& graphtitle,
-					 const std::string& ccl1,
-					 const std::string& ccl2,
-					 const std::vector<std::vector<correl_coeff> >& cc,
-					 const std::vector<std::pair<int,int> >& ccidx,
-					 const bool& diff,
-					 std::vector<correl_coeff>& allcc,
-					 phaser_io::Output& output) const
+                                         const std::string& graphtitle,
+                                         const std::string& ccl1,
+                                         const std::string& ccl2,
+                                         const std::vector<std::vector<correl_coeff> >& cc,
+                                         const std::vector<std::pair<int,int> >& ccidx,
+                                         const bool& diff,
+                                         std::vector<correl_coeff>& allcc,
+                                         phaser_io::Output& output) const
   // diff = true for dispersive differences
   // private
   {
@@ -355,18 +355,18 @@ namespace scala {
       int idx2 = ccidx[i].second;
       std::string cl;
       if (diff) {
-	// dispersive difference
-	std::string bd = itos(basedataset+1);
-	cl = StringUtil::Strip(itos(idx1+1)+bd+"-"+itos(idx2+1)+bd);
-	std::string dl1 = StringUtil::Strip((dnames[idx1]+"-"+dnames[basedataset]));
-	std::string dl2 = StringUtil::Strip((dnames[idx2]+"-"+dnames[basedataset]));
-	cl1 += StringUtil::CentreString(dl1,16);
-	cl2 += StringUtil::CentreString(dl2,16);
+        // dispersive difference
+        std::string bd = itos(basedataset+1);
+        cl = StringUtil::Strip(itos(idx1+1)+bd+"-"+itos(idx2+1)+bd);
+        std::string dl1 = StringUtil::Strip((dnames[idx1]+"-"+dnames[basedataset]));
+        std::string dl2 = StringUtil::Strip((dnames[idx2]+"-"+dnames[basedataset]));
+        cl1 += StringUtil::CentreString(dl1,16);
+        cl2 += StringUtil::CentreString(dl2,16);
       } else {
-	// anomalous
-	cl = StringUtil::Strip(itos(idx1+1)+"-"+itos(idx2+1));
-	cl1 += StringUtil::CentreString(dnames[idx1],16);
-	cl2 += StringUtil::CentreString(dnames[idx2],16);
+        // anomalous
+        cl = StringUtil::Strip(itos(idx1+1)+"-"+itos(idx2+1));
+        cl1 += StringUtil::CentreString(dnames[idx1],16);
+        cl2 += StringUtil::CentreString(dnames[idx2],16);
       }
       collabels.push_back("CC"+cl);  // eg CC1-2  (CC)
       collabels.push_back("N"+cl);   // eg N1-2   (number)
@@ -382,19 +382,19 @@ namespace scala {
     for (int ir=0;ir<resrange.Nbins();++ir) {
       int nonzero = 0; // number of non-zero item
       for (size_t i=0;i<cc.size();++i) {
-	if (cc[i][ir].result().count > 0) {nonzero++;}
+        if (cc[i][ir].result().count > 0) {nonzero++;}
       }
       if (nonzero > 0) {
-	table.StartLine();
-	table.AddToLine(ir+1);
-	table.AddToLine(resrange.middle(ir));
-	table.AddToLine(resrange.middleA(ir));
-	for (size_t i=0;i<cc.size();++i) {
-	  table.AddToLine(cc[i][ir].result().val);
-	  table.AddToLine(cc[i][ir].result().count);
-	  allcc[i] += cc[i][ir];
-	}
-	table.GetLine();
+        table.StartLine();
+        table.AddToLine(ir+1);
+        table.AddToLine(resrange.middle(ir));
+        table.AddToLine(resrange.middleA(ir));
+        for (size_t i=0;i<cc.size();++i) {
+          table.AddToLine(cc[i][ir].result().val);
+          table.AddToLine(cc[i][ir].result().count);
+          allcc[i] += cc[i][ir];
+        }
+        table.GetLine();
       }
     }  // end loop res bins
     table.CloseTable();
@@ -407,17 +407,17 @@ namespace scala {
     char buf[256];
     for (size_t i=0;i<cc.size();++i) {
       sprintf(buf, fmtn.c_str(),
-	      allcc[i].result().val, allcc[i].result().count);
+              allcc[i].result().val, allcc[i].result().count);
       line += std::string(buf);
     }
     output.logTab(0,LOGFILE, line);
   }
   // ------------------------------------------------------------
   void AllAnomDistributions::CrossCorrelation(const std::string& title,
-					      const std::string& tableid,
-					      const std::vector<correl_coeff>& allcc,
-					      const bool& diff,
-					      phaser_io::Output& output) const
+                                              const std::string& tableid,
+                                              const std::vector<correl_coeff>& allcc,
+                                              const bool& diff,
+                                              phaser_io::Output& output) const
   // format CC of anomalous differences between datasets as table
   // private
   {
@@ -427,11 +427,11 @@ namespace scala {
     std::vector<std::string> ldf;
     for (int id=0;id<ndatasets;++id) { // loop datasets
       if (diff) {
-	if(id != basedataset) {
-	  ldf.push_back(StringUtil::Strip((dnames[id]+"-"+dnames[basedataset])));
-	}
+        if(id != basedataset) {
+          ldf.push_back(StringUtil::Strip((dnames[id]+"-"+dnames[basedataset])));
+        }
       } else {
-	ldf.push_back(dnames[id]);
+        ldf.push_back(dnames[id]);
       }
     }
     int ncc = ldf.size();
@@ -446,33 +446,33 @@ namespace scala {
       line1 = StringUtil::LeftString(ldf[j], 10)+"*";
       line2 = "           ";
       for (int i=1;i<ncc;++i) {
-	if (i < j+1) {
-	  line1 += "        ";
-	  line2 += "        ";
-	} else {
-	  line1 += StringUtil::ftos(allcc[k].result().val, 8, 3);
-	  line2 += StringUtil::CentreString
-	    (StringUtil::Strip("("+itos(allcc[k].result().count)+")"), 8);
-	  k++;
-	}
+        if (i < j+1) {
+          line1 += "        ";
+          line2 += "        ";
+        } else {
+          line1 += StringUtil::ftos(allcc[k].result().val, 8, 3);
+          line2 += StringUtil::CentreString
+            (StringUtil::Strip("("+itos(allcc[k].result().count)+")"), 8);
+          k++;
+        }
       }
       outstring += line1+"\n"+line2+"\n";
     }  // end loop lines
     output.logTab(0,LOGFILE, "\n"+outstring);
     // XML output
     std::vector<std::pair<double,int> > valCount(allcc.size());
-    for (size_t k=0; k<allcc.size(); k++) { 
+    for (size_t k=0; k<allcc.size(); k++) {
       valCount[k] = std::pair<double,int>(allcc[k].result().val, allcc[k].result().count);
     }
     output.logTab(0,LXML,
-		  StringUtil::FormatXMLcrossTable("crosstable",
-						  tableid, ldf, "CC", valCount));
+                  StringUtil::FormatXMLcrossTable("crosstable",
+                                                  tableid, ldf, "CC", valCount));
   }
   // ------------------------------------------------------------
   // ------------------------------------------------------------
   void AnomDistribution::init(const int& Nresbin,
-			      const PxdName& Dataset_pxd,
-			      std::vector<MeanSD>& RMSdelanom)
+                              const PxdName& Dataset_pxd,
+                              std::vector<MeanSD>& RMSdelanom)
   // Store number of resolution bins & clear arrays
   {
     nresbin = Nresbin;
@@ -483,9 +483,9 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AnomDistribution::Add(const int& mres,
-			     const float& delAnom, const bool& correlAnom,
-			     SelectedObservations& obsplus,
-			     SelectedObservations& obsminus)
+                             const float& delAnom, const bool& correlAnom,
+                             SelectedObservations& obsplus,
+                             SelectedObservations& obsminus)
   // Store delAnom, & count reflections used for
   // half-dataset correlations (ie with n+ & n- > 1, correlAnom true),
   // and the halfdataset correlations

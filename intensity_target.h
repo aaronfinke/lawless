@@ -53,27 +53,27 @@ template<class T> class TargetFn_meanInth : public clipper::TargetFn_base
 {
 public:
     //! constructor: takes the datalist against which to calc target, and power
-	TargetFn_meanInth( const clipper::HKL_data<T>& hkl_data_, const clipper::ftype& n ) : 
-	hkl_data(&hkl_data_), power(n) {}
-	  //! return the value and derivatives of the target function
-	Rderiv rderiv( const clipper::HKL_info::HKL_reference_index& ih, const clipper::ftype& fh ) const;
+        TargetFn_meanInth( const clipper::HKL_data<T>& hkl_data_, const clipper::ftype& n ) :
+        hkl_data(&hkl_data_), power(n) {}
+          //! return the value and derivatives of the target function
+        Rderiv rderiv( const clipper::HKL_info::HKL_reference_index& ih, const clipper::ftype& fh ) const;
     //! the type of the function: optionally used to improve convergence
-	FNtype type() const { return QUADRATIC; }
+        FNtype type() const { return QUADRATIC; }
 private:
-	clipper::ftype power;
+        clipper::ftype power;
     const clipper::HKL_data<T>* hkl_data;
 };
 
 
-template<class T> clipper::TargetFn_base::Rderiv 
+template<class T> clipper::TargetFn_base::Rderiv
 TargetFn_meanInth<T>::rderiv( const clipper::HKL_info::HKL_reference_index& ih, const clipper::ftype& fh ) const
 {
     // it's really this bit that does the work
-	Rderiv result;
+        Rderiv result;
     const clipper::HKL_data<T>& data = *hkl_data;
     if ( !data[ih].missing() ) {
       clipper::ftype d = fh - pow( clipper::ftype(data[ih].I()) / ih.hkl_class().epsilon(),  // do we want sqrt / epsilon here?
-				   power );
+                                   power );
       clipper::ftype w = 1.0/(data[ih].sigI()*data[ih].sigI());
       result.r = w * d * d;
       result.dr = 2.0 * w * d;

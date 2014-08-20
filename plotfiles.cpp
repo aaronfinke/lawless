@@ -14,7 +14,7 @@ using clipper::Message_fatal;
 
 //--------------------------------------------------------------
 PlotSample::PlotSample(const int& Npoints, const int& maxPointDensity,
-		       const int& numberBins, const float& binWidth)
+                       const int& numberBins, const float& binWidth)
 // Npoints            total number of points to sample
 // maxPointDensity    approximate maximum number of points to plot in each bin
 // numberBins         number of sampling bins
@@ -45,7 +45,7 @@ PlotSample::PlotSample(const int& Npoints, const int& maxPointDensity,
       sampleBins[i] = 1.0;
     }
     //^    std::cout << "SampleBin " << i << " " << sampleBins[i]
-    //^	      << " Nexpect " << nexpect << "\n"; //^!
+    //^       << " Nexpect " << nexpect << "\n"; //^!
   }
 }
 //--------------------------------------------------------------
@@ -56,8 +56,8 @@ bool PlotSample::Keep(const float& value) const
     if (value < maxsample) {
       int k = int(value/binwidth);
       if (scala::FRandom(1.0) > sampleBins.at(k)) {
-	//^	std::cout << "NotKept " << value << "\n";
-	return false;
+        //^     std::cout << "NotKept " << value << "\n";
+        return false;
       }
     }
   }
@@ -65,7 +65,7 @@ bool PlotSample::Keep(const float& value) const
 }
 //--------------------------------------------------------------
 void DrawCircle(XMGRACE& xmgrplot, const int& lcolour, const std::string& legend,
-		const float& Radius, const int& Npoints)
+                const float& Radius, const int& Npoints)
 // Draw circle centred on 0,0, radius Radius, sampled into Npoints
 // xmgrace format
 {
@@ -78,38 +78,38 @@ void DrawCircle(XMGRACE& xmgrplot, const int& lcolour, const std::string& legend
   for (int i=0;i<=npoints;++i) {
     double a = delang * double(i);
     xmgrplot.Point("%8.4f %8.4f\n",
-		   Radius*cos(a), Radius*sin(a));
+                   Radius*cos(a), Radius*sin(a));
   }
   xmgrplot.EndLine();
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 NormalProbPlot::NormalProbPlot(const std::string& FileName,
-			       const bool& WriteLegend,
-			       const std::string& title1,
-			       const std::string& title2)
+                               const bool& WriteLegend,
+                               const std::string& title1,
+                               const std::string& title2)
   : Nlines(0)
 {
   init(FileName, WriteLegend, title1, title2);
 }
 //--------------------------------------------------------------
 void NormalProbPlot::init(const std::string& FileName,
-			  const bool& WriteLegend,
-			  const std::string& title1,
-			  const std::string& title2)
+                          const bool& WriteLegend,
+                          const std::string& title1,
+                          const std::string& title2)
 {
   // Initialise file for XMgrace
   file = OpenFile(FileName, true);  // open write file for xmgrace
   xmax = 4.0;
   ymax = 5.0;
   xmgrplot.Header(file, title1, title2, -xmax, xmax, -ymax, ymax,
-		  0.6, 0.7,
-		  1.0, 1.0, true,
-		  "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
+                  0.6, 0.7,
+                  1.0, 1.0, true,
+                  "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
   // Initialise XML output
   xmlplot.Header(title1, -xmax, xmax, -ymax, ymax,
-		 1.0, 1.0, true,
-		 "Delta(expected)", "Delta(observed)", 0.6, 0.0, true);
+                 1.0, 1.0, true,
+                 "Delta(expected)", "Delta(observed)", 0.6, 0.0, true);
 }
 //--------------------------------------------------------------
 void NormalProbPlot::SetSample(const int& Npoints)
@@ -168,20 +168,20 @@ void NormalProbPlot::ClosePlot()
   xmgrplot.ClosePlot(range, true);
   // XML
   xmlplot.DrawLine(-range, +range, -range, +range, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
   xmlplot.DrawLine(-range, +range, 0.0, 0.0, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
   xmlplot.DrawLine(0.0, 0.0, -ymax, +ymax, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
 
   xmlplot.ClosePlot();
 }
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 CorrelPlot::CorrelPlot(const std::string& Title, const std::string& Pxd_title,
-		       const int& NresBins,
-		       const float& UnitValue,
-		       const int& Npoints)
+                       const int& NresBins,
+                       const float& UnitValue,
+                       const int& Npoints)
 // title         graph title
 // Pxd_title     dataset title
 // NresBins      number of resolution bins
@@ -193,9 +193,9 @@ CorrelPlot::CorrelPlot(const std::string& Title, const std::string& Pxd_title,
 }
 // ------------------------------------------------------------
 void CorrelPlot::init(const std::string& Title, const std::string& Pxd_title,
-		      const int& NresBins,
-		      const float& UnitValue,
-		      const int& Npoints)
+                      const int& NresBins,
+                      const float& UnitValue,
+                      const int& Npoints)
 // title         graph title
 // Pxd_title     dataset title
 // NresBins      number of resolution bins
@@ -253,14 +253,14 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
     lowlimit = -limit;
   }
   xmgr.Header(plotfile, title, pxd_title,
-	      lowlimit, limit, lowlimit, limit,
-	      0.6, 0.7,
-	      2.0, 2.0, true,
-	      "", "", 0.6, 0.0, true);
+              lowlimit, limit, lowlimit, limit,
+              0.6, 0.7,
+              2.0, 2.0, true,
+              "", "", 0.6, 0.0, true);
   xmlplot.Header(title,
-	      lowlimit, limit, lowlimit, limit,
-	      2.0, 2.0, true,
-	      "", "", 0.6, 0.0, true);
+              lowlimit, limit, lowlimit, limit,
+              2.0, 2.0, true,
+              "", "", 0.6, 0.0, true);
   // Split into nres parts by resolution bin
   int nres = 2;
   //  Colours: (maximum 15 in xmgr) 6 & 7 are not very good
@@ -273,7 +273,7 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
     if (nres == 2) {
       legend = "Low resolution";
       if (iset > 0) {
-	legend = "High resolution";
+        legend = "High resolution";
       }
     }
     xmgr.Line(legend, lcolour[iset], +3, false);
@@ -284,9 +284,9 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
     int np = 0;
     for (size_t i=0;i<x.size();++i) {
       if (resbin[i] >= iresmin && resbin[i] < iresmax) {
-	xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);
-	xmlplot.Point( x[i], y[i], 8, 3);
-	np++;
+        xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);
+        xmlplot.Point( x[i], y[i], 8, 3);
+        np++;
       }
     }
     if (np > 0) iline++;
@@ -297,11 +297,11 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
 
   // XML
   xmlplot.DrawLine(-limit, +limit, -limit, +limit, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
   xmlplot.DrawLine(-limit, +limit, 0.0, 0.0, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
   xmlplot.DrawLine(0.0, 0.0, -limit, +limit, 9,4,
-		   1,1,7); // black
+                   1,1,7); // black
     xmlplot.ClosePlot();
   return xmlplot.format();
 }
@@ -317,33 +317,33 @@ double RingRadius(const double& dstar)
 }
 // ------------------------------------------------------------
 RoguePlot::RoguePlot(const std::string& FileName,
-		     const std::string& Title, const float& Smax,
-		      const float& wavelength)
+                     const std::string& Title, const float& Smax,
+                      const float& wavelength)
 // Smax  maximum 4(sin theta/lambda)**2
 //                      = (d*max)**2 = 1/dmin**2
 {
   file = OpenFile(FileName, true);  // open write file
-  
+
   double dstar = wavelength*sqrt(Smax);   // rlu
   float radius = RingRadius(dstar);
   float legx = radius*0.5;
   float legy = -radius*0.9;
   xmgrplot.Header(file, "Outliers on detector (horizontal rotation axis)",
-		  Title, -radius, +radius, -radius, +radius,
-		  0.6, 0.75,
-		  radius, radius, false,
-		  "", "", legx, legy, true);
+                  Title, -radius, +radius, -radius, +radius,
+                  0.6, 0.75,
+                  radius, radius, false,
+                  "", "", legx, legy, true);
   xmlplot.Header("Outliers on detector (horizontal rotation axis)",
-		 -radius, +radius, -radius, +radius,
-		 radius, radius, false,
-		 "", "", legx, legy, true);
-  
+                 -radius, +radius, -radius, +radius,
+                 radius, radius, false,
+                 "", "", legx, legy, true);
+
   // Resolution ring
   int npoint = 96;  // sampling of circle
   int lcol = 1;     // black
   DrawCircle(xmgrplot, lcol, "", radius, npoint);
   xmlplot.DrawCircle(0.0, 0.0, radius, 8, 4, 1, 1, lcol);
-  
+
   // Draw ice rings
   scala::Rings icerings;
   icerings.DefaultIceRings();  // set default ice rings
@@ -354,8 +354,8 @@ RoguePlot::RoguePlot(const std::string& FileName,
     if (rad < radius) {
       std::string label = "";
       if (first) {
-	label = "ice rings";
-	first = false;
+        label = "ice rings";
+        first = false;
       }
       DrawCircle(xmgrplot, lcol, label, rad, npoint);
       xmlplot.DrawCircle(0.0, 0.0, rad, 8, 4, 1, 1, lcol);
@@ -406,12 +406,12 @@ void RoguePlot::PlotOutlier(const FVect3& s)
 }
 //--------------------------------------------------------------
 void XMLplot::Header(const std::string& title,
-		     const float& xmin, const float& xmax,
-		     const float& ymin, const float& ymax,
-		     const float& xtick, const float& ytick, const bool& ticklabel,
-		     const std::string& xlabel, const std::string& ylabel,
-		     const float& xlegend, const float& ylegend, 
-		     const bool& WriteLegend)
+                     const float& xmin, const float& xmax,
+                     const float& ymin, const float& ymax,
+                     const float& xtick, const float& ytick, const bool& ticklabel,
+                     const std::string& xlabel, const std::string& ylabel,
+                     const float& xlegend, const float& ylegend,
+                     const bool& WriteLegend)
 // title           title
 // xmin, xmax      range of coordinates
 // ymin, ymax      range of coordinates
@@ -455,10 +455,10 @@ void XMLplot::Header(const std::string& title,
 }
 //--------------------------------------------------------------
 void XMLplot::StartLine(const std::string& legend,
-			const int& linestyle,
-			const int& linesize,
-			const int& lcolour,
-			const int& Symbol)
+                        const int& linestyle,
+                        const int& linesize,
+                        const int& lcolour,
+                        const int& Symbol)
 // legend    also used as ID for associated dataset
 // linestyle <= 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
 // linesize  line width, default = 1
@@ -485,7 +485,7 @@ void XMLplot::StartLine(const std::string& legend,
     headerstring += StringUtil::MakeXMLtag("symbol", symbols[index])+"\n";
   }
   headerstring += StringUtil::MakeXMLtag("symbolsize",
-					StringUtil::itos(symbolsize,2))+"\n";
+                                        StringUtil::itos(symbolsize,2))+"\n";
   if (lcolour > 0) { // colour
     headerstring += StringUtil::MakeXMLtag("colour", Colour(lcolour))+"\n";
   }
@@ -509,7 +509,7 @@ void XMLplot::Point(const float& x, const float& y, const int& fw, const int& fd
 }
 //--------------------------------------------------------------
 void XMLplot::EndLine()
-{ 
+{
   datastring += "</data>\n";
 }
 //--------------------------------------------------------------
@@ -522,11 +522,11 @@ void XMLplot::ClosePlot()
 // linestyle = 0 no line, else 1,2,3,4 = 'Solid','Dashed','Dash-dot','Dotted'
 // lcolour    <= 0 use default, else colour number
 void XMLplot::DrawLine(const float& xmin, const float& xmax,
-		       const float& ymin, const float& ymax,
-		       const int& fw, const int& fd,
-		       const int& linestyle,
-		       const int& linesize,
-		       const int& lcolour)
+                       const float& ymin, const float& ymax,
+                       const int& fw, const int& fd,
+                       const int& linestyle,
+                       const int& linesize,
+                       const int& lcolour)
 {
   headerstring += "<line x1=\"" + StringUtil::ftos(xmin,fw,fd)+"\"" +
     " x2=\"" + StringUtil::ftos(xmax,fw,fd)+"\"" +
@@ -544,12 +544,12 @@ void XMLplot::DrawLine(const float& xmin, const float& xmax,
 //--------------------------------------------------------------
 // Draw a circle
 void XMLplot::DrawCircle(const float& xcen, const float& ycen,
-			 const float& radius,
-			 const int& fw, const int& fd,
-			 const int& linestyle,
-			 const int& linesize,
-			 const int& lcolour,
-			 const int& fillcolour)
+                         const float& radius,
+                         const int& fw, const int& fd,
+                         const int& linestyle,
+                         const int& linesize,
+                         const int& lcolour,
+                         const int& fillcolour)
 {
   headerstring += "<circle xpos=\"" + StringUtil::ftos(xcen,fw,fd)+"\"" +
     " ypos=\"" + StringUtil::ftos(ycen,fw,fd)+"\"" +
@@ -575,7 +575,7 @@ std::string XMLplot::Colour(const int& lcolour) const
   std::string s = "";
   if (lcolour > 0) { // colour
     std::string colours[] = {"red", "green", "blue", "yellow",
-			     "magenta", "cyan", "black"};
+                             "magenta", "cyan", "black"};
     const int ncol = 7;
     int index = (lcolour-1)%ncol;
     s = colours[index];
@@ -607,13 +607,13 @@ std::string XMLplot::format() const
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 void XMGRACE::Header(FILE* File, const std::string& title1, const std::string& title2,
-		     const float& xmin, const float& xmax,
-		     const float& ymin, const float& ymax,
-		     const float& xv, const float& yv,
-		     const float& xtick, const float& ytick, const bool& ticklabel,
-		     const std::string& xlabel, const std::string& ylabel,
-		     const float& xlegend, const float& ylegend, 
-		     const bool& WriteLegend)
+                     const float& xmin, const float& xmax,
+                     const float& ymin, const float& ymax,
+                     const float& xv, const float& yv,
+                     const float& xtick, const float& ytick, const bool& ticklabel,
+                     const std::string& xlabel, const std::string& ylabel,
+                     const float& xlegend, const float& ylegend,
+                     const bool& WriteLegend)
 // File            output file
 // title1, title2  titles
 // xmin, xmax      range of coordinates
@@ -687,8 +687,8 @@ void XMGRACE::Header(FILE* File, const std::string& title1, const std::string& t
 }
 //--------------------------------------------------------------
 void XMGRACE::Line(const std::string& legend,
-		   const int& lcolour,
-		   const int& Symbol, const bool& Join)
+                   const int& lcolour,
+                   const int& Symbol, const bool& Join)
 // Symbol    !=0 draw symbols, if < 0 fill symbol, >1 scale symbol size
 // Join = true to draw line as well as points
 {
@@ -715,24 +715,24 @@ void XMGRACE::Line(const std::string& legend,
   // Legend
   if (legend.size() > 0) {
     fprintf(file, "@  legend string %3d \"%s\"\n", objectNumber,
-	    legend.c_str());
+            legend.c_str());
   }
   objectNumber++;
 }
 //--------------------------------------------------------------
 void XMGRACE::Point(const std::string& fmt,
-		    const float& x, const float& y)
+                    const float& x, const float& y)
 {
   fprintf(file,fmt.c_str(), x, y);
 }
 //--------------------------------------------------------------
 void XMGRACE::EndLine()
-{ 
+{
   fprintf(file,"&\n");
 }
 //--------------------------------------------------------------
 void XMGRACE::ClosePlot(const float& range,
-			const bool& diagonal)
+                        const bool& diagonal)
 // plot diagonal line if diagonal true
 {
   if (diagonal) {
@@ -746,4 +746,3 @@ void XMGRACE::ClosePlot(const float& range,
   }
 }
 //--------------------------------------------------------------
-

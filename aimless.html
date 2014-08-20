@@ -271,7 +271,7 @@ given. The parameters are restrained using the TIE TILE parameters (<a href="#ti
 </h3>
 
  Input or set options for the "corrections" to the input standard
-deviations: these are modified to 
+deviations: these are modified to
 
 <pre>        sd(I) corrected = SdFac * sqrt{sd(I)**2 + SdB*Ihl + (SdAdd*Ihl)**2}<br></pre>
 <p>
@@ -296,11 +296,11 @@ than one). TIE and SIMILAR are mutually exclusive<br>
 
 
 <ul>
-  
+
   <li>SAME &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; same SD
 parameters for all runs, different for fulls and partials</li><li>INDIVIDUAL&nbsp;&nbsp; [default] use different SD parameters for
 each run, fulls and partials</li>
-  
+
   <li>FIXSDB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 fixes the SdB parameter in the refinement (but it seems best to let it
 refine, even though it has no obvious physical meaning) <br>
@@ -488,7 +488,7 @@ sdrej+-] </dd>
 <p>The test for outliers is described in <a href="#outlier">Appendix 4</a>
 </p>
 <h3><a name="anomalous"></a>ANOMALOUS [OFF] [ON] </h3><dl>
-  
+
   <dd>
     <dl>
       <dt><a name="anomalous_off"></a>OFF [default] </dt>
@@ -550,7 +550,7 @@ as I/sd is before averaging]</li>
 is also given, the SDCORRECTION optimising will also be skipped.<br>
 </p>
 <p>
-  
+
 </p>
 <h3><a name="dump"></a>DUMP [&lt;Scale_file_name&gt;]<span style="color: rgb(255, 102, 0);"></span> </h3>
 
@@ -633,11 +633,11 @@ SURFACE 0.001]</dt>
     <dt>BFACTOR: tie Bfactors along rotation</dt><dt>ZEROB: tie all B-factors to zero<br>
     </dt>
 
-    
+
     <dt>ROTATION: tie parameters along rotation axis (mainly useful
 with
 BATCH mode)</dt>
-    
+
   </dl><dd>TILE: tie the CCD tile parameters. 5 numbers for radius r, width w, amplitude A, centre x0,y0, and Fourier coefficients<br>
   </dd>
 
@@ -724,7 +724,7 @@ crystal, and may stabilize the parameters. The keyword ALL will be assumed if om
 </p>
 
 <ul>
-  
+
   <li> For SECONDARY or SURFACE parameters, the default is to link runs
 which come from the same dataset. They should be UNLINKed if they are
 different.</li>
@@ -817,7 +817,7 @@ PDB format). <h2 align="center"><a name="InputOutput"></a>INPUT AND OUTPUT FILES
   <p>Compulsory columns: </p>
   <pre>        H K L           indices<br>        M/ISYM          partial flag, symmetry number<br>        BATCH           batch number<br>        I               intensity  (integrated intensity)<br>        SIGI            sd(intensity)   (integrated intensity)<br></pre>
   <p>Optional columns: </p>
-  <pre>        XDET YDET       position on detector of this reflection: these<br>                        may be in any units (<em>e.g.</em> mm or pixels), but the<br>                        range of values must be specified in the<br>                        orientation data block for each batch.<br>        ROT             rotation angle of this reflection ("Phi"). If<br>                        this column is absent, only SCALES BATCH is valid.<br>        IPR             intensity  (profile-fitted intensity)     <br>        SIGIPR          sd(intensity)   (profile-fitted intensity)<br>        SCALE           previously calculated scale factor (<em>e.g.</em> from<br>                        previous run of Scala). This will be applied<br>                        on input<br>        SIGSCALE        sd(SCALE)<br>        TIME            time for B-factor variation (if this is<br>                        missing, ROT is used instead)<br>        MPART           partial flag from Mosflm<br>        FRACTIONCALC    calculated fraction, required to SCALE PARTIALS<br>        LP              Lorentz/polarization correction (already applied)<br>        FLAG            error flag (packed bits) from Mosflm (v6.2.3<br>                        or later). By default, if this column is present, <br>                        observations with a non-zero FLAG will be<br>                        omitted. They may be conditionally accepted<br>                        using the KEEP command (qv)<br>                        Bit flags:<br>                              1         BGRATIO too large<br>                              2         PKRATIO too large<br>                              4         Negative &gt; 5*sigma<br>                              8         BG Gradient too high<br>                             16         Profile fitted overload<br>                             32         Profile fitted "edge" reflection<br>        BGPKRATIOS      packed background &amp; peak ratios, &amp; background<br>                        gradient, from Mosflm, to go with FLAG<br>	LATTNUM         lattice number for multilattice data<br>	Hn, Kn, Ln      hkl indices for overlapped observations with multilattice data<br></pre>
+  <pre>        XDET YDET       position on detector of this reflection: these<br>                        may be in any units (<em>e.g.</em> mm or pixels), but the<br>                        range of values must be specified in the<br>                        orientation data block for each batch.<br>        ROT             rotation angle of this reflection ("Phi"). If<br>                        this column is absent, only SCALES BATCH is valid.<br>        IPR             intensity  (profile-fitted intensity)     <br>        SIGIPR          sd(intensity)   (profile-fitted intensity)<br>        SCALE           previously calculated scale factor (<em>e.g.</em> from<br>                        previous run of Scala). This will be applied<br>                        on input<br>        SIGSCALE        sd(SCALE)<br>        TIME            time for B-factor variation (if this is<br>                        missing, ROT is used instead)<br>        MPART           partial flag from Mosflm<br>        FRACTIONCALC    calculated fraction, required to SCALE PARTIALS<br>        LP              Lorentz/polarization correction (already applied)<br>        FLAG            error flag (packed bits) from Mosflm (v6.2.3<br>                        or later). By default, if this column is present, <br>                        observations with a non-zero FLAG will be<br>                        omitted. They may be conditionally accepted<br>                        using the KEEP command (qv)<br>                        Bit flags:<br>                              1         BGRATIO too large<br>                              2         PKRATIO too large<br>                              4         Negative &gt; 5*sigma<br>                              8         BG Gradient too high<br>                             16         Profile fitted overload<br>                             32         Profile fitted "edge" reflection<br>        BGPKRATIOS      packed background &amp; peak ratios, &amp; background<br>                        gradient, from Mosflm, to go with FLAG<br>  LATTNUM         lattice number for multilattice data<br>        Hn, Kn, Ln      hkl indices for overlapped observations with multilattice data<br></pre>
 </dl>
 <span style="font-weight: normal;"></span><span style="font-weight: normal;">
 </span>
@@ -832,8 +832,8 @@ given, from which amplitudes and intensities will be calculated<br>
 
 <h4>Reflection files output </h4>
 
-  
-    
+
+
 In all cases, separate files
 are written for each dataset:&nbsp; files are named with the base
 HKLOUT name with the dataset name appended, as "_dataset"
@@ -856,7 +856,7 @@ and are always present even for the option ANOMALOUS OFF.<br>
 </dl>
 <dl>
 
-    
+
 </dl>
 <dl>
 <span style="font-family: monospace;"><br>
@@ -982,7 +982,7 @@ part (<em>e.g.</em> for a reflection predicted to run over 3 images,
 the 3 parts are
 labelled 301, 302, 303), allowing a check that all parts have been found:
 MPART = 10 for partials already summed in MOSFLM. </p>
-  
+
   <p>Summed partials: <br>
 All the parts are summed (after applying scales) to give the total
 intensity,
@@ -992,7 +992,7 @@ command.
 The number of reflections failing the checks is printed. You should
 make
 sure that you are not losing too many reflections in these checks. </p>
-  
+
   <ol>
     <li>if the CHECK option is set (the default if an MPART column is
 present),
@@ -1024,13 +1024,13 @@ TEST &amp; NOCHECK, &amp; the CORRECT option may also be set. </li>
   </ol>
   <dl compact="compact">
 
-    
-    
-    
-    
-    
-    
-  
+
+
+
+
+
+
+
   </dl>
 
   <p>By setting the TEST &amp; CORRECT limits, you can control
@@ -1093,7 +1093,7 @@ permuted to put either a*, b* or c* along the spherical polar axis <br>
     <li> ABSORPTION: Secondary beam direction (permuted crystal frame)
       <pre>         s    = [Phi] [UB] h<br>         s2   = s - s0       <br>         s2c' = [-Q] [-U] [-Phi] s2<br>Polar coordinates:<br>         s2' = (x y z)<br>         PolarTheta = arctan(sqrt(x**2 + y**2)/z)<br>         PolarPhi   = arctan(y/x)<br><br>                             where [Phi] is the spindle rotation matrix<br>                                   [-Phi] is its inverse<br>                                   [Q] is a permutation matrix to put<br>                                       h, k, or l along z (see POLE option)<br>                                   [U]  is the orientation matrix<br>                                   [B]  is the orthogonalization matrix<br>                                   h = (h k l)<br></pre>
     </li>
-    
+
   </ol>
 then
   <pre> Shl = 1  +  Sum[l=1,lmax] Sum[m=-l,+l] Clm  Ylm(PolarTheta,PolarPhi)<br><br>                             where Ylm is the spherical harmonic function for<br>                                       the direction given by the polar angles<br>                                   Clm are the coefficients determined by<br>                                       the program<br><br></pre>
@@ -1141,7 +1141,7 @@ SD = 0 switches off the restraint<br>
 <dl compact="compact">
   <ul style="font-weight: bold;">
 
-  
+
   </ul>
 
   <sup style="font-weight: bold;">
@@ -1172,14 +1172,14 @@ wavelengths or derivatives may still be useful</li>
   <p>The test for outliers is as follows: </p>
   <dl compact="compact">
     <dt>(1) if there are 2 observations (left), then </dt>
-    
+
     <dl compact="compact">
       <dt>(a) for each observation Ihl, test deviation </dt>
-      
+
       <pre>     Delta(hl) =  (Ihl - ghl Iother) / sqrt[sigIhl**2 + (ghl*sdIother)**2]<br></pre>
       <p>against sdrej2, where Iother = the other observation </p>
       <dt>(b) if either |Delta(hl)| &gt; sdrej2, then </dt>
-      
+
       <ol>
         <li>in scaling, reject reflection. Or: </li>
         <li>in merging, </li>
@@ -1192,10 +1192,10 @@ wavelengths or derivatives may still be useful</li>
       </ol>
     </dl>
     <dt>(2) if there 3 or more observations left, then </dt>
-    
+
     <dl compact="compact">
       <dt>(a) for each observation Ihl, </dt>
-      
+
       <ol>
         <li>calculate weighted mean of all other observations
 &lt;I&gt;n-1 &amp;
@@ -1211,7 +1211,7 @@ for which Delta(hl) .lt. 0 (nlt) </li>
 but
 which
 one? </dt>
-      
+
       <ol>
         <li>if ngt == 1 .or. nlt == 1, then one observation is a long
 way
@@ -1222,11 +1222,12 @@ the others, and this one is rejected </li>
       </ol>
     </dl>
     <dt>(3)&nbsp; iterate from beginning </dt>
-    
+
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.3.10 Bug fixes. Also restrict run-run correlations to &lt; 200 runs.<br>
+  <h2>RELEASE NOTES</h2>0.3.11 Fixed nasty bug from XDS-&gt;Pointless giving Assertion failed: (sd &gt; 0.0), function Average<br>
+0.3.10 Bug fixes. Also restrict run-run correlations to &lt; 200 runs.<br>
 0.3.9 Added matrix of run-run cross-correlations<br>
 0.3.8 bug fixes to make EXCLUDE BATCH &lt;range&gt; option work<br>
 0.3.7
@@ -1314,7 +1315,8 @@ Unmerged output; added Rfull to tables <br>
 (pre@mrc-lmb.cam.ac.uk)
 See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
-  
+
 </dl>
+
 
 </body></html>

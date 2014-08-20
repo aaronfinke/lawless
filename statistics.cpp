@@ -31,9 +31,9 @@ using phaser_io::LXML;
 namespace scala {
   // ------------------------------------------------------------
   void BatchScales0(const std::vector<Batch>& batches,
-		    const int& datasetIndex, const ScaleModel& AllScales,
-		    std::vector<float>& scale0batch,
-		    std::vector<float>& bfacbatch)
+                    const int& datasetIndex, const ScaleModel& AllScales,
+                    std::vector<float>& scale0batch,
+                    std::vector<float>& bfacbatch)
   // Set arrays of Primary scales at theta=0 for centre of each batch,
   // & Bfactor, for selected dataset
   //
@@ -54,56 +54,56 @@ namespace scala {
     for (int ib=0;ib<nbatches;++ib) {
       // Is it this dataset?
       if ((datasetIndex < 0) || (batches[ib].datasetindex() == datasetIndex)) {
-	if (batches[ib].Accepted()) {
-	  int irun = batches[ib].RunIndex();
-	  if (irun >= 0) {
-	    PrimaryScale pscale = AllScales.primary_scale(irun);
-	    if (pscale.IsBatchScale()) {
-	      if (pscale.ValidScale(batches[ib].num())) {
-		ps = pscale.Scale(batches[ib].num());
-	      } else {
-		ps = 0.0;
-	      }
-	    } else {
-	      ps = pscale.Scale(batches[ib].MidPhi());
-	    }
-	    if (ps != 0.0) {
-	      scale0batch[ib] = 1./ps;
-	    } else {
-	      scale0batch[ib] = 0.0;
-	    }
-	    
-	    RelativeBfactor bfac = AllScales.Bfactor(irun);
+        if (batches[ib].Accepted()) {
+          int irun = batches[ib].RunIndex();
+          if (irun >= 0) {
+            PrimaryScale pscale = AllScales.primary_scale(irun);
+            if (pscale.IsBatchScale()) {
+              if (pscale.ValidScale(batches[ib].num())) {
+                ps = pscale.Scale(batches[ib].num());
+              } else {
+                ps = 0.0;
+              }
+            } else {
+              ps = pscale.Scale(batches[ib].MidPhi());
+            }
+            if (ps != 0.0) {
+              scale0batch[ib] = 1./ps;
+            } else {
+              scale0batch[ib] = 0.0;
+            }
 
-	    if (bfac.IsBatchBfactor()) {
-	      int batchN = batches[ib].num();
-	      ps = bfac.BfactorValueB(batchN);
-	    } else {
-	      ps = bfac.BfactorValue(batches[ib].MidTime());
-	      //^^
-	      //	      std::cout << "Bfacs: irun, ib, t, B " <<irun<<" "
-	      //			<<ib<<" "<<batches[ib].MidTime()
-	      //			<<" "<<ps<<"\n";
-	      //^-
-	    }
-	    bfacbatch[ib] = ps;
-	  }
-	}
+            RelativeBfactor bfac = AllScales.Bfactor(irun);
+
+            if (bfac.IsBatchBfactor()) {
+              int batchN = batches[ib].num();
+              ps = bfac.BfactorValueB(batchN);
+            } else {
+              ps = bfac.BfactorValue(batches[ib].MidTime());
+              //^^
+              //              std::cout << "Bfacs: irun, ib, t, B " <<irun<<" "
+              //                        <<ib<<" "<<batches[ib].MidTime()
+              //                        <<" "<<ps<<"\n";
+              //^-
+            }
+            bfacbatch[ib] = ps;
+          }
+        }
       }
     } // end loop batches
   }
   // ------------------------------------------------------------
   void AddDelStats(const float& delI, const float& AvI, const int& nmult,
-		   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
-		   const int& mres, const bool& isfull,
-		   std::vector<Rfactor>& rmergeRes,
-		   std::vector<Rfactor>& rmergeResFull,
-		   std::vector<Rfactor>& rmeasRes,
-		   std::vector<Rfactor>& rpimRes,
-		   const int& mint,
-		   std::vector<Rfactor>& rmergeInt,
-		   std::vector<Rfactor>& rmeasInt,
-		   std::vector<Rfactor>& rpimInt)
+                   const int& jbatch,  std::vector<Rfactor>& rmergebatch,
+                   const int& mres, const bool& isfull,
+                   std::vector<Rfactor>& rmergeRes,
+                   std::vector<Rfactor>& rmergeResFull,
+                   std::vector<Rfactor>& rmeasRes,
+                   std::vector<Rfactor>& rpimRes,
+                   const int& mint,
+                   std::vector<Rfactor>& rmergeInt,
+                   std::vector<Rfactor>& rmeasInt,
+                   std::vector<Rfactor>& rpimInt)
   // Add in deviations to Rmerge statistics etc
   // by batch, resolution, intensity
   //
@@ -125,7 +125,7 @@ namespace scala {
   //  rmergeInt    updated Rmerge by intensity
   //  rmeasInt     updated Rmeas by intensity
   //  rpimInt      updated Rpim by intensity
-  //  
+  //
   {
     double unitw = 1.0;
     if (jbatch >= 0) rmergebatch[jbatch].add(delI, AvI, unitw);
@@ -133,7 +133,7 @@ namespace scala {
     if (mres >= 0) {
       rmergeRes[mres].add(delI, AvI, unitw); // Rmerge
       if (isfull) {
-	rmergeResFull[mres].add(delI, AvI, unitw); // Rmerge for fulls
+        rmergeResFull[mres].add(delI, AvI, unitw); // Rmerge for fulls
       }
       double w = sqrt(an/(an-1.0));
       rmeasRes[mres].add(delI, AvI, w);  // Rmeas
@@ -150,17 +150,17 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AddDelStatsOv(const float& delI, const float& AvI, const int& nmult,
-		     const int& jbatch,  std::vector<Rfactor>& rmergebatchOv,
-		     const int& mres, const bool& isfull, const int& irun,
-		     std::vector<Rfactor>& rmergeResOv,
-		     std::vector<Rfactor>& rmergeResFullOv,
-		     std::vector<Rfactor>& rmeasResOv,
-		     std::vector<Rfactor>& rpimResOv,
-		     std::vector<std::vector<Rfactor> >& rmeasRun,
-		     const int& mint,
-		     std::vector<Rfactor>& rmergeIntOv,
-		     std::vector<Rfactor>& rmeasIntOv,
-		     std::vector<Rfactor>& rpimIntOv)
+                     const int& jbatch,  std::vector<Rfactor>& rmergebatchOv,
+                     const int& mres, const bool& isfull, const int& irun,
+                     std::vector<Rfactor>& rmergeResOv,
+                     std::vector<Rfactor>& rmergeResFullOv,
+                     std::vector<Rfactor>& rmeasResOv,
+                     std::vector<Rfactor>& rpimResOv,
+                     std::vector<std::vector<Rfactor> >& rmeasRun,
+                     const int& mint,
+                     std::vector<Rfactor>& rmergeIntOv,
+                     std::vector<Rfactor>& rmeasIntOv,
+                     std::vector<Rfactor>& rpimIntOv)
   // Add in deviations to Rmerge statistics etc
   // by resolution, over all I+ & I- observations together
   //
@@ -183,7 +183,7 @@ namespace scala {
   //  rmergeIntOv      updated Rmerge by intensity
   //  rmeasIntOv       updated Rmeas by intensity
   //  rpimIntOv        updated Rpim by intensity
-  //  
+  //
   {
     double unitw = 1.0;
     if (jbatch >= 0) rmergebatchOv[jbatch].add(delI, AvI, unitw);
@@ -191,7 +191,7 @@ namespace scala {
     if (mres >= 0) {
       rmergeResOv[mres].add(delI, AvI, unitw); // Rmerge
       if (isfull) {
-	rmergeResFullOv[mres].add(delI, AvI, unitw); // Rmerge fulls
+        rmergeResFullOv[mres].add(delI, AvI, unitw); // Rmerge fulls
       }
       double w = sqrt(an/(an-1.0));
       rmeasResOv[mres].add(delI, AvI, w);  // Rmeas
@@ -209,15 +209,15 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AddDelStats(const float& delI, const float& AvI,
-		   const int& jbatch,  std::vector<Rfactor>& rmergebatch)
+                   const int& jbatch,  std::vector<Rfactor>& rmergebatch)
   {
     double unitw = 1.0;
     if (jbatch >= 0) rmergebatch[jbatch].add(delI, AvI, unitw);
   }
   // ------------------------------------------------------------
   void BiasSums(const SelectedObservations& allobs, const IsigI& AvI,
-		MeanSD& biasRes,
-		MeanSD& biasIRes)
+                MeanSD& biasRes,
+                MeanSD& biasIRes)
   //
   //  Bias calculation
   //  This compairs each "partial" observation  Ihl with the mean of
@@ -235,7 +235,7 @@ namespace scala {
   {
     observation this_obs;
     int idx;
-    MeanSD AvIsmall;  
+    MeanSD AvIsmall;
 
     int minparts = 1000000;
     // Find smallest width (fulls if present)
@@ -244,7 +244,7 @@ namespace scala {
     }
     while ((idx=allobs.next_observation(this_obs)) >= 0) {
       if (this_obs.num_parts_mpart() == minparts) {
-	AvIsmall.Add(this_obs.kI());
+        AvIsmall.Add(this_obs.kI());
       }
     }
     float Ifull = AvIsmall.Mean();
@@ -252,23 +252,23 @@ namespace scala {
     //    std::cout << "minparts, Ifull " <<minparts<<" "<< Ifull <<"\n"; //^-
     while ((idx=allobs.next_observation(this_obs)) >= 0) {
       if (this_obs.num_parts_mpart() > minparts) {
-	biasRes.Add(Ifull - this_obs.kI());
-	//	std::cout <<"bias " << Ifull - this_obs.kI() <<"\n"; //^
-	biasIRes.Add(AvI.I());
+        biasRes.Add(Ifull - this_obs.kI());
+        //      std::cout <<"bias " << Ifull - this_obs.kI() <<"\n"; //^
+        biasIRes.Add(AvI.I());
       }
     }
   }
   // ------------------------------------------------------------
   void SmoothStatisticsByBatch(const std::vector<std::vector<MeanSD> >& mnIsdResBatch,
-			       std::vector<double>& maxresbatchsmoothed,
-			       std::vector<Rfactor>& rmergebatch,
-			       std::vector<Rfactor>& rreferencebatchsmoothed,
-			       std::vector<MeanValue>& ccreferencebatchsmoothed,
-			       const std::vector<Batch>& batches,
-			       const std::vector<Run>& runlist,
-			       const ResoRange& ResRange,
-			       const double& MinimumIoverSigmaBatch,
-			       const int& NbatchSmooth)
+                               std::vector<double>& maxresbatchsmoothed,
+                               std::vector<Rfactor>& rmergebatch,
+                               std::vector<Rfactor>& rreferencebatchsmoothed,
+                               std::vector<MeanValue>& ccreferencebatchsmoothed,
+                               const std::vector<Batch>& batches,
+                               const std::vector<Run>& runlist,
+                               const ResoRange& ResRange,
+                               const double& MinimumIoverSigmaBatch,
+                               const int& NbatchSmooth)
   // Arguments:
   // mnIsdResBatch by batch for each resolution bin = Mean(<I>/sd(<I>))
   // maxresbatchsmoothed (returned) "maximum resolution" by batch smoothed over NbatchSmooth batches
@@ -294,56 +294,56 @@ namespace scala {
 
     for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
       if (batches[ib].Accepted()) {
-	int irun = batches[ib].RunIndex(); // run index for central batch
-	int nbatrun = runlist[irun].Nbatches(); // number of batches in run
-	int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
-	if (nbsr >= 3) { // don't bother smoothing if very few batches
-	  nbsr = (nbsr/2)*2 + 1;	// Make it odd
-	  if (nbsr > nbatrun) nbsr -= 2; // // ... but not larger than nbatrun
-	  int half = nbsr/2;
-	  int i2 = Min(ib+half, nbatches); // last batch in group + 1
-	  // is it in the same run? loop backwards if necessary until it is
-	  while (batches[i2-1].RunIndex() != irun) {
-	    i2--;
-	  }
-	  int i1 = i2 - nbsr;
-	  if (i1 < 0) {
-	    i1 = 0;
-	  }
-	  // is it in the same run? loop forwards if necessary until it is
-	  while (batches[i1].RunIndex() != irun) {
-	    i1++;
-	  }
-	  i2 = i1 + nbsr;
-	  ASSERT (i2 <= nbatches);
-	  // Number of resolution bins
-	  int nrbins = mnIsdResBatch[ib].size();
-	  std::vector<MeanSD> msd(nrbins); // for each resolution bin
-	  for (int j=i1;j<i2;++j) { // loop nbsr batches
-	    if (batches[j].Accepted()) {
-	      Rsmooth[ib] += rmergebatch[j];  // Rmerge
-	      for (int i=0;i<nrbins;++i) { // loop resolution bins
-		msd[i] += mnIsdResBatch[j][i];
-	      }
-	      // R and CC against reference, if present
-	      if (hklref) {
-		Rrefsmooth[ib] += rreferencebatchsmoothed[j];
-		ccrefsmooth[ib] += ccreferencebatchsmoothed[j];
-	      }
-	    }
-	  }
-	  //	std::cout <<ib<<" "<< i1 <<" "<<i2
-	  //		  <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
-	  //		  <<" " << rmergebatch[ib].R()
-	  //		  <<" " << Rsmooth[ib].R()
-	  //		  << " i1,i2\n"; //^
-	  
-	  // assign resolution limit for this group to batch ib
-	  
-	  ResolutionLimit batchreslimit(msd, ResRange,
-					MinimumIoverSigmaBatch);
-	  maxresbatchsmoothed[ib] = batchreslimit.HighResolution(); 
-	}
+        int irun = batches[ib].RunIndex(); // run index for central batch
+        int nbatrun = runlist[irun].Nbatches(); // number of batches in run
+        int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
+        if (nbsr >= 3) { // don't bother smoothing if very few batches
+          nbsr = (nbsr/2)*2 + 1;        // Make it odd
+          if (nbsr > nbatrun) nbsr -= 2; // // ... but not larger than nbatrun
+          int half = nbsr/2;
+          int i2 = Min(ib+half, nbatches); // last batch in group + 1
+          // is it in the same run? loop backwards if necessary until it is
+          while (batches[i2-1].RunIndex() != irun) {
+            i2--;
+          }
+          int i1 = i2 - nbsr;
+          if (i1 < 0) {
+            i1 = 0;
+          }
+          // is it in the same run? loop forwards if necessary until it is
+          while (batches[i1].RunIndex() != irun) {
+            i1++;
+          }
+          i2 = i1 + nbsr;
+          ASSERT (i2 <= nbatches);
+          // Number of resolution bins
+          int nrbins = mnIsdResBatch[ib].size();
+          std::vector<MeanSD> msd(nrbins); // for each resolution bin
+          for (int j=i1;j<i2;++j) { // loop nbsr batches
+            if (batches[j].Accepted()) {
+              Rsmooth[ib] += rmergebatch[j];  // Rmerge
+              for (int i=0;i<nrbins;++i) { // loop resolution bins
+                msd[i] += mnIsdResBatch[j][i];
+              }
+              // R and CC against reference, if present
+              if (hklref) {
+                Rrefsmooth[ib] += rreferencebatchsmoothed[j];
+                ccrefsmooth[ib] += ccreferencebatchsmoothed[j];
+              }
+            }
+          }
+          //    std::cout <<ib<<" "<< i1 <<" "<<i2
+          //              <<"  "<<irun<<" "<<batches[i2-1].RunIndex()
+          //              <<" " << rmergebatch[ib].R()
+          //              <<" " << Rsmooth[ib].R()
+          //              << " i1,i2\n"; //^
+
+          // assign resolution limit for this group to batch ib
+
+          ResolutionLimit batchreslimit(msd, ResRange,
+                                        MinimumIoverSigmaBatch);
+          maxresbatchsmoothed[ib] = batchreslimit.HighResolution();
+        }
       } // batch accepted
     } // end loop batches
     rmergebatch = Rsmooth; // return overwriting input
@@ -362,27 +362,27 @@ namespace scala {
     if (ccreferencebatch.size() == 0) return averageccoverresolution;
     int nresbins = ccreferencebatch[0].size();
     numberinCC.assign(ccreferencebatch.size(), 0);
-    for (size_t ib=0; ib<ccreferencebatch.size(); ib++) { 
+    for (size_t ib=0; ib<ccreferencebatch.size(); ib++) {
       for (int mres=0;mres<nresbins;++mres) {
-	double weight = ccreferencebatch[ib][mres].Number();
-	averageccoverresolution[ib].Add(ccreferencebatch[ib][mres].CC(), weight);
-	numberinCC[ib] += ccreferencebatch[ib][mres].Number();
+        double weight = ccreferencebatch[ib][mres].Number();
+        averageccoverresolution[ib].Add(ccreferencebatch[ib][mres].CC(), weight);
+        numberinCC[ib] += ccreferencebatch[ib][mres].Number();
       }
     }
     return averageccoverresolution;
   }
   // ------------------------------------------------------------
   SummaryStatistics Statistics(const ScaleModel& AllScales,
-			       const hkl_unmerge_list& hkl_list,
-			       SDmodel& SDM,
-			       const all_controls& controls,
-			       const int& datasetIndex, 
-			       const ResoRange& ResRange,
-			       const Normalise& NormRes,
-			       const AnomDistribution& anomDistribution,
-			       const float& anomProbSlope,
-			       const ReferenceList& hklreflist,
-			       phaser_io::Output& output)
+                               const hkl_unmerge_list& hkl_list,
+                               SDmodel& SDM,
+                               const all_controls& controls,
+                               const int& datasetIndex,
+                               const ResoRange& ResRange,
+                               const Normalise& NormRes,
+                               const AnomDistribution& anomDistribution,
+                               const float& anomProbSlope,
+                               const ReferenceList& hklreflist,
+                               phaser_io::Output& output)
   //
   // Statistics for within a dataset datasetIndex
   //
@@ -397,12 +397,12 @@ namespace scala {
   //   anomProbSlope slope of anomalous normal probability plot
   //   hklreflist   reference data for analysis, if present
   //   output
-  //   
+  //
   {
     // Check valid datasetIndex
     if (datasetIndex < 0 || datasetIndex >= hkl_list.num_datasets()) {
       Message::message(Message_fatal("Statistics: datasetIndex "+
-				     clipper::String(datasetIndex)+" out of range"));
+                                     clipper::String(datasetIndex)+" out of range"));
     }
 
     // Summary data
@@ -433,7 +433,7 @@ namespace scala {
     ResoRange resrange0 = ResRange;
     resrange0.SetRange(resrangedataset.ResLow(), ResRange.BinRange(0).ResHigh());
     summaryStatistics.StoreResRanges(resrangedataset, resrange0,
-				     ResRange.BinRange(nresbin-1)); 
+                                     ResRange.BinRange(nresbin-1));
 
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();
@@ -443,7 +443,7 @@ namespace scala {
     float Jmax = NormRes.Imax();
     IntensityBin Irange(NintBin, NintBin/2, Iav, Jmax);
 
-    //  these determined for each batch 
+    //  these determined for each batch
     std::vector<float> scale0batch(nbatches);  // mean scale at theta=0
     std::vector<float> bfacbatch(nbatches);    // B-factor
     std::vector<Batch> batches = hkl_list.Batches();  // all batches
@@ -470,11 +470,11 @@ namespace scala {
     std::vector<std::vector<correl_coeff> > ccreferencebatch;
     std::vector<MeanValue> meanIrefbatch;
     std::vector<MeanValue> meanIobsbatch;
-    if (hklref) {      
+    if (hklref) {
       rreferencebatch.resize(nbatches);
       ccreferencebatch.resize(nbatches);
       for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
-	ccreferencebatch[i].assign(nresbin,correl_coeff());
+        ccreferencebatch[i].assign(nresbin,correl_coeff());
       }
       meanIrefbatch.resize(nbatches);
       meanIobsbatch.resize(nbatches);
@@ -547,7 +547,7 @@ namespace scala {
     anisoanal.SetConeAngle(controls.analysis.ConeAngle());  // store cone angle
     summaryStatistics.StoreAnisoDeltaB(anisoanal.BfactorDifference());
     output.logTab(0, LOGFILE,
-	 "\nTime for determination of anisotropic axes: "+anisotime.format(true));
+         "\nTime for determination of anisotropic axes: "+anisotime.format(true));
     // ----
 
     // Sample SD option
@@ -570,7 +570,7 @@ namespace scala {
     if (controls.analysis.DetectorAnalysis()) {
       detectoranalysis.init(hkl_list);
     }
-    
+
     reflection this_refl;
     observation this_obs;
 
@@ -601,7 +601,7 @@ namespace scala {
     double maxinvresolsq = 0.0; // actual maximum resolution
     // number of symmetry operators including lattice centering (since epsilon allows
     // for lattice centering)
-    float NumSymm = hkl_list.symmetry().Nsym();  
+    float NumSymm = hkl_list.symmetry().Nsym();
     hkl_list.rewind();
 
     // * * * * Loop reflections
@@ -619,11 +619,11 @@ namespace scala {
       float epsiln = hkl_list.symmetry().epsilon(this_refl.hkl());
       int multcy;
       if (epsiln == 0.0) {
-	// systematic absence
-	multcy = 0;
+        // systematic absence
+        multcy = 0;
       } else {
-	multcy = Nint(float(NumSymm)/epsiln);
-	if (!Centric) multcy = multcy*2;
+        multcy = Nint(float(NumSymm)/epsiln);
+        if (!Centric) multcy = multcy*2;
       }
 
       // Resolution bin
@@ -636,7 +636,7 @@ namespace scala {
       // Select all (I+ & I-) accepted observations for this dataset
       allobs.init(this_refl, datasetIndex, ALL);
       AvIsig = allobs.Average();  // average I, 1/variance weight
-      delI = allobs.DelI(); 
+      delI = allobs.DelI();
       AvIothers = allobs.MeanIothers();
 
       // Intensity bins
@@ -649,37 +649,37 @@ namespace scala {
 
       // Counts
       if (allobs.Number() > 0) {
-	float IovsigI = AvIsig.I()/AvIsig.sigI();
-	mnIsdRes[mres].Add(IovsigI);
-	mnIsdInt[mint].Add(IovsigI);
-	// by cone
-	if (mres == 0) {
-	  for (int j=0;j<3;++j) {  // lowest res bin, add into all directions
-	    mnIsdResAniso[j][mres].Add(IovsigI);
-	  }
-	} else if (jconeaxis >= 0) {
-	  mnIsdResAniso[jconeaxis][mres].Add(IovsigI);
-	}
+        float IovsigI = AvIsig.I()/AvIsig.sigI();
+        mnIsdRes[mres].Add(IovsigI);
+        mnIsdInt[mint].Add(IovsigI);
+        // by cone
+        if (mres == 0) {
+          for (int j=0;j<3;++j) {  // lowest res bin, add into all directions
+            mnIsdResAniso[j][mres].Add(IovsigI);
+          }
+        } else if (jconeaxis >= 0) {
+          mnIsdResAniso[jconeaxis][mres].Add(IovsigI);
+        }
 
-	NumRef[mres]++;                    // Number unique
-	NumObs[mres] += allobs.Number();   // Number observed
-	NumRefAll++;
-	NumObsAll += allobs.Number();
+        NumRef[mres]++;                    // Number unique
+        NumObs[mres] += allobs.Number();   // Number observed
+        NumRefAll++;
+        NumObsAll += allobs.Number();
 
-	// Counts for completeness & multiplicity
-	//  Total in sphere allowing for symmetry multiplicity
-	NumRefSphere[mres] += multcy;      // Total unique in sphere
+        // Counts for completeness & multiplicity
+        //  Total in sphere allowing for symmetry multiplicity
+        NumRefSphere[mres] += multcy;      // Total unique in sphere
 
-	if (Centric) {
-	  NumCentric[mres]++;
-	} else {
-	  NumACentric[mres]++;
-	}
+        if (Centric) {
+          NumCentric[mres]++;
+        } else {
+          NumACentric[mres]++;
+        }
 
       };
       if (allobs.Number() > 1) {
-	BiasSums(allobs, AvIsig, biasRes[mres], biasIRes[mres]); // Bias
-	BiasSums(allobs, AvIsig, biasInt[mint], biasIInt[mint]); // Bias
+        BiasSums(allobs, AvIsig, biasRes[mres], biasIRes[mres]); // Bias
+        BiasSums(allobs, AvIsig, biasInt[mint], biasIInt[mint]); // Bias
       }
       // Store multiplicity of reflection for cumulative completeness
       cumulativecompleteness.StartReflection(multcy);
@@ -688,73 +688,73 @@ namespace scala {
 
 
       while ((idx=allobs.next_observation(this_obs)) >= 0) {  // loop all valid observations
-	int batchn = this_obs.Batch();  // batch number
-	int jbatch = hkl_list.batch_serial(batchn); // batch serial
-	bool isfull = (this_obs.PartFlag() == FULL);  // true if fully recorded, false for partial	
-	NumObsBatch[jbatch] += multcy;              // Number observed (in sphere)
+        int batchn = this_obs.Batch();  // batch number
+        int jbatch = hkl_list.batch_serial(batchn); // batch serial
+        bool isfull = (this_obs.PartFlag() == FULL);  // true if fully recorded, false for partial
+        NumObsBatch[jbatch] += multcy;              // Number observed (in sphere)
 
-	if (isfull) {
-	  NumObsFull++;
-	} else {
-	  NumObsPart++;
-	  if (this_obs.PartFlag() == SCALE) {NumObsScaled++;}  // scaled partial
-	}
-	
-	// record an observation for cumulative completeness
-	cumulativecompleteness.AddObservationBatch(batchn, jbatch);
-	scalebatch[jbatch].Add(1./this_obs.Gscale());    // actual scale = 1/g
-	
-	imeanbatch[jbatch].Add(this_obs.kI());        // Imean (all I+-)
-	imeanRes[mres].Add(this_obs.kI());
-	avSdRes[mres].Add(this_obs.ksigI());
-	imeanInt[mint].Add(this_obs.kI());
-	avSdInt[mint].Add(this_obs.ksigI());
-	// by resolution for each batch
-	mnIsdResBatch[jbatch][mres].Add(this_obs.kI()/this_obs.ksigI());
-	// Analysis against reference data
-	if (hklref) {
-	  // find matching hkl, if present
-	  IsigI Isref = hklreflist.Isig(this_refl.hkl());
-	  if (Isref.sigI() > 0.0) {
-	    rreferencebatch[jbatch].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
-	    ccreferencebatch[jbatch][mres].add(this_obs.kI(), Isref.I(), 1.0);
-	    meanIrefbatch[jbatch].Add(Isref.I());
-	    meanIobsbatch[jbatch].Add(this_obs.kI());
-	  }
-	}
-	if (allobs.Number() > 1) {
-	  rmsDbatch[jbatch].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
-	  AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
-	  rmsDRes[mres].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
-	  rmsDInt[mint].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
-	  // Detector analysis
-	  if (controls.analysis.DetectorAnalysis()) {
-	    // AvIothers   <I> of other observations
-	    float xd = this_obs.XYdet().first;
-	    float yd = this_obs.XYdet().second;
-	    detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
-				      this_obs.run(), xd, yd);
-	  }
-	}
-	if (Centric) {
-	  // No anomalous
-	  if (allobs.Number() > 1) {
-	    // Rmerge etc 
-	    AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
-			jbatch, rmergebatch, 
-			mres, isfull, 
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
-			mint, rmergeInt, rmeasInt, rpimInt);
-	  }
-	}
-	if (allobs.Number() > 1) {
-	  // over all I+ & I- sets
-	  AddDelStatsOv(delI[idx], AvIsig.I(), allobs.Number(),
-			jbatch, rmergebatchOv, 
-			mres, isfull, this_obs.run(),
-			rmergeResOv, rmergeResFullOv, rmeasResOv, rpimResOv, rmeasRun,
-			mint, rmergeIntOv, rmeasIntOv, rpimIntOv);
-	}
+        if (isfull) {
+          NumObsFull++;
+        } else {
+          NumObsPart++;
+          if (this_obs.PartFlag() == SCALE) {NumObsScaled++;}  // scaled partial
+        }
+
+        // record an observation for cumulative completeness
+        cumulativecompleteness.AddObservationBatch(batchn, jbatch);
+        scalebatch[jbatch].Add(1./this_obs.Gscale());    // actual scale = 1/g
+
+        imeanbatch[jbatch].Add(this_obs.kI());        // Imean (all I+-)
+        imeanRes[mres].Add(this_obs.kI());
+        avSdRes[mres].Add(this_obs.ksigI());
+        imeanInt[mint].Add(this_obs.kI());
+        avSdInt[mint].Add(this_obs.ksigI());
+        // by resolution for each batch
+        mnIsdResBatch[jbatch][mres].Add(this_obs.kI()/this_obs.ksigI());
+        // Analysis against reference data
+        if (hklref) {
+          // find matching hkl, if present
+          IsigI Isref = hklreflist.Isig(this_refl.hkl());
+          if (Isref.sigI() > 0.0) {
+            rreferencebatch[jbatch].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
+            ccreferencebatch[jbatch][mres].add(this_obs.kI(), Isref.I(), 1.0);
+            meanIrefbatch[jbatch].Add(Isref.I());
+            meanIobsbatch[jbatch].Add(this_obs.kI());
+          }
+        }
+        if (allobs.Number() > 1) {
+          rmsDbatch[jbatch].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+          AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
+          rmsDRes[mres].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+          rmsDInt[mint].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+          // Detector analysis
+          if (controls.analysis.DetectorAnalysis()) {
+            // AvIothers   <I> of other observations
+            float xd = this_obs.XYdet().first;
+            float yd = this_obs.XYdet().second;
+            detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
+                                      this_obs.run(), xd, yd);
+          }
+        }
+        if (Centric) {
+          // No anomalous
+          if (allobs.Number() > 1) {
+            // Rmerge etc
+            AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
+                        jbatch, rmergebatch,
+                        mres, isfull,
+                        rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+                        mint, rmergeInt, rmeasInt, rpimInt);
+          }
+        }
+        if (allobs.Number() > 1) {
+          // over all I+ & I- sets
+          AddDelStatsOv(delI[idx], AvIsig.I(), allobs.Number(),
+                        jbatch, rmergebatchOv,
+                        mres, isfull, this_obs.run(),
+                        rmergeResOv, rmergeResFullOv, rmeasResOv, rpimResOv, rmeasRun,
+                        mint, rmergeIntOv, rmeasIntOv, rpimIntOv);
+        }
       }  // end loop observations
 
 
@@ -763,7 +763,7 @@ namespace scala {
       // Anisotropic analysis
       // Halfdataset correlations by cone etc: for inner resolution bin, use all data
       if (jconeaxis >= 0 || mres == 0) {
-	halfDatasetScores.AddAniso(mres, jconeaxis, wtaniso, allobs);
+        halfDatasetScores.AddAniso(mres, jconeaxis, wtaniso, allobs);
       }
 
       // ---- For anisotropic analysis on projections, expand symmetry
@@ -772,74 +772,74 @@ namespace scala {
       float normscale = 1.0;
 
       for (int isym=1;isym<=nsymp*2;isym+=2) { // loop odd ISYM, for I+
-	DVect3 projection =
-	  anisoanal.Projection(hkl_list.symmetry().get_from_asu(this_refl.hkl(), isym), true);
-	IVect3 anisores;
-	for (int i=0;i<3;++i) {
-	  projection[i] *= projection[i];  // square component
-	  anisores[i] = ResRange.bin(projection[i]);
-	}
-	halfDatasetScores.AddAnisoProjection(anisores, allobs, normscale);
+        DVect3 projection =
+          anisoanal.Projection(hkl_list.symmetry().get_from_asu(this_refl.hkl(), isym), true);
+        IVect3 anisores;
+        for (int i=0;i<3;++i) {
+          projection[i] *= projection[i];  // square component
+          anisores[i] = ResRange.bin(projection[i]);
+        }
+        halfDatasetScores.AddAnisoProjection(anisores, allobs, normscale);
       }
       // ----
 
       if (Centric) {
-	// Dummy anomalous as control
-	halfDatasetScores.AddAnomCentric(mres, allobs);
+        // Dummy anomalous as control
+        halfDatasetScores.AddAnomCentric(mres, allobs);
       } else {
-	// Always get I+ & I- sets (unless centric) for anomalous analysis
-	obsplus.init(this_refl, datasetIndex, IPLUS);
-	obsminus.init(this_refl, datasetIndex, IMINUS);
-	halfDatasetScores.AddAnom(mres, obsplus, obsminus);
+        // Always get I+ & I- sets (unless centric) for anomalous analysis
+        obsplus.init(this_refl, datasetIndex, IPLUS);
+        obsminus.init(this_refl, datasetIndex, IMINUS);
+        halfDatasetScores.AddAnom(mres, obsplus, obsminus);
 
-	// Statistics within  the I+/I-1 sets even if Anomalous Off
-	AvIsigplus = obsplus.Average();  // average I+, 1/variance weight
-	delIplus = obsplus.DelI(); 
-	AvIsigminus = obsminus.Average();  // average I+, 1/variance weight
-	delIminus = obsminus.DelI();
-	
-	// Counts for anomalous completeness & multiplicity
-	bool both = false;
-	if (obsplus.Number() > 0 && obsminus.Number() > 0) {
-	  both = true;
-	  NumAnom[mres]++;           // number unique
-	  NumAnomSphere[mres] += multcy;   // number unique in sphere
-	  // Multiplicity = Min(n+, n-) + Dn/Dn+1 where Dn = ||n+ - n-||
-	  float Dn = std::abs(obsplus.Number() - obsminus.Number());
-	  SNumAnomPairs[mres] += Min(obsplus.Number(), obsminus.Number()) + Dn/(Dn+1.0f);
-	}
-	
-	while ((idx=obsplus.next_observation(this_obs)) >= 0) {  // loop I+ observations
-	  int batchn = this_obs.Batch();  // batch number
-	  int jbatch = hkl_list.batch_serial(batchn); // batch serial
-	  // record an observation for cumulative completeness
-	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IPLUS);
-	  if (obsplus.Number() > 1) {
-	    // Rmerge etc 
-	    bool isfull = (this_obs.PartFlag() == FULL);
-	    AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
-			jbatch, rmergebatch, 
-			mres, isfull,
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
-			mint, rmergeInt, rmeasInt, rpimInt);
-	  }
-	}
-	
-	while ((idx=obsminus.next_observation(this_obs)) >= 0) {  // loop I- observations
-	  int batchn = this_obs.Batch();  // batch number
-	  int jbatch = hkl_list.batch_serial(batchn); // batch serial
-	  // record an observation for cumulative completeness
-	  if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IMINUS);
-	  if (obsminus.Number() > 1) {
-	    // Rmerge etc 
-	    bool isfull = (this_obs.PartFlag() == FULL);
-	    AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
-			jbatch, rmergebatch, 
-			mres, isfull,
-			rmergeRes, rmergeResFull, rmeasRes, rpimRes,
-			mint, rmergeInt, rmeasInt, rpimInt);
-	  }
-	}
+        // Statistics within  the I+/I-1 sets even if Anomalous Off
+        AvIsigplus = obsplus.Average();  // average I+, 1/variance weight
+        delIplus = obsplus.DelI();
+        AvIsigminus = obsminus.Average();  // average I+, 1/variance weight
+        delIminus = obsminus.DelI();
+
+        // Counts for anomalous completeness & multiplicity
+        bool both = false;
+        if (obsplus.Number() > 0 && obsminus.Number() > 0) {
+          both = true;
+          NumAnom[mres]++;           // number unique
+          NumAnomSphere[mres] += multcy;   // number unique in sphere
+          // Multiplicity = Min(n+, n-) + Dn/Dn+1 where Dn = ||n+ - n-||
+          float Dn = std::abs(obsplus.Number() - obsminus.Number());
+          SNumAnomPairs[mres] += Min(obsplus.Number(), obsminus.Number()) + Dn/(Dn+1.0f);
+        }
+
+        while ((idx=obsplus.next_observation(this_obs)) >= 0) {  // loop I+ observations
+          int batchn = this_obs.Batch();  // batch number
+          int jbatch = hkl_list.batch_serial(batchn); // batch serial
+          // record an observation for cumulative completeness
+          if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IPLUS);
+          if (obsplus.Number() > 1) {
+            // Rmerge etc
+            bool isfull = (this_obs.PartFlag() == FULL);
+            AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
+                        jbatch, rmergebatch,
+                        mres, isfull,
+                        rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+                        mint, rmergeInt, rmeasInt, rpimInt);
+          }
+        }
+
+        while ((idx=obsminus.next_observation(this_obs)) >= 0) {  // loop I- observations
+          int batchn = this_obs.Batch();  // batch number
+          int jbatch = hkl_list.batch_serial(batchn); // batch serial
+          // record an observation for cumulative completeness
+          if (both) cumulativecompleteness.AddObservationBatch(batchn, jbatch, IMINUS);
+          if (obsminus.Number() > 1) {
+            // Rmerge etc
+            bool isfull = (this_obs.PartFlag() == FULL);
+            AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
+                        jbatch, rmergebatch,
+                        mres, isfull,
+                        rmergeRes, rmergeResFull, rmeasRes, rpimRes,
+                        mint, rmergeInt, rmeasInt, rpimInt);
+          }
+        }
       } // end acentric
 
       // Analysis of delta = deviation/sigma in intensity bins
@@ -847,18 +847,18 @@ namespace scala {
       // runs                  nruns
       // full/partial
       if (!Anom || Centric) {
-	// No anomalous, selectedobservations are in allobs
-	sdanalysis.AddSelobsDelta2(allobs, mint);
-	allobs.Outliers(rejflags);
-	sdanalysiscore.AddSelobsDelta2(allobs, mint);
+        // No anomalous, selectedobservations are in allobs
+        sdanalysis.AddSelobsDelta2(allobs, mint);
+        allobs.Outliers(rejflags);
+        sdanalysiscore.AddSelobsDelta2(allobs, mint);
       } else {
-	// Anomalous
-	sdanalysis.AddSelobsDelta2(obsplus, mint);
-	sdanalysis.AddSelobsDelta2(obsminus, mint);
-	obsplus.Outliers(rejflags);
-	obsminus.Outliers(rejflags);
-	sdanalysiscore.AddSelobsDelta2(obsplus, mint);
-	sdanalysiscore.AddSelobsDelta2(obsminus, mint);
+        // Anomalous
+        sdanalysis.AddSelobsDelta2(obsplus, mint);
+        sdanalysis.AddSelobsDelta2(obsminus, mint);
+        obsplus.Outliers(rejflags);
+        obsminus.Outliers(rejflags);
+        sdanalysiscore.AddSelobsDelta2(obsplus, mint);
+        sdanalysiscore.AddSelobsDelta2(obsminus, mint);
       }
       cumulativecompleteness.EndReflection();
     }  // end loop reflections
@@ -876,13 +876,13 @@ namespace scala {
 
     // Actual maximum invresolsq
     summaryStatistics.maxinvresolsq = maxinvresolsq;
-    
+
     // Estimates of "maximum resolution" for each batch, based on MinimumIoverSigma
     std::vector<double> maxresbatch(nbatches);
     double MinimumIoverSigmaBatch = controls.analysis.MinimumBatchIoverSigma();
     for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
       ResolutionLimit batchreslimit(mnIsdResBatch[i], ResRange,
-				    MinimumIoverSigmaBatch);
+                                    MinimumIoverSigmaBatch);
       maxresbatch[i] = batchreslimit.HighResolution();
     }
     // and generate a smoothed version of this, as well as Rmerge
@@ -893,7 +893,7 @@ namespace scala {
 
     std::vector<int> numberinCC; // number in CC for each batch
     std::vector<MeanValue> averageccbatch = AverageCCoverresolution(ccreferencebatch,
-								    numberinCC);
+                                                                    numberinCC);
     std::vector<MeanValue> averageccbatchsmoothed;    // CC to reference data
     if (hklref) {
       // copy, to be overwritten
@@ -903,72 +903,72 @@ namespace scala {
 
     if (controls.analysis.NbatchSmooth() > 1) {
       SmoothStatisticsByBatch(mnIsdResBatch, maxresbatchsmoothed,
-			      rmergebatchsmoothed,
-			      rreferencebatchsmoothed,
-			      averageccbatchsmoothed,
-			      batches,
-			      runlist,
-			      ResRange,
-			      MinimumIoverSigmaBatch,
-			      controls.analysis.NbatchSmooth());
+                              rmergebatchsmoothed,
+                              rreferencebatchsmoothed,
+                              averageccbatchsmoothed,
+                              batches,
+                              runlist,
+                              ResRange,
+                              MinimumIoverSigmaBatch,
+                              controls.analysis.NbatchSmooth());
     }
 
     // Print stuff
     output.logTabPrintf(0,LOGFILE,
-	        "\nAccepted data:\nNumber of unique reflections                  %9d\n",
-			NumRefAll);
+                "\nAccepted data:\nNumber of unique reflections                  %9d\n",
+                        NumRefAll);
     output.logTabPrintf(0,LOGFILE,"Number of observations                        %9d\n",
-			NumObsAll);
+                        NumObsAll);
     if (NumObsPart > 0 && NumObsFull > 0) {
       output.logTabPrintf(0,LOGFILE,"Number of fully-recorded observations         %9d\n",
-			  NumObsFull);
+                          NumObsFull);
       output.logTabPrintf(0,LOGFILE,"Number of partially-recorded observations     %9d\n",
-			  NumObsPart);
+                          NumObsPart);
       output.logTabPrintf(0,LOGFILE,"Number of scaled partial observations         %9d\n",
-			  NumObsScaled);
+                          NumObsScaled);
     }
     if (hkl_list.num_datasets() > 1) {
       output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers (this dataset)    %9d\n",
-			  rejecteddataset.at(datasetIndex));
+                          rejecteddataset.at(datasetIndex));
     } else {
       output.logTabPrintf(0,LOGFILE,"\nNumber of rejected outliers                   %9d\n",
-			  outliercount.at(0)+outliercount.at(1));
+                          outliercount.at(0)+outliercount.at(1));
     }
 
     output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
-			outliercount.at(2));
+                        outliercount.at(2));
 
     PrintScalesByBatch(dataset_pxd, batches, runlist, datasetIndex,
-		       scale0batch, bfacbatch, nbfacrun, scalebatch,
-		       output);
+                       scale0batch, bfacbatch, nbfacrun, scalebatch,
+                       output);
     PrintDeviationsByBatch(dataset_pxd, batches, datasetIndex,
-			   imeanbatch, rmsDbatch, rmergebatch, rmergebatchsmoothed, rejectedbatch,
-			   batchcompleteness, batchanomcompleteness, batchmultiplicity,
-			   maxresbatch, maxresbatchsmoothed,
-			   MinimumIoverSigmaBatch, controls.analysis.NbatchSmooth(),
-			   ResRange, output);
+                           imeanbatch, rmsDbatch, rmergebatch, rmergebatchsmoothed, rejectedbatch,
+                           batchcompleteness, batchanomcompleteness, batchmultiplicity,
+                           maxresbatch, maxresbatchsmoothed,
+                           MinimumIoverSigmaBatch, controls.analysis.NbatchSmooth(),
+                           ResRange, output);
     // Analysis by batch against reference
     if (hklref) {
       PrintComparisonToReferenceByBatch(dataset_pxd, batches, datasetIndex, controls.analysis.NbatchSmooth(),
-					rreferencebatch, averageccbatch, numberinCC,
-					rreferencebatchsmoothed, averageccbatchsmoothed,
-					meanIrefbatch, meanIobsbatch,
-					output);
+                                        rreferencebatch, averageccbatch, numberinCC,
+                                        rreferencebatchsmoothed, averageccbatchsmoothed,
+                                        meanIrefbatch, meanIobsbatch,
+                                        output);
     }
 
     // process halfdataset scores, work out resolution "limits"
     halfDatasetScores.Analyse(ResRange,
-			      controls.analysis.MinimumHalfdatasetCC());
-    
+                              controls.analysis.MinimumHalfdatasetCC());
+
     PrintHalfDatasetCorrelations(dataset_pxd,
-				 ResRange,
-				 halfDatasetScores,
-				 summaryStatistics, output);
-    
+                                 ResRange,
+                                 halfDatasetScores,
+                                 summaryStatistics, output);
+
     PrintAnisotropyAnalysis(dataset_pxd,
-			    ResRange, halfDatasetScores, mnIsdResAniso,
-			    anisoanal, controls.analysis.MinimumIoverSigma(),
-			    summaryStatistics, output);
+                            ResRange, halfDatasetScores, mnIsdResAniso,
+                            anisoanal, controls.analysis.MinimumIoverSigma(),
+                            summaryStatistics, output);
 
     // Statistics within I+/I- sets
     //  rmergeRes, rmeasRes, rpimRes, rmergeResFull
@@ -976,48 +976,48 @@ namespace scala {
     //  rmergeResOv, rmeasResOv, rpimResOv, rmergeResFullOv
     if (Anom) { // anomalous on, print statistics with I+/I- sets
       PrintDeviationsByResolution(dataset_pxd, ResRange, Anom,
-				  rmergeRes, rmergeResFull, rmeasRes,
-				  rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
-				  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
-				  summaryStatistics, output);
+                                  rmergeRes, rmergeResFull, rmeasRes,
+                                  rpimRes, imeanRes, rmsDRes, avSdRes, mnIsdRes,
+                                  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
+                                  summaryStatistics, output);
     } else { // no anomalous, use overall statistics
       PrintDeviationsByResolution(dataset_pxd, ResRange, Anom,
-				  rmergeResOv, rmergeResFullOv, rmeasResOv,
-				  rpimResOv, imeanRes, rmsDRes, avSdRes, mnIsdRes,
-				  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
-				  summaryStatistics, output);
+                                  rmergeResOv, rmergeResFullOv, rmeasResOv,
+                                  rpimResOv, imeanRes, rmsDRes, avSdRes, mnIsdRes,
+                                  biasRes, biasIRes, controls.analysis.MinimumIoverSigma(),
+                                  summaryStatistics, output);
     }
 
     PrintDeviationsByResolutionOv(dataset_pxd, ResRange,
-				  rmergeRes, rmeasRes, rpimRes,
-				  rmergeResOv, rmeasResOv, rpimResOv,
-				  summaryStatistics, output);
+                                  rmergeRes, rmeasRes, rpimRes,
+                                  rmergeResOv, rmeasResOv, rpimResOv,
+                                  summaryStatistics, output);
 
     // Within I+/I- sets      rmergeInt, rmeasInt, rpimInt
     // overall I+/I-          rmergeIntOv, rmeasIntOv, rpimIntOv
     if (Anom) { // anomalous on, print statistics with I+/I- sets
       PrintDeviationsByIntensity(dataset_pxd, Irange, Anom, rmergeInt, rmeasInt,
-			       rpimInt, imeanInt, rmsDInt, avSdInt, mnIsdInt,
-			       biasInt, biasIInt, output);
+                               rpimInt, imeanInt, rmsDInt, avSdInt, mnIsdInt,
+                               biasInt, biasIInt, output);
       summaryStatistics.StoreRtopI(rmergeInt[NintBin-1]);
     } else { // no anomalous
       PrintDeviationsByIntensity(dataset_pxd, Irange, Anom, rmergeIntOv, rmeasIntOv,
-			       rpimIntOv, imeanInt, rmsDInt, avSdInt, mnIsdInt,
-			       biasInt, biasIInt, output);
+                               rpimIntOv, imeanInt, rmsDInt, avSdInt, mnIsdInt,
+                               biasInt, biasIInt, output);
       summaryStatistics.StoreRtopI(rmergeIntOv[NintBin-1]);
     }
 
     PrintDeviationsByRun(dataset_pxd, ResRange, hkl_list.RunList(), rmeasRun, output);
-    
+
     PrintCompletenessMultiplicity(dataset_pxd, ResRange,
-				  hkl_list.symmetry(), hkl_list.Cell(),
-				  NumRef, NumObs, NumRefSphere, NumCentric, NumACentric,
-				  NumAnom, NumAnomSphere, SNumAnomPairs,
-				  summaryStatistics, output);
-    
-    
+                                  hkl_list.symmetry(), hkl_list.Cell(),
+                                  NumRef, NumObs, NumRefSphere, NumCentric, NumACentric,
+                                  NumAnom, NumAnomSphere, SNumAnomPairs,
+                                  summaryStatistics, output);
+
+
     PrintSDanalysis(sdanalysis, sdanalysiscore, rejflags, Irange, runlist,
-		    SDM, datasetIndex, dataset_pxd, true, output);
+                    SDM, datasetIndex, dataset_pxd, true, output);
 
     // Correlplot
     std::string s = halfDatasetScores.PlotCorrel();
@@ -1042,14 +1042,14 @@ namespace scala {
     summaryStatistics.StoreSpaceGroupName(hkl_list.symmetry().symbol_xHM());
     float minsdcorrfulls, maxsdcorrfulls, minsdcorrpartials, maxsdcorrpartials;
     SDM.GetSDcorrectionRanges(minsdcorrfulls, maxsdcorrfulls,
-			      minsdcorrpartials, maxsdcorrpartials);
+                              minsdcorrpartials, maxsdcorrpartials);
     summaryStatistics.StoreSDcorrectioRange(minsdcorrfulls, maxsdcorrfulls,
-					    minsdcorrpartials, maxsdcorrpartials);
+                                            minsdcorrpartials, maxsdcorrpartials);
     summaryStatistics.StoreAnomNPslope(anomProbSlope);
     summaryStatistics.StoreAverageMosaicity(hkl_list.dataset(datasetIndex).Mosaicity());
     summaryStatistics.StoreAnisoAxisLabels(anisoanal.Axesformat());
     summaryStatistics.nlattices = hkl_list.NumberofLattices();
     return summaryStatistics;
   }  // Statistics
-  // ------------------------------------------------------------   
+  // ------------------------------------------------------------
 }

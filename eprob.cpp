@@ -60,7 +60,7 @@ float EProb::CentricEmax(const float& emaxacen) const
   double p = 0.0;
   double rt2 = sqrt(2.0);
   const double TOLERANCE = 0.00001;
-  const double FAC = 3.0; 
+  const double FAC = 3.0;
   double e = start;
 
   while (step > TOLERANCE) {

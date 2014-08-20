@@ -38,7 +38,7 @@ NORMAL );
   //
   // Returns:
   //  vector of refined parameters, length nparam
-  //  
+  //
   std::vector<double> operator() ( const Target_fn_order_zero& target_fn, const
 std::vector<std::vector<double> >& args ) const;
   void debug(const int& mode) { debug_mode = mode; }

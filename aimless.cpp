@@ -51,7 +51,7 @@ bool IsOnline()
   if (isatty(STDIN_FILENO)== 0)
     return false;
   else
-    return true;  
+    return true;
 }
 //--------------------------------------------------------------
 int main(int argc, char* argv[])
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 
   try {
     // Input from command line: optional HKLIN filename
-    // 
+    //
     phaser_io::InterpretCommandLine CL(argc, argv, output);
     hklin_filename = CL.getHKLIN1();
     hklref_filename = CL.getHKLREF();
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
       Message::message(Message_fatal
        ("Cannot have both HKLREF and XYZIN filenames given"));
     }
-    
+
     // XMLOUT command
     if (input.getXMLOUT() != "")
       {output.setXmlout(input.getXMLOUT());}
@@ -125,20 +125,20 @@ int main(int argc, char* argv[])
 
    // TITLE command, defaults to title from HKLIN file (see below)
     std::string runTitle = input.Title();
-    
+
     // Set Bitflag control, to reject any flagged observations
-    ObservationFlagControl ObsFlagControlRejectall; 
+    ObservationFlagControl ObsFlagControlRejectall;
 
     std::string SpaceGroup = "";
 
     // *************************************************************
-    //  Setup up controls 
+    //  Setup up controls
     //    these are set from command input (or default)
 
     // Control of flow through program
     FlowControl FC;
 
-    // Scala control classes 
+    // Scala control classes
     //  run controls
     //  partials controls
     //  outlier controls
@@ -165,17 +165,17 @@ int main(int argc, char* argv[])
     }
 
     outputcontrols.SetFilenames(hklout_filename, CL.getHKLOUTUNMERGED(),
-				CL.getSCAOUT(), CL.getSCAOUTUNMERGED());
+                                CL.getSCAOUT(), CL.getSCAOUTUNMERGED());
 
     //  Setup up controls for reflection & column selection etc
     // Set Profile-fitted [default] or integrated intensity
     col_controls column_selection;
-    // store column selection from input (keyword INTENSITIES) 
+    // store column selection from input (keyword INTENSITIES)
     // for later storage into static class SelectI
     // this may be overridden if no IPR column is present in the file
     column_selection.SetIcolFlag(input.GetIcolFlag(), input.GetCombineImid(),
-				 input.GetCombinePower());
-    
+                                 input.GetCombinePower());
+
     // File selection flags (resolution, datasets, batches etc)
     file_select file_sel(input,0);
 
@@ -186,23 +186,23 @@ int main(int argc, char* argv[])
 
     // ANOMALOUS ON|OFF
     controls.anomalouscontrol.Anomalous = input.getANOMALOUS();
-    // True if "Anomalous" command given 
+    // True if "Anomalous" command given
     controls.anomalouscontrol.FlagInput = input.AnomalousFlagInput();
-    
+
     controls.partials = partial_controls(input.getFracLimMin(),
-					 input.getFracLimMax(),
-					 input.getSclMinLim(),
-					 input.getCheck(),
-					 input.getMaxGap());
+                                         input.getFracLimMax(),
+                                         input.getSclMinLim(),
+                                         input.getCheck(),
+                                         input.getMaxGap());
     int NbatchsmoothDefault = -1;
     controls.analysis = AnalysisControls(input.getResoBins(),
-					 input.getIntBins(),
-					 input.ConeAngle(),
-					 input.MinimumHalfdatasetCC(),
-					 input.MinimumIoverSigma(),
-					 input.MinimumBatchIoverSigma(),
-					 NbatchsmoothDefault,
-					 input.DetectorAnalysis());
+                                         input.getIntBins(),
+                                         input.ConeAngle(),
+                                         input.MinimumHalfdatasetCC(),
+                                         input.MinimumIoverSigma(),
+                                         input.MinimumBatchIoverSigma(),
+                                         NbatchsmoothDefault,
+                                         input.DetectorAnalysis());
 
     // OutlierControl from input or defaults
     // Set number of datasets later
@@ -230,13 +230,13 @@ int main(int argc, char* argv[])
     std::string outputstring;
     timer.Start();
     mtzin.AddHklList(fileSeries,
-		     hklin_filename, file_sel, column_selection, column_list,
-		     controls, InputPxdName, scala::Scell(),
-		     Tolerance, outputstring, verbose,
-		     hkl_list);
+                     hklin_filename, file_sel, column_selection, column_list,
+                     controls, InputPxdName, scala::Scell(),
+                     Tolerance, outputstring, verbose,
+                     hkl_list);
     output.logTab(0,LOGFILE,outputstring);
     output.logTab(0,LOGFILE,
-		  "\nTime for reading HKLIN: "+timer.format(true));
+                  "\nTime for reading HKLIN: "+timer.format(true));
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);
 
@@ -245,13 +245,13 @@ int main(int argc, char* argv[])
       output.logTab(0,LOGFILE, "\nReindexing or changing symmetry\n");
       hkl_symmetry new_symm(SpaceGroup);
       if (SpaceGroup == "") {
-	new_symm = hkl_list.symmetry();
+        new_symm = hkl_list.symmetry();
       } else {
-	output.logTab(0,LOGFILE,"  New space group: "+SpaceGroup);
+        output.logTab(0,LOGFILE,"  New space group: "+SpaceGroup);
       }
       output.logTab(0,LOGFILE, "  Reindex operator from input: "
-		    + GC.Reindex().as_hkl() + "\n");
-      
+                    + GC.Reindex().as_hkl() + "\n");
+
       // reindex, sort & reorganise hkl list
       hkl_list.change_symmetry(new_symm, GC.Reindex());
     }
@@ -264,9 +264,9 @@ int main(int argc, char* argv[])
     Nobs = Nobs;
     PrintUnmergedHeaderStuff(hkl_list, output, verbose);
     PrintFileInfoToXML("HKLIN",hklin_filename,
-		       hkl_list.cell(),
-		       hkl_list.symmetry().symbol_xHM(),
-		       output);
+                       hkl_list.cell(),
+                       hkl_list.symmetry().symbol_xHM(),
+                       output);
 
     bool multilattice = hkl_list.MultiLattice();
     // Set to use singletons only for scaling etc, if multiple lattices present
@@ -294,36 +294,36 @@ int main(int argc, char* argv[])
     if (readRefFirst) {  // reference from HKLREF or XYZIN with no bulk solvent
       bool verbose = true;
       if (hklref_filename != "") {
-	output.logTab(0,LOGFILE, "\nReference file for analysis (HKLREF)");
-	hklreflist.init(hklref_filename,
-			input.getLABREF_I(), input.getLABREF_sigI(),
-			hkl_list.ResRange().ResHigh(), verbose, 
-			output);
-	PrintFileInfoToXML("HKLREF",hklref_filename,
-			   hklreflist.Cell(),
-			   hklreflist.SpaceGroupSymbol(),
-			   output);
+        output.logTab(0,LOGFILE, "\nReference file for analysis (HKLREF)");
+        hklreflist.init(hklref_filename,
+                        input.getLABREF_I(), input.getLABREF_sigI(),
+                        hkl_list.ResRange().ResHigh(), verbose,
+                        output);
+        PrintFileInfoToXML("HKLREF",hklref_filename,
+                           hklreflist.Cell(),
+                           hklreflist.SpaceGroupSymbol(),
+                           output);
       } else {
-	// xyzref (XYZIN) coordinates given
-	hklreflist.init(xyzref_filename,
-			hkl_list.ResRange().ResHigh(), verbose,
-			output);
-	PrintFileInfoToXML("XYZIN",xyzref_filename,
-			   hklreflist.Cell(),
-			   hklreflist.SpaceGroupSymbol(),
-			   output);
+        // xyzref (XYZIN) coordinates given
+        hklreflist.init(xyzref_filename,
+                        hkl_list.ResRange().ResHigh(), verbose,
+                        output);
+        PrintFileInfoToXML("XYZIN",xyzref_filename,
+                           hklreflist.Cell(),
+                           hklreflist.SpaceGroupSymbol(),
+                           output);
       }
       bool refOK =
-	hklreflist.checkCompatible(hkl_list, toleranceratio);
+        hklreflist.checkCompatible(hkl_list, toleranceratio);
       if (!refOK) {
-	std::string s = "HKLREF file is incompatible with HKLIN file\n";
-	s += hklreflist.formatError();
-	output.logTab(0,LXML, StringUtil::MakeXMLtag("FatalErrorMessage",s));
- 	Message::message(Message_fatal(s));
+        std::string s = "HKLREF file is incompatible with HKLIN file\n";
+        s += hklreflist.formatError();
+        output.logTab(0,LXML, StringUtil::MakeXMLtag("FatalErrorMessage",s));
+        Message::message(Message_fatal(s));
       }
     }
 
-    // Set number of datasets for anomalous outliers 
+    // Set number of datasets for anomalous outliers
     controls.outlierScale.SetNdatasets(0);  // no anomalous rejections in scaling
     controls.outlierMerge.SetNdatasets(hkl_list.num_datasets());
 
@@ -331,13 +331,13 @@ int main(int argc, char* argv[])
     if (column_selection.IcolFlag() > 0) {
       // INTENSITIES COMBINE option
       if (column_selection.IsImidSet()) {
-	// Imid set explicitly, so it won't be changed
-	output.logTab(0,LOGFILE, "\n"+SelectI::format());
-	optimiseCombine = false;
+        // Imid set explicitly, so it won't be changed
+        output.logTab(0,LOGFILE, "\n"+SelectI::format());
+        optimiseCombine = false;
       } else {
-	output.logTab(0,LOGFILE, "\nSelection of intensity type (Isum or Ipr) will be optimised");
-	output.logTab(0,LOGFILE, "Profile fitted value Ipr will be used for 1st scaling");
-	SelectI::SetIcolFlag(-1, -1.0);
+        output.logTab(0,LOGFILE, "\nSelection of intensity type (Isum or Ipr) will be optimised");
+        output.logTab(0,LOGFILE, "Profile fitted value Ipr will be used for 1st scaling");
+        SelectI::SetIcolFlag(-1, -1.0);
       }
     } else { // INTENSITIES PROFILE or INTEGRATED
       output.logTab(0,LOGFILE, "\n"+SelectI::format());
@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
     // Set up SD correction model for all runs, fulls & partials for each run
     // from input or by default
     SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList());
-    FC.sdoptimise = true;  // normally optimise SD correction unless onlymerge && restore 
+    FC.sdoptimise = true;  // normally optimise SD correction unless onlymerge && restore
 
     // Print outlier information
     PrintOutlierSettings(controls, output);
@@ -366,7 +366,7 @@ int main(int argc, char* argv[])
     #if _OPENMP
     // Parallel stuff
     output.logTab(0,LOGFILE,
-		  "\nParallisation of refinement:\n");
+                  "\nParallisation of refinement:\n");
     if (controls.refinecontrol.Nprocs() < 0) {
       // NPROC AUTO, set number of processors from number of observations Nobs
       // maximum number of processors to use
@@ -378,14 +378,14 @@ int main(int argc, char* argv[])
       nproc = Min(MAXUSEDPROCS, nproc);
       controls.refinecontrol.SetNprocs(float(nproc));
       output.logTab(0,LOGFILE,
-		    std::string("Number of processors determined automatically\n")+
-		    "  from number of observations "+
-		    StringUtil::Strip(clipper::String(Nobs))+
-		    " and number/processor "+
-		    StringUtil::Strip(clipper::String(NUMOBSPERPROC)));
+                    std::string("Number of processors determined automatically\n")+
+                    "  from number of observations "+
+                    StringUtil::Strip(clipper::String(Nobs))+
+                    " and number/processor "+
+                    StringUtil::Strip(clipper::String(NUMOBSPERPROC)));
     }
     output.logTab(0,LOGFILE,
-		  controls.refinecontrol.format());
+                  controls.refinecontrol.format());
 
     omp_set_num_threads(controls.refinecontrol.Nprocs());
 #endif
@@ -395,7 +395,7 @@ int main(int argc, char* argv[])
     if (FC.restore) {
       AllScales.init(input, hkl_list, output);
       AllScales.Restore(input.RestoreFileName(),
-			hkl_list.RunList());
+                        hkl_list.RunList());
       initialscale = false; // no initial scales
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
@@ -403,32 +403,32 @@ int main(int argc, char* argv[])
 
       // Restore SD correction
       if (input.SDC_NumberInput() != 0) {
-	FC.sdcorrectionsinput = true;
+        FC.sdcorrectionsinput = true;
       }
       if (!input.SDC_RefineSet() && !FC.sdcorrectionsinput) {
-	SD_model.Restore(input.RestoreFileName(),
-			 hkl_list.RunList());
+        SD_model.Restore(input.RestoreFileName(),
+                         hkl_list.RunList());
       }
       if (FC.OnlyMerge()) {
-	if (!input.SDC_RefineSet()) {
-	  // no sdoptimisation if restore and onlymerge and SDCORR REFINE not set
-	  FC.sdoptimise = false;
-	}
+        if (!input.SDC_RefineSet()) {
+          // no sdoptimisation if restore and onlymerge and SDCORR REFINE not set
+          FC.sdoptimise = false;
+        }
       }
     } else {
       if (FC.OnlyMerge()) {
-	// Onlymerge, set scales CONSTANT
-	AllScales.SetConstant(hkl_list, output);
+        // Onlymerge, set scales CONSTANT
+        AllScales.SetConstant(hkl_list, output);
       } else {
-	// Set up scale model, from input commands & reflection list
-	AllScales.init(input, hkl_list, output);
-	AllScales.PrintLayout(output);
-	// If no refinable parameters, set OnlyMerge
-	if (!AllScales.IsRefinable()) {
-	  FC.SetOnlyMerge();
-	  output.logTab(0,LOGFILE,
-			"No refinable parameters");
-	}
+        // Set up scale model, from input commands & reflection list
+        AllScales.init(input, hkl_list, output);
+        AllScales.PrintLayout(output);
+        // If no refinable parameters, set OnlyMerge
+        if (!AllScales.IsRefinable()) {
+          FC.SetOnlyMerge();
+          output.logTab(0,LOGFILE,
+                        "No refinable parameters");
+        }
       }
     }
 
@@ -440,7 +440,7 @@ int main(int argc, char* argv[])
     if (FC.OnlyMerge()) {
       firstSDanalysis = -1;
     }
-  
+
     // By default do SD correction optimisation only within I+/I- sets
     // in case there is anomalous, unless multiplicity is low
     controls.anomalouscontrol.AnomalousSDcorr = true;
@@ -451,18 +451,18 @@ int main(int argc, char* argv[])
       // * tried this but didn't always work on bad data
       // Try again with lower threshold
       float multiplicity = float(hkl_list.num_observations())/
-	float(hkl_list.num_reflections_valid());
+        float(hkl_list.num_reflections_valid());
       const float MINMULTFORSDCORR = 1.5;
       // Separate I+ & I- for SD correction, unless multiplicity is low
       if (multiplicity < MINMULTFORSDCORR) {
-	output.logTab(0,LOGFILE,
-		      std::string("WARNING: multiplicity low, ")+
-		      StringUtil::Strip(StringUtil::ftos(multiplicity,8,1))+
-		      " (below threshold "+
-		      StringUtil::Strip(StringUtil::ftos(MINMULTFORSDCORR,8,1))+
-		      "), so combine I+ and I- for SD correction\n");
-	controls.anomalouscontrol.AnomalousSDcorr = false;
-	lowmultiplicity = true;
+        output.logTab(0,LOGFILE,
+                      std::string("WARNING: multiplicity low, ")+
+                      StringUtil::Strip(StringUtil::ftos(multiplicity,8,1))+
+                      " (below threshold "+
+                      StringUtil::Strip(StringUtil::ftos(MINMULTFORSDCORR,8,1))+
+                      "), so combine I+ and I- for SD correction\n");
+        controls.anomalouscontrol.AnomalousSDcorr = false;
+        lowmultiplicity = true;
       }
     }
     output.logFlush();
@@ -472,17 +472,17 @@ int main(int argc, char* argv[])
       timer.Start();
       InitialScales(hkl_list, AllScales, controls, output);
       output.logTab(0,LOGFILE,
-		    "\nTime for initial scaling: "+timer.format(true));
+                    "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data
       if (controls.outlierScale.Reject(ALL).batchrejectfactor > 0.0) {
-	RejectBatches rejectBatches(hkl_list, AllScales, controls, output);
+        RejectBatches rejectBatches(hkl_list, AllScales, controls, output);
       }
     } else {
       if (input.InitialUnity()) {
-	output.logTab(0,LOGFILE,
-	      "\n========= Initial scales all set to 1.0 =========\n");
+        output.logTab(0,LOGFILE,
+              "\n========= Initial scales all set to 1.0 =========\n");
       }
     }
 
@@ -502,18 +502,18 @@ int main(int argc, char* argv[])
       float IovSDmin = controls.refinecontrol.IovSDmin();
       float E2min = -1.0;   // no |E^2| selection here
       float E2max = -1.0;
-      std::pair<int,int> selrej = 
-	SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
+      std::pair<int,int> selrej =
+        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
-			  "\n========= First round scaling =========\n");
+                          "\n========= First round scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
-	  "\nFirst scaling: %7d reflections selected from %8d with I/sd > %6.2f",
-			  hkl_list.num_reflections()-selrej.first,
-			  hkl_list.num_reflections(), IovSDmin);
+          "\nFirst scaling: %7d reflections selected from %8d with I/sd > %6.2f",
+                          hkl_list.num_reflections()-selrej.first,
+                          hkl_list.num_reflections(), IovSDmin);
       if (selrej.second > 1) {
-	output.logTabPrintf(0,LOGFILE,
-			    ", using every %3d'th reflection above that limit",
-			  selrej.second);
+        output.logTabPrintf(0,LOGFILE,
+                            ", using every %3d'th reflection above that limit",
+                          selrej.second);
       }
       output.logTabPrintf(0,LOGFILE,"\n");
 
@@ -521,11 +521,11 @@ int main(int argc, char* argv[])
       AllScales.symmetricTiles(true);
 
       if (controls.refinecontrol.BFGS()) {
-	ScaleRefine(hkl_list, AllScales, SD_model, controls,
-		    controls.refinecontrol.Ncyc1(), false, output);
+        ScaleRefine(hkl_list, AllScales, SD_model, controls,
+                    controls.refinecontrol.Ncyc1(), false, output);
       } else {
-	ScaleRefineFH(hkl_list, AllScales, controls,
-		      controls.refinecontrol.Ncycles(), output);
+        ScaleRefineFH(hkl_list, AllScales, controls,
+                      controls.refinecontrol.Ncycles(), output);
       }
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
@@ -533,44 +533,44 @@ int main(int argc, char* argv[])
 
       output.logFlush();
 
-      // Overall Normalisation 
+      // Overall Normalisation
       double MinIsigRatio = -1.0;  // no resolution cutoff
       bool Overall = true;  // no run|time variation, just one curve
       Rings NoRings;        // no omission of ice rings
       // Set up resolution bins for normalisation, allowing for number of observations
       ResoRange ResRangeN(hkl_list.RRange().min(), hkl_list.RRange().max(),
-			  hkl_list.num_observations());  // shouldn't be changed in Normalise
+                          hkl_list.num_observations());  // shouldn't be changed in Normalise
       Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-				       ResRangeN, NoRings, 0);
+                                       ResRangeN, NoRings, 0);
 
       // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
       RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
-		    controls.outlierScale, DummyRogues);
+                    controls.outlierScale, DummyRogues);
       std::vector<int> nrejs = CountOutliers(hkl_list);
       output.logTabPrintf(0,LOGFILE,
-       	  "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-			  nrejs[0], nrejs[1], nrejs[2]);
+          "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                          nrejs[0], nrejs[1], nrejs[2]);
       output.logFlush();
       // -- End 1st outlier rejection
 
       // For the 2nd round, allow tile corrections to vary azimuthally
       AllScales.symmetricTiles(false);
-      
+
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
       output.logTab(0,LOGFILE,
-		    "\nTime for 1st scaling: "+timer.format(true));
+                    "\nTime for 1st scaling: "+timer.format(true));
 
       // ----- Optimise Combine settings
       if (optimiseCombine) {
-	OptimiseCombine OptCombine(hkl_list, output);
-	if (OptCombine.IsOptimised()) {
-	  output.logTab(0,LOGFILE,
-			"\nTime for optimisation of intensity type selection: "+
-			timer.format(true));
-	  // Revaluate summed partials for scaling
-	  hkl_list.sum_partials(true);
-	}
+        OptimiseCombine OptCombine(hkl_list, output);
+        if (OptCombine.IsOptimised()) {
+          output.logTab(0,LOGFILE,
+                        "\nTime for optimisation of intensity type selection: "+
+                        timer.format(true));
+          // Revaluate summed partials for scaling
+          hkl_list.sum_partials(true);
+        }
       }
       // -----
 
@@ -578,21 +578,21 @@ int main(int argc, char* argv[])
       // SD corrections are not applied, but SD_model is updated
       //  hkl_list is const
       if (SD_model.Refine()) {
-	// NormRes just used for intensity binning
-	AnalyseSD(SD_model, hkl_list, controls, NormRes,
-		  firstSDanalysis, output);
-	firstSDanalysis = +1;
-	output.logFlush();
+        // NormRes just used for intensity binning
+        AnalyseSD(SD_model, hkl_list, controls, NormRes,
+                  firstSDanalysis, output);
+        firstSDanalysis = +1;
+        output.logFlush();
       }
 
       // -- 2nd outlier rejection
       // Use outlier flags appropriate for scaling
       RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
-		    controls.outlierScale, DummyRogues);
+                    controls.outlierScale, DummyRogues);
       nrejs = CountOutliers(hkl_list);
       output.logTabPrintf(0,LOGFILE,
-       	  "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-			  nrejs[0], nrejs[1], nrejs[2]);
+          "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                          nrejs[0], nrejs[1], nrejs[2]);
       output.logFlush();
       // -- End 2nd outlier rejection
 
@@ -604,19 +604,19 @@ int main(int argc, char* argv[])
       float IovSDmin = 0.0;
       float E2min = controls.refinecontrol.E2min();
       float E2max = controls.refinecontrol.E2max();
-      std::pair<int,int> selrej = 
-	SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
+      std::pair<int,int> selrej =
+        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
-			  "\n========= Main scaling =========\n");
+                          "\n========= Main scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
-	 "\nMain scaling: %7d reflections selected from %8d with |E^2| > %6.2f and |E^2| < %6.2f\n\n",
-			  hkl_list.num_reflections()-selrej.first,
-			  hkl_list.num_reflections(), E2min, E2max);
+         "\nMain scaling: %7d reflections selected from %8d with |E^2| > %6.2f and |E^2| < %6.2f\n\n",
+                          hkl_list.num_reflections()-selrej.first,
+                          hkl_list.num_reflections(), E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
       if (controls.refinecontrol.BFGS()) {
-	ScaleRefine(hkl_list, AllScales, SD_model, controls, Ncyc, true, output);
+        ScaleRefine(hkl_list, AllScales, SD_model, controls, Ncyc, true, output);
       } else {
-	ScaleRefineFH(hkl_list, AllScales, controls, Ncyc, output);
+        ScaleRefineFH(hkl_list, AllScales, controls, Ncyc, output);
       }
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       // Apply all scales
@@ -624,7 +624,7 @@ int main(int argc, char* argv[])
       hkl_list.ResetReflAccept();  // set to accept everything
       ApplyScales(AllScales, hkl_list, onlyUseSingletons);
       output.logTab(0,LOGFILE,
-		    "\nTime for main scaling: "+timer.format(true));
+                    "\nTime for main scaling: "+timer.format(true));
 
       AllScales.WriteImage("TILEIMAGE", output);
 
@@ -643,15 +643,15 @@ int main(int argc, char* argv[])
     double resrangewidth = ResRange.Width(); // bin width for maximum resolution
 
 
-    // Overall Normalisation 
+    // Overall Normalisation
     double MinIsigRatio = -1.0;  // no resolution cutoff
     bool Overall = true;  // no run|time variation, just one curve
     Rings NoRings;        // no omission of ice rings
     // Set up resolution bins for normalisation, allowing for number of observations
     ResoRange ResRangeN(hkl_list.RRange().min(), hkl_list.RRange().max(),
-			  hkl_list.num_observations());  // shouldn't be changed in Normalise
+                          hkl_list.num_observations());  // shouldn't be changed in Normalise
     Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-				     ResRangeN, NoRings, 0);
+                                     ResRangeN, NoRings, 0);
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
 
@@ -672,19 +672,19 @@ int main(int argc, char* argv[])
     } else {
       // No optimisation
       if (FC.restore) {
-	if (FC.sdcorrectionsinput) {
-	  output.logTab(0,LOGFILE,
-			"\nSD correction parameters input\n"+
-			SD_model.format());
-	} else {
-	  output.logTab(0,LOGFILE,
-		"\nSD correction parameters restored from SCALES file\n"+
-		      SD_model.format());
-	}
-	output.logTab(0,LXML,SD_model.asXML());
+        if (FC.sdcorrectionsinput) {
+          output.logTab(0,LOGFILE,
+                        "\nSD correction parameters input\n"+
+                        SD_model.format());
+        } else {
+          output.logTab(0,LOGFILE,
+                "\nSD correction parameters restored from SCALES file\n"+
+                      SD_model.format());
+        }
+        output.logTab(0,LXML,SD_model.asXML());
       } else {
-	output.logTab(0,LOGFILE,
-	"\nSD correction parameters\n"+SD_model.format());
+        output.logTab(0,LOGFILE,
+        "\nSD correction parameters\n"+SD_model.format());
       }
       AnalyseNormalProbability(SD_model, hkl_list, controls, true, output);
     }
@@ -692,7 +692,7 @@ int main(int argc, char* argv[])
     // if scaling done, dump scale model and SDmodel
     if (FC.mainScale) {
       WriteToFile(input.DumpFileName(),
-		  AllScales.FormatSave(hkl_list.RunList())+SD_model.FormatSave());
+                  AllScales.FormatSave(hkl_list.RunList())+SD_model.FormatSave());
     }
 
     firstSDanalysis = +2;
@@ -718,8 +718,8 @@ int main(int argc, char* argv[])
     //  maximum likely values for final statistics
     //  hkl_list is const
     AllAnomDistributions allAnomDistributions(hkl_list, SD_model, controls,
-					      analysanom,
-    					      resrangeanom, NormRes);
+                                              analysanom,
+                                              resrangeanom, NormRes);
     allAnomDistributions.SetSlope(anomProbSlopes);
     allAnomDistributions.Print(output);
 
@@ -730,33 +730,33 @@ int main(int argc, char* argv[])
     if (input.AnomalousFlagInput()) {
       // explicit anomalous on or off from input
       if (controls.anomalouscontrol.Anomalous) { // On
-	if (anomfound) { 
-	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_FOUND);
-	} else {
-	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_ABSENT);
-	}
+        if (anomfound) {
+          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_FOUND);
+        } else {
+          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_ABSENT);
+        }
       } else { // Off
-	if (anomfound) { 
-	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_FOUND);
-	} else {
-	  allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_ABSENT);
-	}
+        if (anomfound) {
+          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_FOUND);
+        } else {
+          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_ABSENT);
+        }
       }
     } else { // No explicit flag given, set appropriately
-      if (anomfound) { 
-	controls.anomalouscontrol.Anomalous = true;
-	controls.anomalouscontrol.AnomalousSDcorr = true;
-	if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
-	allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_FOUND);
+      if (anomfound) {
+        controls.anomalouscontrol.Anomalous = true;
+        controls.anomalouscontrol.AnomalousSDcorr = true;
+        if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
+        allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_FOUND);
       } else {
-	controls.anomalouscontrol.Anomalous = false;
-	controls.anomalouscontrol.AnomalousSDcorr = false;
-	allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ABSENT);
+        controls.anomalouscontrol.Anomalous = false;
+        controls.anomalouscontrol.AnomalousSDcorr = false;
+        allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ABSENT);
       }
     }
     output.logTab(0,LOGFILE,"\n"+
-		  AnomDistribution::formatStatus(allsummarystatistics.AnomStatus())+
-		  "\n");
+                  AnomDistribution::formatStatus(allsummarystatistics.AnomStatus())+
+                  "\n");
 
     output.logTab(0,LOGFILE,"\nOutlier analysis\n================\n");
 
@@ -774,16 +774,16 @@ int main(int argc, char* argv[])
     // to calculate detector position
     bool doRoguePlot = hkl_list.validOrientation();  // false if no orientation
     WriteRogues RoguesList(true, doRoguePlot, multilattice,
-			   runTitle, hkl_list.Srange().max(), wavelength,
-			   controls.outlierMerge);
+                           runTitle, hkl_list.Srange().max(), wavelength,
+                           controls.outlierMerge);
     //  hkl_list is updated for status, but SDs are not changed
     RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,
-		  controls.outlierMerge, RoguesList);
+                  controls.outlierMerge, RoguesList);
     RoguesList.End();
     std::vector<int> nrejs = CountOutliers(hkl_list);
     output.logTabPrintf(0,LOGFILE,
-	"Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-			nrejs[0], nrejs[1], nrejs[2]);
+        "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                        nrejs[0], nrejs[1], nrejs[2]);
     output.logTab(0,LXML,CountOutliersXML(nrejs));
     output.logFlush();
     if (doRoguePlot) {
@@ -802,23 +802,23 @@ int main(int argc, char* argv[])
       //      bool verbose = true;
       bool verbose = false;
       for (int idts=0;idts<hkl_list.num_datasets();++idts) {
-	// Project/Crystal/Dataset for this dataset
-	PxdName dataset_pxd = hkl_list.dataset(idts).pxdname();
-	output.logTab(0,LOGFILE,"\nCheck for self-overlaps, dataset "+
-		      dataset_pxd.dname());
-	analyseoverlaps[idts].init(hkl_list, idts, verbose, output);
-	int nmerged = analyseoverlaps[idts].NumberMerged();
-	if (nmerged > 0) {
-	    output.logTabPrintf(0,LOGFILE,
+        // Project/Crystal/Dataset for this dataset
+        PxdName dataset_pxd = hkl_list.dataset(idts).pxdname();
+        output.logTab(0,LOGFILE,"\nCheck for self-overlaps, dataset "+
+                      dataset_pxd.dname());
+        analyseoverlaps[idts].init(hkl_list, idts, verbose, output);
+        int nmerged = analyseoverlaps[idts].NumberMerged();
+        if (nmerged > 0) {
+            output.logTabPrintf(0,LOGFILE,
      "  Number of self-overlapped observations reclassified as singletons = %5d\n",
-			    nmerged);
-	}
+                            nmerged);
+        }
       } // end loop datasets
       SetOverlapFlags(true, hkl_list); // exclude overlaps
     }
 
     output.logTab(0,LOGFILE,
-		  "\n********************\n* Final statistics *\n********************\n");
+                  "\n********************\n* Final statistics *\n********************\n");
     output.logTab(0,LOGFILE,controls.observationflagcontrol.PrintCounts());
     output.logTab(0,LXML,controls.observationflagcontrol.asXML());
 
@@ -827,23 +827,23 @@ int main(int argc, char* argv[])
       bool refOK;
       int datasetindex = -2;  // combine all datasets together
       if (xyzref_filename != "" && SF_BULK_SOLVENT) {
-	// calculate SF from atoms with bulk solvent
-	refOK =
-	  hklreflist.SFcalcScaleToObserved(xyzref_filename,
-					   hkl_list, datasetindex,
-					   SD_model, toleranceratio,
-					   true, output);
-	ASSERT (refOK); // checked earlier
-	PrintFileInfoToXML("XYZIN",xyzref_filename,
-			   hklreflist.Cell(),
-			   hklreflist.SpaceGroupSymbol(),
-			   output);
+        // calculate SF from atoms with bulk solvent
+        refOK =
+          hklreflist.SFcalcScaleToObserved(xyzref_filename,
+                                           hkl_list, datasetindex,
+                                           SD_model, toleranceratio,
+                                           true, output);
+        ASSERT (refOK); // checked earlier
+        PrintFileInfoToXML("XYZIN",xyzref_filename,
+                           hklreflist.Cell(),
+                           hklreflist.SpaceGroupSymbol(),
+                           output);
       }
       // (re)scale to observed, wherever the F list has come from
       refOK =
-	hklreflist.scaleToObserved(hkl_list, datasetindex,
-				   SD_model, toleranceratio, output);
-	ASSERT (refOK); // checked earlier
+        hklreflist.scaleToObserved(hkl_list, datasetindex,
+                                   SD_model, toleranceratio, output);
+        ASSERT (refOK); // checked earlier
     }
 
     // Smoothing of batch statistics
@@ -852,7 +852,7 @@ int main(int argc, char* argv[])
       // Set from scale rotation range if known
       double spacing = AllScales.primary_scale(0).Spacing();
       if (spacing > 0.0) {
-	smoothwidth = spacing;  // = spacing
+        smoothwidth = spacing;  // = spacing
       }
     }
     // get maximum batch width
@@ -871,7 +871,7 @@ int main(int argc, char* argv[])
     // run-run correlations: don't do them if there are too many
     const int MAXRUNCORRELATION = 100;
     if ((hkl_list.num_runs() > 1) &&
-	(hkl_list.num_runs() < MAXRUNCORRELATION)) {
+        (hkl_list.num_runs() < MAXRUNCORRELATION)) {
       RunCorrelations runcorrelations(hkl_list, SD_model, NormRes, nresbin);
       runcorrelations.formatTable(output);
     }
@@ -891,26 +891,26 @@ int main(int argc, char* argv[])
       resrangedataset.SetWidth(resrangewidth);
       // and check the number of bins is not > nresbin
       if (resrangedataset.Nbins() > nresbin) {
-	resrangedataset.SetNbins(nresbin);
+        resrangedataset.SetNbins(nresbin);
       }
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
       float aslope = anomProbSlopes[idts];
       SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
-					     controls, idts, resrangedataset,
-					     NormRes, anomds, aslope,
-					     hklreflist, output);
+                                             controls, idts, resrangedataset,
+                                             NormRes, anomds, aslope,
+                                             hklreflist, output);
       allsummarystatistics.AddSummaryStatistics(sumstat);
 
       if (multilattice && !onlyUseSingletons) {
-	analyseoverlaps[idts].PrintOverlapTable(output);
+        analyseoverlaps[idts].PrintOverlapTable(output);
       }
 
       bool Result = true;
       if (hkl_list.num_datasets() != 1) {
-	output.logTab(0,LOGFILE,
-		      "==============================================================\n");
-	Result = false;
+        output.logTab(0,LOGFILE,
+                      "==============================================================\n");
+        Result = false;
       }
       // Print summary as a Results table if one dataset, otherwise just to logfile
       allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
@@ -919,7 +919,7 @@ int main(int argc, char* argv[])
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,
-				     controls.anomalouscontrol.Anomalous, output);
+                                     controls.anomalouscontrol.Anomalous, output);
     }
     output.logTab(0,LOGFILE,
      "\n==============================================================\n");
@@ -934,7 +934,7 @@ int main(int argc, char* argv[])
       mergedlist.init(hkl_list, SD_model, runTitle);
       // Output merged reflections file(s)
       scala::WriteMergedOutputFiles(mergedlist,
-				    outputcontrols, output);
+                                    outputcontrols, output);
     }
 
     if (multilattice && !onlyUseSingletons) {
@@ -943,7 +943,7 @@ int main(int argc, char* argv[])
     if (outputcontrols.UnMerged()) {
       // Output unmerged reflections file(s), including overlaps
       scala::WriteUnmergedOutputFiles(runTitle, hkl_list, SD_model,
-				      NormRes.Imax(), outputcontrols, output);
+                                      NormRes.Imax(), outputcontrols, output);
     }
   }  // end try
 
@@ -964,14 +964,14 @@ int main(int argc, char* argv[])
     {
       output.logWarning(LOGFILE, "\nFATAL ERROR message: \n"
                         + message.text() + "\n");
-    } 
+    }
 
   catch (std::bad_alloc const& err) {
     output.logWarning(LOGFILE,
-		      std::string("\nERROR: ")
-		      + std::string(err.what())+"\n"+
-		      " You have run out of memory to store the data\n"+
-		      "  you may need more memory or a 64-bit machine.\n");
+                      std::string("\nERROR: ")
+                      + std::string(err.what())+"\n"+
+                      " You have run out of memory to store the data\n"+
+                      "  you may need more memory or a 64-bit machine.\n");
   }
 
   catch (std::exception const& err) {
@@ -985,13 +985,13 @@ int main(int argc, char* argv[])
 
   Citation citation
     ("P.R.Evans and G.N.Murshudov, 'How good are my data and what is the resolution?'"+
-		    std::string(" Acta Cryst. D69, 1204-1214  (2013)."),
+                    std::string(" Acta Cryst. D69, 1204-1214  (2013)."),
      "http://journals.iucr.org/d/issues/2013/07/00/ba5190/index.html");
   output.logTab(0,LOGFILE, "\n"+citation.MakeLogCitation());
 
 
   output.logTab(0, LOGFILE,
-		"\nEnd of aimless job, total time: "+overalltime.format(true)+"\n\n");
+                "\nEnd of aimless job, total time: "+overalltime.format(true)+"\n\n");
 
   return 0;
 

@@ -73,7 +73,7 @@ std::string btos(const bool& i)
 // stoa - std::string to alpha
 //-----------------------------------------------------------------------
 std::string stoa(const std::string & str)
-{ 
+{
   std::stringstream s;
   std::string t;
   char ch;
@@ -83,13 +83,13 @@ std::string stoa(const std::string & str)
   t = ch;
   while(s.get(ch) && isalpha(ch)) t += ch;
   return t;
-} 
+}
 
 //-----------------------------------------------------------------------
 // stod - std::string to digit
 //-----------------------------------------------------------------------
 int stod(const std::string & str)
-{ 
+{
   std::stringstream s;
   char ch;
   std::string t;
@@ -153,7 +153,7 @@ std::string itoaniso(const int & i)
 // stoup - std::string to uppercase
 //-----------------------------------------------------------------------
 std::string stoup(const std::string & str)
-{ 
+{
   char ch;
   std::stringstream s;
   std::string t="";
@@ -161,7 +161,7 @@ std::string stoup(const std::string & str)
   while (s.get(ch))
     t += toupper(ch); //convert to uppercase
   return t;
-} 
+}
 
 //-----------------------------------------------------------------------
 // isfloat - is the std::string a float?
@@ -173,7 +173,7 @@ bool isfloat(std::string ch)
   std::size_t stop = ch.find_last_not_of(separators);
   ch = ch.substr(start,stop-start);
 
-  //first character is different, can't start with exponent 
+  //first character is different, can't start with exponent
   if (!ch.size()) return false;
   if (!((isdigit)(ch[0]) || ch[0]=='.' || ch[0]=='+'|| ch[0]=='-' ))
     return false;
@@ -191,6 +191,6 @@ bool isfloat(std::string ch)
 //{
 //  if (x < 0) return fmod(x+1,y) + y - 1;
 //  return fmod(x,y);
-//} 
+//}
 
 }

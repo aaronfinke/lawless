@@ -22,7 +22,7 @@ std::string WriteError::Filename() { return filename; }
 
 PreprocessorError::PreprocessorError(std::string e,std::vector<std::string> m): echo(e)
 {
-  files_not_found.resize(m.size()); 
+  files_not_found.resize(m.size());
   for (size_t i = 0; i < files_not_found.size(); i++)
     files_not_found[i] = m[i];
   if (files_not_found.size() == 1)

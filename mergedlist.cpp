@@ -15,20 +15,20 @@ using clipper::Message_fatal;
 namespace scala {
   // ---------------------------------------------------------
   void MergedDatasetIntensities::init(const clipper::HKL_info& hkl_info_list,
-				      const clipper::Cell& ccell)
+                                      const clipper::Cell& ccell)
   {
     Imean.init(hkl_info_list, ccell);
     Ipm.init(hkl_info_list, ccell);
   }
 // ---------------------------------------------------------
   MergedList::MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
-			 const std::string& Title, const int& datasetindex)
+                         const std::string& Title, const int& datasetindex)
   {
     init(hkl_list, SDM, Title, datasetindex);
   }
   // ---------------------------------------------------------
   void MergedList::init(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
-			const std::string& Title, const int& datasetindex)
+                        const std::string& Title, const int& datasetindex)
   // extract merged (averaged) data from hkl_list (with SDs corrected by SDM)
   // and store by dataset
   // If datasetindex >=0, store only that dataset
@@ -42,7 +42,7 @@ namespace scala {
       ndatasets = 1;
     } else if (dataset_index == -2) {
       ndatasets = 1;  // combine datasets
-    }      
+    }
 
     maxintensity = -1000.;
     MeanValue meanI;
@@ -65,8 +65,8 @@ namespace scala {
     // Initialise clipper::HKL_info list
     //   // space group, cell, resolution
     hkl_info_list.init(hkl_list.symmetry().ClipperGroup(), ccell,
-		       clipper::Resolution(hkl_list.ResRange().ResHigh()),
-		       false);  // no generation
+                       clipper::Resolution(hkl_list.ResRange().ResHigh()),
+                       false);  // no generation
     hkl_info_list.add_hkl_list(hkls);   // add hkl list
     spg_status = hkl_list.MtzSym().spg_confidence; // status of space group
 
@@ -98,9 +98,9 @@ namespace scala {
       datasetdata[idts].mtzpathImean = mtzpath+"["+simean+"]";
       datasetdata[idts].mtzpathIpm = mtzpath+"["+sipm+"]";
       datasetdata[idts].cset =
-	clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
+        clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
       datasetdata[idts].cxtl =
-	clipper::MTZcrystal(pxdname.xname(), pxdname.pname(), dcell);
+        clipper::MTZcrystal(pxdname.xname(), pxdname.pname(), dcell);
     }
 
     // Read the data
@@ -117,55 +117,55 @@ namespace scala {
       //  Apply current SD correction to reflection (all observations)
       SDM.CorrectReflection(this_refl);
       for (int idts=0;idts<ndatasets;++idts) {
-	// jdts is global index
-	if (dataset_index == -2) 
-	  {jdts = -1;}  // all datasets read together
-	else if (dataset_index < 0) 
-	  {jdts = idts;} // all datasets read separately
-	else
-	  {jdts = dataset_index;} // selected dataset
-	// mean I
-      	allobs.init(this_refl, jdts, ALL); // all data for selected dataset
-	if (allobs.Number() > 0) {
-	  nrefdts[idts]++;
-	  resmaxdts[idts] = Max(resmaxdts[idts], invrsq);
-	  IsigI avI = allobs.Average();
-	  data[0] = avI.I();
-	  data[1] = avI.sigI();
-	  datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
-	  maxintensity = Max(maxintensity, avI.I());
-	  meanI.Add(avI.I());
-	  data[2] = 0.0;
-	  data[3] = 0.0;
-	  data[4] = 0.0;
-	  if (!Centric) {
-	    data[0] = 0.0;
-	    data[1] = 0.0;
-	    obsplus.init(this_refl, jdts, IPLUS); // I+ data for selected dataset
-	    if (obsplus.Number() > 0) {
-	      avI = obsplus.Average();
-	      data[0] = avI.I();  // I+
-	      data[1] = avI.sigI();
-	    }
-	    obsminus.init(this_refl, jdts, IMINUS); // I- data for selected dataset
-	    if (obsminus.Number() > 0) {
-	      avI = obsminus.Average();
-	      data[2] = avI.I();  // I-
-	      data[3] = avI.sigI();
-	    }
-	  } else { // centric, I+ = I- = <I>
-	    data[2] =avI.I();
-	    data[3] =avI.sigI();
-	  }
-	  datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
-	}
+        // jdts is global index
+        if (dataset_index == -2)
+          {jdts = -1;}  // all datasets read together
+        else if (dataset_index < 0)
+          {jdts = idts;} // all datasets read separately
+        else
+          {jdts = dataset_index;} // selected dataset
+        // mean I
+        allobs.init(this_refl, jdts, ALL); // all data for selected dataset
+        if (allobs.Number() > 0) {
+          nrefdts[idts]++;
+          resmaxdts[idts] = Max(resmaxdts[idts], invrsq);
+          IsigI avI = allobs.Average();
+          data[0] = avI.I();
+          data[1] = avI.sigI();
+          datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
+          maxintensity = Max(maxintensity, avI.I());
+          meanI.Add(avI.I());
+          data[2] = 0.0;
+          data[3] = 0.0;
+          data[4] = 0.0;
+          if (!Centric) {
+            data[0] = 0.0;
+            data[1] = 0.0;
+            obsplus.init(this_refl, jdts, IPLUS); // I+ data for selected dataset
+            if (obsplus.Number() > 0) {
+              avI = obsplus.Average();
+              data[0] = avI.I();  // I+
+              data[1] = avI.sigI();
+            }
+            obsminus.init(this_refl, jdts, IMINUS); // I- data for selected dataset
+            if (obsminus.Number() > 0) {
+              avI = obsminus.Average();
+              data[2] = avI.I();  // I-
+              data[3] = avI.sigI();
+            }
+          } else { // centric, I+ = I- = <I>
+            data[2] =avI.I();
+            data[3] =avI.sigI();
+          }
+          datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
+        }
       } // end loop datasets
     } // end loop reflections
     meanintensity = meanI.Mean();
   }
   // ---------------------------------------------------------
   int MergedList::WriteDatasetToMTZ(const std::string& outfilename,
-				    const int& datasetIndex) const
+                                    const int& datasetIndex) const
   // Write data for datasetIndex to MTZ file
   // Return number of reflections written
   {
@@ -173,7 +173,7 @@ namespace scala {
     ASSERT (datasetIndex < ndatasets);
     if (nrefdts.at(idx) <= 0) {
       Message::message(Message_fatal("MergedList::WriteMTZ no data for dataset"+
-				     clipper::String(datasetIndex)));
+                                     clipper::String(datasetIndex)));
     }
     clipper::CCP4MTZfile mtzout;
     mtzout.open_write(outfilename);
@@ -189,15 +189,15 @@ namespace scala {
     mtzout.set_spacegroup_confidence(spg_status);
 
     mtzout.export_crystal(datasetdata[idx].cxtl,
-			  datasetdata[idx].mtzpath);
+                          datasetdata[idx].mtzpath);
     mtzout.export_dataset(datasetdata[idx].cset,
-			  datasetdata[idx].mtzpath);
+                          datasetdata[idx].mtzpath);
 
     mtzout.export_hkl_info(hkl_info_list);
     mtzout.export_hkl_data(datasetdata[idx].Imean,
-			   datasetdata[idx].mtzpathImean);
+                           datasetdata[idx].mtzpathImean);
     mtzout.export_hkl_data(datasetdata[idx].Ipm,
-			   datasetdata[idx].mtzpathIpm); ///!!
+                           datasetdata[idx].mtzpathIpm); ///!!
 
     mtzout.close_write();
     return nrefdts[idx];
@@ -207,8 +207,8 @@ namespace scala {
   // returns false if I or sigI are Nan or sig = 0
   {
     if (clipper::Util::is_nan(MIsig.I()) ||
-	clipper::Util::is_nan(MIsig.sigI()) ||
-	MIsig.sigI() == 0.0) {
+        clipper::Util::is_nan(MIsig.sigI()) ||
+        MIsig.sigI() == 0.0) {
       return false;
     }
     return true;
@@ -219,13 +219,13 @@ namespace scala {
   {
     int stat = 0;
     if (clipper::Util::is_nan(MIsig.I_pl()) ||
-	clipper::Util::is_nan(MIsig.sigI_pl()) ||
-	MIsig.sigI_pl() == 0.0) {
+        clipper::Util::is_nan(MIsig.sigI_pl()) ||
+        MIsig.sigI_pl() == 0.0) {
       stat = +1;
     }
     if (clipper::Util::is_nan(MIsig.I_mi()) ||
-	clipper::Util::is_nan(MIsig.sigI_mi()) ||
-	MIsig.sigI_mi() == 0.0) {
+        clipper::Util::is_nan(MIsig.sigI_mi()) ||
+        MIsig.sigI_mi() == 0.0) {
       if (stat == 0) {stat = +2;}
       else if (stat == +1) {stat = -1;}
     }
@@ -233,7 +233,7 @@ namespace scala {
   }
   // ---------------------------------------------------------
   int MergedList::WriteDatasetToSCA(const std::string& outfilename,
-				    const int& datasetIndex) const
+                                    const int& datasetIndex) const
   // Write data for datasetIndex to SCA file
   // Return number of reflections written
   {
@@ -241,7 +241,7 @@ namespace scala {
     int idx = InternalDTSindex(datasetIndex); // allow for one or all datasets stored
     if (nrefdts.at(idx) <= 0) {
       Message::message(Message_fatal("MergedList::WriteSCA no data for dataset"+
-				     clipper::String(datasetIndex)));
+                                     clipper::String(datasetIndex)));
     }
 
     FILE* scafile = OpenFile(outfilename, true);
@@ -270,7 +270,7 @@ namespace scala {
     char HorR = 'H'; // default H setting
     if (sgname[0] == 'H' || sgname[0] == 'R') {
       if (RhombohedralAxes(scell)) { // true if not H
-	HorR = 'R';
+        HorR = 'R';
       }}
 
     sgname = SGnameHtoR(sgname, HorR);  // R -> H
@@ -281,32 +281,32 @@ namespace scala {
     for (ih = hkl_info_list.first();!ih.last(); ih.next()) { // loop reflections
       bool centric = hkl_info_list.spacegroup().hkl_class(ih.hkl()).centric();
       if (centric) {
-	if (CheckNullImean(datasetdata[idx].Imean[ih])) {
-	  float I = scale * datasetdata[idx].Imean[ih].I();
-	  float sigI = scale * datasetdata[idx].Imean[ih].sigI();
-	  fprintf(scafile, "%4d%4d%4d%8.1f%8.1f\n",
-		  ih.hkl().h(), ih.hkl().k(), ih.hkl().l(), I, sigI);
-	}
+        if (CheckNullImean(datasetdata[idx].Imean[ih])) {
+          float I = scale * datasetdata[idx].Imean[ih].I();
+          float sigI = scale * datasetdata[idx].Imean[ih].sigI();
+          fprintf(scafile, "%4d%4d%4d%8.1f%8.1f\n",
+                  ih.hkl().h(), ih.hkl().k(), ih.hkl().l(), I, sigI);
+        }
       } else { // I+ and I-
-	int stat = CheckNullIano(datasetdata[idx].Ipm[ih]);
-	if (stat >= 0) {
-	  float Ip = 0.0;
-	  float sigIp = 0.0;
-	  float Im = 0.0;
-	  float sigIm = 0.0;
-	  if (stat == 0 || stat == +1) {
-	    Ip = scale * datasetdata[idx].Ipm[ih].I_pl();
-	    sigIp = scale * datasetdata[idx].Ipm[ih].sigI_pl();
-	  }
-	  if (stat == 0 || stat == +2) {
-	    Im = scale * datasetdata[idx].Ipm[ih].I_mi();
-	    sigIm = scale * datasetdata[idx].Ipm[ih].sigI_mi();
-	  }
-	  if (sigIp <= 0.0) sigIp = -1;
-	  if (sigIm <= 0.0) sigIm = -1;
-	  fprintf(scafile, "%4d%4d%4d%8.1f%8.1f%8.1f%8.1f\n",
-		  ih.hkl().h(), ih.hkl().k(), ih.hkl().l(), Ip, sigIp, Im, sigIm);
-	}
+        int stat = CheckNullIano(datasetdata[idx].Ipm[ih]);
+        if (stat >= 0) {
+          float Ip = 0.0;
+          float sigIp = 0.0;
+          float Im = 0.0;
+          float sigIm = 0.0;
+          if (stat == 0 || stat == +1) {
+            Ip = scale * datasetdata[idx].Ipm[ih].I_pl();
+            sigIp = scale * datasetdata[idx].Ipm[ih].sigI_pl();
+          }
+          if (stat == 0 || stat == +2) {
+            Im = scale * datasetdata[idx].Ipm[ih].I_mi();
+            sigIm = scale * datasetdata[idx].Ipm[ih].sigI_mi();
+          }
+          if (sigIp <= 0.0) sigIp = -1;
+          if (sigIm <= 0.0) sigIm = -1;
+          fprintf(scafile, "%4d%4d%4d%8.1f%8.1f%8.1f%8.1f\n",
+                  ih.hkl().h(), ih.hkl().k(), ih.hkl().l(), Ip, sigIp, Im, sigIm);
+        }
       }
     } // end loop reflections
     return nrefdts[idx];
@@ -345,7 +345,7 @@ namespace scala {
   // ---------------------------------------------------------
   clipper::Cell MergedList::Cell() const
   {
-    return hkl_info_list.cell();    
+    return hkl_info_list.cell();
   }
   // ---------------------------------------------------------
   double MergedList::resHigh() const

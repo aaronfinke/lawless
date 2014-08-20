@@ -7,7 +7,7 @@
 #include <assert.h>
 #define ASSERT assert
 
-namespace scala 
+namespace scala
 {
 //--------------------------------------------------------------
   std::string BaseFileName(const std::string& Name, const bool NoExt)
@@ -29,7 +29,7 @@ namespace scala
     size_t jdot   = Name.rfind('.');   // find last '.' if any
     size_t jslash = Name.rfind('/');   // find last '/' if any
     if ((jslash != std::string::npos && jdot < jslash)
-	|| jdot == std::string::npos)
+        || jdot == std::string::npos)
       // no extension
       {return Name;}
     else
@@ -44,14 +44,14 @@ namespace scala
       bool dot = false;
       int i = name.size();
       for (i=name.size();i>=0;i--) {
-	if (name[i] == '/') break; // No dot found
-	if (name[i] == '.') {
-	  dot = true;
-	  break;
-	}
+        if (name[i] == '/') break; // No dot found
+        if (name[i] == '.') {
+          dot = true;
+          break;
+        }
       }
       if (dot && i < int(name.size())-1) {
-	return name.substr(i+1, name.size()-1-i);
+        return name.substr(i+1, name.size()-1-i);
       }
     }
     return "";
@@ -66,11 +66,11 @@ namespace scala
     if (name.size() > 0) {
       bool dot = false;
       for (int i=name.size();i>=0;i--) {
-	if (name[i] == '/') break; // No dot found
-	if (name[i] == '.') {
-	  dot = true;
-	  break;
-	}
+        if (name[i] == '/') break; // No dot found
+        if (name[i] == '.') {
+          dot = true;
+          break;
+        }
       }
       if (ext.size() > 0 && !dot) name += "."+ext;
     }
@@ -85,14 +85,14 @@ namespace scala
   }
   //--------------------------------------------------------------
   std::string FormatCell(const std::vector<double>& cell,
-			 const int w, const int p)
+                         const int w, const int p)
   {
     clipper::String line;
     for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i],w,p);
     line += "   ";
     for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i+3],w,p);
     return line;
-  } 
+  }
   //--------------------------------------------------------------
   std::string FormatCell(const Scell& cell, const int w, const int p)
   {
@@ -101,7 +101,7 @@ namespace scala
     line += "   ";
     for (int i=0;i<3;i++) line += StringUtil::ftos(cell[i+3],w,p);
     return line;
-  } 
+  }
   //--------------------------------------------------------------
   RPair MnSd(const std::vector<double>& val)
     // Return mean & SD of vector elements
@@ -113,8 +113,8 @@ namespace scala
     double an = n;
     for (int i=0;i<n;i++)
       {
-	sx += val[i];
-	sxx += val[i]*val[i];
+        sx += val[i];
+        sxx += val[i]*val[i];
       }
     return RPair(sx/an, sqrt((an*sxx - sx*sx)/(an*(an-1.0))));
   }
@@ -157,9 +157,9 @@ namespace scala
   }
   //--------------------------------------------------------------
   std::vector<Scell> AverageBatchCell(const std::vector<Batch>& batches,
-				      const int& ndatasets,
-				      std::vector<float>& averageMosaicity,
-				      std::vector<float>& averageWavelength)
+                                      const int& ndatasets,
+                                      std::vector<float>& averageMosaicity,
+                                      std::vector<float>& averageWavelength)
   // Average unit cells over all batches for each dataset
   // On entry:
   //  batches     list of batches
@@ -179,21 +179,21 @@ namespace scala
       int idx = batches[k].datasetindex(); // dataset index
       allcells[idx].push_back(batches[k].cell()); // add batch cell
       n[idx]++;
-      averageMosaicity[idx] += batches[k].Mosaicity(); 
-      averageWavelength[idx] += batches[k].Wavelength(); 
+      averageMosaicity[idx] += batches[k].Mosaicity();
+      averageWavelength[idx] += batches[k].Wavelength();
     }
     for (int j=0;j<ndatasets;j++) {
       if (n[j] > 0) {
-	averagecell[j] = UnitCellSet(allcells[j]).AverageCell();
-	averageMosaicity[j] /= float(n[j]);
-	averageWavelength[j]  /= float(n[j]);
+        averagecell[j] = UnitCellSet(allcells[j]).AverageCell();
+        averageMosaicity[j] /= float(n[j]);
+        averageWavelength[j]  /= float(n[j]);
       }
     }
     return averagecell;
   }
   //--------------------------------------------------------------
   float AverageWavelength(const std::vector<float>& allwavelengths,
-		    const int& idxexclude)
+                    const int& idxexclude)
   // Average list of wavelengths
   // if idxexclude >= 0, exclude entry with this index
   {
@@ -205,7 +205,7 @@ namespace scala
     double sumwavelength = 0.0;
     for (size_t k=0; k<allwavelengths.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
-	sumwavelength += allwavelengths[k];
+        sumwavelength += allwavelengths[k];
       }
     }
     return float(sumwavelength/double(nc));
@@ -223,9 +223,9 @@ namespace scala
     int n = 0;
     for (int k=0; k<ndatasets; k++) {
       std::vector<float> allwavelengths = datasets[k].AllWavelengths();
-      for (size_t j=0; j<allwavelengths.size(); j++) { 
-  	Sumwvl += allwavelengths[j];
-	n++;
+      for (size_t j=0; j<allwavelengths.size(); j++) {
+        Sumwvl += allwavelengths[j];
+        n++;
       }
     }
     averagewvl = Sumwvl/double(n);
@@ -245,7 +245,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void MeanSD::initExclude(const std::vector<float>& list,
-			   const int& idxexclude) 
+                           const int& idxexclude)
   // if idxexclude >= 0, exclude entry with this index
   {
     for (size_t i=0;i<list.size();i++)  {
@@ -254,7 +254,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   void MeanSD::initExclude(const std::vector<double>& list,
-			   const int& idxexclude) 
+                           const int& idxexclude)
   // if idxexclude >= 0, exclude entry with this index
   {
     for (size_t i=0;i<list.size();i++)  {
@@ -296,7 +296,7 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanSD::format() const
   {
-    return "Mean "+clipper::String(Mean())+"  sd "+clipper::String(SD()); 
+    return "Mean "+clipper::String(Mean())+"  sd "+clipper::String(SD());
   }
   //--------------------------------------------------------------
   MeanSD& MeanSD::operator +=(const MeanSD& other)
@@ -304,7 +304,7 @@ namespace scala
     sum_sc += other.sum_sc;
     sum_sc2 += other.sum_sc2;
     count += other.count;
-  
+
     return *this;
   }
   //--------------------------------------------------------------
@@ -354,7 +354,7 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanValue::format() const
   {
-    return "Mean "+clipper::String(Mean()); 
+    return "Mean "+clipper::String(Mean());
   }
   //--------------------------------------------------------------
   MeanValue& MeanValue::operator +=(const MeanValue& other)
@@ -362,7 +362,7 @@ namespace scala
     sum_sc += other.sum_sc;
     sum_w += other.sum_w;
     count += other.count;
-  
+
     return *this;
   }
   //--------------------------------------------------------------
@@ -412,7 +412,7 @@ namespace scala
     double var = 0.0;
     if (count > 0) {
       var = 1.0 / sum_w;
-    }  
+    }
     return var;
   }
   //--------------------------------------------------------------
@@ -430,7 +430,7 @@ namespace scala
       // Variance of mean is just 1/N sampleVariance
       //  assuming the weights are proportional to the true variances
       var = SampleVariance()/double(count);
-    }  
+    }
   return var;
   }
   //--------------------------------------------------------------
@@ -461,7 +461,7 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanVariance::format() const
   {
-    return "Mean "+clipper::String(Mean()); 
+    return "Mean "+clipper::String(Mean());
   }
   //--------------------------------------------------------------
   MeanVariance& MeanVariance::operator +=(const MeanVariance& other)
@@ -469,7 +469,7 @@ namespace scala
     sum_sc += other.sum_sc;
     sum_w += other.sum_w;
     count += other.count;
-  
+
     return *this;
   }
   //--------------------------------------------------------------
@@ -499,5 +499,3 @@ namespace scala
   }
   //--------------------------------------------------------------
 }
-
-

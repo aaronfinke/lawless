@@ -21,34 +21,34 @@ namespace scala
   // ------------------------------------------------------------
   // constructor for selecting datasets & anomalous class
   SelectedObservations::SelectedObservations(const reflection& Refl,
-					     const int& datasetIndex,
-					     const AnomalousClass& Anomclass)
+                                             const int& datasetIndex,
+                                             const AnomalousClass& Anomclass)
   {
     init(Refl, datasetIndex, Anomclass, WeightType::VARIANCE);
   }
   // ------------------------------------------------------------
   // constructor for selecting datasets & anomalous class, weight type
   SelectedObservations::SelectedObservations(const reflection& Refl,
-					     const int& datasetIndex,
-					     const AnomalousClass& Anomclass,
-					     const WeightType::AverageWeightType& weightType)
+                                             const int& datasetIndex,
+                                             const AnomalousClass& Anomclass,
+                                             const WeightType::AverageWeightType& weightType)
   {
     init(Refl, datasetIndex, Anomclass, weightType);
   }
   // ------------------------------------------------------------
   // Initialise, selecting datasets & anomalous class
   void SelectedObservations::init(const reflection& Refl,
-				  const int& datasetIndex,
-				  const AnomalousClass& Anomclass)
+                                  const int& datasetIndex,
+                                  const AnomalousClass& Anomclass)
   {
     init(Refl, datasetIndex, Anomclass, WeightType::VARIANCE);
   }
   // ------------------------------------------------------------
   // Initialise, selecting datasets & anomalous class
   void SelectedObservations::init(const reflection& Refl,
-				  const int& datasetIndex,
-				  const AnomalousClass& Anomclass,
-			  const WeightType::AverageWeightType& weightType)
+                                  const int& datasetIndex,
+                                  const AnomalousClass& Anomclass,
+                          const WeightType::AverageWeightType& weightType)
   // if datasetIndex < 0 select all data
   // Note that this will only select "accepted" observations
   // Npart is number of parts to split into, if required
@@ -72,14 +72,14 @@ namespace scala
     // loop accepted observations
     while ((index = Refl.next_observation(this_obs)) >= 0) {
       if (datasetIndex < 0 ||
-	  this_obs.datasetIndex() == datasetIndex) {
-	if ((Anomclass == IPLUS) || (Anomclass == IMINUS)) {
-	  PlusMinus = this_obs.Isym()%2;
-	  if (Anomclass == IPLUS && PlusMinus == 0) continue;
-	  if (Anomclass == IMINUS && PlusMinus != 0) continue;
-	}
-	use[index] = true; // set used flag 
-	Nused++;	
+          this_obs.datasetIndex() == datasetIndex) {
+        if ((Anomclass == IPLUS) || (Anomclass == IMINUS)) {
+          PlusMinus = this_obs.Isym()%2;
+          if (Anomclass == IPLUS && PlusMinus == 0) continue;
+          if (Anomclass == IMINUS && PlusMinus != 0) continue;
+        }
+        use[index] = true; // set used flag
+        Nused++;
       }
     }
     npart = -1;
@@ -101,42 +101,42 @@ namespace scala
       npart = Npart;
       std::vector<std::pair<int,float> > idxrandom;
       for (int index=0;index<nobs;++index) {
-	part[index] = 0;
-	if (use[index]) {
-	  // index to this observation & a random number between 0 & 1
-	  idxrandom.push_back(std::pair<int,float>(index, FRandom(1.0)));
-	}
+        part[index] = 0;
+        if (use[index]) {
+          // index to this observation & a random number between 0 & 1
+          idxrandom.push_back(std::pair<int,float>(index, FRandom(1.0)));
+        }
       }
       // sort into order on random number
-      std::sort(idxrandom.begin(), idxrandom.end(), CompareIFpair); 
+      std::sort(idxrandom.begin(), idxrandom.end(), CompareIFpair);
 
       int n2 = Nused/2;
       int n1 = n2/2;
       int n3 = n1+n2;
 
       for (size_t i=0;i<idxrandom.size();++i) {
-	//  index for random part-datasets, 0 -> Npart-1
-	int index = idxrandom[i].first;
-	if (npart == 2) {
-	  if (int(i) >= n2) part[index] = 1;
-	} else {
-	  // npart == 4
-	  if (int(i) >= n3) {part[index] = 3;}
-	  else if (int(i) >= n2) {part[index] = 2;}
-	  else if (int(i) >= n1) {part[index] = 1;}
-	}
-	ASSERT (part[index] < npart);  // check for now
+        //  index for random part-datasets, 0 -> Npart-1
+        int index = idxrandom[i].first;
+        if (npart == 2) {
+          if (int(i) >= n2) part[index] = 1;
+        } else {
+          // npart == 4
+          if (int(i) >= n3) {part[index] = 3;}
+          else if (int(i) >= n2) {part[index] = 2;}
+          else if (int(i) >= n1) {part[index] = 1;}
+        }
+        ASSERT (part[index] < npart);  // check for now
       }
     }
   }
   // ------------------------------------------------------------
-  // Next used & accepted observation, returns -1 if end 
+  // Next used & accepted observation, returns -1 if end
   int SelectedObservations::next_observation(observation& obs) const
   {
     while (++nextobs < nobs) {
       if (use[nextobs]) {
-	obs = this_ref->get_observation(nextobs);
-	return nextobs;
+        obs = this_ref->get_observation(nextobs);
+        return nextobs;
       }
     }
     nextobs = -1;
@@ -244,44 +244,44 @@ namespace scala
 
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
-	Nused++;
-	g = this_ref->get_observation(i).Gscale();
-	Rtype sd = this_ref->get_observation(i).sigI();
+        Nused++;
+        g = this_ref->get_observation(i).Gscale();
+        Rtype sd = this_ref->get_observation(i).sigI();
 	ASSERT (sd > 0.0);
-	w = Weight(sd, g);   // weight according to weighttype
-	wgI[i] = w * g * this_ref->get_observation(i).I();
-	sumwgI += wgI[i];
-	wg2[i] = w * g * g;
-	sumwg2 += wg2[i];
-	if (sampleSD) {
-	  mv.Add(double(this_ref->get_observation(i).kI()), w/(g*g));
-	}
+        w = Weight(sd, g);   // weight according to weighttype
+        wgI[i] = w * g * this_ref->get_observation(i).I();
+        sumwgI += wgI[i];
+        wg2[i] = w * g * g;
+        sumwg2 += wg2[i];
+        if (sampleSD) {
+          mv.Add(double(this_ref->get_observation(i).kI()), w/(g*g));
+        }
       }
     }
     if (Nused > 0) {
       if (sampleSD && (Nused > minimumsample)) {
-	sdI = mv.SD(); // sample SD
-	//^
-	//	std::cout << "SampleSD, wSD, I, N " <<sdI<<" "<<sqrt(1.0/sumwg2)<<
-	//	  " "<<sumwgI/sumwg2<<" "<< Nused<<"\n";
-	//	if (sdI > 10000.) {
-	//	  std::cout <<"Large SDs, sampleSD " << mv.SampleSD() <<"\n";
-	//	  for (int i=0;i<nobs;i++)  {
-	//	    if (use[i]) {
-	//	      std::cout << "I, sigI, gscale "
-	//		<< this_ref->get_observation(i).kI()<<" "
-	//		<< this_ref->get_observation(i).ksigI()<<" "
-	//		<<this_ref->get_observation(i).Gscale() <<"\n";
-	//	    }
-	//	  }
-	//	}
-	//^-
+        sdI = mv.SD(); // sample SD
+        //^
+        //      std::cout << "SampleSD, wSD, I, N " <<sdI<<" "<<sqrt(1.0/sumwg2)<<
+        //        " "<<sumwgI/sumwg2<<" "<< Nused<<"\n";
+        //      if (sdI > 10000.) {
+        //        std::cout <<"Large SDs, sampleSD " << mv.SampleSD() <<"\n";
+        //        for (int i=0;i<nobs;i++)  {
+        //          if (use[i]) {
+        //            std::cout << "I, sigI, gscale "
+        //              << this_ref->get_observation(i).kI()<<" "
+        //              << this_ref->get_observation(i).ksigI()<<" "
+        //              <<this_ref->get_observation(i).Gscale() <<"\n";
+        //          }
+        //        }
+        //      }
+        //^-
       } else {
-	sdI = sqrt(1.0/sumwg2);
+        sdI = sqrt(1.0/sumwg2);
       }
       avIsigI = IsigI(sumwgI/sumwg2, sdI);
       State = +1;
-    } else {	
+    } else {
       avIsigI = IsigI(0.0,0.0);
       State = -1;
     }
@@ -306,27 +306,27 @@ namespace scala
 
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
-	if (WhichPart < 0 || part[i] == WhichPart) {
-	  Nu++;
-	  g = this_ref->get_observation(i).Gscale();
-	  w = Weight(this_ref->get_observation(i).sigI(), g);
-	  wgI[i] = w * g * this_ref->get_observation(i).I();
-	  sumwgI += wgI[i];
-	  wg2[i] = w * g * g;
-	  sumwg2 += wg2[i];
-	  mv.Add(wgI[i], w);
-	}
+        if (WhichPart < 0 || part[i] == WhichPart) {
+          Nu++;
+          g = this_ref->get_observation(i).Gscale();
+          w = Weight(this_ref->get_observation(i).sigI(), g);
+          wgI[i] = w * g * this_ref->get_observation(i).I();
+          sumwgI += wgI[i];
+          wg2[i] = w * g * g;
+          sumwg2 += wg2[i];
+          mv.Add(wgI[i], w);
+        }
       }
     }
     IsigI avIsigIpart;
     if (Nu > 0) {
       if (sampleSD && (Nused > minimumsample)) {
-	sdI = mv.SD(); // sample SD
+        sdI = mv.SD(); // sample SD
       } else {
-	sdI = sqrt(1.0/sumwg2);
+        sdI = sqrt(1.0/sumwg2);
       }
       avIsigIpart = IsigI(sumwgI/sumwg2, sdI);
-    } else {	
+    } else {
       avIsigIpart = IsigI(0.0,0.0);
     }
     return avIsigIpart;
@@ -338,7 +338,7 @@ namespace scala
   //   Rejected observations are left with their original delta,
   //     accepted ones are reevaluated after rejection
   //   delta.size() = total number of observations in reflection
-  // 
+  //
   std::vector<float> SelectedObservations::Deviations()
   {
     if (Nused <= 0) return delta;
@@ -349,27 +349,27 @@ namespace scala
       float varothers;
 
       std::vector<IsigI> mnothers = MeanIothers(); // mean of other observations
-   
+
       for (int i=0;i<nobs;i++) {
-	if (use[i]) {
-	  // <I>(others)  ie excluding this observation
-	  //  and its variance (scaled to this observation)
-	  varothers = mnothers[i].sigI() * mnothers[i].sigI();
-	  Iothers = mnothers[i].I();
-	  float vv = this_ref->get_observation(i).sigI()*
-	    this_ref->get_observation(i).sigI() +
-	    varothers;
-	  if (!(vv > 0.0)) {
-	    std::cout << "Aaargh " << vv << " "
-		      << this_ref->get_observation(i).sigI()
-		      << " " << varothers << "\n";
-	  }
-	  ASSERT (vv > 0.0);
-	  delta[i] = (this_ref->get_observation(i).I() - Iothers)/
-	    sqrt(this_ref->get_observation(i).sigI()*
-		 this_ref->get_observation(i).sigI() +
-		 varothers);
-	}
+        if (use[i]) {
+          // <I>(others)  ie excluding this observation
+          //  and its variance (scaled to this observation)
+          varothers = mnothers[i].sigI() * mnothers[i].sigI();
+          Iothers = mnothers[i].I();
+          float vv = this_ref->get_observation(i).sigI()*
+            this_ref->get_observation(i).sigI() +
+            varothers;
+          if (!(vv > 0.0)) {
+            std::cout << "Aaargh " << vv << " "
+                      << this_ref->get_observation(i).sigI()
+                      << " " << varothers << "\n";
+          }
+          ASSERT (vv > 0.0);
+          delta[i] = (this_ref->get_observation(i).I() - Iothers)/
+            sqrt(this_ref->get_observation(i).sigI()*
+                 this_ref->get_observation(i).sigI() +
+                 varothers);
+        }
       }
     }
     State = +2;
@@ -378,7 +378,7 @@ namespace scala
   // ------------------------------------------------------------
   // For each observation, return mean of other observations, scaled to each observation
   //   returns mnothers(NobsRefl), unused slots set = 0.0 ie not closed down
-  // 
+  //
   std::vector<IsigI> SelectedObservations::MeanIothers()
   {
     std::vector<IsigI> mnothers(nobs, IsigI(0.0,0.0));
@@ -389,18 +389,18 @@ namespace scala
       float varothers;
       float g;
       double wg2others;
-      
+
       for (int i=0;i<nobs;i++) {
-	if (use[i]) {
-	  // <I>(others)  ie excluding this observation
-	  //  and its variance
-	  const double MINWG2 = 1.0e-30;
-	  wg2others = Max(sumwg2 - wg2[i], MINWG2); // trap very small wg2 for rounding errors
-	  varothers = 1./wg2others;
-	  g = this_ref->get_observation(i).Gscale();
-	  mnothers[i].I() = g * (sumwgI - wgI[i]) * varothers;
-	  mnothers[i].sigI() = g * sqrt(varothers);
-	}
+        if (use[i]) {
+          // <I>(others)  ie excluding this observation
+          //  and its variance
+          const double MINWG2 = 1.0e-30;
+          wg2others = Max(sumwg2 - wg2[i], MINWG2); // trap very small wg2 for rounding errors
+          varothers = 1./wg2others;
+          g = this_ref->get_observation(i).Gscale();
+          mnothers[i].I() = g * (sumwgI - wgI[i]) * varothers;
+          mnothers[i].sigI() = g * sqrt(varothers);
+        }
       }
     }
     State = +1;
@@ -419,11 +419,11 @@ namespace scala
     if (Nused > 1) {
       float fac = sqrt(float(Nused)/(Nused-1));
       for (int i=0;i<nobs;i++) {
-	if (use[i]) {
-	  float delI = (this_ref->get_observation(i).kI() - avIsigI.I());
-	  float sigmai = this_ref->get_observation(i).ksigI();
-	  delta2[i] = fac * delI/sigmai;
-	}
+        if (use[i]) {
+          float delI = (this_ref->get_observation(i).kI() - avIsigI.I());
+          float sigmai = this_ref->get_observation(i).ksigI();
+          delta2[i] = fac * delI/sigmai;
+        }
       }
     }
     return delta2;
@@ -439,9 +439,9 @@ namespace scala
     if (Nused > 1) {
       // we need at least 2 observations
       for (int i=0;i<nobs;i++) {
-	if (use[i]) {
-	  delI[i] = (this_ref->get_observation(i).kI() - avIsigI.I());
-	}
+        if (use[i]) {
+          delI[i] = (this_ref->get_observation(i).kI() - avIsigI.I());
+        }
       }
     }
     return delI;
@@ -455,7 +455,7 @@ namespace scala
     if (Nused <= 0) return sigmai;
     for (int i=0;i<nobs;i++) {
       if (use[i]) {
-	sigmai[i] = this_ref->get_observation(i).ksigI();
+        sigmai[i] = this_ref->get_observation(i).ksigI();
       }
     }
     return sigmai;
@@ -473,23 +473,23 @@ namespace scala
   //           = KEEP             keep both
   //           = REJECTLARGER     reject larger
   //           = REJECTSMALLER    reject smaller
-  /*  
+  /*
       Algorithm:
-    
+
       (1) if there are 2 observations (left), then
 
-      (a) for each observation Ihl, test deviation 
+      (a) for each observation Ihl, test deviation
       Delta(hl) = (Ihl - ghl Iother) / sqrt[sigIhl^2 + (ghl*sdIother)^2]
       against sdrej2, where Iother = the other observation
 
-      (b) if either Delta(hl) > sdrej2, then reject reflection 
+      (b) if either Delta(hl) > sdrej2, then reject reflection
       according to flag rej2policy (qv)
 
       (2) if there 3 or more observations left, then
 
-      (a) for each observation Ihl, 
+      (a) for each observation Ihl,
 
-      (i)   calculate weighted mean of all other 
+      (i)   calculate weighted mean of all other
       observations <I>n-1 & its sd(<I>n-1)
       (ii)  deviation Delta(hl) =
       (Ihl - ghl <I>n-1>) / sqrt[sigIhl^2 + (ghl*sd(<I>n-1))^2]
@@ -516,7 +516,7 @@ namespace scala
     int Nrej = 0;
     if (Nused <= 0) return Nrej;
     if (State == 0) Average();
-    
+
     float I;
     int lsmaller, llarger;
 
@@ -526,113 +526,113 @@ namespace scala
       //recalculate deviations if required
       if (State < +2) Deviations();
       if (Nused == 2) {
-	//  -  -  -  -  -  -  two observations -  -  -  -  -  -
-	float smaller = 1.0e+20;
-	llarger = -1;
-	bool reject = false;
-	for (int i=0;i<nobs;i++) {
-	  if (use[i]) {
-	    if (std::abs(delta[i]) > sdrej2) reject = true;
-	    ASSERT (this_ref->get_observation(i).Gscale() != 0.0);
-	    I = this_ref->get_observation(i).I()/
-	      this_ref->get_observation(i).Gscale();
-	    if (I < smaller) {
-	      smaller = I;
-	      lsmaller = i;
-	      if (llarger < 0) llarger = i;
-	    } else
-	      {llarger = i;}
-	  }
-	}
-	//---
-	if (reject) {
-	  discrepant = true;
-	  if (rej2policy == scala::RejectFlags::REJECT) {
-	    use[lsmaller] = false;
-	    use[llarger] = false;
-	    outliers[lsmaller] = true;
-	    outliers[llarger] = true;
-	    Nrej += 2;
-	    Nused -= 2;
-	    //^+
-	    if (DEBUG) std::cout << "RejBoth " << delta[lsmaller]
-				 << " " << delta[llarger] 
-				 << "  hkl " << this_ref->hkl().format() << "\n";
+        //  -  -  -  -  -  -  two observations -  -  -  -  -  -
+        float smaller = 1.0e+20;
+        llarger = -1;
+        bool reject = false;
+        for (int i=0;i<nobs;i++) {
+          if (use[i]) {
+            if (std::abs(delta[i]) > sdrej2) reject = true;
+            ASSERT (this_ref->get_observation(i).Gscale() != 0.0);
+            I = this_ref->get_observation(i).I()/
+              this_ref->get_observation(i).Gscale();
+            if (I < smaller) {
+              smaller = I;
+              lsmaller = i;
+              if (llarger < 0) llarger = i;
+            } else
+              {llarger = i;}
+          }
+        }
+        //---
+        if (reject) {
+          discrepant = true;
+          if (rej2policy == scala::RejectFlags::REJECT) {
+            use[lsmaller] = false;
+            use[llarger] = false;
+            outliers[lsmaller] = true;
+            outliers[llarger] = true;
+            Nrej += 2;
+            Nused -= 2;
+            //^+
+            if (DEBUG) std::cout << "RejBoth " << delta[lsmaller]
+                                 << " " << delta[llarger]
+                                 << "  hkl " << this_ref->hkl().format() << "\n";
 
-	  } else if (rej2policy == scala::RejectFlags::REJECTSMALLER) {
-	    use[lsmaller] = false;
-	    outliers[lsmaller] = true;
-	    Nrej++;
-	    Nused--;
-	    //^+
-	    if (DEBUG) std::cout << "RejSmaller " << delta[lsmaller] 
-				 << "  hkl " << this_ref->hkl().format() << "\n";
-	  } else if (rej2policy == scala::RejectFlags::REJECTLARGER) {
-	    use[llarger] = false;
-	    outliers[llarger] = true;
-	    Nrej++;
-	    Nused--;
-	    //^+
-	    if (DEBUG) std::cout << "RejLarger " << delta[llarger]
-				 << "  hkl " << this_ref->hkl().format() << "\n";
-	  }
-	  State = 0;  // flag to force recalculation of deviations
-	  if (rej2policy == scala::RejectFlags::KEEP) {break;}
-	} else {
-	  break;}  // no rejection
+          } else if (rej2policy == scala::RejectFlags::REJECTSMALLER) {
+            use[lsmaller] = false;
+            outliers[lsmaller] = true;
+            Nrej++;
+            Nused--;
+            //^+
+            if (DEBUG) std::cout << "RejSmaller " << delta[lsmaller]
+                                 << "  hkl " << this_ref->hkl().format() << "\n";
+          } else if (rej2policy == scala::RejectFlags::REJECTLARGER) {
+            use[llarger] = false;
+            outliers[llarger] = true;
+            Nrej++;
+            Nused--;
+            //^+
+            if (DEBUG) std::cout << "RejLarger " << delta[llarger]
+                                 << "  hkl " << this_ref->hkl().format() << "\n";
+          }
+          State = 0;  // flag to force recalculation of deviations
+          if (rej2policy == scala::RejectFlags::KEEP) {break;}
+        } else {
+          break;}  // no rejection
       } else if (Nused > 2) {
-	//  -  -  -  -  -  -  three or more observations -  -  - 
-	float worst = -1.0e+10;
-	int ngt = 0;
-	int nlt = 0;
-	int lworst, lgt, llt;
-	// Find worst
-	for (int i=0;i<nobs;i++) {
-	  if (use[i]) {
-	    // use deviation from "others" as rejection criterion
-	    if (std::abs(delta[i]) > worst)
-	      {worst = std::abs(delta[i]); lworst=i;}
+        //  -  -  -  -  -  -  three or more observations -  -  -
+        float worst = -1.0e+10;
+        int ngt = 0;
+        int nlt = 0;
+        int lworst, lgt, llt;
+        // Find worst
+        for (int i=0;i<nobs;i++) {
+          if (use[i]) {
+            // use deviation from "others" as rejection criterion
+            if (std::abs(delta[i]) > worst)
+              {worst = std::abs(delta[i]); lworst=i;}
 
-	  }
-	}
-	if (worst > sdrej) {
-	  // Reject one but which one?
-	  //  If one is on the opposite side of the mean deviation to all others,
-	  //   reject that one
-	  //  else reject worst
-	  discrepant = true;
-	  // Get mean deviation
-	  double devmean = 0.0;
-	  for (int i=0;i<nobs;i++) {
-	    if (use[i]) {
-	      devmean += delta[i];
-	    }
-	  }
-	  devmean /= double(Nused);
-	  for (int i=0;i<nobs;i++) {
-	    if (use[i]) {
-	      // count positives & negative difference from mean deviation
-	      //  find largest
-	      if ((delta[i]-devmean) >= 0.0) {
-		ngt++; lgt=i;
-	      } else {
-		nlt++; llt=i;
-	      }
-	    }
-	  }
-	  if (nlt == 1) {lworst = llt;}
-	  else if (ngt == 1) {lworst = lgt;}
-	  // reject the unique one on one side of the mean deviation, or the worst
-	  use[lworst] = false;
-	  outliers[lworst] = true;
-	  Nrej++;
-	  Nused--;
-	  State = 0;
-	  //^+
-	  if (DEBUG) std::cout << "Reject " << delta[lworst]
-			       << "  hkl " << this_ref->hkl().format() << "\n";
-	} else {
-	  break;}  // no rejection
+          }
+        }
+        if (worst > sdrej) {
+          // Reject one but which one?
+          //  If one is on the opposite side of the mean deviation to all others,
+          //   reject that one
+          //  else reject worst
+          discrepant = true;
+          // Get mean deviation
+          double devmean = 0.0;
+          for (int i=0;i<nobs;i++) {
+            if (use[i]) {
+              devmean += delta[i];
+            }
+          }
+          devmean /= double(Nused);
+          for (int i=0;i<nobs;i++) {
+            if (use[i]) {
+              // count positives & negative difference from mean deviation
+              //  find largest
+              if ((delta[i]-devmean) >= 0.0) {
+                ngt++; lgt=i;
+              } else {
+                nlt++; llt=i;
+              }
+            }
+          }
+          if (nlt == 1) {lworst = llt;}
+          else if (ngt == 1) {lworst = lgt;}
+          // reject the unique one on one side of the mean deviation, or the worst
+          use[lworst] = false;
+          outliers[lworst] = true;
+          Nrej++;
+          Nused--;
+          State = 0;
+          //^+
+          if (DEBUG) std::cout << "Reject " << delta[lworst]
+                               << "  hkl " << this_ref->hkl().format() << "\n";
+        } else {
+          break;}  // no rejection
       } else {break;}   // no rejection
     }
     //recalculate deviations if required
@@ -673,7 +673,7 @@ namespace scala
     std::vector<int> idxlist;
     for (int i=0;i<nobs;++i) {
       if (outliers[i]) {
-	idxlist.push_back(i);
+        idxlist.push_back(i);
       }
     }
     return idxlist;

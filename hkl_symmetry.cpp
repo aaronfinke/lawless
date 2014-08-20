@@ -11,7 +11,7 @@ namespace scala {
 
   //--------------------------------------------------------------
   // for sorting
-  bool operator < (const SymElement& a, const SymElement& b) 
+  bool operator < (const SymElement& a, const SymElement& b)
   // Sort on rotation order and axis direction (a,b,c)
   // 1. rotation order
   // 2. principle axis, c < b < a
@@ -64,17 +64,17 @@ namespace scala {
     if (lattype == 'H' || lattype == 'R') { // only do anything if H or R
       std::vector<std::string> parts = StringUtil::split(sname, ":");
       if (parts.size() > 1) {
-	std::string ext = StringUtil::Trim(parts[1]);
-	if (ext.size() == 1) ext = std::string(1,toupper(ext[0]));
-	if (ext == "H" || ext == "R") {
-	  lattype = ext[0];
-	  sname = StringUtil::Trim(parts[0]);  // strip off ":X"
-	}
+        std::string ext = StringUtil::Trim(parts[1]);
+        if (ext.size() == 1) ext = std::string(1,toupper(ext[0]));
+        if (ext == "H" || ext == "R") {
+          lattype = ext[0];
+          sname = StringUtil::Trim(parts[0]);  // strip off ":X"
+        }
       } else if (HorR == 'H' || HorR == 'R') {
-	lattype = HorR;
+        lattype = HorR;
       }
       if (!scala::AllowedLatticeType(lattype)) {
-	Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
+        Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
       }
       sname = StringUtil::Trim(sname.substr(1));
       std::string lt = std::string(1,lattype) + " ";
@@ -108,7 +108,7 @@ namespace scala {
     //    std::cout <<"\nclipper::Spacegroup constructed from operators: "<< symopString<<"\n";
 
     clipper::Spacegroup::init(clipper::Spgr_descr(symopString,
-		 clipper::Spacegroup::Spgr_descr::Symops));
+                 clipper::Spacegroup::Spgr_descr::Symops));
     init();
   }
   //--------------------------------------------------------------
@@ -131,21 +131,21 @@ namespace scala {
       CSym::CCP4SPG* CCP4sg = CSym::ccp4spg_load_by_spgname(spgname.c_str());
       ////      if (CCP4sg == NULL) return;
       if (CCP4sg == NULL) {
-	name = spgname;
+        name = spgname;
       } else {
-	name = CCP4sg->symbol_xHM;
+        name = CCP4sg->symbol_xHM;
       }
     }
     try {
       if (name.find(":") == std::string::npos) {
-	// Special for centred triclinic
-	if (isNameCentredTriclinic(name)) {
-	  spgd = clipper::Spgr_descr(name, Spacegroup::Hall);
-	} else {
-	  spgd = clipper::Spgr_descr(name, Spacegroup::HM);
-	}
+        // Special for centred triclinic
+        if (isNameCentredTriclinic(name)) {
+          spgd = clipper::Spgr_descr(name, Spacegroup::Hall);
+        } else {
+          spgd = clipper::Spgr_descr(name, Spacegroup::HM);
+        }
       } else {
-	spgd = clipper::Spgr_descr(name, Spacegroup::XHM);  // name contains ":"
+        spgd = clipper::Spgr_descr(name, Spacegroup::XHM);  // name contains ":"
       }
     }
     catch (Message_fatal) {
@@ -194,7 +194,7 @@ namespace scala {
     if (csymops.size() == 0) {
       // Copy symops
       for (int i=0;i<num_symops();++i) {
-	csymops.push_back(clipper::Spacegroup::symop(i));
+        csymops.push_back(clipper::Spacegroup::symop(i));
       }
     }
     Nsymp = num_primops();
@@ -221,7 +221,7 @@ namespace scala {
     }
     // Sort out name if unknown
     //^    std::cout << "SpaceGroup: HM: " << symbol_hm()
-    //^	      << "  Hall: " << symbol_hall() << "\n";
+    //^       << "  Hall: " << symbol_hall() << "\n";
     // Always consult CCP4 libraries for space group numbers
     CCP4spaceGroupNumber();
     SetLatType();
@@ -235,10 +235,10 @@ namespace scala {
     std::string hallSymbol = symbol_hall();
     if (hallSymbol == "Unknown") {
       if (CCP4spacegroupnumber == 0) {
-	hallSymbol = spacegroupname;
+        hallSymbol = spacegroupname;
       } else {
-	hallSymbol =
-	  std::string(CSym::ccp4spg_load_by_ccp4_num(CCP4spacegroupnumber)->symbol_Hall);
+        hallSymbol =
+          std::string(CSym::ccp4spg_load_by_ccp4_num(CCP4spacegroupnumber)->symbol_Hall);
       }
     }
     return hallSymbol;
@@ -249,12 +249,12 @@ namespace scala {
     for (int i=0;i<Nsymp;++i) {
       clipper::HKL h = hkl.transform(rotsymops[i]);
       if (recip_asu(h)) {
-	isym = 2*i +1;
-	return h;
+        isym = 2*i +1;
+        return h;
       }
       if (recip_asu(-h)) {
-	isym = 2*i +2;
-	return -h;
+        isym = 2*i +2;
+        return -h;
       }
     }
     isym = 0;
@@ -264,7 +264,7 @@ namespace scala {
   clipper::HKL SpaceGroup::get_from_asu(const clipper::HKL& hkl, const int& isym) const
   {
     // Check valid isym
-    if (isym < 1 || isym > 2*Nsymp) 
+    if (isym < 1 || isym > 2*Nsymp)
       Message::message(Message_fatal("get_from_asu - ISYM out of range") );
     clipper::HKL h = hkl.transform(invrotsymops[(isym-1)/2]);
     if (isym%2 == 0) {return -h;}
@@ -274,7 +274,7 @@ namespace scala {
   //! return the symop corresponding to Isym from put_in_asu
   clipper::Symop SpaceGroup::SymopFromIsym(const int& isym) const
   {
-    if (isym < 1 || isym > 2*Nsymp) 
+    if (isym < 1 || isym > 2*Nsymp)
       Message::message(Message_fatal("SymopFromIsym - ISYM out of range") );
     return csymops[(isym-1)/2];
   }
@@ -343,7 +343,7 @@ namespace scala {
   //!< real-space symops
   {
     std::string s;
-    for (int i=0;i<num_symops();++i) { 
+    for (int i=0;i<num_symops();++i) {
       s += symop(i).format()+"\n";
     }
     return s;
@@ -353,7 +353,7 @@ namespace scala {
   //!< reciprocal symops
   {
     std::string s;
-    for (int i=0;i<num_symops();++i) { 
+    for (int i=0;i<num_symops();++i) {
       s += MVutil::FormatSymop_as_hkl(symop(i), "[]")+"\n";
     }
     return s;
@@ -369,30 +369,30 @@ namespace scala {
     s += "    original indices for unique reflection hkl with symmetry number ISYM\n";
     for (int j=0;j<2;++j) { // loop +, -
       if (j == 0) {
-	s +=
-	  "\n                              Bijvoet positive \n";
+        s +=
+          "\n                              Bijvoet positive \n";
       } else {
-	s +=
-	  "\n                              Bijvoet negative \n";
+        s +=
+          "\n                              Bijvoet negative \n";
       }
       int nh = std::min(Nsymp,4);
       for (int k=0;k<nh;++k) {
-	s += "   ISYM";
-	if (k < nh-1) {s += "              ";}
+        s += "   ISYM";
+        if (k < nh-1) {s += "              ";}
       }
       s += "\n";
       for (int i=0;i<Nsymp;++i) {    // loop primitive operators
-	int isym = 2*i + 1;
-	clipper::Symop sop = invrotsymops[i];
-	if (j == 1) { // Bijvoet negative
-	  sop = clipper::Symop(friedel * sop);
-	  isym += 1;
-	}
-	s += "  " + StringUtil::itos(isym, 4) + " " +
-	  StringUtil::LeftString(MVutil::FormatSymop_as_hkl(sop, "[]"), 14);
-	if (i < Nsymp-1 && (i+1)%4 == 0) {
-	  s += "\n";
-	}
+        int isym = 2*i + 1;
+        clipper::Symop sop = invrotsymops[i];
+        if (j == 1) { // Bijvoet negative
+          sop = clipper::Symop(friedel * sop);
+          isym += 1;
+        }
+        s += "  " + StringUtil::itos(isym, 4) + " " +
+          StringUtil::LeftString(MVutil::FormatSymop_as_hkl(sop, "[]"), 14);
+        if (i < Nsymp-1 && (i+1)%4 == 0) {
+          s += "\n";
+        }
       }
       s += "\n";
     }
@@ -409,13 +409,13 @@ namespace scala {
     bool first = true;
     for (size_t i=0; i<spacegroupname.size(); i++) {
       if (first) {
-	if (spacegroupname[i] != ' ') {
-	  lattype = spacegroupname[i];
-	  first = false;
-	}
+        if (spacegroupname[i] != ' ') {
+          lattype = spacegroupname[i];
+          first = false;
+        }
       }
       if (spacegroupname[i] == ':') {
-	aftercolon = spacegroupname[i+1];
+        aftercolon = spacegroupname[i+1];
       }
     }
     if (AllowedLatticeType(aftercolon)) {
@@ -424,13 +424,13 @@ namespace scala {
     if (lattype == 'R' || lattype == 'H') {
       // Rhombohedral, check symmetry operators
       clipper::Symop_code zxy(clipper::Symop(RTop<>
-		 (Mat33<double>(0,0,1.0, 1.0,0,0,  0,1.0,0)))); // operator z,x,y
+                 (Mat33<double>(0,0,1.0, 1.0,0,0,  0,1.0,0)))); // operator z,x,y
       bool found = false;
       for (size_t i=0;i<csymops.size();++i) {
-	if (clipper::Symop_code(csymops[i]) == zxy) {
-	  found = true;
-	  break;
-	}
+        if (clipper::Symop_code(csymops[i]) == zxy) {
+          found = true;
+          break;
+        }
       }
       if (found) lattype = 'R';
       else lattype = 'H';
@@ -455,7 +455,7 @@ namespace scala {
     CSym::ccp4_symop op;
     for (int k = 0; k < 3; ++k) {
       for (int l = 0; l < 3; ++l) {
-	op.rot[k][l] = S.rot()(k,l);
+        op.rot[k][l] = S.rot()(k,l);
       }
       op.trn[k] = S.trn()[k];
     }
@@ -470,7 +470,7 @@ namespace scala {
 
     for (int k = 0; k < 3; ++k) {
       for (int l = 0; l < 3; ++l) {
-	rot(k,l) = op.rot[k][l];
+        rot(k,l) = op.rot[k][l];
       }
       trn[k] = op.trn[k];
     }
@@ -539,7 +539,7 @@ namespace scala {
   void SymElement::print() const
   {
     std::cout << "Symmetry element " << Nfold
-	      << "-fold, comprises symops : ";
+              << "-fold, comprises symops : ";
     for (size_t i=0;i<symops.size();i++) std::cout << symops[i]+1 << " ";
     std::cout << "\n";
   }
@@ -550,7 +550,7 @@ namespace scala {
     spgname = "";
   }
   //--------------------------------------------------------------
-  hkl_symmetry::hkl_symmetry(const std::string SpgName) 
+  hkl_symmetry::hkl_symmetry(const std::string SpgName)
   //            ***********
   {
     spgname = SpgName;
@@ -558,7 +558,7 @@ namespace scala {
     set_symmetry();
   }
   //--------------------------------------------------------------
-  hkl_symmetry::hkl_symmetry(const clipper::Spacegroup& ClpSG) 
+  hkl_symmetry::hkl_symmetry(const clipper::Spacegroup& ClpSG)
   //              ***********
   //    Construct from clipper spacegroup
   {
@@ -567,7 +567,7 @@ namespace scala {
     set_symmetry();
   }
   //--------------------------------------------------------------
-  hkl_symmetry::hkl_symmetry(const SpaceGroup& SG) 
+  hkl_symmetry::hkl_symmetry(const SpaceGroup& SG)
   //              ***********
   //    Construct from scala spacegroup
   {
@@ -576,7 +576,7 @@ namespace scala {
     set_symmetry();
   }
   //--------------------------------------------------------------
-  hkl_symmetry::hkl_symmetry(const int& SpgNumber) 
+  hkl_symmetry::hkl_symmetry(const int& SpgNumber)
   //              ***********
   {
     spgname = "";
@@ -602,7 +602,7 @@ namespace scala {
     chiral = ChiralTest();
 
     //    std::cout << "LatType " << LatType
-    //	      << " system " << CrystalType(cryssys,LatType).format() <<"\n";
+    //        << " system " << CrystalType(cryssys,LatType).format() <<"\n";
     //    std::cout << "num_inversion_symops " << spaceGroup.num_inversion_symops() <<"\n";
     //    for (int i=0;i<spaceGroup.num_inversion_symops();++i){
     //      std::cout << i+1 <<"\n"<<spaceGroup.inversion_symop(i).format() <<"\n";
@@ -624,11 +624,11 @@ namespace scala {
       rot1 = spaceGroup.InvRotSymop(i);
       rot = rot1;
       if (i == 0) {
-	if (!spaceGroup.IsSymopIdentity(0)) {
-	  // First symmetry operator is not identity, fatal
-	  Message::message(Message_fatal(
-  	    "hkl_symmetry: Illegal spacegroup, identity not first"));
-	}
+        if (!spaceGroup.IsSymopIdentity(0)) {
+          // First symmetry operator is not identity, fatal
+          Message::message(Message_fatal(
+            "hkl_symmetry: Illegal spacegroup, identity not first"));
+        }
       }
       // Start new group
       int k = 1;
@@ -638,57 +638,57 @@ namespace scala {
       elmt.symops.push_back(i);
 
       if (i == 0) {
-	// 1st operator = I
-	found = true;
+        // 1st operator = I
+        found = true;
       } else {
-	while (true) {
-	  k++;
-	  rot = clipper::Symop(rot * rot1);
-	  if (IsSymopIdent(rot)) {
-	    //
-	    //^std::cout << k <<"-fold rotation\n"
-	    //^ << rot1.format() << "\n";;
+        while (true) {
+          k++;
+          rot = clipper::Symop(rot * rot1);
+          if (IsSymopIdent(rot)) {
+            //
+            //^std::cout << k <<"-fold rotation\n"
+            //^ << rot1.format() << "\n";;
 
-	    // Found k-fold rotation
-	    found = true;
-	    break;  // from while(true) loop
-	  }
-	  //  find which symmetry operator this corresponds to
-	  found = false;
-	  clipper::Symop_code jcode(rot);
-	  for (int j = 0; j < Nsymp; j++) {
-	    if (j != i && spaceGroup.InvRotSymopCode(j) == jcode) {
-	      elmt.symops.push_back(j);
-	      found = true;
-	      break;
-	    }
-	  }
-	  if (!found) {
-	    // Incomplete symmetry element, already got this one
-	    break;}
-	}
+            // Found k-fold rotation
+            found = true;
+            break;  // from while(true) loop
+          }
+          //  find which symmetry operator this corresponds to
+          found = false;
+          clipper::Symop_code jcode(rot);
+          for (int j = 0; j < Nsymp; j++) {
+            if (j != i && spaceGroup.InvRotSymopCode(j) == jcode) {
+              elmt.symops.push_back(j);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            // Incomplete symmetry element, already got this one
+            break;}
+        }
       }
       if (found) {
-	// rot**k is identity, ie k-fold rotation axis
-	// Store symmetry element incuding identity (k=1)
-	elmt.Nfold = k;
-	// Have we already go this one?
-	bool known = false;
-	if (elements.size() > 0) {
-	  for (size_t j=0;j<elements.size();j++)
-	    if (ElementEqual(elmt, elements[j])) {
-	      known = true;
-	      break;
-	    }
-	}
-	if (!known) {
-	  elmt.iaxis = AxisDirection(elmt);
-	  elements.push_back(elmt);
-	  // std::cout << "Element:  " <<  elmt.Nfold << " -fold axis. Symops ";
-	  // for (int jj=0; jj< elmt.symops.size();jj++)
-	  //  std::cout << elmt.symops[jj] << "  ";
-	  // std::cout << "\n";
-	}
+        // rot**k is identity, ie k-fold rotation axis
+        // Store symmetry element incuding identity (k=1)
+        elmt.Nfold = k;
+        // Have we already go this one?
+        bool known = false;
+        if (elements.size() > 0) {
+          for (size_t j=0;j<elements.size();j++)
+            if (ElementEqual(elmt, elements[j])) {
+              known = true;
+              break;
+            }
+        }
+        if (!known) {
+          elmt.iaxis = AxisDirection(elmt);
+          elements.push_back(elmt);
+          // std::cout << "Element:  " <<  elmt.Nfold << " -fold axis. Symops ";
+          // for (int jj=0; jj< elmt.symops.size();jj++)
+          //  std::cout << elmt.symops[jj] << "  ";
+          // std::cout << "\n";
+        }
       }
     }
 
@@ -711,12 +711,12 @@ namespace scala {
       std::vector<int> ops; // for copying symops with some perhaps deleted
       // Loop symops for element j
       for (size_t i=0;i<elements[j].symops.size();i++) {
-	int k = elements[j].symops[i];  // symop number
-	if (element_index[k] < 0) {
-	  element_index[k] = j;
-	  // save this symop
-	  ops.push_back(elements[j].symops[i]);
-	}
+        int k = elements[j].symops[i];  // symop number
+        if (element_index[k] < 0) {
+          element_index[k] = j;
+          // save this symop
+          ops.push_back(elements[j].symops[i]);
+        }
       }
       // Replace symops for element
       elements[j].symops = ops;
@@ -724,8 +724,8 @@ namespace scala {
     // Check that all symops are assigned to an element
     for (int i=0;i<Nsymp;i++) {
       if (element_index[i] < 0)
-	Message::message(
-	     Message_fatal("hkl_symmetry: symmetry operator not in element"));
+        Message::message(
+             Message_fatal("hkl_symmetry: symmetry operator not in element"));
     }
     // Make lookup-table of ISYM/2 pairs pointing to corresponding
     // symmetry operator
@@ -739,36 +739,36 @@ namespace scala {
     for (int i1 = 0; i1 < Nsymp; i1++) {
       rot1 = spaceGroup.RotSymop(i1);
       //^
-      //	std::cout << "\n****\n Op1 " << i1 << " "
-      //		  << rot.format()
-      //		  << "\n\n";
+      //        std::cout << "\n****\n Op1 " << i1 << " "
+      //                  << rot.format()
+      //                  << "\n\n";
       //^-
       for (int i2 = 0; i2 < Nsymp; i2++) {
-	//  rot = S(i1) S(i2)**-1
-	rot2 = spaceGroup.InvRotSymop(i2);   // inverse operator
-	S1S2inv =  clipper::Symop(rot1 * rot2);
-	// S1S2inv should be an reciprocal-space operator in symop
-	// Test all of them using symcodes
-	clipper::Symop_code code(S1S2inv);
-	int jsym = -1;
-	for (int i = 0; i < Nsymp; i++) {
-	  if (code == spaceGroup.RotSymopCode(i)) {
-	    jsym = i;
-	    break;
-	  }
-	}
-	if (jsym < 0) {
-	      Message::message(Message_fatal("hkl_symmetry - operator not in group") );
-	}
-	//^+
-	//	    std::cout << "  Op2 " << i2 << " " << InvSymOpFormat(spacegroup_.symop[i2])
-	//		      << " result " << jsym << " " << InvSymOpFormat(spacegroup_.symop[jsym])
-	//		      << " element " << element_index[jsym]
-	//		      << "\n";
-	//^-
-	// Entry for i1, i2, symmetry element number corresponding
-	// to operator S(i1) S(i2)**-1
-	symelmt.push_back(element_index[jsym]);
+        //  rot = S(i1) S(i2)**-1
+        rot2 = spaceGroup.InvRotSymop(i2);   // inverse operator
+        S1S2inv =  clipper::Symop(rot1 * rot2);
+        // S1S2inv should be an reciprocal-space operator in symop
+        // Test all of them using symcodes
+        clipper::Symop_code code(S1S2inv);
+        int jsym = -1;
+        for (int i = 0; i < Nsymp; i++) {
+          if (code == spaceGroup.RotSymopCode(i)) {
+            jsym = i;
+            break;
+          }
+        }
+        if (jsym < 0) {
+              Message::message(Message_fatal("hkl_symmetry - operator not in group") );
+        }
+        //^+
+        //          std::cout << "  Op2 " << i2 << " " << InvSymOpFormat(spacegroup_.symop[i2])
+        //                    << " result " << jsym << " " << InvSymOpFormat(spacegroup_.symop[jsym])
+        //                    << " element " << element_index[jsym]
+        //                    << "\n";
+        //^-
+        // Entry for i1, i2, symmetry element number corresponding
+        // to operator S(i1) S(i2)**-1
+        symelmt.push_back(element_index[jsym]);
       }
     }
     if (spgname == "") spgname = symbol_xHM();
@@ -782,9 +782,9 @@ namespace scala {
     //    std::cout << "\n";
     for (int i=0;i<Nsymp;i++) {
       std::cout << "Symop " << i+1 << "  "
-		<< spaceGroup.InvRotSymop(i).format()
-		<< "  belongs to element "
-		<< element_index[i]+1 << "\n";
+                << spaceGroup.InvRotSymop(i).format()
+                << "  belongs to element "
+                << element_index[i]+1 << "\n";
     }
   }
   //--------------------------------------------------------------
@@ -792,7 +792,7 @@ namespace scala {
   //                  ^^^^^^^^^^^^
   {
     std::cout << "\nSymmetry elements: number = " <<  elements.size()
-	      << "\n";
+              << "\n";
     for (size_t j=0;j<elements.size();j++) {
       print_element(j);
     }
@@ -830,7 +830,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
     std::string hkl_symmetry::AxisString(const int& kelement,
-					 clipper::Vec3<int>& Iaxis) const
+                                         clipper::Vec3<int>& Iaxis) const
   {
     std::string s = " ";
     // Get axis direction from sample (first) symop belonging
@@ -851,13 +851,13 @@ namespace scala {
     //  "N-fold axis along x|y|z|(lmn)"
   {
     if (kelement < 0 || kelement > Nelement_) {
-	return "";
+        return "";
     }
     if (elements[kelement].Nfold == 1)
       return "identity";
     // Axis order
     clipper::String  s = clipper::String(elements[kelement].Nfold,1)
-		       +"-fold ";
+                       +"-fold ";
 
     // Get axis direction from sample (first) symop belonging
     // to this element
@@ -871,7 +871,7 @@ namespace scala {
       clipper::Symop RecSymOp = spaceGroup.InvRotSymop(elements[kelement].symops[i]);
       s += MVutil::FormatSymop_as_hkl(RecSymOp,"{}");
     }
-    
+
     return std::string(s);
   }
   //--------------------------------------------------------------
@@ -879,7 +879,7 @@ namespace scala {
     // make XMLormatted version of symmetry element
     //  kelement (0 - Nelement-1)
     //  <RotationOrder> Nfold </RotationOrder>
-    //  <Axis> a b c </Axis> 
+    //  <Axis> a b c </Axis>
   {
     if (kelement < 0 || kelement > Nelement_) {
       return "";
@@ -913,7 +913,7 @@ namespace scala {
   {
     return Hkl(spaceGroup.put_in_asu(hkl.HKL(), isym));
   }
-  
+
   //--------------------------------------------------------------
   Hkl hkl_symmetry::get_from_asu(const Hkl& hkl, const int& isym) const
     //            ^^^^^^^^^^^
@@ -941,10 +941,10 @@ namespace scala {
     for (int i=0; i < Nsymp; i++) {
       bool found = false;
       for (int j=0; j<Nsymp; j++) {
-	if (inv_rot_symcodes[i] == other.inv_rot_symcodes[j]) {
-	  found = true;
-	  break;
-	}
+        if (inv_rot_symcodes[i] == other.inv_rot_symcodes[j]) {
+          found = true;
+          break;
+        }
       }
       if (! found) return false;
     }
@@ -962,7 +962,7 @@ namespace scala {
     bool found = true;
     for (int i=0; i < Nsymp; i++) {
       if (inv_rot_symcodes[i] != other.inv_rot_symcodes[i]) {
-	found = false;
+        found = false;
       }
     }
     return found;
@@ -991,7 +991,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::vector<double> hkl_symmetry::SymopInElement(const int& lsym,
-					      const int& kelement) const
+                                              const int& kelement) const
     // Return rotation part of lsym'th inverse symmetry operator of
     // kelement'th symmetry element
   {
@@ -999,7 +999,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   clipper::Symop hkl_symmetry::ClipperSymopInElement(const int& lsym,
-					      const int& kelement) const
+                                              const int& kelement) const
   // Return lsym'th inverse symmetry operator of  kelement'th symmetry element
   {
     return spaceGroup.InvRotSymop(elements[kelement].symops[lsym]);
@@ -1046,18 +1046,18 @@ namespace scala {
     std::vector<int> listelmt;
     clipper::HKL h = h1.HKL();
     Hkl hh;
-    
+
     // Loop Isym for 2*Nsymp operators
     for (int isym=1;isym<=Nsymp*2;isym++) {
       if (isym%2 != 0) {
-	hh = Hkl(h.transform(spaceGroup.InvRotSymop((isym-1)/2)));
+        hh = Hkl(h.transform(spaceGroup.InvRotSymop((isym-1)/2)));
       } else {
-	hh = Hkl((-h).transform(spaceGroup.InvRotSymop((isym-1)/2)));
+        hh = Hkl((-h).transform(spaceGroup.InvRotSymop((isym-1)/2)));
       }
       if (hh == h2) {
-	// Found operator which relates h1 to h2
-	// store corresponding symmetry element
-	listelmt.push_back(element_index[(isym-1)/2]);
+        // Found operator which relates h1 to h2
+        // store corresponding symmetry element
+        listelmt.push_back(element_index[(isym-1)/2]);
       }
     }
     return listelmt;
@@ -1086,17 +1086,17 @@ namespace scala {
     //   [1]-[7] triclinic->cubic
     //   [8] rhombohedral
     //   [9] default
-    int lb[9][6] = 
+    int lb[9][6] =
       {
-	{-1,-1,-1,-1,-1,-1},
-	{-1,-1,-1, 0,-1, 0},
-	{-1,-1,-1, 0, 0, 0},
-	{-1, 1,-1, 0, 0, 0},
-	{-1, 1,-1, 0, 0, 0},
-	{-1, 1,-1, 0, 0, 0},
-	{-1, 1, 1, 0, 0, 0},
-	{-1, 1, 1,-1, 4, 4},
-	{-1,-1,-1,-1,-1,-1}
+        {-1,-1,-1,-1,-1,-1},
+        {-1,-1,-1, 0,-1, 0},
+        {-1,-1,-1, 0, 0, 0},
+        {-1, 1,-1, 0, 0, 0},
+        {-1, 1,-1, 0, 0, 0},
+        {-1, 1,-1, 0, 0, 0},
+        {-1, 1, 1, 0, 0, 0},
+        {-1, 1, 1,-1, 4, 4},
+        {-1,-1,-1,-1,-1,-1}
       };
 
     int ic = -1;
@@ -1110,13 +1110,13 @@ namespace scala {
       {ic = 3;}
     else if (cryssys == TRIGONAL)
       {ic = 4;
-	if (LatType == 'R') ic = 7;
+        if (LatType == 'R') ic = 7;
       }
     else if (cryssys == HEXAGONAL)
       {ic = 5;}
     else if (cryssys == CUBIC)
       {ic = 6;}
-    
+
     for (int i=0;i<6;i++) {lbcell[i] = lb[ic][i];}
     return lbcell;
   }
@@ -1138,11 +1138,11 @@ namespace scala {
       int test = abs(hkl.h()%2) + abs(hkl.k()%2) + abs(hkl.l()%2);
       return (test == 0) || (test == 3);
     } else if (LatType == 'H') {
-      return ((-hkl.h()+hkl.k()+hkl.l())%3 == 0);	  
+      return ((-hkl.h()+hkl.k()+hkl.l())%3 == 0);
     } else {
       Message::message
-	(Message_fatal(clipper::String("hkl_symmetry::LatticePresent: unrecognised lattice ")
-		       +LatType));
+        (Message_fatal(clipper::String("hkl_symmetry::LatticePresent: unrecognised lattice ")
+                       +LatType));
     }
     return false;  // dummy, never gets here
   }
@@ -1156,7 +1156,7 @@ namespace scala {
   // true if jel'th element of this symmetry object == jel2'th element of other
   // for any of the symops in either element
   bool hkl_symmetry::equalElement(const int& jel,
-	  const hkl_symmetry& other, const int& jel2) const
+          const hkl_symmetry& other, const int& jel2) const
   {
     int n1 = NopInElement(jel);
     int n2 = other.NopInElement(jel2);
@@ -1167,15 +1167,15 @@ namespace scala {
     for (int i1=0;i1<n1;++i1) {
       clipper::Symop_code c1 = inv_rot_symcodes[elements[jel].symops[i1]];
       for (int i2=0;i2<n2;++i2) {
-	clipper::Symop_code c2 = inv_rot_symcodes[elements[jel2].symops[i2]];
-	//^
-	//	std::cout <<"Op1:\n"<<
-	//	  spaceGroup.InvRotSymop(elements[jel].symops[i1]).format() <<"\n"
-	//		  <<" code " << c1 <<"\nOp2:\n" << 
-	//	  spaceGroup.InvRotSymop(elements[jel2].symops[i2]).format() <<"\n"
-	//		  <<" code " << c2 <<"\n";
-	//^-
-	if (c1 != c2) {same = false; break;}
+        clipper::Symop_code c2 = inv_rot_symcodes[elements[jel2].symops[i2]];
+        //^
+        //      std::cout <<"Op1:\n"<<
+        //        spaceGroup.InvRotSymop(elements[jel].symops[i1]).format() <<"\n"
+        //                <<" code " << c1 <<"\nOp2:\n" <<
+        //        spaceGroup.InvRotSymop(elements[jel2].symops[i2]).format() <<"\n"
+        //                <<" code " << c2 <<"\n";
+        //^-
+        if (c1 != c2) {same = false; break;}
       }
     }
     return same;
@@ -1188,10 +1188,10 @@ namespace scala {
     for (size_t i=0;i<a.symops.size();i++) {
       bool found = false;
       for (size_t j=0;j<b.symops.size();j++)
-	if (a.symops[i] == b.symops[j]) {
-	  found = true;
-	  break;
-	}
+        if (a.symops[i] == b.symops[j]) {
+          found = true;
+          break;
+        }
       if (!found) return false;
     }
     return true;
@@ -1211,8 +1211,8 @@ namespace scala {
     CrystalSystem CrysSys;
     if (SpaceGroupNumber < 0 || SpaceGroupNumber > 230)
       {Message::message(Message_fatal
-			("Illegal space group number "+
-			 clipper::String(SpaceGroupNumber)));}
+                        ("Illegal space group number "+
+                         clipper::String(SpaceGroupNumber)));}
     if (SpaceGroupNumber > 194)
       {CrysSys = CUBIC;}
     else if (SpaceGroupNumber > 167)
@@ -1230,7 +1230,7 @@ namespace scala {
     return CrysSys;
   }
   //--------------------------------------------------------------
-  bool hkl_symmetry::ChiralTest() 
+  bool hkl_symmetry::ChiralTest()
   // return true if space group is chiral
   // ie no symops invert, tested by negative determinant
   {

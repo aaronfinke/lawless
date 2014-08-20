@@ -11,8 +11,8 @@
 namespace scala {
   // ------------------------------------------------------------
   ResolutionLimit::ResolutionLimit(const std::vector<double> score,
-				   const ResoRange& ResRange,
-				   const double& Limit)
+                                   const ResoRange& ResRange,
+                                   const double& Limit)
     : limit(0.0), highres(0.0), status(-2)
   //! construct from score list, resolution range and minimum score
   {
@@ -20,8 +20,8 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void ResolutionLimit::init(const std::vector<double> score,
-			     const ResoRange& ResRange,
-			     const double& Limit) 
+                             const ResoRange& ResRange,
+                             const double& Limit)
   //! initialise from score list, resolution range and minimum score
   {
     ASSERT (int(score.size()) == ResRange.Nbins());
@@ -40,8 +40,8 @@ namespace scala {
     int i1 = -1;
     for (int i=nbins-1;i>=0;--i) { // loop backwards
       if (score[i] >= limit) {
-	i1 = i;
-	break;
+        i1 = i;
+        break;
       }
     }
     if (i1 < 0) {
@@ -64,16 +64,16 @@ namespace scala {
   }
   // ------------------------------------------------------------
   ResolutionLimit::ResolutionLimit(const std::vector<MeanSD> mnsd,
-				   const ResoRange& ResRange,
-				   const double& Limit)
+                                   const ResoRange& ResRange,
+                                   const double& Limit)
   //! construct from MeanSD list (score = Mean), resolution range and minimum score
   {
     init (mnsd, ResRange, Limit);
   }
   // ------------------------------------------------------------
   void ResolutionLimit::init(const std::vector<MeanSD> mnsd,
-			     const ResoRange& ResRange,
-			     const double& Limit)
+                             const ResoRange& ResRange,
+                             const double& Limit)
   //! initialise from MeanSD list (score = Mean), resolution range and minimum score
   {
     std::vector<double> score(mnsd.size());

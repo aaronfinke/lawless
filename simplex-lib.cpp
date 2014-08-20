@@ -99,7 +99,7 @@ target_fn, const std::vector<std::vector<double> >& args ) const
         }
       } else {  // normal step is worse
         f2 = target_fn( t0 );  // contraction
-	contract = true;
+        contract = true;
       }
     } else {  // normal step is invalid
       f2 = target_fn( t0 );  // contraction
@@ -108,29 +108,29 @@ target_fn, const std::vector<std::vector<double> >& args ) const
     if (contract) {
       // We did a contraction, did it improve anything?
       if (f2 < fn[iw]) {
-	// Yes so accept it
-	fn[iw] = f2;
-	params[iw] = t0;
+        // Yes so accept it
+        fn[iw] = f2;
+        params[iw] = t0;
       } else {
-	// No, contract all points around best
-	for (size_t i=0;i<params.size();++i) {
-	  if (int(i) != ib) {
-	    for (int j=0;j<size;++j) {
-	      params[i][j] = 0.5 * (params[i][j] + params[ib][j]);
-	    }
-	    fn[i] = target_fn(params[i]);
-	  }
-	}
+        // No, contract all points around best
+        for (size_t i=0;i<params.size();++i) {
+          if (int(i) != ib) {
+            for (int j=0;j<size;++j) {
+              params[i][j] = 0.5 * (params[i][j] + params[ib][j]);
+            }
+            fn[i] = target_fn(params[i]);
+          }
+        }
       }
     }
     if ( debug_mode > 0 ) { // DEBUG OUTPUT
       if (contract) {
-	if      ( fn[iw] == f2 ) std::cout << "Ctrn-step\n";
-	else                     std::cout << "Call-step\n";
+        if      ( fn[iw] == f2 ) std::cout << "Ctrn-step\n";
+        else                     std::cout << "Call-step\n";
       } else {
-	if      ( fn[iw] == f2 ) std::cout << "Extn-step\n";
-	else if ( fn[iw] == f1 ) std::cout << "Nrml-step\n";
-	else                     std::cout << "Ctrn-step\n";
+        if      ( fn[iw] == f2 ) std::cout << "Extn-step\n";
+        else if ( fn[iw] == f1 ) std::cout << "Nrml-step\n";
+        else                     std::cout << "Ctrn-step\n";
       }
       std::cout << "Cycle " << cyc << "  Best residual: " << fn[ib] << "\n";
     }

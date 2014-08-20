@@ -46,7 +46,7 @@ std::vector<TieGradient> Tie::Gradient(const std::vector<double>& params)
     // d is <p>
     for (size_t i=0;i<kpidx.size();++i) {
       TG.push_back(TieGradient(kpidx[i],
-	       weight*(params[kpidx[i]] - d)/double(kpidx.size())));
+               weight*(params[kpidx[i]] - d)/double(kpidx.size())));
     }
   }
     return TG;
@@ -66,7 +66,7 @@ std::vector<TieHessian> Tie::Hessian(const std::vector<double>& params)
     double wn = 1./double(kpidx.size()*kpidx.size());
     for (size_t i=0;i<kpidx.size();++i) {
       for (size_t j=i;j<kpidx.size();++j) {
-	TH.push_back(TieHessian(kpidx[i], kpidx[j], weight*wn));
+        TH.push_back(TieHessian(kpidx[i], kpidx[j], weight*wn));
       }}
   }
   return TH;
@@ -88,7 +88,7 @@ std::string Tie::format() const
   } else if (kpidx.size() > 2) {
     // tie between > two
     s += "Tie togetherindices ";
-    for (size_t i=0; i<kpidx.size(); i++) { 
+    for (size_t i=0; i<kpidx.size(); i++) {
       s += StringUtil::itos(kpidx[i],5);
       if (i<kpidx.size()-1) {s += ", ";}
     }
