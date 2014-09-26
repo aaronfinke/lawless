@@ -115,6 +115,24 @@ std::vector<double> Fileread::DoubleVec(const int& N) const
   return v;
 }
 //--------------------------------------------------------------
+//! read Array2d Nrows, Ncols, each row delimited by "{}"
+clipper::Array2d<double> Fileread::Array2d(const int& Nrows,
+                                           const int& Ncols) const
+{
+  clipper::Array2d<double> A(Nrows, Ncols);
+  for (int i=0;i<Nrows;++i) {
+    Skip();  // skip "{"
+    for (int j=0;j<Ncols;++j) {
+      A(i,j) = Double();
+    }
+    if (!CheckEnd()) {
+      clipper::Message::message(Message_fatal
+                                ("FILEREAD::Array2d error: wrong length line"));
+    }
+  }
+  return A;
+}
+//--------------------------------------------------------------
 std::string Fileread::Label() const
 // read one string (space terminated)
 {

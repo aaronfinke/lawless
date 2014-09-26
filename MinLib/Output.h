@@ -36,7 +36,7 @@ class Output
     const Output& operator=(const Output&);
   virtual ~Output() throw() { WriteResult(); verboseStream.close(); logfileStream.close();
       summaryStream.close(); xmlStream.close(); }
- 
+
   private:
     package   PACKAGE;
     bool      TOG_CCP4_SUMMARY,VERBOSE_ON,DEBUG_ON,XMLOUT,SILENT;
@@ -95,14 +95,14 @@ class Output
     void setSilent(bool b) { SILENT = b; }
     bool Verbose() { return VERBOSE_ON; }
     void setFileroot(std::string f) { FILEROOT = f; }
-    void setXmlout(std::string f) { XMLOUT = true; XMLFILE = f; } 
+    void setXmlout(std::string f) { XMLOUT = true; XMLFILE = f; }
     void unsetXmlout() { XMLOUT = false; XMLFILE = ""; }
-    bool doXmlout() { return XMLOUT; } 
+    bool doXmlout() { return XMLOUT; }
     // Write out RESULT stream to stdout if CCP4 & anything in it
     void WriteResult();
 
     std::string Fileroot() { return FILEROOT; }
-    std::string XmlFile() { return XMLFILE; } 
+    std::string XmlFile() { return XMLFILE; }
     std::string Package();
 
     std::string verbose() { return verboseString; }
@@ -114,7 +114,7 @@ class Output
                                 //created by SCons so thate version date updated
                                 //each time phaser is compiled
     std::string version_number(); //function code in separate Version.cc file
-                                  //created by SCons so thate version number 
+                                  //created by SCons so thate version number
                                   //corresponds to release or development
   void SetMaxLineWidth(const int& Width) {max_line_width = Width;}
 };

@@ -39,7 +39,8 @@ set(AIMLESS_SOURCES
     radiationdamageanalysis.cpp
     anisotropicmodel.cpp histogram.cpp hkl_merge.cpp referencelist.cpp 
     referencescalemodel.cpp refinereferencescale.cpp refinetargets.cpp 
-    rejectbatches.cpp
+    rejectbatches.cpp fitresolutiondata.cpp hessian.cpp radialfunction.cpp
+    simpleminimise.cpp
 )
 
 # Shared (duplicated) with Pointless

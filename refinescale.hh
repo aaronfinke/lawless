@@ -43,6 +43,7 @@ public:
   TNT::Vector<floatType> getRefinePars();
   TNT::Vector<floatType> getLargeShifts();
   std::vector<int> Nobservations() const {return nrefpar;}
+  int NobservationsAll() const {return nobs;}
 
 private:
   ScaleModel* scalemodel;   // all the scales
@@ -57,6 +58,7 @@ private:
 
   TNT::Vector<floatType> gradient;
   floatType target;
+  int nobs;
 
   int nprocs;
 

@@ -225,7 +225,7 @@ namespace scala {
 
     std::string format() const;
 
-    std::string formatparameters() const;
+    std::string formatparameters(const std::vector<double>& sds) const;
 
     std::string formatTies() const;
 
@@ -381,7 +381,7 @@ namespace scala {
     virtual std::string formattype() const = 0;
 
     //! format parameters for printing
-    virtual std::vector<std::string> formatparameters() const
+    virtual std::vector<std::string> formatparameters(const std::vector<double>& sds) const
     {return std::vector<std::string>(1,"");}
 
     virtual std::string formatTies() const
@@ -531,7 +531,7 @@ private:
     std::string formattype() const;
 
     //! format parameters for printing
-    std::vector<std::string> formatparameters() const;
+    std::vector<std::string> formatparameters(const std::vector<double>& sds) const;
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;
@@ -560,6 +560,12 @@ private:
     mutable clipper::Array2d<int> ncorners;
     double dcrnmin;
     mutable RadialFunctionErfc radfunc;
+
+    std::vector<std::string>
+    format5(const bool& hasSd, const double& v0, const double& sd,
+	    const FourierSmooth& vfs, const std::vector<double>& sdfs,
+	    const int& width, const std::string& label) const;
+
   }; // end class CCDTile3
   //--------------------------------------------------------------
   class CCDTile1 : public TileBase {
@@ -626,7 +632,7 @@ private:
     std::string formattype() const;
 
     //! format parameters for printing
-    std::vector<std::string> formatparameters() const;
+    std::vector<std::string> formatparameters(const std::vector<double>& sds) const;
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;
@@ -725,7 +731,7 @@ private:
     std::string formatTies() const;
 
     //! format parameters for printing
-    std::vector<std::string> formatparameters() const;
+    std::vector<std::string> formatparameters(const std::vector<double>& sds) const;
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;
@@ -794,7 +800,7 @@ private:
     std::string formattype() const;
 
     //! format parameters for printing
-    std::vector<std::string> formatparameters() const;
+    std::vector<std::string> formatparameters(const std::vector<double>& sds) const;
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;
@@ -848,7 +854,7 @@ private:
     std::string formattype() const;
 
     //! format parameters for printing
-    std::vector<std::string> formatparameters() const;
+    std::vector<std::string> formatparameters(const std::vector<double>& sds) const;
 
     // Format all information into a labelled save format for later restoration
     std::string FormatSave() const;

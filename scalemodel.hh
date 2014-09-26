@@ -21,6 +21,10 @@
 #include "Output.hh"
 #include "tie.hh"
 
+#include "Minimizer.h"
+#include "fmat.h"
+
+
 namespace scala {
   //--------------------------------------------------------------
   class ValidScaleModel {
@@ -82,7 +86,8 @@ namespace scala {
 
     // If true, allow tile corrections to vary azimuthally
     // if false, force to be radially symmetric
-    void symmetricTiles(const bool& symmetric);
+    // returns true if anything has changed
+    bool symmetricTiles(const bool& symmetric);
 
     // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
     void setBatchReject(const std::vector<bool>& usebatch,
@@ -130,6 +135,9 @@ namespace scala {
     int NBfactors() const {return nbfactors;}
     // Number of secondary scale parameters
     int Nsecondary() const {return nsecondaryscale;}
+    // Number of normalisation parameters: usually 2 (k,B);
+    //   1 if fixed Bfactors for any run; = 0 if not refineable
+    int Nfilter() const;
 
     // Return true if BATCH scales for all runs
     bool isAllBatch() const;
@@ -183,7 +191,18 @@ namespace scala {
     //! Restore from file
     void Restore(const std::string& restorefilename,
 		 const std::vector<Run>& runlist);
+
+    //! store parameter variance information
+    void storeParameterVariances(const TNT::Fortran_Matrix<floatType>& H,
+				 const double& wd2in,
+				 const int& nminusm);
     
+    //! turn off parameter variances
+    void ignoreParameterVariances() {nfreedom = 0;}
+
+    //! Usage of parameter variances, = {NONE, DIAGONAL, COVARIANCE};
+    scala::ScaleSpecification::ParameterSDusage parameterSDusage() const
+    {return parametersdusage;}
 
   private:
     // Setup from scale specifications and reflection list
@@ -270,18 +289,45 @@ namespace scala {
     int bfacnormrun;     // run number for B-factor normalisation
     int bfacnormbatch;   // batch number for B-factor  normalisation, -1 for best
 			 //  after construction, batch serial number in run
+    bool normalisebfac;  // usually true to normalise Bfactor,
+			 // false if no Bfactor refinement for at least one run
+
+    // Variance/covariance information
+    clipper::Array2d<double> VC;  // variance/covariance matrix for parameters
+    std::vector<double> varpar;   // parameter variances from VC diagonal
+    double wd2;                   // Sum(w Del^2)
+    // degrees of freedom (n-m), initially = -1, = 0 if not set yet
+    int nfreedom;
+
+    //  {NONE, DIAGONAL, COVARIANCE};
+    //  != NONE to use parameter SDs in sig(I) scaling
+    scala::ScaleSpecification::ParameterSDusage parametersdusage; 
 
     // Print wrapping lines:
     //   line 1, values v (double), label t1
-    //   line 2, values n (int),    label t2
+    //   line 2, values v2 (int),   label t2  (optional, if size > 0)
+    //   line 3, values n (int),    label t3
     //   fw  field width
     //   fd  number of decimal points for v
-    std::string PrintTwoWrappingLines(const std::vector<double>& v,
-				      const std::string& t1,
-				      const std::vector<int>& n,
-				      const std::string& t2,
-				      const int& fw,
-				      const int& fd);
+    static std::string PrintWrappingLines(const std::vector<double>& v,
+				   const std::string& t1,
+				   const std::vector<double>& v2,
+				   const std::string& t2,
+				   const std::vector<int>& n,
+				   const std::string& t3,
+				   const int& fw,
+				   const int& fd);
+
+    static std::string PrintWrappingLinesWithSD(const std::vector<double>& v,
+					 const std::string& t1,
+					 const std::vector<double>& sds,
+					 const int& fw,
+					 const int& fd);
+
+    // extract nsd SDs from variance, beginning at index idxsd
+    std::vector<double> extractSDs(const int& idxsd, const size_t& nsd) const;
+
+
 
     // return index in runlist, -1 if not found
     int RunNotFound(const std::vector<Run>& runlist,
@@ -291,6 +337,13 @@ namespace scala {
     double ScaleFactor(const int& jscale,
 		       const observation& obs, const Rtype& invresolsq) const;
 
+    // Returns scale for observation, using scale set jscale (== irun for main observation
+    // and partial derivative vector d(ghl)/dp
+    double ScaleFactorDeriv(const int& jscale,
+			    observation& obs,
+			    const Rtype& invresolsq,
+			    std::vector<double>& dghldp) const;
+
     void SetupTies(const phaser_io::InputAll& input);
     void SetupTies();
 
@@ -299,6 +352,10 @@ namespace scala {
     void autoTiles(std::vector<scala::ScaleSpecification>& scaleSpecs,
 		   hkl_unmerge_list& hkl_list,
 		   phaser_io::Output& output);
+
+    // Variance(gscale)
+    double VarScale(const std::vector<double>& dghldp) const;
+
 
   }; // class ScaleModel 
 }

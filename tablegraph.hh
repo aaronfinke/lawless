@@ -221,17 +221,12 @@ public:
 		const scala::Range& range=scala::Range(),
 		const bool& integral=false);
 
-  //! Define a break in the X-axis
-
-  //! \param xcolbr  column number from which to take the broken x value
-  //! \param xbreak  range of the break
-  void SetXbreak(const int& xcolbr, const scala::Range& xbreak);
-
-  //! Define a break in the X-axis
+  //! Define breaks in the X-axis
 
   //! \param xcolbr  column number from which to take the broken x value
   //! \param xbreaks list of ranges of breaks (may be empty)
-  void SetXbreak(const int& xcolbr, const std::vector<scala::Range>& xbreak);
+  void SetXbreak(const int& xcolbr, const std::vector<scala::Range>& xbreak,
+		 const scala::Range& rangexbreak=scala::Range());
 
   //! Define Y-axis properties
 
@@ -273,6 +268,8 @@ private:
   bool isRHyaxis;     // true if a RH Y-axis has been specified
   std::vector<scala::Range> xbreaks; // breaks in x axis  
   int xcolbreak;      // x column for breaks
+  scala::Range xbreakrange;  // range if using xbreaks
+
   bool xinvresolsq;
   bool zeroy;  // true if Y axis should start at zero
   bool zeroy_RH;  // true if Y axis should start at zero
@@ -443,10 +440,6 @@ private:
 			  int& overhang) const;
   mutable std::string line;
   int kfield; // field counter
-
-  static const std::string LABELLEADER;
-  static const std::string LABELTRAILER;
-  static const std::string LABELFINAL;
 };
 
 #endif

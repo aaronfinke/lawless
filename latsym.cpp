@@ -205,6 +205,11 @@ namespace CCtbxSym{
                                    const double max_delta)
     : lattice_type_(lattice_type), max_delta_(max_delta)
   {
+    //^
+    //    std::cout <<"LatticeSymmetry: Ltype "<<lattice_type<<" AllowI2 "<< AllowI2;
+    //    for (int i=0;i<6;++i) {std::cout<<" "<< unit_cell_dimensions[i];}
+    //    std::cout <<"\n";
+    //^-
     // Symmetry object combines unit_cell object and
     // space-group (in this P1, C1, I1, F1 or R1)
     scitbx::af::double6 dcell;
@@ -284,12 +289,11 @@ namespace CCtbxSym{
     //  Select "best" orthorhombic or monoclinic cell
     sgtbx::change_of_basis_op cb_op_opt;
     LatticeGroup LatG(best_symmetry_.space_group());
-    if (LatG.crystal_system() == ORTHORHOMBIC || LatG.crystal_system() == MONOCLINIC)
-      {
-        cb_op_opt =
-          GetBestCell(best_symmetry_.space_group(), best_symmetry_.unit_cell(), AllowI2);
-        best_symmetry_ = best_symmetry_.change_basis(cb_op_opt);
-      }
+    if (LatG.crystal_system() == ORTHORHOMBIC || LatG.crystal_system() == MONOCLINIC) {
+      cb_op_opt =
+        GetBestCell(best_symmetry_.space_group(), best_symmetry_.unit_cell(), AllowI2);
+      best_symmetry_ = best_symmetry_.change_basis(cb_op_opt);
+    }
 
     // Total basis transformation
     cb_op_inp_best =  cb_op_opt * cb_op_ref * z2p_op;

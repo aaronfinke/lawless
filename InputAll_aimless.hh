@@ -34,7 +34,8 @@ namespace phaser_io {
     public HKLOUT,
     public HKLREF,
     public LABREF,
-    public XYZIN
+    public XYZIN,
+    public USESDPARAMETER
   {
   public:
     InputAll(Preprocessor&); 

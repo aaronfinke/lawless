@@ -50,7 +50,7 @@ namespace scala {
       std::vector<observation> obs_used; // accepted observations for this reflection
       int index;
       double sd;
-      int nobs = 0;
+      nobs = 0;
       hkl_list->rewind();
       int Nref = hkl_list->num_reflections(); // total in file
 

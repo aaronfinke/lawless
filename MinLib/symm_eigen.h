@@ -55,7 +55,7 @@ class SymmetricPseudoinverse
     inverse_matrix = M * lambdaInv * TNT::transpose(M);
     //count number filtered
     filtered = 0;
-    for (int i = 1; i <= N; i++) 
+    for (int i = 1; i <= N; i++)
       if (eigenvals(i) <= evMin || i > N-min_to_filter) filtered++;
     if (return_matrix)
     {

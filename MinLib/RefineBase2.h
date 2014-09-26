@@ -11,9 +11,9 @@
 
 namespace phaser {
 
-class RefineBase2 : public RefineBase 
+class RefineBase2 : public RefineBase
 {
-  public: 
+  public:
     RefineBase2() {};
     virtual ~RefineBase2() {};
 

@@ -45,8 +45,9 @@ namespace MtzIO
     int Nmultiple() const {return nmultiple;} // number of multiples
 
   private:
-    int nref; // total number of refecltions written
+    int nref; // total number of reflections written
     int nmultiple; // number of multiples
+    int ncolsperlattice;  // number of output columns for each lattice
 
     //--------------------------------------------------------------
     // write out all parts, all datasets

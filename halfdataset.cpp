@@ -296,7 +296,8 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void HalfDataset::Analyse(const ResoRange& ResRange,
-                            const double& MinimumHalfdatasetCC)
+                            const double& MinimumHalfdatasetCC,
+                            const double& MinimumHalfdatasetCCanom)
   // Determine resolution "limits" from half-dataset CCs
   // Also clear directions if there is only a value in the 1st bin
   {
@@ -317,15 +318,26 @@ namespace scala {
           ccaniso[jax][i].zero();
         }
       } else {
-        anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC);
+        anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC,
+                                 ResolutionLimit::TANH);
       }
     }
+
     // Overall values
     std::vector<double> cc(ccIreso.size(),0.0);
     for (size_t i=0;i<ccIreso.size();++i) {
       cc[i] = ccIreso[i].result().val;
     }
-    overallresolimit.init(cc, ResRange, MinimumHalfdatasetCC);
+    overallresolimit.init(cc, ResRange, MinimumHalfdatasetCC,
+                          ResolutionLimit::TANH);
+
+    // for anomalous
+    cc.assign(ccanomreso.size(),0.0);
+    for (size_t i=0;i<ccanomreso.size();++i) {
+      cc[i] = ccanomreso[i].result().val;
+    }
+    anomresolimit.init(cc, ResRange, MinimumHalfdatasetCCanom,
+                          ResolutionLimit::TANH);
   }
   // ------------------------------------------------------------
 }

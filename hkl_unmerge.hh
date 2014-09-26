@@ -124,6 +124,7 @@ namespace scala {
     int latnum; // lattice number
     Hkl hkl;    // hkl in that lattice
     Rtype gscale;   // inverse scale g
+    Rtype sdgscale;   // sd(inverse scale g)
   };
   //==============================================================
   // PartFlagSwitch
@@ -268,8 +269,8 @@ namespace scala {
     IsigI I_sigI() const {return IsigI(I_,sigI_);}    //!< return I, sigI
 
     Rtype kI() const {return I_/gscale;}    //!< return scaled I
-    Rtype ksigI() const {return sigI_/gscale;} //!< return scaled sigI
-    IsigI kI_sigI() const {return IsigI(I_/gscale,sigI_/gscale);}    //!< return scaled I, sigI
+    Rtype ksigI() const; //{return sigI_/gscale;} //!< return scaled sigI
+    IsigI kI_sigI() const;   //!< return scaled I, sigI
 
     //! Return "summation" integration IsigI, summed over partials if necessary
     // This is also the sole intensity if there is only one 
@@ -310,6 +311,7 @@ namespace scala {
     Hkl hkl_original() const {return hkl_original_;} //!< return original indices hkl
     bool IsFull() const {return part_flag == FULL;} //!< return true if fully recorded
     Rtype Gscale() const {return gscale;}  //!< return stored inverse (dividing) scale 
+    Rtype varGscale() const {return vargscale;} //!< return Var(g)
     std::pair<float,float> XYdet() const; //!< return average detector coordinates 
     float TotalFraction() const {return totalfraction;} //!< return total fraction
     int Batch() const;  //!< return central batch number
@@ -330,6 +332,9 @@ namespace scala {
     void set_sigI(Rtype& sigI) {sigI_ = sigI;}
     //! Store inverse scale g
     void SetGscale(const Rtype& g) {gscale = g;}
+    //! Store inverse scale g and sd
+    void SetGscaleVar(const Rtype& g, const Rtype& varg) {
+      gscale = g; vargscale = varg;}
     //! Store secondary beam directions
     void StoreS2(const float& Thetap, const float& Phip)
     {thetap=Thetap; phip=Phip;}
@@ -378,6 +383,7 @@ namespace scala {
     PartFlagSwitch part_flag;
     ObservationFlag obs_flag;
     Rtype gscale;         // inverse scale g
+    Rtype vargscale;       //  ... and its estimated variance
     Rtype I_, sigI_;
     Rtype phi_;
     Rtype time_;

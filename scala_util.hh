@@ -172,9 +172,7 @@ namespace scala
     double sum_sc2;
     int count;
   };
-  //======================================================================
-  //! returns median, f must be sorted, use first nuse values, -1 for all
-  float Median(const std::vector<float>& f, const int& nuse);
+
 }
 
 #endif

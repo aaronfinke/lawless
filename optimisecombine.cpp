@@ -299,13 +299,13 @@ namespace scala {
           double I = this_obs.kI();   // scaled I
           double lp = this_obs.LP();
           if (hasLP) {
-	    if (lp > 0.0) {
-	      double Iraw = I/lp;  // raw intensity
-	      mnI.Add(Iraw);
-	    }
-	  } else { 
-	    mnI.Add(I);
-	  }
+            if (lp > 0.0) {
+              double Iraw = I/lp;  // raw intensity
+              mnI.Add(Iraw);
+            }
+          } else {
+            mnI.Add(I);
+          }
         }
       }  // end loop observations
     } // end loop reflections

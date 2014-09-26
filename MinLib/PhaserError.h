@@ -27,8 +27,8 @@ class PhaserError : public std::exception
     void setPhaserError(errorType t,std::string m) { type=t; message=m; }
     errorType   ErrorType() const  { return type; }
     std::string ErrorMessage() const { return message; }
-    std::string ErrorName() const; 
-    std::string XML() const; 
+    std::string ErrorName() const;
+    std::string XML() const;
     bool        Success() const { return (type == NO_ERROR); }
     bool        Failure() const { return (type != NO_ERROR); }
 //virtual

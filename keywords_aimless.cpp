@@ -89,6 +89,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   int secabs = 0;         // SECONDARY or ABSORPTION given
                           // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
   int tile = -1;
+
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
       if (expectingNumber > 0) {ReportSyntaxError
@@ -1614,8 +1615,9 @@ Token_value RESTORE::parse(std::istringstream& input_stream)
 }
 //--------------------------------------------------------------
 ANALYSIS::ANALYSIS()  : coneangledegrees(20.0),
-                        minimumhalfdatasetcc(0.5),
-                        minimumioversigma(2.0),
+                        minimumhalfdatasetcc(0.3),
+                        minimumhalfdatasetanomcc(0.15),
+                        minimumioversigma(1.5),
                         minimumbatchioversigma(1.0),
                         smoothstatisticsrange(-1.0),
                         detector(false)
@@ -1631,6 +1633,7 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
   // Syntax:
   //  ANALYSIS  CONE <angle>
   //    CCMINIMUM <MinimumHalfdatasetCC>
+  //    CCANOMMINIMUM <MinimumHalfdatasetAnomCC>
   //    ISIGMINIMUM <MinimumIoverSigma>
   //    BATCHISIGMINIMUM <MinimumBatchIoverSigma>
   //    SMOOTHSTATISTICS <SmoothStatisticsRange>
@@ -1644,12 +1647,13 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
-      if (keyIs("CONE")) coneangledegrees = get1num(input_stream);
-      else if (keyIs("CCMINIMUM"))   minimumhalfdatasetcc = get1num(input_stream);
-      else if (keyIs("ISIGMINIMUM")) minimumioversigma = get1num(input_stream);
-      else if (keyIs("BATCHISIGMINIMUM")) minimumbatchioversigma = get1num(input_stream);
-      else if (keyIs("DETECTOR")) detector = true;
-      else if (keyIs("NODETECTOR")) detector = false;
+      if (keyIs("CONE")) {coneangledegrees = get1num(input_stream);}
+      else if (keyIs("CCMINIMUM")) {minimumhalfdatasetcc = get1num(input_stream);}
+      else if (keyIs("CCANOMMINIMUM")) {minimumhalfdatasetanomcc = get1num(input_stream);}
+      else if (keyIs("ISIGMINIMUM")) {minimumioversigma = get1num(input_stream);}
+      else if (keyIs("BATCHISIGMINIMUM")) {minimumbatchioversigma = get1num(input_stream);}
+      else if (keyIs("DETECTOR")) {detector = true;}
+      else if (keyIs("NODETECTOR")) {detector = false;}
     }
   }
   return skip_line(input_stream);
@@ -1827,6 +1831,50 @@ XYZIN::XYZIN() : CCP4base(), InputBase()
 Token_value XYZIN::parse(std::istringstream& input_stream)
 {
   name = StringUtil::Unquote(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+USESDPARAMETER::USESDPARAMETER() : CCP4base(), InputBase()
+{
+  Add_Key("USESDPARAMETER");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+  parametersdusage = scala::ScaleSpecification::DIAGONAL;
+}
+//--------------------------------------------------------------
+Token_value USESDPARAMETER::parse(std::istringstream& input_stream)
+// Syntax: USESDPARAMETER [NO | DIAGONAL | COVARIANCE]
+//    (default DIAGONAL if not explicit)
+{
+  bool OK = true;
+  bool nokey = true;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("NO")) {
+        parametersdusage = scala::ScaleSpecification::NONE;
+        nokey = false;
+      } else if (keyIs("DIAGONAL")) {
+        parametersdusage = scala::ScaleSpecification::DIAGONAL;
+        nokey = false;
+      } else if (keyIs("COVARIANCE")) {
+        parametersdusage = scala::ScaleSpecification::COVARIANCE;
+        nokey = false;
+      } else {
+        OK = false;
+      }
+    } else {
+      OK = false;
+    }
+  }
+  if (!OK) {
+    throw SyntaxError(keywords,
+      "Unrecognised keyword, should be NO | DIAGONAL | COVARIANCE");
+  }
+  if (nokey) { // default
+    parametersdusage = scala::ScaleSpecification::DIAGONAL;
+  }
+
   return ENDLINE;
 }
 //--------------------------------------------------------------

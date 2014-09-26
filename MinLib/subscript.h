@@ -32,7 +32,7 @@
 // be wide enough to index into large arrays.  It defaults to an
 // "int", but can be overriden at compile time redefining TNT_SUBSCRIPT_TYPE,
 // e.g.
-// 
+//
 //      g++ -DTNT_SUBSCRIPT_TYPE='unsigned int'  ...
 //
 //---------------------------------------------------------------------

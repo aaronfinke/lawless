@@ -10,12 +10,12 @@ namespace phaser {
 
 //abstract - reminder! not objects of an abstract
 //base class can be instantiated
-class ProtocolBase  //abstract 
+class ProtocolBase  //abstract
 {
   public:
     ProtocolBase() {}
     virtual ~ProtocolBase() {}
-  
+
 //these functions are called either in callRefine or in setProtocol
 //in the base object
     virtual bool           is_default() const;

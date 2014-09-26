@@ -481,21 +481,4 @@ namespace scala
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
-  float Median(const std::vector<float>& f, const int& nuse)
-  // returns median, f must be sorted
-  {
-    float median = 0.0;
-    int n = f.size();
-    if (nuse > 0) {n = nuse;}
-    if (n == 0) {
-      return 0.0;
-    }
-    if (n%2 == 0) { //even
-      median = 0.5*(f[n/2] + f[n/2 + 1]);
-    } else {
-      median = f[n/2];
-    }
-    return median;
-  }
-  //--------------------------------------------------------------
 }

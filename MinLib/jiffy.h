@@ -1,7 +1,7 @@
 #ifndef __PHASER_JIFFY__
 #define __PHASER_JIFFY__
 //#include <phaser/Phaser.h>
-#include <sstream> 
+#include <sstream>
 #include <string>
 
 #include "phaser_types.h"
@@ -35,4 +35,3 @@ bool isfloat(std::string);
 }//end namespace phaser
 
 #endif
-

@@ -10,7 +10,7 @@
 namespace MtzIO
 {
   //--------------------------------------------------------------
-  const int MAXNCOLUMNS = 58;
+  const int MAXNCOLUMNS = 76;
   // Create list of required columns
   column_labels setup_columns();
 } // MtzIO

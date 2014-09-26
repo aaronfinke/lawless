@@ -22,7 +22,7 @@ class bounds
     bool bounded;
     double limit;
 };
- 
+
 class reparams
 {
   public:
@@ -40,12 +40,12 @@ typedef std::vector<bounds> bounds1D;
 
 //abstract - reminder! not objects of an abstract
 //base class can be instantiated
-class RefineBase  //abstract 
+class RefineBase  //abstract
 {
   public:
     RefineBase() { npars_ref = npars_all = 0; refinePar.clear(); }
     virtual ~RefineBase() {}
-  
+
     //pure virtual functions
     virtual double      targetFn() = 0;
     virtual double      gradientFn(TNT::Vector<double>&) = 0;
@@ -82,7 +82,7 @@ class RefineBase  //abstract
     TNT::Vector<double> reparGradient(TNT::Vector<double>&,TNT::Vector<double>);
     void   reparHessian(TNT::Vector<double>&,TNT::Vector<double>&,TNT::Fortran_Matrix<double>&);
     void   reparLargeShifts(TNT::Vector<double>&);
- 
+
   protected:
     int    npars_ref;
     int    npars_all;
@@ -92,4 +92,3 @@ class RefineBase  //abstract
 } //phaser
 
 #endif
-

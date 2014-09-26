@@ -51,6 +51,12 @@ static std::string onespace(const std::string& s);
 //! Replace spaces in string with "_"
 static std::string removespaces(const std::string& s);
 //--------------------------------------------------------------
+//! Return value v with sd in brackets (converted to integer)
+// totalfw total field width, fw field width for value, fd number of decimals
+static std::string valueSD(const double& v, const double& sd,
+			   const int& totalfw,
+			   const int& fw, const int& fd);
+//--------------------------------------------------------------
 //! make XML tag <tag>data</tag>
 //  If edit true [default] then replace characters such as "<" with html versions 
   static std::string MakeXMLtag(const std::string& tag, const std::string& data,
@@ -126,6 +132,9 @@ static std::string removespaces(const std::string& s);
   //--------------------------------------------------------------
   //! format real vector for dump/save
   static std::string FormatSaveVector(const std::vector<double> vec);
+  //--------------------------------------------------------------
+  //! format real array for dump/save
+  static std::string FormatSaveArray(const clipper::Array2d<double>& VC);
 };
 //======================================================================
 //! Format output in a similar way to the phaser Output class, but just return as a string

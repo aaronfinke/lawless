@@ -81,7 +81,7 @@ namespace scala {
     // slope of anomalous normal probability
     void StoreAnomNPslope(const float& anomnpslope);
     // Average unit cell
-    void StoreAverageCell(const Scell& cell) {averageCell = cell;}
+    void StoreAverageCell(const Scell& cell);
     // Space group name
     void StoreSpaceGroupName(const std::string& sgname)
     {spacegroupname = sgname;}
@@ -96,6 +96,8 @@ namespace scala {
     //  Store
     // overall limit from half-dataset CCs
     void StoreHalfdatsetCCresolimit(const ResolutionLimit& OverallResoLimitCC);
+    // overall limit from half-dataset CCs
+    void StoreHalfdatsetCCanomresolimit(const ResolutionLimit& AnomalousResoLimit);
     // overall limit from Mn(I/sd)
     void StoreMnIsigresolimit(const ResolutionLimit& OverallResoLimitIsig);
     // anisotropic limits from half-dataset CCs
@@ -109,11 +111,19 @@ namespace scala {
     // store anisotropic deltaB (for amplitudes not Is)
     void StoreAnisoDeltaB(const double& delB) {anisodeltaB = delB;}
 
+    void StoreMaxinvresolsq(const double& Maxinvresolsq)
+    {maxinvresolsq = Maxinvresolsq;}
+
+    void StoreNlattices(const int& Nlattices) {nlattices = Nlattices;}
+
     // print the final summary table as RESULT if Result true
     // Only write XML if Result, write only XML if xmlonly
     void PrintSummaryTable(const bool& Result,
 			   const bool& xmlonly,
 			   phaser_io::Output& output);
+
+    Scell averagecell() const {return averageCell;}
+
 
     PxdName pxdname;                // project, crystal, dataset
     // Various statistics for overall, inner, outer shells(3-vectors)
@@ -145,6 +155,7 @@ namespace scala {
     // Resolution limit estimates
     ResolutionLimit overallresolimitCC;   // overall, from half-dataset CCs
     ResolutionLimit overallresolimitIsig; // overall, from Mn(I/sd)
+    ResolutionLimit anomresolimitCC;   // overall, from half-dataset CCs
     // Actual maximum resolution
     double maxinvresolsq;
     // anisotropic, from half-dataset CCs
@@ -174,6 +185,9 @@ namespace scala {
     //! store statistics for one dataset
     void AddSummaryStatistics(const SummaryStatistics& summarystatistics);
 
+    SummaryStatistics summaryStatistics(const int& i) const 
+    {return allsummarystatistics.at(i);}
+
     //! store anomalous status
     void SetAnomStatus(const AnomDistribution::anomalousStatus& Anomstatus) {anomstatus = Anomstatus;}
     //! return anomalous status
@@ -200,8 +214,10 @@ namespace scala {
   std::string MakeXMLtag3(const std::string& tag, const int& w,
 	  const int& overall, const int& inner, const int& outer);
   // format XML tags for resolution limit estimates
-  std::string MakeXMLresolimit(const std::string& direction, const std::string& type,
-			       const ResolutionLimit& resolimit);
+  std::string MakeXMLresolimit(const std::string& direction,
+			       const std::string& type,
+			       const ResolutionLimit& resolimit,
+			       const bool& anomalous=false);
 
 }  // namespace scala
 #endif

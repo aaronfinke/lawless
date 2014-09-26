@@ -14,6 +14,7 @@ using clipper::Message_warn;
 #include "scala_util.hh"
 #include "string_util.hh"
 #include "observationstatuscontrol.hh"
+#include "median.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -45,8 +46,7 @@ RejectBatches::RejectBatches(hkl_unmerge_list& hkl_list,
   BatchScales0(batches, -1, AllScales,
                scale0batch, bfacbatch);
   std::vector<float> scale0batch_sort = scale0batch;
-  std::sort(scale0batch_sort.begin(), scale0batch_sort.end());
-  float medianscale = Median(scale0batch_sort, -1);
+  float medianscale = Median<float>(scale0batch_sort).median();
 
   float threshold = medianscale * batchrejectfactor;
   output.logTabPrintf(0, LOGFILE, "\nMedian scale %8.3f, reject threshold %8.3f\n",

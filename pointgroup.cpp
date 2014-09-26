@@ -742,7 +742,11 @@ namespace CCtbxSym
   {
     //^
     //    std::cout << "GetAlternativeBases " << Group.type().hall_symbol() << "\n";
+    //    std::cout <<"ExcludeIdentity " << ExcludeIdentity
+    //        << " AnyCell " << AnyCell <<" BestCell " << BestCell
+    //        << " AllowI2 "<<AllowI2<<"\n";
     //    std::cout << "Cell: " << UcellFormat(uccell) << "\n";
+    //    std::cout << "Target Cell: " << UcellFormat(targetcell) << "\n";
     //-!
 
 
@@ -792,7 +796,7 @@ namespace CCtbxSym
           //^
           //      std::cout << "Number of ChBOp " << ChBops.size() << "\n";
           //      for (int i=0;i< ChBops.size();++i) {
-          //    PrintChBOp(ChBops[i]);
+          //        PrintChBOp(ChBops[i]);
           //      }
           //-!
           GotPossibleChBOpList = true;
@@ -804,13 +808,13 @@ namespace CCtbxSym
             op1 = 1; // skip 1st op
           }
           //^
-          //            std::cout << "\n**** Base cell :" << UcellFormat(uccell) << "\n"
-          //                      << "Symmetry " << Group.type().hall_symbol() << "\n";
-          //            std::cout << "First " << " cell "
-          //                      << UcellFormat(best_cell) << "\n";
-          //            PrintChBOp(best_cb_op);
-                //^-
-                // Loop potential change-of-basis operators
+          //      std::cout << "\n**** Base cell :" << UcellFormat(uccell) << "\n"
+          //                << "Symmetry " << Group.type().hall_symbol() << "\n";
+          //      std::cout << "First " << " cell "
+          //                << UcellFormat(best_cell) << "\n";
+          //      PrintChBOp(best_cb_op);
+          //^-
+          // Loop potential change-of-basis operators
           for (size_t i=op1;i<ChBops.size();i++) {
             sgtbx::change_of_basis_op cb_op = ChBops[i];
             cb_op_mx = cb_op.c().new_denominators(Group.smx(0));
@@ -842,7 +846,7 @@ namespace CCtbxSym
             //                          << AltGroup.type().hall_symbol() << "\n";
             //                              }
             //-!
-          }
+          } // End loop potential change-of-basis operators
         }
       }
       // We now have a "best" cell
@@ -855,9 +859,9 @@ namespace CCtbxSym
         if (! (ExcludeIdentity && SymInGroup(Group, cb_op_mx)) )
           {ChBasisVec.push_back(AlternativeBases(best_cb_op,0.0));}
         //^
-        //          std::cout << "**** Best cell "
-        //                    << UcellFormat(best_cb_op.apply(uccell)) << "\n";
-        //          PrintChBOp(best_cb_op);
+        //      std::cout << "**** Best cell "
+        //                << UcellFormat(best_cb_op.apply(uccell)) << "\n";
+        //      PrintChBOp(best_cb_op);
         //^-
         return ChBasisVec;
       }
@@ -918,7 +922,7 @@ namespace CCtbxSym
     if (ChBasisVec.size() > 0 && BestCell) ChBasisVec.resize(1);
 
     return ChBasisVec;
-  }  // GetAlterntiveBases
+  }  // GetAlternativeBases
   //--------------------------------------------------------------
   std::vector<AlternativeBases>
   ChangeBasesList(const std::vector<AlternativeBases>& CBlist,
@@ -1085,9 +1089,14 @@ namespace CCtbxSym
     //^-
   }
   //--------------------------------------------------------------
-  char PointGroup::GetLatType() const
+  char PointGroup::GetLatType() const  // for reference cell
   {
     return CentringSymbol(LaueGrp_ref);
+  }
+  //--------------------------------------------------------------
+  char PointGroup::OriginalLatType() const // for original cell
+  {
+    return CentringSymbol(RotGrp);
   }
   //--------------------------------------------------------------
   bool PointGroup::AddElement(const int& Kelement,
@@ -1160,14 +1169,14 @@ namespace CCtbxSym
 
     //^
     //    std::cout << "\nPointGroup::SetCell\nReindex original->constructor ChBasis_cell): "
-    //        <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
-    //        << "Reindex original->reference ChBasis): "
-    //        <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
-    //        << "Reindex constructor->reference ChBasis_ref): "
-    //        <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
-    //        << "CellIn:  " << UcellFormat(uccell) << "\n"
-    //        << "CellChB: " << UcellFormat(uccell_chb) << "\n"
-    //        << "CellRef: " << UcellFormat(uccell_ref) << "\n";
+    //                <<  ChangeBasisFormat_as_Reindex(ChBasis_cell) << "\n"
+    //                << "Reindex original->reference ChBasis): "
+    //                <<  ChangeBasisFormat_as_Reindex(ChBasis) << "\n"
+    //                << "Reindex constructor->reference ChBasis_ref): "
+    //                <<  ChangeBasisFormat_as_Reindex(ChBasis_ref) << "\n"
+    //                << "CellIn:  " << UcellFormat(uccell) << "\n"
+    //                << "CellChB: " << UcellFormat(uccell_chb) << "\n"
+    //                << "CellRef: " << UcellFormat(uccell_ref) << "\n";
     //-!
 
     // Test for change of symmetry, C2 to I2
@@ -1231,6 +1240,9 @@ namespace CCtbxSym
     sgtbx::space_group_symbols SGsymbols(LaueGrp_ref_type.number());
     printf("HM symbol %s || extension: %c\n",SGsymbols.hermann_mauguin().c_str(),
            SGsymbols.extension());
+    printf("Orig uHM symbol %s\n",LaueGrp_type.universal_hermann_mauguin_symbol().c_str());
+    printf("Orig HM symbol %s\n",LaueGrp_type.lookup_symbol().c_str());
+    printf("Stored LatType %c\n", LatType);
 
     printf("Change of basis Cell -> Constructor (ChBasis_cell, SGreindexOrig)\n");
     PrintChBOp(ChBasis_cell);
@@ -1251,8 +1263,9 @@ namespace CCtbxSym
     // Symmetry elements
     printf("\nRotationGroup:\n");
     PrintCctbxSymops(RotGrp);
+    show_space_group_type(RotGrp.type());
 
-    printf("\nRotationGroup in reference frame:\n");
+    printf("\n\nRotationGroup in reference frame:\n");
     PrintCctbxSymops(RotGrp_ref);
 
     printf("Laue Group in reference frame:\n");
@@ -1869,14 +1882,19 @@ namespace CCtbxSym
           {StrictOps.push_back(SetReindexOp(StrictCB[i]));}
       }
       // Maximum lattice symmetry
-      CCtbxSym::LatticeSymmetry lat(TG.input_cell, TG.LatType, AllowI2, max_delta);
+      CCtbxSym::LatticeSymmetry lat(TG.input_cell, TG.OriginalLatType(), AllowI2, max_delta);
       ///      CCtbxSym::LatticeSymmetry lat(TG.TransformedCell(), TG.LatType, AllowI2, max_delta);
       ///      CCtbxSym::LatticeSymmetry lat(PG.input_cell, PG.LatType, AllowI2, max_delta);
       // Reindexing operator for "best" spacegroup
       //  from original -> lattice (best), inverse operator for hkl
       scala::ReindexOp reindex_op = MVutil::SetCMat33(lat.best_sg_reindex_op());
       //^
-      //      std::cout << "reindex_op " << reindex_op.as_hkl() <<"\n";  //^-
+      //      std::cout << "reindex_op " << reindex_op.as_hkl() <<"\n";
+      //      std::cout <<"AllowI2 " << AllowI2 <<"\n";
+      //      std::cout << "\nTest Input Cell: ";
+      //      for (int i=0;i<6;i++) std:: cout << " " << TG.input_cell[i];
+      //      std::cout << "\n";
+      //^-
       // All subgroups
       std::vector<PointGroup> subgroups =
         scala::GetSubGroups(scala::hkl_symmetry(lat.best_spacegroup_symbol()));
@@ -1884,9 +1902,10 @@ namespace CCtbxSym
         // Loop subgroups to find any which are the same as this
         for (size_t k=0;k<subgroups.size();k++) {
           //^
-          //      std::cout << "AlternativeIndexing "
+          //      std::cout << "\n>> AlternativeIndexing "
           //                << " subgroups[k].LaueGrp_ref " <<
-          //        subgroups[k].LaueGrp_ref.type().hall_symbol()
+          //        subgroups[k].LaueGrp_ref.type().hall_symbol() <<
+          //        " RotGrp (cntr) "<<subgroups[k].RotGrp.type().hall_symbol()
           //                << " PG.LaueGrp_ref " <<
           //        PG.LaueGrp_ref.type().hall_symbol() <<"\n";
           //^-1
@@ -1904,8 +1923,11 @@ namespace CCtbxSym
             //      std::vector<double> tcell =
             //        subgroups[k].TransformedCell();
             //      for (int i=0;i<6;i++) std:: cout << " " << tcell[i];
-            //      std::cout << "\nInput Cell: ";
+            //      std::cout << "\nRef Input Cell: ";
             //      for (int i=0;i<6;i++) std:: cout << " " << PG.input_cell[i];
+            //      std::cout << "\n";
+            //      std::cout << "Subgroup Input Cell: ";
+            //      for (int i=0;i<6;i++) std:: cout << " " << subgroups[k].input_cell[i];
             //      std::cout << "\n";
             //^
 

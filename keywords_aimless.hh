@@ -566,12 +566,14 @@ namespace phaser_io {
     // Syntax:
     //  ANALYSIS  CONE <angle> 
     //    CCMINIMUM <MinimumHalfdatasetCC>
+    //    CCANOMMINIMUM <MinimumHalfdatasetAnomCC>
     //    ISIGMINIMUM <MinimumIoverSigma>
     //    BATCHISIGMINIMUM <MinimumBatchIoverSigma>
     //    SMOOTHSTATISTICS <SmoothStatisticsRange>
     //
     // Cone angle is the half-angle (degrees) for cones around each reciprocal axis
     // MinimumHalfdatasetCC  minimum CC for resolution warning
+    // MinimumHalfdatasetAnomCC  minimum CCanom for resolution warning
     // MinimumIoverSigma          minimum <<I>/sd(<I>)> for resolution warning
     // MinimumBatchIoverSigma     minimum <I/sd(I)> for resolution warning by batch, from unmerged I
     // SmoothStatisticsRange angle in degrees over which (roghly) to smooth
@@ -588,6 +590,7 @@ namespace phaser_io {
 
     double ConeAngle() const {return coneangledegrees;}
     double MinimumHalfdatasetCC() const {return minimumhalfdatasetcc;}
+    double MinimumHalfdatasetAnomCC() const {return minimumhalfdatasetanomcc;}
     double MinimumIoverSigma() const {return minimumioversigma;}
     double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
     double SmoothStatisticsRange() const {return smoothstatisticsrange;}
@@ -599,6 +602,7 @@ namespace phaser_io {
   private:
     double coneangledegrees;
     double minimumhalfdatasetcc;
+    double minimumhalfdatasetanomcc;
     double minimumioversigma;
     double minimumbatchioversigma;
     double smoothstatisticsrange;
@@ -730,6 +734,28 @@ namespace phaser_io {
   private:
     std::string name;
   };
+  //--------------------------------------------------------------
+  class USESDPARAMETER : public InputBase, virtual public CCP4base
+  {
+    // Syntax: USESDPARAMETER [NO | DIAGONAL | COVARIANCE]
+    //    (default DIAGONAL if not explicit)
+  public:
+    USESDPARAMETER();
+    virtual ~USESDPARAMETER() {}
+    Token_value parse(std::istringstream&);
+
+    void setUSESDPARAMETER
+    (const scala::ScaleSpecification::ParameterSDusage& Use_sd_parameter)
+    {parametersdusage = Use_sd_parameter;}
+    scala::ScaleSpecification::ParameterSDusage getUSESDPARAMETER() const
+    {return parametersdusage;}
+    void analyse(){}
+
+  private:
+    //  {NONE, DIAGONAL, COVARIANCE};
+    scala::ScaleSpecification::ParameterSDusage parametersdusage; 
+
+};
 } // phaser_io
 
 #endif

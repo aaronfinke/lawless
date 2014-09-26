@@ -265,6 +265,7 @@ namespace scala {
                                std::vector<Rfactor>& rreferencebatchsmoothed,
                                std::vector<MeanValue>& ccreferencebatchsmoothed,
                                const std::vector<Batch>& batches,
+                               const int& datasetIndex,
                                const std::vector<Run>& runlist,
                                const ResoRange& ResRange,
                                const double& MinimumIoverSigmaBatch,
@@ -293,7 +294,8 @@ namespace scala {
     int nbs = (NbatchSmooth/2)*2 + 1; // force odd
 
     for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
-      if (batches[ib].Accepted()) {
+      if (batches[ib].Accepted() &&
+          (batches[ib].datasetindex() == datasetIndex)) {
         int irun = batches[ib].RunIndex(); // run index for central batch
         int nbatrun = runlist[irun].Nbatches(); // number of batches in run
         int nbsr = Min(nbatrun, nbs); // smoothing range for this run (nb may be even)
@@ -341,7 +343,8 @@ namespace scala {
           // assign resolution limit for this group to batch ib
 
           ResolutionLimit batchreslimit(msd, ResRange,
-                                        MinimumIoverSigmaBatch);
+                                        MinimumIoverSigmaBatch,
+                                        ResolutionLimit::NONE);
           maxresbatchsmoothed[ib] = batchreslimit.HighResolution();
         }
       } // batch accepted
@@ -875,15 +878,20 @@ namespace scala {
       (NumObsBatch, ResRange, hkl_list.symmetry(), hkl_list.Cell());
 
     // Actual maximum invresolsq
-    summaryStatistics.maxinvresolsq = maxinvresolsq;
+    summaryStatistics.StoreMaxinvresolsq(maxinvresolsq);
 
     // Estimates of "maximum resolution" for each batch, based on MinimumIoverSigma
     std::vector<double> maxresbatch(nbatches);
     double MinimumIoverSigmaBatch = controls.analysis.MinimumBatchIoverSigma();
-    for (int i=0;i<nbatches;++i) {  // ... by resolution for each batch
-      ResolutionLimit batchreslimit(mnIsdResBatch[i], ResRange,
-                                    MinimumIoverSigmaBatch);
-      maxresbatch[i] = batchreslimit.HighResolution();
+    for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
+      if (batches[ib].datasetindex() == datasetIndex) {
+        ResolutionLimit batchreslimit(mnIsdResBatch[ib], ResRange,
+                                      MinimumIoverSigmaBatch,
+                                      ResolutionLimit::NONE);
+        maxresbatch[ib] = batchreslimit.HighResolution();
+      } else {
+        maxresbatch[ib] = 0.0;
+      }
     }
     // and generate a smoothed version of this, as well as Rmerge
     std::vector<double> maxresbatchsmoothed = maxresbatch;
@@ -906,7 +914,7 @@ namespace scala {
                               rmergebatchsmoothed,
                               rreferencebatchsmoothed,
                               averageccbatchsmoothed,
-                              batches,
+                              batches, datasetIndex,
                               runlist,
                               ResRange,
                               MinimumIoverSigmaBatch,
@@ -958,7 +966,8 @@ namespace scala {
 
     // process halfdataset scores, work out resolution "limits"
     halfDatasetScores.Analyse(ResRange,
-                              controls.analysis.MinimumHalfdatasetCC());
+                              controls.analysis.MinimumHalfdatasetCC(),
+                              controls.analysis.MinimumHalfdatasetAnomCC());
 
     PrintHalfDatasetCorrelations(dataset_pxd,
                                  ResRange,
@@ -992,6 +1001,7 @@ namespace scala {
                                   rmergeRes, rmeasRes, rpimRes,
                                   rmergeResOv, rmeasResOv, rpimResOv,
                                   summaryStatistics, output);
+
 
     // Within I+/I- sets      rmergeInt, rmeasInt, rpimInt
     // overall I+/I-          rmergeIntOv, rmeasIntOv, rpimIntOv
@@ -1038,7 +1048,9 @@ namespace scala {
     }
 
     // Other things for summary
-    summaryStatistics.StoreAverageCell(hkl_list.cell(dataset_pxd));
+    Scell avcell = hkl_list.cell(dataset_pxd);
+    summaryStatistics.StoreAverageCell(avcell);
+    //    summaryStatistics.StoreAverageCell(hkl_list.cell(dataset_pxd));
     summaryStatistics.StoreSpaceGroupName(hkl_list.symmetry().symbol_xHM());
     float minsdcorrfulls, maxsdcorrfulls, minsdcorrpartials, maxsdcorrpartials;
     SDM.GetSDcorrectionRanges(minsdcorrfulls, maxsdcorrfulls,
@@ -1048,7 +1060,7 @@ namespace scala {
     summaryStatistics.StoreAnomNPslope(anomProbSlope);
     summaryStatistics.StoreAverageMosaicity(hkl_list.dataset(datasetIndex).Mosaicity());
     summaryStatistics.StoreAnisoAxisLabels(anisoanal.Axesformat());
-    summaryStatistics.nlattices = hkl_list.NumberofLattices();
+    summaryStatistics.StoreNlattices(hkl_list.NumberofLattices());
     return summaryStatistics;
   }  // Statistics
   // ------------------------------------------------------------

@@ -162,7 +162,7 @@ keywords are:</p>
 </span><a style="font-weight: bold;" href="#scales">SCALES</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#sdcorrection">SDCORRECTION</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#tie">TIE</a><span style="font-weight: bold;">,
-</span><a style="font-weight: bold;" href="#title">TITLE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xmlout">XMLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xyzin">XYZIN</a><b><br>
+</span><a style="font-weight: bold;" href="#title">TITLE</a><span style="font-weight: bold;">, <a href="#usesdparameter">USESDPARAMETER</a>, </span><a style="font-weight: bold;" href="#xmlout">XMLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xyzin">XYZIN</a><b><br>
 </b></p>
 <h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
 
@@ -332,13 +332,41 @@ defined. If no run is defined, it applies to all runs. Different values
 may be specified for fully recorded reflections (FULL) and for
 partially
 recorded reflections (PARTIAL), or the same values may be used for both if one set is given, <em>e.g.</em> </p>
-<pre>         sdcorrection full 1.4 0.11 part 1.4 0.05<br></pre>
+<pre>         sdcorrection full 1.4 0.11 part 1.4 0.05<br><br></pre>
+<h3><a name="usesdparameter"></a>USESDPARAMETER&nbsp; [NO | DIAGONAL | COVARIANCE]</h3>
+For the final estimation of intensity errors sd(I), incorporate the
+estimated error in the refined scale model parameters, as estimated
+from the inverse normal matrix in the scale refinement. The default is
+DIAGONAL if this keyword is omitted, or given with no sub-keyword. "NO"
+switches it off. The DIAGONAL option uses the separate parameter
+variances, ie the diagonal of the variance/covariance matrix.
+COVARIANCE uses the full matrix, which is slower but may be more
+accurate.<br>
+<br>
+The variance/covariance matrix [V] = Sum(wD^2)/(m-n) [H]^-1, where [H]
+is the normal (Hessian) matrix, Sum(wD^2) is the minimised residual, m
+the number of observations, and n the number of parameters.<br>
+<br>
+The scaled intensity I'hl&nbsp; =&nbsp;&nbsp; Ihl/ghl&nbsp; where ghl is its inverse scale factor<br>
+<br>
+&nbsp;&nbsp;&nbsp; Var(I')/I'^2 = Var(I)/I^2 + Var(g)/g^2 &nbsp; &nbsp;
+&nbsp; &nbsp;&nbsp; ie Var(I') = (1/g^2) [ Var(I) + I'^2 Var(g) ]<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp; Var(g) = [dg/dp]T [V]
+[dg/dp]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (COVARIANCE option)&nbsp;&nbsp;
+where&nbsp; dg/dp is the vector of partial derivatives with respect to
+parameters p<br>
+<br>
+&nbsp;&nbsp;&nbsp; DIAGONAL approximation: Var(g) = Sum(i) { [dg/dp(i)]^2 V(i,i) }&nbsp;&nbsp;&nbsp; ie summed over parameters i<br>
+<br>
+
 
 <h3><a name="partials"></a>PARTIALS [[NO]CHECK] [TEST
 [&lt;lower_limit&gt;
 &lt;upper_limit&gt;] [CORRECT &lt;minimum_fraction&gt;] [[NO]GAP [&lt;maxgap&gt;]]<br>
 
 </h3>
+
 
 
 <dl>
@@ -519,28 +547,44 @@ used with automatic run generation. [Default use all data] </p>
 <p>Set new title to replace the one taken from the input file. By
 default,
 the title is copied from hklin to hklout</p>
-<h3><a name="analysis"></a>ANALYSIS CONE &lt;angle&gt; CCMINIMUM
-&lt;MinimumHalfdatasetCC&gt; ISIGMINIMUM &lt;MinimumIoverSigma&gt;
-BATCHISIGMINIMUM &lt;MinimumBatchIoverSigma&gt;<br>
+<h3> </h3>
+<h3><a name="analysis"></a>ANALYSIS [CONE &lt;angle&gt;] [CCMINIMUM
+&lt;MinimumHalfdatasetCC&gt;] [CCANOMMINIMUM
+&lt;MinimumHalfdatasetAnomCC&gt;] [ISIGMINIMUM &lt;MinimumIoverSigma&gt;] [BATCHISIGMINIMUM &lt;MinimumBatchIoverSigma&gt;]<br>
 </h3>
+
 <p>Specify analysis parameters: <br>
 </p>
 <p>CONE specifies the half-angle (degrees) for cones around each reciprocal axis, for anisotropy analysis [default 20°].<br>
-</p>CCMINIMUM &amp; ISIGMINIMUM specify limits for estimation of
+</p>CCMINIMUM &amp; ISIGMINIMUM specify thresholds for estimation of
 suitable
-resolution cut-off limits, both overall and along each reciprocal axis.
+maximum resolution limits, both overall and along each reciprocal axis.
 These estimates are printed in the final Results summary, and give
-guide to possible cut-offs. BATCHISIGMINIMUM gives the cutoff for the
+guide to possible cut-offs. BATCHISIGMINIMUM gives the threshold for
+the
 analysis of maximum resolution by batch, on &lt;I/sd&gt; before
-averaging<br>
+averaging. CCANOMMINIMUM is the threshold for analysis of the
+resolution limit of strong anomalous differences, from CC(1/2)anom.<br>
+<br>
+Resolution estimates from CC(1/2) and CC(1/2)anom are done by fitting a
+function (1/2)(1 - tanh(z)) where z = (s - d0)/r, s = 1/d^2, and d0 is
+the value of s for which the function = 0.5, and r controls the
+steepness of falloff. For very negative CCs (usually from CCanom), an
+additional offset parameter dcc is added, {(1/2)(1 - tanh(z) * dcc -
+dcc + 1}. The fitted function is plotted along with the values. This
+curve-fitting was suggested by Ed Pozharski.<br>
+
+
 
 
 <ul>
-  <li>MinimumHalfdatasetCC&nbsp;&nbsp; minimum half-dataset CC [default 0.5]</li>
-  <li>MinimumIoverSigma&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; minimum &lt;&lt;I&gt;/sd(&lt;I&gt;)&gt; (=~ signal/noise) [default 2.0]</li>
+  <li>MinimumHalfdatasetCC&nbsp;&nbsp; minimum half-dataset CC(1/2) [default 0.3]</li>
+  <li>MinimumIoverSigma&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; minimum &lt;&lt;I&gt;/sd(&lt;I&gt;)&gt; (=~ signal/noise) [default 1.5]</li>
   <li>MinimumBatchIoverSigma&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
 minimum &lt;I/sd(I)&gt; (=~ signal/noise) [default 1.0, a smaller value
 as I/sd is before averaging]</li>
+  <li>MinimumHalfdatasetAnomCC&nbsp;&nbsp; minimum half-dataset CCanom [default 0.15]</li>
+
 
 </ul>
 <h3><a name="onlymerge"></a>ONLYMERGE </h3>
@@ -1226,7 +1270,10 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.3.11 Fixed nasty bug from XDS-&gt;Pointless giving Assertion failed: (sd &gt; 0.0), function Average<br>
+  <h2>RELEASE NOTES</h2>0.4.1
+Inflate sd(I) using estimated parameter errors from inverse normal
+matrix (see USESDPARAMETER). Fixed bug in TILE correction. Added curve fit for maximum resolution estimation<br>
+0.3.11 Fixed nasty bug from XDS-&gt;Pointless giving Assertion failed: (sd &gt; 0.0), function Average<br>
 0.3.10 Bug fixes. Also restrict run-run correlations to &lt; 200 runs.<br>
 0.3.9 Added matrix of run-run cross-correlations<br>
 0.3.8 bug fixes to make EXCLUDE BATCH &lt;range&gt; option work<br>
@@ -1317,6 +1364,7 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
 
 
 </body></html>

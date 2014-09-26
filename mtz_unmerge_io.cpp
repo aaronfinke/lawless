@@ -455,10 +455,29 @@ namespace MtzIO
                            (errormsg+"\n**** Incompatible symmetries ****"));
         }
         if (spacegroup_.Symbol_hm() != symmset.symbol_xHM()) {
-          // Changing symmetry for this file
-          output += "\nChanging spacegroup on input from "+
-            spacegroup_.Symbol_hm()+" to "+symmset.symbol_xHM()+
-            +" to match first file\n";
+          // Different space group, but same crystal system. What to do?
+          //  1) same point group, just change space group to first one, no reindexing here,
+          //     but maybe later (makecompatible) if axes are permuted
+          //  2) same point group, different lattice centering (eg C2 / I2), leave space
+          //     group unchanged, so that the makecompatible routine will fix this later
+          //  3) different point group but same centering (eg R3 / R32), change space group
+          //     to first one, but will be reindexed here on reading
+          char newlattype = spacegroup_.LatType();
+          char oldlattype = symmset.lattice_type();
+          bool sameLatType = (oldlattype == newlattype);
+          //      std::cout << "Lattice types, old, new: "<<oldlattype<<" " << newlattype <<"\n"; //^
+          // don't need   bool samePointGroup = symmset.equals_r(hkl_symmetry(spacegroup_));
+          if (sameLatType) {
+            // Changing symmetry for this file
+            output += "\nChanging spacegroup on input from "+
+              spacegroup_.Symbol_hm()+" to "+symmset.symbol_xHM()+
+              +" to match first file\n";
+          } else {
+            output += "\nWarning: spacegroup on input "+
+              spacegroup_.Symbol_hm()+" is not the same as "
+              +symmset.symbol_xHM()+" from first file\n";
+            symmset = hkl_symmetry(spacegroup_);
+          }
         }
       }
 
@@ -811,6 +830,7 @@ namespace MtzIO
     if (FileSym != hkl_list.symmetry()) {
       ChangeIndex = true;
       changeSymmetry = true;
+      //      std::cout << "Symmetry changing to " <<  hkl_list.symmetry().symbol_xHM() <<"\n"; //^^
     }
 
     // MAXNLATTICES is maximum number of lattices allowed
@@ -977,7 +997,7 @@ namespace MtzIO
       if (changeSymmetry) {
         //  reduce hkl to asymmetric unit
         int new_isym;
-        Hkl hkl_new = hkl_list.symmetry().put_in_asu(FileSym.get_from_asu(hkl,isym), new_isym);
+         Hkl hkl_new = hkl_list.symmetry().put_in_asu(FileSym.get_from_asu(hkl,isym), new_isym);
         if (new_isym != isym) {
           // changed from input
           ChangeIndex = true;

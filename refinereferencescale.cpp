@@ -83,7 +83,7 @@ namespace scala {
     return target;
   }
   // ---------------------------------------------------------
-  floatType    RefineReferenceScale::gradientFn(TNT::Vector<floatType>& grad)
+  floatType RefineReferenceScale::gradientFn(TNT::Vector<floatType>& grad)
   {
     if (!gradientOK) {
       TNT::Fortran_Matrix<floatType> H;

@@ -67,6 +67,12 @@ namespace scala {
     // FIXME set up scale normalisation flags from input if necessary
     scalenormrun = -1;
     bfacnormrun = -1;
+    normalisebfac = true;
+    nfreedom = -1; // no use of variance data
+    parametersdusage = input.getUSESDPARAMETER(); // set use flag from input
+    if (parametersdusage != scala::ScaleSpecification::NONE) {
+      nfreedom = 0; // will be set later
+    }
 
     for (int irun=0;irun<nruns;irun++) {
       if (scalenormrun < 0) {
@@ -94,18 +100,23 @@ namespace scala {
           }
         }
       }
+      if (relative_bfactors[irun].Number() == 0) {
+        // no Bfactor for this run, so no normalisation needed for any run
+        normalisebfac = false;
+      } else {
       // Bfactors
-      if (bfacnormbatch >= 0) {
-        if (bfacnormrun < 0) {
-          // Normalisation batch specified, is it in this run?
-          if (runlist[irun].IsInList(bfacnormbatch)) {
-            // Yes, locate it (index j)
-            std::vector<int> batchnums = runlist[irun].BatchList(true);
-            for (size_t i=0;i<batchnums.size();++i) {
-              if (batchnums[i] == bfacnormbatch) {
-                bfacnormbatch = i;
-                bfacnormrun = irun;
-                break;
+        if (bfacnormbatch >= 0) {
+          if (bfacnormrun < 0) {
+            // Normalisation batch specified, is it in this run?
+            if (runlist[irun].IsInList(bfacnormbatch)) {
+              // Yes, locate it (index j)
+              std::vector<int> batchnums = runlist[irun].BatchList(true);
+              for (size_t i=0;i<batchnums.size();++i) {
+                if (batchnums[i] == bfacnormbatch) {
+                  bfacnormbatch = i;
+                  bfacnormrun = irun;
+                  break;
+                }
               }
             }
           }
@@ -456,15 +467,21 @@ namespace scala {
   //--------------------------------------------------------------
   // If true, allow tile corrections to vary azimuthally
   // if false, force to be radially symmetric
-  void ScaleModel::symmetricTiles(const bool& symmetric)
+  // returns true if anything has changed
+  bool ScaleModel::symmetricTiles(const bool& symmetric)
   {
-    if (ndetscales <= 0) {return;} // no tiles
+    if (ndetscales <= 0) {return false;} // no tiles
     for (size_t i=0; i<detector_scales.size(); i++) {
       detector_scales[i].setSymmetric(symmetric);
     }
     // Recalculate number of parameters and indices etc
+    int npar0 = Nparameters();
     CountParameters();
     SetupTies();  // reset tie list
+    if (npar0 != Nparameters()) {
+      return true; // Nparameters has changed
+    }
+    return false;
   }
   //--------------------------------------------------------------
   void ScaleModel::setBatchReject(const std::vector<bool>& usebatch,
@@ -700,27 +717,46 @@ namespace scala {
         output.logTab(0,LOGFILE, detector_scales[0].formatTies());
       }
     }
+
+    // Parameter SD usage
+    std::string s;
+    if (parametersdusage == scala::ScaleSpecification::NONE) {
+        s = "Parameter variances will not be used for sigma(I) estimates";
+    } else if (parametersdusage == scala::ScaleSpecification::DIAGONAL) {
+        s = "Parameter variances (DIAGONAL) will be used for sigma(I) estimates";
+    } else if (parametersdusage == scala::ScaleSpecification::COVARIANCE) {
+        s = "Parameter covariances (COVARIANCE) will be used for sigma(I) estimates";
+    }
+    output.logTab(0,LOGFILE, "\n"+s);
+
     output.logTabPrintf(0,LOGFILE,"\n");
   }
   //--------------------------------------------------------------
-  std::string ScaleModel::PrintTwoWrappingLines(const std::vector<double>& v,
-                                                const std::string& t1,
-                                                const std::vector<int>& n,
-                                                const std::string& t2,
-                                                const int& fw,
-                                                const int& fd)
+  std::string ScaleModel::PrintWrappingLines(const std::vector<double>& v,
+                                             const std::string& t1,
+                                             const std::vector<double>& v2,
+                                             const std::string& t2,
+                                             const std::vector<int>& n,
+                                             const std::string& t3,
+                                             const int& fw,
+                                             const int& fd)
   // Print wrapping lines:
   //   line 1, values v (double), label t1
-  //   line 2, values n (int),    label t2
+  //   line 2, values v2 (int),   label t2  (optional, if size > 0)
+  //   line 3, values n (int),    label t3  (optional)
   //   fw  field width
   //   fd  number of decimal points for v
   {
     std::string ss;
-    int tlen = Max(t1.size(), t2.size()); // maximum label length
+    int tlen = Max(Max(t1.size(), t2.size()), t3.size()); // maximum label length
     const int PAGEWIDTH = 100; // characters across
     int nperline = (PAGEWIDTH - tlen - 1)/fw; // number/line
-    ASSERT (v.size() == n.size());
-
+    if (n.size() > 0) {
+      ASSERT (v.size() == n.size());
+    }
+    if (v2.size() > 0) {
+      ASSERT (v2.size() == v.size());
+    }
     int nitem = v.size();
     int i1 = 0; // 1st item in line
     while (i1 < nitem) {
@@ -732,10 +768,54 @@ namespace scala {
         ss += StringUtil::ftos(float(v[i]), fw, fd);
       }
       ss += "\n"; // end of line
+      // v2
+      if (v2.size() > 0) {
+        ss += StringUtil::LeftString(t2+":", tlen+1);
+        for (int i=i1;i<=i2;++i) {
+          ss += StringUtil::ftos(float(v2[i]), fw, fd);
+        }
+        ss += "\n"; // end of line
+      }
       // n
-      ss += StringUtil::LeftString(t2+":", tlen+1);
+      if (n.size() > 0) {
+        ss += StringUtil::LeftString(t3+":", tlen+1);
+        for (int i=i1;i<=i2;++i) {
+          ss += clipper::String(n[i], fw);
+        }
+        ss += "\n"; // end of line
+      }
+      i1 = i2+1;
+    }
+    return ss;
+  }
+  //--------------------------------------------------------------
+  std::string ScaleModel::PrintWrappingLinesWithSD(const std::vector<double>& v,
+                                                   const std::string& t1,
+                                                   const std::vector<double>& sds,
+                                                   const int& fw,
+                                                   const int& fd)
+  // Print wrapping lines as val(SD):
+  //   values v (double), label t1, sd(v) in sds
+  //   fw  field width
+  //   fd  number of decimal points for v
+  // Assume sd << v
+  {
+    ASSERT (sds.size() == v.size());
+    int nitem = v.size();
+    std::string ss;
+    int tlen = t1.size(); // label length
+    const int PAGEWIDTH = 100; // characters across
+    // each item will be of form xxx.ddd(sd)
+
+    // guess total field width to get number per line
+    int totfw = fw + 2 + fd; // allowing for brackets
+    int nperline = (PAGEWIDTH - tlen - 1)/totfw; // number/line
+    int i1 = 0; // 1st item in line
+    while (i1 < nitem) {
+      int i2 = Min(i1 + nperline, nitem) - 1; // last item in line
+      ss += StringUtil::LeftString(t1+":", tlen+1);
       for (int i=i1;i<=i2;++i) {
-        ss += clipper::String(n[i], fw);
+        ss += StringUtil::valueSD(v[i], sds[i], totfw, fw, fd);
       }
       ss += "\n"; // end of line
       i1 = i2+1;
@@ -743,10 +823,24 @@ namespace scala {
     return ss;
   }
   //--------------------------------------------------------------
+  std::vector<double> ScaleModel::extractSDs(const int& idxsd, const size_t& nsd) const
+  // extract nsd SDs from variance, beginning at index idxsd
+  {
+    std::vector<double> sds(nsd, 0.0);
+    for (size_t i=0;i<nsd;++i) {
+      if (varpar[idxsd + i] > 0.0) {
+        sds[i] = sqrt(varpar[idxsd + i]);
+      }
+    }
+    return sds;
+  }
+  //--------------------------------------------------------------
   void ScaleModel::PrintScales(phaser_io::Output& output)
-  // Print all scale parameters
+  // Print all scale parameters, with SDs if available
   {
     const int nperline = 10;
+    std::vector<double> sds;
+
     output.logTab(0,LOGFILE,"\nScale parameters:\n");
     for (size_t irun=0;irun<runnumbers.size();++irun) {
       output.logTabPrintf(0,LOGFILE,
@@ -756,15 +850,37 @@ namespace scala {
       std::vector<double> pscales = primary_scales[irun].Scales();
       for (size_t i=0;i<pscales.size();++i) {pscales[i]=1.0/pscales[i];}
       std::vector<int> nobsPar = primary_scales[irun].Nobservations();
-      output.logTab(0,LOGFILE,
-                    PrintTwoWrappingLines(pscales, "Scales", nobsPar, "Nobs",9,3));
+      if (nfreedom <= 0) {
+        sds.clear();
+        output.logTab(0,LOGFILE,
+                      PrintWrappingLines(pscales, "Scales", sds, "",
+                                         nobsPar, "Nobs",9,3));
+      } else {
+        sds = extractSDs(idxrun_primary_scales[irun], pscales.size());
+        for (size_t k=0; k<sds.size(); k++) {
+          // sd(k) = sd(1/g) = sd(g) * k^2
+          sds[k] *= pscales[k]*pscales[k];
+        }
+        output.logTab(0,LOGFILE,
+                      PrintWrappingLines(pscales, "Scales", sds, "Sd",
+                                         nobsPar, "Nobs",9,3));
+      }
       // B-factors
       std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
       nobsPar = relative_bfactors[irun].Nobservations();
       if (bfacs.size() > 0) {
         output.logTab(0,LOGFILE,"\nRelative B-factors and number of observations");
+      if (nfreedom <= 0) {
+        sds.clear();
         output.logTab(0,LOGFILE,
-                      PrintTwoWrappingLines(bfacs, "B-factors", nobsPar, "Nobs",9,3));
+                      PrintWrappingLines(bfacs, "B-factors", sds, "",
+                                         nobsPar, "Nobs",9,3));
+      } else {
+        sds = extractSDs(idxrun_bfactors[irun], bfacs.size());
+        output.logTab(0,LOGFILE,
+                      PrintWrappingLines(bfacs, "B-factors", sds, "Sd",
+                                         nobsPar, "Nobs",9,3));
+      }
         output.logTabPrintf(0,LOGFILE,"\n");
       }
     } // end run loop
@@ -772,16 +888,33 @@ namespace scala {
       output.logTab(0,LOGFILE,"Secondary scales");
       for (int j=0;j<nsecscales;++j) {
         std::vector<double> secsclpar = secondary_scales[j].Coefficients();
-        for (size_t i=0;i<secsclpar.size();++i) {
-          if (i%nperline == 0) {output.logTabPrintf(0,LOGFILE,"\n");}
-          output.logTabPrintf(0,LOGFILE," %9.3f", secsclpar[i]);
+        sds.clear();
+        if (nfreedom > 0) {
+          sds = extractSDs(idxrun_secondary[j], secsclpar.size());
+        };
+        if (nsecscales > 1) {
+          output.logTabPrintf(0,LOGFILE,"Scale set %3d\n",j+1);
+        }
+        std::vector<int> ndummy;
+        if (nfreedom <= 0) {
+          output.logTab(0,LOGFILE,
+                        PrintWrappingLines(secsclpar, "Coefficient", sds, "",
+                                            ndummy, "",7,3));
+        } else {
+          output.logTab(0,LOGFILE,
+                        PrintWrappingLinesWithSD(secsclpar,
+                        "Coefficient(Sd)", sds, 7,3));
         }
       }
     } // End Secondary
     if (ndetscales > 0) { // Tiles
       output.logTabPrintf(0,LOGFILE,"\n\n");
       for (int i=0;i<ndetscales;++i) {
-        output.logTab(0,LOGFILE,detector_scales[i].formatparameters());
+        sds.clear();
+        if (nfreedom > 0) {
+          sds = extractSDs(idxrun_detector[i], detector_scales[i].Number());
+        };
+        output.logTab(0,LOGFILE,detector_scales[i].formatparameters(sds));
       }
     }
     output.logTabPrintf(0,LOGFILE,"\n\n");
@@ -1103,6 +1236,21 @@ namespace scala {
       (nsecondaryscale > 0) || (ntilescale > 0);
   }
   //--------------------------------------------------------------
+  // Number of normalisation parameters: usually 2 (k,B);
+  //   1 if fixed Bfactors for any run; = 0 if not refineable
+  int ScaleModel::Nfilter() const
+  {
+    int nfilter = 0;
+    if (IsRefinable()) {
+      if (normalisebfac) {
+        nfilter = 2;
+      } else {
+        nfilter = 1;
+      }
+    }
+    return nfilter;
+  }
+  //--------------------------------------------------------------
   bool ScaleModel::isAllBatch() const
   // Return true if BATCH scales for all runs
   {
@@ -1128,8 +1276,16 @@ namespace scala {
   // if onlyUseSingletons true, do not attempt to apply scales to overlaps
   {
     int irun = obs.run();
-    double g = ScaleFactor(irun, obs, invresolsq); // main scale
-    obs.SetGscale(g);
+    double g, varg;
+    if (nfreedom <= 0) {
+      g = ScaleFactor(irun, obs, invresolsq); // main scale
+      obs.SetGscale(g);
+    } else {
+      std::vector<double> dghldp;
+      g =  ScaleFactorDeriv(irun, obs, invresolsq, dghldp);
+      varg = VarScale(dghldp);
+      obs.SetGscaleVar(g, varg);
+    }
 
     // For multiple lattice observations, get appropriate inverse scale factors
     if (!obs.IsSingleton() && !onlyUseSingletons) {
@@ -1146,12 +1302,24 @@ namespace scala {
       for (size_t l=0; l<lathkl.size(); l++) {
         int latnum = lathkl[l].latnum;
         if (latnum > 0) {
-          double glat = 0.0;
+          double grel = 0.0;   // relative scale, g(latticeN)/g(latticeMain)
+          double sdgrel = 0.0;
           int jscale = idxrunlattice[latnum-1];
           if (jscale >= 0) {
-            glat = ScaleFactor(jscale, obs, invresolsq);
+            if (nfreedom <= 0) {
+              grel = ScaleFactor(jscale, obs, invresolsq) / g;
+            } else {
+              std::vector<double> dghldp;
+              double glat = ScaleFactorDeriv(jscale, obs, invresolsq, dghldp);
+              double varglat = VarScale(dghldp);
+              grel = glat / g;
+              // Var(grel)/grel = Var(glat)/glat + Var(g)/g
+              sdgrel = sqrt(grel*(varglat/glat + varg/g));
+            }
           }
-          lathkl[l].gscale = glat/g;  // relative lattice fraction from scales
+          lathkl[l].gscale = grel;      // relative lattice fraction from scales
+          lathkl[l].sdgscale = sdgrel;  // sd(relative lattice fraction)
+
           //^
           //      std::cout << "  lattice " << latnum << " " <<
           //        lathkl[l].hkl.format() << " g " << glat <<
@@ -1164,8 +1332,54 @@ namespace scala {
     return g;
   }
   //--------------------------------------------------------------
+  ////  double ScaleModel::VarScale(const std::vector<double>& dghldp) const
+  double ScaleModel::VarScale(const std::vector<double>& dghldp) const
+  // Variance(gscale)
+  {
+    double varg = 0.0;
+    if (parametersdusage == scala::ScaleSpecification::DIAGONAL) {
+      ASSERT (nfreedom > 0);
+      //      if (dghldp.size() != varpar.size()) { //^^
+      //        std::cout << "VarScale " << dghldp.size() <<" "<< varpar.size()<<"\n";
+      //      }
+      ASSERT (dghldp.size() == varpar.size());
+      // Diagonal approximation: Var(g) = Sum (dghldp[i]^2 * Var(p[i]))
+      for (size_t i=0; i<dghldp.size(); i++) {
+        if (dghldp[i] != 0.0) {
+          varg += dghldp[i] * dghldp[i] * varpar[i];
+          //      if (DEBUG) { //^^
+          //        std::string ptype = ScaleParameterTypeString(GetParameterType()[i]);
+          //        std::cout << "Par " << i <<", type "<<ptype
+          //                  <<", varpar "<<varpar[i]<<", dghldp "<<dghldp[i]
+          //                  << ", Delvarg "<<dghldp[i] * dghldp[i] * varpar[i]
+          //                  <<", varg "<<varg<<"\n";
+          //      }
+        }
+      }
+    } else if (parametersdusage == scala::ScaleSpecification::COVARIANCE) {
+      ASSERT (nfreedom > 0);
+      ASSERT (dghldp.size() == varpar.size());
+      // Full covariance matrix:
+      //   Var(g) = (dghldp)T [VC] (dghldp)
+      double v;
+      for (size_t k=0; k<dghldp.size(); k++) {
+        if (dghldp[k] != 0.0) {
+          v = 0.0;
+          for (size_t j=0; j<dghldp.size(); j++) {
+            if (dghldp[j] != 0.0) {
+              v += VC(k,j) * dghldp[j];  // {[VC](dghldp)}[k]
+            }
+          }
+          varg += dghldp[k] * v;
+        }
+      }
+    }
+    return varg;
+  }
+  //--------------------------------------------------------------
   double ScaleModel::ScaleFactor(const int& jscale,
-                              const observation& obs, const Rtype& invresolsq) const
+                                 const observation& obs,
+                                 const Rtype& invresolsq) const
   // Returns scale for observation, using scale set jscale (== irun for main observation
   {
     double g = 1.0;
@@ -1213,28 +1427,37 @@ namespace scala {
   {
     // Run
     int irun = obs.run();
-    double g = 1.0;
     ASSERT (obs.IsSingleton()); // otherwise trouble!
-
+                                // called here from refinement, which can't handle overlaps
+    double g = ScaleFactorDeriv(irun, obs, invresolsq, dghldp);
+    obs.SetGscale(g);
+    return g;
+  }
+  //--------------------------------------------------------------
+  double ScaleModel::ScaleFactorDeriv(const int& jscale,
+                                      observation& obs,
+                                      const Rtype& invresolsq,
+                                      std::vector<double>& dghldp) const
+  // Returns scale for observation, using scale set jscale (== irun for main observation
+  // and partial derivative vector d(ghl)/dp
+  {
     dghldp.assign(nparameters, 0.0);
-
-
     double ps;    // Primary scale
     std::vector<double> dgdpm;  // derivatives for this run only
-    if (primary_scales[irun].IsBatchScale()) {
-      ps = primary_scales[irun].ScaleDeriv(obs.Batch(), dgdpm);
+    if (primary_scales[jscale].IsBatchScale()) {
+      ps = primary_scales[jscale].ScaleDeriv(obs.Batch(), dgdpm);
     } else {
-      ps = primary_scales[irun].ScaleDeriv(obs.phi(), dgdpm);
+      ps = primary_scales[jscale].ScaleDeriv(obs.phi(), dgdpm);
     }
 
     // B-factor scale
     std::vector<double> dgdB;  // derivatives for this run only
     double bs = 1.0;
-    if (relative_bfactors[irun].Number() > 0) {
-      if (relative_bfactors[irun].IsBatchBfactor()) {
-        bs = relative_bfactors[irun].BfactorScaleDeriv(obs.Batch(), invresolsq, dgdB);
+    if (relative_bfactors[jscale].Number() > 0) {
+      if (relative_bfactors[jscale].IsBatchBfactor()) {
+        bs = relative_bfactors[jscale].BfactorScaleDeriv(obs.Batch(), invresolsq, dgdB);
       } else {
-        bs = relative_bfactors[irun].BfactorScaleDeriv(obs.time(), invresolsq, dgdB);
+        bs = relative_bfactors[jscale].BfactorScaleDeriv(obs.time(), invresolsq, dgdB);
       }
     }
 
@@ -1242,12 +1465,12 @@ namespace scala {
     double ss = 1.0;
     std::vector<double> dgds;  // derivatives for this run only
     if (nsecscales > 0) {
-      if (sec_scale_index_run[irun] >= 0) {
+      if (sec_scale_index_run[jscale] >= 0) {
         // Return scale & derivatives for secondary beam directions
         // polar angles thetap, phip (calculated in ScaleModel constructor)
         double thetap, phip;
         obs.GetS2(thetap, phip);
-        int k = sec_scale_index_run[irun];
+        int k = sec_scale_index_run[jscale];
         ss = secondary_scales[k].ScaleDeriv(thetap, phip, dgds);
       }
     }
@@ -1256,8 +1479,8 @@ namespace scala {
     double ds = 1.0;
     std::vector<double> dgdd;  // derivatives for this run only
     if (ndetscales > 0) {
-      if (detector_scale_index_run[irun] >= 0) {
-        ds = detector_scales[detector_scale_index_run[irun]].
+      if (detector_scale_index_run[jscale] >= 0) {
+        ds = detector_scales[detector_scale_index_run[jscale]].
           ScaleDeriv(obs.XYdet(), dgdd);
       }
     }
@@ -1267,21 +1490,21 @@ namespace scala {
       dgdpm[i] *= bs * ss *ds;
     }
     std::copy(dgdpm.begin(), dgdpm.end(),
-              dghldp.begin() + idxrun_primary_scales[irun]);
+              dghldp.begin() + idxrun_primary_scales[jscale]);
 
     // dghl/dp = dg(B)/dp * ps * ss * ds
     for (size_t i=0;i<dgdB.size();++i) {
       dgdB[i] *= ps * ss * ds;
     }
     std::copy(dgdB.begin(), dgdB.end(),
-              dghldp.begin()+idxrun_bfactors[irun]);
+              dghldp.begin()+idxrun_bfactors[jscale]);
 
     if (nsecscales > 0) {
       // dghl/dp = dg(sec)/dp * ps * bs
       for (size_t i=0;i<dgds.size();++i) {
         dgds[i] *= ps * bs * ds;
       }
-      int k = sec_scale_index_run[irun];
+      int k = sec_scale_index_run[jscale];
       std::copy(dgds.begin(), dgds.end(), dghldp.begin()+idxrun_secondary[k]);
     }
 
@@ -1290,13 +1513,11 @@ namespace scala {
       for (size_t i=0;i<dgdd.size();++i) {
         dgdd[i] *= ps * bs * ss;
       }
-      int k = detector_scale_index_run[irun];
+      int k = detector_scale_index_run[jscale];
       std::copy(dgdd.begin(), dgdd.end(), dghldp.begin()+idxrun_detector[k]);
     }
-
-    g = ps*bs*ss*ds;
+    double g = ps*bs*ss*ds;
     obs.SetGscale(g);
-
     return g;
   }
   //--------------------------------------------------------------
@@ -1327,40 +1548,42 @@ namespace scala {
       primary_scales[irun].StoreScales(pscales);
     }
     // B-factors
-    double bfnorm = -1000000.;
-    if (bfacnormbatch >= 0) {
-      // Normalisation batch specified
-      bfnorm = relative_bfactors[bfacnormrun].Bfactors()[bfacnormbatch];
-    } else {
-      // Find largest Bfactor
-      for (int irun=0;irun<nruns;irun++) {
-        //  B-factors for this run
-        std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
-        // Normalisation on "best" batch: if smoothed Bfactors && > 2, omit first & last
-        int i1 = 0;
-        int i2 = bfacs.size();
-        if (!relative_bfactors[irun].IsBatchBfactor() &&
-            i2 > 2) {
-          // ... but for smoothed values add in the mean of first & last pairs
-          double bf = 0.5 * (bfacs[0] + bfacs[1]);
-          bfnorm = Max(bfnorm, bf);
-          bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
-          bfnorm = Max(bfnorm, bf);
-          i1 = 1;  // now omit 1st & last
-          i2--;
-        }
-        for (int i=i1;i<i2;++i) {
-          bfnorm = Max(bfnorm, bfacs[i]);
-        }
-      } // end loop runs
-      if (bfnorm > -999999.) {
+    if (normalisebfac) {  // only if all runs have variable B-factors
+      double bfnorm = -1000000.;
+      if (bfacnormbatch >= 0) {
+        // Normalisation batch specified
+        bfnorm = relative_bfactors[bfacnormrun].Bfactors()[bfacnormbatch];
+      } else {
+        // Find largest Bfactor
         for (int irun=0;irun<nruns;irun++) {
           //  B-factors for this run
           std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
-          for (size_t i=0;i<bfacs.size();++i) {
-            bfacs[i] -= bfnorm;
+          // Normalisation on "best" batch: if smoothed Bfactors && > 2, omit first & last
+          int i1 = 0;
+          int i2 = bfacs.size();
+          if (!relative_bfactors[irun].IsBatchBfactor() &&
+              i2 > 2) {
+            // ... but for smoothed values add in the mean of first & last pairs
+            double bf = 0.5 * (bfacs[0] + bfacs[1]);
+            bfnorm = Max(bfnorm, bf);
+            bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
+            bfnorm = Max(bfnorm, bf);
+            i1 = 1;  // now omit 1st & last
+            i2--;
           }
-          relative_bfactors[irun].StoreBfactors(bfacs);
+          for (int i=i1;i<i2;++i) {
+            bfnorm = Max(bfnorm, bfacs[i]);
+          }
+        } // end loop runs
+        if (bfnorm > -999999.) {
+          for (int irun=0;irun<nruns;irun++) {
+            //  B-factors for this run
+            std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
+            for (size_t i=0;i<bfacs.size();++i) {
+              bfacs[i] -= bfnorm;
+            }
+            relative_bfactors[irun].StoreBfactors(bfacs);
+          }
         }
       }
     }
@@ -1483,6 +1706,29 @@ namespace scala {
     return false;
   }
   //--------------------------------------------------------------
+  //! store parameter variance information
+  void ScaleModel::storeParameterVariances
+  (const TNT::Fortran_Matrix<floatType>& H,
+   const double& wd2in,
+   const int& nminusm)
+  {
+    ASSERT (H.dim(1) == H.dim(2));
+    int Np = H.dim(1);  // dimension = number of parameters
+    ASSERT (Np == nparameters);
+    VC.resize(Np,Np);
+    varpar.resize(Np);
+    wd2 = wd2in;
+    nfreedom = nminusm;
+
+    double scale = wd2/double(nfreedom);
+    for (int i=0;i<Np;++i) {
+      varpar[i] = scale * H(i+1,i+1);  // H indexed from 1
+      for (int j=0;j<Np;++j) {
+        VC(i,j) = scale * H(i+1,j+1);
+      }
+    }
+  }
+  //--------------------------------------------------------------
   std::string ScaleModel::FormatSave(const std::vector<Run>& runlist) const
   // Format scalemodel for dump/restore
   //  runlist  runs to be saved
@@ -1550,6 +1796,16 @@ namespace scala {
     ds += "Bfacnormrun "+ clipper::String(bfacnormrun)+"\n";
     ds += "Bfacnormbatch "+ clipper::String(bfacnormbatch)+"\n";
 
+    // SD estimates
+    // Variance/covariance information
+    ds += "Variances{\n";
+    ds += "Nparameters"+clipper::String(nparameters)+"\n";
+    ds += "nfreedom "+clipper::String(nfreedom)+"\n";
+    ds += "wD2 "+clipper::String(wd2)+"\n";
+    ds += "ParameterVariance\n"+StringUtil::FormatSaveVector(varpar)+"\n";
+    ds += "VarianceCovariance {\n";
+    ds += StringUtil::FormatSaveArray(VC)+"\n";
+    ds += "}\n}\n";
     return ds+"}\n";
   }
   //--------------------------------------------------------------
@@ -1671,6 +1927,26 @@ namespace scala {
     FR.ReadTag("Bfacnormbatch"); bfacnormbatch = FR.Int();
 
     CountParameters(); // set parameter counts etc
+
+    // Read (optional) variances for nparameters
+    if (FR.GetTag() != "Variances") { // variances present
+      FR.ReadTag("Nparameters"); int npar = FR.Int();
+      if (npar != nparameters) {
+        clipper::Message::message(Message_fatal
+          ("RESTORE Variances: wrong number of parameters "+
+           clipper::String(npar)+", "+clipper::String(nparameters)));
+      }
+      FR.ReadTag("nfreedom"); nfreedom = FR.Int();
+      FR.ReadTag("wD2"); wd2 = FR.Double();
+      FR.ReadTag("ParameterVariance"); varpar = FR.DoubleVec(nparameters);
+      FR.ReadTag("VarianceCovariance"); FR.Skip();
+      VC = FR.Array2d(nparameters,nparameters);
+      if (!FR.CheckEnd()) {
+        clipper::Message::message(Message_warn
+                                  ("Restore error missing '}'"));
+      }
+    }
+
     scalesin.close();
   }
   //--------------------------------------------------------------

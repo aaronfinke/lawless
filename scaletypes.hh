@@ -476,6 +476,9 @@ namespace scala {
 			   lmax(4), lmaxodd(3), pole(-1),
 			   ntilex(-1), ntiley(-1),
 			   detectorscaletype(DetectorScale::NONE) {}
+
+    enum ParameterSDusage {NONE, DIAGONAL, COVARIANCE};
+
     void dump() const;
 
     void SetConstant(const int& irun=-1); // SCALES CONSTANT

@@ -21,7 +21,7 @@ namespace phaser {
 
 
 
-// The getalogch function is now encapsulated in the auxiliary class, Alogch, instantiated 
+// The getalogch function is now encapsulated in the auxiliary class, Alogch, instantiated
 // by DataMR for the sake of thread safety
 class Alogch
 {
@@ -42,7 +42,7 @@ public:
 };
 
 
-// The getalogI0 function is now encapsulated in the auxiliary class, AlogchI0, instantiated 
+// The getalogI0 function is now encapsulated in the auxiliary class, AlogchI0, instantiated
 // by DataMR for the sake of thread safety
 class AlogchI0
 {
@@ -73,4 +73,3 @@ public:
 }//end namespace phaser
 
 #endif
-

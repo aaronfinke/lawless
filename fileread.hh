@@ -9,6 +9,9 @@
 #include <fstream>
 #include <vector>
 
+// Clipper
+#include <clipper/clipper.h>
+
 class Fileread {
 public:
   //! Constructor from input stream object & label for errors
@@ -55,6 +58,9 @@ public:
   //! read double vector length N
   std::vector<double> DoubleVec(const int& N) const;
 
+  //! read Array2d Nrows, Ncols
+  clipper::Array2d<double> Array2d(const int& Nrows,
+				   const int& Ncols) const;
 
 private:
   std::string label;     // label for any error messages

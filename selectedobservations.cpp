@@ -247,7 +247,7 @@ namespace scala
         Nused++;
         g = this_ref->get_observation(i).Gscale();
         Rtype sd = this_ref->get_observation(i).sigI();
-	ASSERT (sd > 0.0);
+        ASSERT (sd > 0.0);
         w = Weight(sd, g);   // weight according to weighttype
         wgI[i] = w * g * this_ref->get_observation(i).I();
         sumwgI += wgI[i];

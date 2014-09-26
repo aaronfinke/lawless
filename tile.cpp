@@ -558,10 +558,6 @@ namespace scala {
       for (int j=0;j<ntiley;++j) { // loop y
         pos2 = pos1 + tilescales(i,j)->Nparams();
         tilescales(i,j)->StoreParameters(std::vector<double>(pos1, pos2));
-        //^
-        //      std::cout << "Tile "<<i<<" "<<j
-        //                <<" "<<tilescales(i,j)->formatparameters()<<"\n";
-        //^-
         pos1 = pos2;
       }}
   }
@@ -728,18 +724,19 @@ namespace scala {
     double Xt = XYdet.first - xdrange.bounds(xtile).first;
     double Yt = XYdet.second - ydrange.bounds(ytile).first;
     //^
-    //    std::cout << "xtl,ytl,Xt,Yt " << xtile <<" "<<ytile<<" "<<Xt<<" "<<Yt<<"\n";
-
+    //    std::cout << "xtl,ytl,Xt,Yt " << xtile <<" "<<ytile<<" "<<Xt<<" "<<Yt<<std::endl;
     // get scales & optional derivatives
     std::vector<double> dgdt;
     tilescales(xtile,ytile)->ScaleDeriv(Deriv, Xt, Yt, scale, dgdt);
     dgdp.assign(nparams,0.0);
     std::copy(dgdt.begin(), dgdt.end(), dgdp.begin()+idx_tile(xtile,ytile));
     //^
-    //    std::cout << "DetectorScale::ScaleDeriv "
-    //        << Xt <<" "<<Yt<<"\n";
-    //    for (size_t i=0;i<dgdp.size();++i) {std::cout <<" "<<dgdp[i];}
-    //    std::cout <<"\n";
+    //    if (DEBUG) {
+    //      std::cout << "DetectorScale::ScaleDeriv "
+    //          << Xt <<" "<<Yt<<"\n";
+    //      for (size_t i=0;i<dgdp.size();++i) {std::cout <<" "<<dgdp[i];}
+    //      std::cout <<"\n";
+    //    }
     //^-
   }
   //--------------------------------------------------------------
@@ -762,7 +759,7 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
-  std::string DetectorScale::formatparameters() const
+  std::string DetectorScale::formatparameters(const std::vector<double>& sds) const
   //! format parameters for printing
   {
     std::string s = "\n";
@@ -773,8 +770,13 @@ namespace scala {
       " tiles\n";
     s += tilescales(ntilex/2, ntiley/2)->formattype()+"\n";
 
-    s += "    Tile parameters arranged with Xdet across and Ydet down\n";
-    s += "    Numbers in the corners are the number of observations contributing to the scales\n";
+    if (detectorscaletype != PIXEL) {
+      s += "    Tile parameters arranged with Xdet across and Ydet down\n";
+      if (detectorscaletype == CCD1 ||detectorscaletype == CCD2 ||detectorscaletype == CCD3) {
+        s += "    Numbers in the corners are the number of observations contributing to the scales\n";
+      }
+    }
+    int npartile = NparamsTile() ;
 
     // tile scale
     for (int j=0;j<ntiley;++j) { // loop y
@@ -782,7 +784,11 @@ namespace scala {
       // these should all have the same number of lines
       std::vector<std::vector<std::string> > sxtiles(ntilex);
       for (int i=0;i<ntilex;++i) { // loop x
-        sxtiles[i] = tilescales(i,j)->formatparameters();
+        // SDs for this tile: note that in parameter list tile loops are x, then y (fast)
+        //  so tile number is i*ntilex + j
+        int idx1 = (i*ntilex + j) * npartile;
+        std::vector<double> sdstile(sds.begin()+idx1, sds.begin()+idx1+npartile);
+        sxtiles[i] = tilescales(i,j)->formatparameters(sdstile);
         if (i>0) {
           ASSERT (sxtiles[i].size() == sxtiles[0].size());
         }
@@ -1194,12 +1200,47 @@ namespace scala {
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> CCDTile3::formatparameters() const
-  //! format parameters for printing
+  std::vector<std::string>
+  CCDTile3::format5(const bool& hasSd, const double& v0, const double& sd,
+                    const FourierSmooth& vfs, const std::vector<double>& sdfs,
+                    const int& width, const std::string& label) const
+  // format v0{vfs} with optional sds on 2nd line
   {
+    std::vector<std::string> lines;
+    std::string line;
+    if (hasSd) {
+      line = StringUtil::Strip(StringUtil::ftos(v0,6,2));
+    } else {
+      line = StringUtil::Strip(StringUtil::valueSD(v0,sd,0,6,2));
+    }
+    line += vfs.format();
+    line = "| "+ StringUtil::CentreString(label+"="+line, width-4) + " |";
+    lines.push_back(line);
+    if (hasSd) {
+      std::string s;
+      int nsmooth = sdfs.size();
+      for (int i=0;i<nsmooth;++i) {
+        s += StringUtil::ftos(sdfs[i],6,2);
+        if (i < nsmooth-1) {s += ",";}
+      }
+      line = "| "+ StringUtil::CentreString("SDs("+StringUtil::Strip(s)+")", width-4) + " |";
+      lines.push_back(line);
+    }
+
+    return lines;
+  }
+  //--------------------------------------------------------------
+  std::vector<std::string> CCDTile3::formatparameters(const std::vector<double>& sds) const
+  //! format parameters for printing
+  // Parameter order: r0, w0, A0, rfs(4), wfs(4), Afs(4)
+  {
+    int nsds = sds.size(); // number of SDs given, if any
+    if (nsds > 0 ) {
+      ASSERT (nsds == nparams);
+    }
     std::vector<std::string> s;
     std::string line;
-    int width = 34; // width of window
+    int width = 37; // width of window
     line = "";
     for (int i=0;i<width;++i) {line += "-";};
     s.push_back(line);
@@ -1212,24 +1253,40 @@ namespace scala {
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
     s.push_back(line);
+
+    std::vector<std::string> lines;
     // r, w, A
-    line = "| "+
-      StringUtil::CentreString(("r="+StringUtil::Strip(StringUtil::ftos(r0,6,2))
-                                +rfs.format()), width-4)+
-      " |";
-    s.push_back(line);
-    line = "| "+
-      StringUtil::CentreString(("w="+StringUtil::Strip(StringUtil::ftos(w0,6,2))
-                                +wfs.format()), width-4)+
-      " |";
-    s.push_back(line);
-    line = "| "+
-      StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
-                                +Afs.format()), width-4)+
-      " |";
-    s.push_back(line);
+    int idxfs = 3;  // index for first radial variation parameter (rfs)
+    int nfs = 4;    // number of fs parameters
+    bool hasSd = (nsds > 0);
+    double sd = 0.0;
+    std::vector<double> sdfs;
+    if (hasSd) {
+      sd = sds[0];  // r0
+      sdfs.assign(sds.begin()+idxfs, sds.begin()+idxfs+nfs);
+    }
+    lines = format5(hasSd, r0, sd, rfs, sdfs, width, "r");
+    s.insert(s.end(),lines.begin(), lines.end());
+
+    if (hasSd) {
+      sd = sds[1]; // w0
+      idxfs += nfs;
+      sdfs.assign(sds.begin()+idxfs, sds.begin()+idxfs+nfs);
+    }
+    lines = format5(hasSd, r0, sd, wfs, sdfs, width, "w");
+    s.insert(s.end(),lines.begin(), lines.end());
+
+    if (hasSd) {
+      sd = sds[2]; // A0
+      idxfs += nfs;
+      sdfs.assign(sds.begin()+idxfs, sds.begin()+idxfs+nfs);
+    }
+    lines = format5(hasSd, A0, sd, Afs, sdfs, width, "A");
+    s.insert(s.end(),lines.begin(), lines.end());
+
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
     s.push_back(line);
+
     // counts for bottom corners
     line = "| "+
       StringUtil::LeftString(StringUtil::Strip(StringUtil::itos(ncorners(0,0),6)),6)+
@@ -1515,12 +1572,17 @@ namespace scala {
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> CCDTile1::formatparameters() const
+  std::vector<std::string> CCDTile1::formatparameters(const std::vector<double>& sds) const
   //! format parameters for printing
+  // Parameter order r,w,A,x0,y0
   {
+    int nsds = sds.size(); // number of SDs given, if any
+    if (nsds > 0 ) {
+      ASSERT (nsds == nparams);
+    }
     std::vector<std::string> s;
     std::string line;
-    int width = 32; // width of window
+    int width = 34; // width of window
     line = "";
     for (int i=0;i<width;++i) {line += "-";};
     s.push_back(line);
@@ -1534,17 +1596,25 @@ namespace scala {
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
     s.push_back(line);
     // r, w, A
-    line = "| "+
-      StringUtil::CentreString(("r="+StringUtil::ftos(r,6,2)+
-                                ", w="+StringUtil::ftos(w,6,2)+
-                                ", A="+StringUtil::ftos(A,6,2)), width-4)+
-      " |";
+    if (nsds == 0) {
+      line = "r="+StringUtil::ftos(r,6,2)+
+        ", w="+StringUtil::ftos(w,6,2)+
+        ", A="+StringUtil::ftos(A,6,2);
+    } else {
+      line = "r="+StringUtil::valueSD(r,sds[0],0,6,2)+
+        ", w="+StringUtil::valueSD(w,sds[1],0,6,2)+
+        ", A="+StringUtil::valueSD(A,sds[2],0,6,2);
+    }
+    line = "| "+ StringUtil::CentreString(StringUtil::Strip(line), width-4)+ " |";
     s.push_back(line);
-    line = "| "+
-      StringUtil::CentreString
-      (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
-        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
-      " |";
+    if (nsds == 0) {
+      line ="Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
+        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2));
+    } else {
+      line ="Tile centre: "+StringUtil::Strip(StringUtil::valueSD(x0,sds[3],0,7,2))+
+        ", "+StringUtil::Strip(StringUtil::valueSD(y0,sds[4],0,7,2));
+    }
+    line = "| "+ StringUtil::CentreString(line, width-4)+ " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
     s.push_back(line);
@@ -1908,12 +1978,17 @@ namespace scala {
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> CCDTile2::formatparameters() const
+  std::vector<std::string> CCDTile2::formatparameters(const std::vector<double>& sds) const
   //! format parameters for printing
+  // Parameter order: r,w,A0,x0,y0,A(fourier)
   {
+    int nsds = sds.size(); // number of SDs given, if any
+    if (nsds > 0 ) {
+      ASSERT (nsds == nparams);
+    }
     std::vector<std::string> s;
     std::string line;
-    int width = 35; // width of window
+    int width = 37; // width of window
     line = "";
     for (int i=0;i<width;++i) {line += "-";};
     s.push_back(line);
@@ -1926,26 +2001,48 @@ namespace scala {
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
     s.push_back(line);
-    // r, w, A
-    line = "| "+
-      StringUtil::CentreString("r="+StringUtil::ftos(r,6,2)+
+    // r, w
+    if (nsds == 0) {
+      line = "| "+
+        StringUtil::CentreString("r="+StringUtil::ftos(r,6,2)+
                                ", w="+StringUtil::ftos(w,6,2), width-4)+" |";
-    s.push_back(line);
-    if (circularlysymmetric) {
+    } else { // with sds
       line = "| "+
-        StringUtil::CentreString("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2)), width-4)+
-      " |";
-    } else {
-      line = "| "+
-        StringUtil::CentreString(("A="+StringUtil::Strip(StringUtil::ftos(A0,6,2))
-                                  +Afs.format()), width-4)+
-        " |";
+        StringUtil::CentreString("r="+StringUtil::valueSD(r,sds[0],0,6,2)+
+                                 ", w="+StringUtil::valueSD(w,sds[1],0,6,2), width-4)+" |";
     }
     s.push_back(line);
+    // A0 (parameter 2), 4 Fourier terms (parameters 5-8)
+    if (nsds == 0) {
+      line = StringUtil::Strip(StringUtil::ftos(A0,6,2));
+    } else {
+      line = StringUtil::Strip(StringUtil::valueSD(A0,sds[2],0,6,2));
+    }
+    if (!circularlysymmetric) {
+      line += Afs.format();
+    }
+    line = "| "+ StringUtil::CentreString("A="+line, width-4) + " |";
+    s.push_back(line);
+    if (nsds > 0 && !circularlysymmetric) {
+      line = "";
+      for (int i=0;i<4;++i) { // parameters 5-8
+        line += StringUtil::ftos(sds[i+5],6,2);
+        if (i < 3) {line += ",";}
+      }
+      line = "| "+ StringUtil::CentreString("SDs("+StringUtil::Strip(line)+")", width-4) + " |";
+      s.push_back(line);
+    }
+
+    if (nsds == 0) {
+      line = StringUtil::Strip(StringUtil::ftos(x0,7,2))+
+        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2));
+    } else {
+      line = StringUtil::Strip(StringUtil::valueSD(x0,sds[3],0,7,2))+
+        ", "+StringUtil::Strip(StringUtil::valueSD(y0,sds[4],0,7,2));
+    }
     line = "| "+
       StringUtil::CentreString
-      (("Tile centre: "+StringUtil::Strip(StringUtil::ftos(x0,7,2))+
-        ", "+StringUtil::Strip(StringUtil::ftos(y0,7,2))), width-4)+
+      ("Tile centre: "+line, width-4)+
       " |";
     s.push_back(line);
     line = "| "+ StringUtil::PadString(" ",width-4)+ " |"; // "blank" line
@@ -2086,7 +2183,7 @@ namespace scala {
     std::vector<double> dsdp(nparams); // nparams >= 3
     // df/dz = -(1/sqrt(pi))exp(-z^2); ds/dz = A df/dz
     double twooverrootpi = 2.0/sqrt(clipper::Util::pi()); // 2/sqrt(pi)
-    double dsdz = - A_ * twooverrootpi * exp(z_*z_);
+    double dsdz = - A_ * twooverrootpi * exp(-z_*z_);
     dsdp[0] = - dsdz/w;          // ds/dr = -ds/dd
     dsdp[1] = dsdp[0] *(1.0 + 0.5*z_);  // ds/dw
     dsdp[2] = fz - 1.0;                // ds/dA
@@ -2155,11 +2252,17 @@ namespace scala {
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> FlatTile::formatparameters() const
+  std::vector<std::string> FlatTile::formatparameters(const std::vector<double>& sds) const
   //! format parameters for printing
   {
-    std::vector<std::string> s(1,"  Tile scale: "+StringUtil::ftos(scale,8,3));
-    return s;
+    if (sds.size() == 0) {
+      std::vector<std::string> s(1,"  Tile scale: "+StringUtil::ftos(scale,8,3));
+      return s;
+    } else {
+      std::vector<std::string> s(1,"  Tile scale: "+
+                                 StringUtil::valueSD(scale,sds[0],0,8,3));
+      return s;
+    }
   }
   //--------------------------------------------------------------
   // Format all information into a labelled save format for later restoration
@@ -2204,6 +2307,10 @@ namespace scala {
     njy = ymax/ngpxlY;
 
     nparams = njx * njy;
+    //^
+    //    std::cout << "TilePixel::init " << Xmax<<" "<<Ymax<<" "
+    //        <<njx <<" "<<njy<<std::endl;
+    //^-
 
     scalexy.resize(njx, njy, 1.0);  // set all scales to 1.0
   }
@@ -2279,11 +2386,13 @@ namespace scala {
   //! format scale type for printing
   {
     std::string text = format()+"\n\n";
-    text += "   Determine independent scale for each pixel\n";
+    text += "   Independent scale determined for each group of "+
+      StringUtil::Strip(StringUtil::itos(ngpxlX, 5))+" x "+
+      StringUtil::Strip(StringUtil::itos(ngpxlY, 5))+ " pixels\n";
     return text;
   }
   //--------------------------------------------------------------
-  std::vector<std::string> TilePixel::formatparameters() const
+  std::vector<std::string> TilePixel::formatparameters(const std::vector<double>& sds) const
   //! format parameters for printing
   {
     std::vector<std::string> s;

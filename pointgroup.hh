@@ -234,7 +234,8 @@ namespace CCtbxSym
     void SetCellDiff(const double& diff) {Cell_Diff = diff;}
     double CellDiff() const;
 
-    char GetLatType() const;
+    char GetLatType() const; // for reference cell
+    char OriginalLatType() const; // for original cell
 
     // Find list of cells close to target cell cell_target,
     //   within diff_tolerance

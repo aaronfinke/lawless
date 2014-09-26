@@ -296,7 +296,7 @@ namespace scala {
       isym_(isym_in), run_(run_in), datasetIndex_(datasetIndex_in),
       Npart_(Npart_in), part1(part1_in), batch_(0),
       totalfraction(TotFrac), part_flag(partialstatus_in), obs_flag(obsflag_in),
-      gscale(1.0), latnum(latnum_in), lathkl_(lathkl_in)
+      gscale(1.0), vargscale(-1.0), latnum(latnum_in), lathkl_(lathkl_in)
   {
     // By default here reject if any flag set
     // This observation may be accepted later if the flags pass a conditional test
@@ -338,6 +338,26 @@ namespace scala {
   // Central batch number
   int observation::Batch() const
   {return batch_;}
+  //--------------------------------------------------------------
+  // return scaled sigI
+  Rtype observation::ksigI() const
+  //
+  {
+    if (vargscale <= 0.0) {
+      return sigI_/gscale;
+    }
+    Rtype scI = kI();
+    return sqrt(sigI_*sigI_ + scI*scI*vargscale)/gscale;
+  }
+  //--------------------------------------------------------------
+  IsigI observation::kI_sigI() const
+  // return scaled I, sigI
+  {
+    if (vargscale <= 0.0) {
+      {return IsigI(I_/gscale,sigI_/gscale);}
+    }
+    return IsigI(kI(), ksigI());
+  }
   //--------------------------------------------------------------
   void observation::ResetObsAccept(ObservationFlagControl& ObsFlagControl)
   // Reset observation accepted flags to allow for acceptance of

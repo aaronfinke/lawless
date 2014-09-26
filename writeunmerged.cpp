@@ -200,7 +200,9 @@ namespace MtzIO
         OptAddCol(true, col, ic, mtzout, baseset, ("K"+ns).c_str(), "H");
         OptAddCol(true, col, ic, mtzout, baseset, ("L"+ns).c_str(), "H");
         OptAddCol(true, col, ic, mtzout, baseset, ("SCALE"+ns).c_str(), "R");
+        OptAddCol(true, col, ic, mtzout, baseset, ("SIGSCALE"+ns).c_str(), "R");
       }
+      ncolsperlattice = 6;  // number of columns for each lattice
     }
     int NumCol = ic;
 
@@ -485,7 +487,7 @@ namespace MtzIO
 
           if (col_sel.is_latnum) {
             data[ic++] = this_obs.MainLatticeNumber();
-            for (int j=0;j<maxhkloverlap*5;++j) {
+            for (int j=0;j<maxhkloverlap*ncolsperlattice;++j) {
               data[ic+j] = 0.0; // clear multilattice columns
             }
             std::vector<LatticeIndexInfo> lathkl = this_obs.lathkl();
@@ -497,6 +499,7 @@ namespace MtzIO
                 data[ic++] = lathkl[l].hkl[1];
                 data[ic++] = lathkl[l].hkl[2];
                 data[ic++] = lathkl[l].gscale;
+                data[ic++] = lathkl[l].sdgscale;
               }
             }
           }

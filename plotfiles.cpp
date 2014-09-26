@@ -628,8 +628,10 @@ void XMGRACE::Header(FILE* File, const std::string& title1, const std::string& t
   objectNumber = 0;  // count objects
   file = File;
   // Calculate symbol size
-  float r = Max(xmax-xmin, ymax-ymin);
-  symbolSize = 0.5/r;
+  //  float r = Max(xmax-xmin, ymax-ymin);
+  // symbolSize = 0.5/r;
+  // Fixed symbol size
+  symbolSize = 0.25;
 
   fprintf(file, "@version 40102\n");
   if (title1.size() > 0)

@@ -315,19 +315,9 @@ void TableGraphPlot::SetXaxis(const std::string& label,
   axistypes.SetXaxis(xrange, xinvresolsq);
 }
 //--------------------------------------------------------------
-void TableGraphPlot::SetXbreak(const int& xcolbr, const scala::Range& xbreak)
-{
-  // all x-breaks must refer to the same column, check
-  if (xcolbreak < 0) {
-    xcolbreak = xcolbr;
-  } else if (xcolbreak != xcolbr) {
-    Message::message(Message_fatal("TableGraphPlot::SetXbreak: different xcolbreak"));
-  }
-  xbreaks.push_back(xbreak);
-}
-//--------------------------------------------------------------
 void TableGraphPlot::SetXbreak(const int& xcolbr,
-                               const std::vector<scala::Range>& xbreak)
+                               const std::vector<scala::Range>& xbreak,
+                               const scala::Range& rangexbreak)
 {
   // all x-breaks must refer to the same column, check
   if (xcolbreak < 0) {
@@ -339,6 +329,9 @@ void TableGraphPlot::SetXbreak(const int& xcolbr,
     for (size_t i=0;i<xbreak.size();++i) {
       xbreaks.push_back(xbreak[i]);
     }}
+  if (rangexbreak.Valid()) {
+    xbreakrange = rangexbreak;
+  }
 }
 //--------------------------------------------------------------
 void TableGraphPlot::SetYaxis(const std::string& label,
@@ -440,6 +433,13 @@ std::string TableGraphPlot::XMLformat() const
     std::string sxmin = StringUtil::ftos(xrange.min());
     std::string sxmax = StringUtil::ftos(xrange.max());
     s += "<xrange min=\""+sxmin+"\" max=\""+sxmax+"\"/>\n";
+  } else if (xbreaks.size() > 0) {
+    if (xbreakrange.Valid()) {
+      // no range, but some xbreaks, use alternative xrange
+      std::string sxmin = StringUtil::ftos(xbreakrange.min());
+      std::string sxmax = StringUtil::ftos(xbreakrange.max());
+      s += "<xrange min=\""+sxmin+"\" max=\""+sxmax+"\"/>\n";
+    }
   }
 
   if (zeroy) {
@@ -518,10 +518,6 @@ std::string TableGraphPlot::format(const bool& first) const
   text += StringUtil::Strip(numbers)+":\n";
   return text;
 }
-//--------------------------------------------------------------
-const std::string TableGraph::LABELLEADER  = "$$\n";
-const std::string TableGraph::LABELTRAILER = "  $$";
-const std::string TableGraph::LABELFINAL   = " $$\n";
 //--------------------------------------------------------------
 TableGraph::TableGraph(const std::string& Title)
 // construct & store title
@@ -619,6 +615,10 @@ std::string TableGraph::ColumnFields(const std::vector<std::string>& Labels,
 std::string TableGraph::GetLabels(const bool& lastmark) const
 // format label string for loggraph
 {
+  const std::string LABELLEADER  = "$$\n";
+  const std::string LABELTRAILER = "  $$";
+  const std::string LABELFINAL   = " $$\n";
+
   std::string lglabels = LABELLEADER+labels+LABELTRAILER;
   if (lastmark) lglabels += LABELFINAL; // optional final "$$" mark
   else lglabels += "\n";
@@ -669,7 +669,7 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
       // Store label
       //^
       //      std::cout << ifield << " " << ifw << " " << ifd << " " << overhang << "\n"; //^
-      labels += AddInLabel(Labels[ifield], ifw, ifd, overhang);
+      labels += AddInLabel(Labels.at(ifield), ifw, ifd, overhang);
       // Store field information
       //   field width
       //   position for "-" character: right-justified for integer
@@ -696,7 +696,6 @@ void TableGraph::StoreColumnFields(const std::vector<std::string>& Labels,
 std::string TableGraph::RawLabels() const
 {
   return labels;
-  ///  return labels.substr(LABELLEADER.size(), lablen);
 }
 //--------------------------------------------------------------
 std::string TableGraph::NumberLine(const int nc, ...) const

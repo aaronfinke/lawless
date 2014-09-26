@@ -254,7 +254,7 @@ namespace MtzIO {
         flags.is_latinfo = true;
         flags.is_lathkl = false;
       } else { // scheme 1
-        if (col_lathkl.size() >= 0) flags.is_lathkl = true;
+        if (col_lathkl.size() > 0) flags.is_lathkl = true;
         flags.is_latscale = false;
         flags.is_latinfo = false;
       }

@@ -386,17 +386,20 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   int xcolbr = 2;  // column for real batch number
   Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
   std::vector<Range> xbreaklist = xbreaks.get_breaks();
-  graph.SetXbreak(xcolbr, xbreaklist);
-  Range xrange(xbreaks.get_batchnumberrange());  // overall batch number range
-  graph.SetXaxis("", false, xrange, true);
+  // overall batch number range, for XML plot
+  Range xrange(xbreaks.get_batchnumberrange());
+  Range xnrange; // dummy for $TABLE range
+
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
+  graph.SetXaxis("", false, xnrange, true);
   table.AddGraph(graph);
 
   graph.init("Cumulative %completeness & Anom%cmpl v Batch");
   graph.AddLine(TableGraphPlotline(1,9,"red"));  // completeness
   graph.AddLine(TableGraphPlotline(1,10,"blue"));  // anomalous completeness
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   std::string s = "Maximum resolution limit, I/sigma > "+StringUtil::ftos(MinimumIoverSigma,5,1);
@@ -407,38 +410,38 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   } else {
     graph.AddLine(TableGraphPlotline(1,11,"blue"));  // unsmoothed
   }
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", false, yrange);
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   graph.init("Cumulative multiplicity");
   graph.AddLine(TableGraphPlotline(1,12,"red"));
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   graph.init("Imean & RMS Scatter");
   graph.AddLine(TableGraphPlotline(1,3,"red"));
   graph.AddLine(TableGraphPlotline(1,4,"blue"));
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   graph.init("Imean/RMS scatter");
   graph.AddLine(TableGraphPlotline(1,5,"red"));
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   graph.init("Number of rejects");
   graph.AddLine(TableGraphPlotline(1,8,"red"));
-  graph.SetXaxis("", false, xrange, true);
+  graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist);
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
   std::vector<std::string> collabels;
@@ -463,7 +466,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   int nc = collabels.size();
 
   bool z[] =
-    {false, false, true, true, true, true, false, false, true, true, false, false, true, true};
+    {false, false, true, true, true, true, false, false, true, true, true, false, true, true};
   std::vector<bool> Zero(z, z+nc);
   std::string lineformat = "%5d %7d %8.1f %8.1f %6.2f %7.3f %9d %5d %7.1f %7.1f %6.2f %6.2f";
   if  (smoothR) {lineformat += " %8.3f";}
@@ -691,6 +694,13 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                                  SummaryStatistics& summarystatistics,
                                  phaser_io::Output& output)
 {
+
+  output.logTab(0,LOGFILE,
+                std::string
+                ("\n\nAnalysis by 4sinTheta/Lambda^2 bins (all statistics use Mn(I+),Mn(I-)etc)\n")+
+        "=========================================================================\n");
+
+
   output.logTab(0,LOGFILE,
                 std::string("\n Rmrg    :- conventional Rmerge = Sum(|Ihl - < Ih >|)/Sum(< Ih >)\n")+
                 " Rcum    :- Rmrg up to this range\n"+
@@ -715,9 +725,6 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
           "All statistics in this table are relative to the overall mean I+/- (anomalous off)");
   }
 
-  output.logTab(0,LOGFILE,
-                std::string("\n\nBy 4sinTheta/Lambda^2 bins (all statistics use Mn(I+),Mn(I-)etc)\n")+
-                            "----------------------------------------------------------------\n");
   TableGraph table(" Analysis against resolution, "+dataset_pxd.dname());
   table.StoreID("Graph-StatsVsResolution");
 
@@ -864,7 +871,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                                mnIsdRes[ResRange.Nbins()-1].Mean());
   // Resolution "limit" from Mn(I/sd)
   summarystatistics.StoreMnIsigresolimit
-    (ResolutionLimit(mnIsdRes, ResRange, MinimumIoverSigma));
+    (ResolutionLimit(mnIsdRes, ResRange, MinimumIoverSigma, ResolutionLimit::NONE));
 }
 //--------------------------------------------------------------
 void PrintDeviationsByRun(const PxdName& dataset_pxd,
@@ -1003,7 +1010,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
 {
   output.logTab(0,LOGFILE,
                 std::string("\n\nBy 4sinTheta/Lambda^2 bins (statistics with and without anomalous)\n")+
-                                "------------------------------------------------------------------\n");
+                                "==================================================================\n");
   output.logTab(0,LOGFILE,
                 "\nStatistics labelled 'Ov' are relative to the overall mean I+/-, ignoring anomalous");
   output.logTab(0,LOGFILE,
@@ -1111,7 +1118,7 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
 {
   output.logTab(0,LOGFILE,
                 std::string("\n\nBy intensity bins\n")+
-                "-----------------\n");
+                "=================\n");
   if (Anom) {
     output.logTab(0,LOGFILE,
           "All statistics in this table are with I+ or I- sets (anomalous on)");
@@ -1384,26 +1391,66 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
                 " Note that internal R-factors of any sort are deprecated as metrics for assessment of effective resolution\n");
 
+  ResolutionLimit overallresolimit = halfDatasetScores.OverallResoLimit();
+  ResolutionLimit anomresolimit = halfDatasetScores.AnomalousResoLimit();
+
+  double highres = overallresolimit.HighResolution();
+  double anomhighres = anomresolimit.HighResolution();
+
+  bool curvefitted = (overallresolimit.Fittype() != ResolutionLimit::NONE);
+  // should both be fitted or not fitted
+  ASSERT (curvefitted == (anomresolimit.Fittype() != ResolutionLimit::NONE));
+
+  bool validfitCC = overallresolimit.valid() && overallresolimit.sufficientData();
+  bool validfitanom = anomresolimit.valid() && anomresolimit.sufficientData();
+  int ncurves = 0; // number of fitted curves
+  if (validfitCC) {ncurves++;}
+  if (validfitanom) {ncurves++;}
+
+  output.logTab(0,LOGFILE,
+                std::string("\n Estimates of maximum resolution for intensities and")+
+                " anomalous differences,\n  based on the point at which CC(1/2) falls"+
+                " below a threshold");
+  std::string s = "\n Curve fitting as suggested by Ed Pozharski to a tanh function\n";
+  s +="  of the form (1/2)(1 - tanh(z)) where z = (s - d0)/r,\n";
+  s += "    s = 1/d^2,";
+  s += " d0 is the value of s at the half-falloff value, and r controls the steepness of falloff";
+  output.logTab(0,LOGFILE, s);
+  output.logTab(0,LOGFILE,
+                "\nEstimate of resolution limit for intensities:\n"+overallresolimit.format(false));
+  output.logTab(0,LOGFILE,
+                "\nEstimate of resolution limit for significant anomalous differences:\n"+
+                anomresolimit.format(true));
+
   TableGraph table(" Correlations CC(1/2) within dataset, "+dataset_pxd.dname());
   table.StoreID("Graph-CChalf");
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(3);   // for each graph
-  // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
+  // Get y ranges for each graph
   for (int i=0;i<ResRange.Nbins();++i) {
+    yranges[0].update(halfDatasetScores.CCanom(i).result().val);
+    yranges[0].update(halfDatasetScores.CC_Imean(i).result().val);
     yranges[1].update(halfDatasetScores.RMScorrelRatio(i));
     //    yranges[1].update(halfDatasetScores.RMScorrelRatioCen(i));
     yranges[2].update(halfDatasetScores.rsplit(i).result().val);
   }
-  yranges[0].first() = 0.0;  // CC
+  //yranges[0].first() = 0.0;  // CC
   yranges[0].last() = 1.0;  // CC
 
-  TableGraphPlot graph(" Anom & Imean CCs v resolution");
+  std::string title = " CC(1/2) v resolution, max resolution "+
+    StringUtil::Strip(StringUtil::ftos(highres,8,2))+
+    ", anom "+ StringUtil::Strip(StringUtil::ftos(anomhighres,8,2));
+
+  TableGraphPlot graph(title);
   graph.AddLine(TableGraphPlotline(2,4));
   graph.AddLine(TableGraphPlotline(2,7));
+  for (int i=0;i<ncurves;++i) { // ncurves may == 0
+    graph.AddLine(TableGraphPlotline(2,10+i,"","",0));
+  }
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
-  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  graph.SetYaxis("", false, yranges[0]);  // y axis from 0 to maximum
   table.AddGraph(graph);
 
   graph.init(" RMS correlation ratio ");
@@ -1428,15 +1475,27 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   collabels.push_back("CC1/2");     // 7
   collabels.push_back("NCC1/2");    // 8
   collabels.push_back("Rsplit");    // 9
-  bool z[] = {false, false, false, true, false, true, true, false, true};
-  std::vector<bool> Zero(z, z+9);
-  std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d %8.3f\n"; // excluding 1st 3 columns
-  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
+  if (validfitCC) {collabels.push_back("CCfit");}      // 10
+  if (validfitanom) {collabels.push_back("CCanomfit");}  // 11
   int nc = collabels.size();
+  bool z[] = {false, false, false, true, false, true, true, false, true, true, true};
+  std::vector<bool> Zero(z, z+nc);
+  std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d %8.3f"; // excluding 1st 3 columns
+  for (int i=0;i<ncurves;++i) { // ncurves may == 0
+    fmt += "%10.3f"; // excluding 1st 3 columns
+  }
+  fmt += "\n";
+  table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
   int n=1;
   for (int i=0;i<ResRange.Nbins();++i) {
-    table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+    std::vector<double> vcc;
+    if (curvefitted) {
+      double s = ResRange.middle(i);
+      if (validfitCC) {vcc.push_back(overallresolimit.fitvalue(s));}
+      if (validfitanom) {vcc.push_back(anomresolimit.fitvalue(s));}
+    }
+    table.Line(vcc, nc-ncurves, n++, ResRange.middle(i), ResRange.middleA(i),
                halfDatasetScores.CCanom(i).result().val,
                halfDatasetScores.CCanom(i).result().count,
                //                          halfDatasetScores.CCanomCen(i).result().val,
@@ -1457,15 +1516,12 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   std::string leader = "Overall:          ";
   fmt = leader+fmt;
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
-               halfDatasetScores.CCanom().result().val,
-               halfDatasetScores.CCanom().result().count,
-                      //               halfDatasetScores.CCanomCen().result().val,
-                      //               halfDatasetScores.CCanomCen().result().count,
-               halfDatasetScores.RMScorrelRatio(),
-                      //               halfDatasetScores.RMScorrelRatioCen(),
-               halfDatasetScores.CC_Imean().result().val,
-               halfDatasetScores.CC_Imean().result().count,
-               halfDatasetScores.rsplit().result().val);
+                      halfDatasetScores.CCanom().result().val,
+                      halfDatasetScores.CCanom().result().count,
+                      halfDatasetScores.RMScorrelRatio(),
+                      halfDatasetScores.CC_Imean().result().val,
+                      halfDatasetScores.CC_Imean().result().count,
+                      halfDatasetScores.rsplit().result().val);
   int lab1 = leader.size(); // 1st character in column to use labels
   leader.assign(lab1,' ');
   output.logTab(0,LOGFILE, leader+table.RawLabels().substr(lab1, table.RawLabels().size()-lab1));
@@ -1482,6 +1538,8 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
                                  halfDatasetScores.RMScorrelRatio(ResRange.Nbins()-1));
   summarystatistics.StoreHalfdatsetCCresolimit
     (halfDatasetScores.OverallResoLimit());
+  summarystatistics.StoreHalfdatsetCCanomresolimit
+    (halfDatasetScores.AnomalousResoLimit());
 }
 //--------------------------------------------------------------
 void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
@@ -1540,6 +1598,47 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
       "Difference between maximum and minimum anisotropic B (= 8 pi^2 U) %7.1f\n",
                       anisoanal.BfactorDifference());
 
+  std::vector<ResolutionLimit> resolutionlimits = halfDatasetScores.AnisoResoLimits();
+  bool curvefitted = (resolutionlimits.at(0).Fittype() != ResolutionLimit::NONE);
+  int nax = resolutionlimits.size();
+  int ii = 1;
+  if (isplane) {ii = 2;}
+  for (int i=ii; i<nax; i++) {
+    ASSERT ((resolutionlimits.at(i).Fittype() != ResolutionLimit::NONE) == curvefitted);
+  }
+  std::vector<bool> validfit(nax, false);  // valid fit for each axis
+  int ncurvefits = 0;
+  for (int i=0; i<nax; i++) {
+    validfit[i] = resolutionlimits.at(i).valid() && resolutionlimits.at(i).sufficientData();
+    if (isplane && (i == 1)) {
+      // for isplane, skip axis 1 (2nd axis)
+      validfit[i] = false;
+    } else {
+      if (validfit[i]) {ncurvefits++;} // number of plotted curve fits
+    }
+  }
+
+  std::vector<double> highres(nax);
+  for (int i=0; i<nax; i++) {
+    highres[i] = resolutionlimits[i].HighResolution();
+  }
+
+  s = "\n Estimated maximum resolution limits, ";
+  if (isplane) {
+    s += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
+      axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
+  } else {
+    s += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
+      axlabels[1]+":"+StringUtil::ftos(highres[1],6,2)+", "+
+      axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
+  }
+  output.logTab(0,LOGFILE, s);
+
+  if (curvefitted) {
+    output.logTab(0,LOGFILE,
+                  " Columns 'CCft' are values from curve-fitting as for overall analysis");
+  }
+
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(2);   // for each graph
@@ -1548,26 +1647,37 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     yranges[1].update(mnIsdResCone[1][i].Mean());
     yranges[1].update(mnIsdResCone[2][i].Mean());
   }
-  yranges[0].first() = 0.0; // CC
+  //  yranges[0].first() = 0.0; // CC
   yranges[0].last() = 1.0; // CC
 
   TableGraph table(" Anisotropy analysis of CC(1/2) and I/sd, "+dataset_pxd.dname());
   table.StoreID("Graph-Anisotropy");
 
   std::vector<int> cln;
+  int j1;
   if (isplane) { // only two directions if plane
     int c[] = {2,4,5};
     cln.assign(c,c+3);
+    j1 = 10;
   } else { // 3 directions
     int c[] = {2,4,5,6};
     cln.assign(c,c+4);
+    j1 = 13;
   }
+  for (int i=0;i<ncurvefits;++i) {
+    cln.push_back(i+j1);
+  }
+
   TableGraphPlot graph(" Imean CCs v resolution");
   for (size_t i=1; i<cln.size(); i++) { // from 1
-    graph.AddLine(TableGraphPlotline(2,cln[i]));
+    if (cln[i] >= j1) {
+      graph.AddLine(TableGraphPlotline(2,cln[i],"","",0)); // curve fit, no symbols
+    } else {
+      graph.AddLine(TableGraphPlotline(2,cln[i]));
+    }
   }
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
-  graph.SetYaxis("", true, yranges[0]);  // y axis from 0 to maximum
+  graph.SetYaxis("", false, yranges[0]);  // y axis from 0 to maximum
   table.AddGraph(graph);
 
   if (isplane) {
@@ -1604,49 +1714,108 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   collabels.push_back("N");         // 1
   collabels.push_back("1/d^2");     // 2
   collabels.push_back("Dmid");      // 3
-  collabels.push_back("CC_"+axlabels[0]);     // 4
-  if (!isplane) collabels.push_back("CC_"+axlabels[1]);     // 5
-  collabels.push_back("CC_"+axlabels[2]);     // 6
-  collabels.push_back("(I/sd)"+axlabels[0]);     // 7
-  if (!isplane) collabels.push_back("(I/sd)"+axlabels[1]);     // 8
-  collabels.push_back("(I/sd)"+axlabels[2]);     // 9
+  collabels.push_back("CC:"+axlabels[0]);     // 4
+  if (!isplane) collabels.push_back("CC:"+axlabels[1]);     // 5
+  collabels.push_back("CC:"+axlabels[2]);     // 6
+  collabels.push_back("I/sd:"+axlabels[0]);     // 7
+  if (!isplane) collabels.push_back("I/sd:"+axlabels[1]);     // 8
+  collabels.push_back("I/sd:"+axlabels[2]);     // 9
   collabels.push_back("CCp1");     // 10
   if (!isplane) collabels.push_back("CCp2");     // 11
   collabels.push_back("CCp3");     // 12
+  if (curvefitted) {
+    for (int i=0;i<nax;++i) {
+      if (validfit[i]) {
+        collabels.push_back("CCft:"+axlabels[i]);     // 13, 14, 15
+      }
+    }
+  }
 
   int nc = collabels.size();
 
-  bool z[] = {false, false, false, true, true, true, true, true, true, true, true, true};
+  bool z[] = {false, false, false, true, true, true, true, true, true, true, true,
+              true, true, true};
   std::vector<bool> Zero(z, z+nc);
-  std::string fmt = " %8.3f%8.3f%8.3f %11.2f%11.2f%11.2f %8.3f%8.3f%8.3f\n"; // excluding 1st 3 columns
+  std::string fmt1 = " %8.3f%8.3f%8.3f%9.2f%9.2f%9.2f%8.3f%8.3f%8.3f"; // excluding 1st 3 columns
   if (isplane) {
-    fmt = " %8.3f%8.3f %11.2f%11.2f %8.3f%8.3f\n"; // excluding 1st 3 columns
+    fmt1 = " %8.3f%8.3f%9.2f%9.2f%8.3f%8.3f"; // excluding 1st 3 columns
   }
+  std::string fmt = fmt1;
+  if (curvefitted) {
+    for (int i=0;i<ncurvefits;++i) {
+      fmt += "%9.3f";
+    }  }
+  fmt += "\n";
+
   table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
   std::vector<MeanSD> mnIsd(3);
   int n=1;
+  int ncol = nc - ncurvefits;
   for (int i=0;i<ResRange.Nbins();++i) {
-    std::string s;
+    double s = ResRange.middle(i);
+    std::vector<double> vcc;
     if (isplane) {
-      table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-                 halfDatasetScores.CCaniso(0,i).result().val,
-                 halfDatasetScores.CCaniso(2,i).result().val,
-                 mnIsdResCone[0][i].Mean(),
-                 mnIsdResCone[2][i].Mean(),
-                 halfDatasetScores.CCanisoProjection(0,i).result().val,
-                 halfDatasetScores.CCanisoProjection(2,i).result().val);
+      if (curvefitted) {
+        // fitted values
+        if (validfit[0]) {
+          vcc.push_back(resolutionlimits[0].fitvalue(s));
+        }
+        if (validfit[2]) {
+          vcc.push_back(resolutionlimits[2].fitvalue(s));
+        }
+      }
+      if (vcc.size() == 0) {
+        table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+                   halfDatasetScores.CCaniso(0,i).result().val,
+                   halfDatasetScores.CCaniso(2,i).result().val,
+                   mnIsdResCone[0][i].Mean(),
+                   mnIsdResCone[2][i].Mean(),
+                   halfDatasetScores.CCanisoProjection(0,i).result().val,
+                   halfDatasetScores.CCanisoProjection(2,i).result().val);
+      } else {
+        // note vcc may be null
+        table.Line(vcc, ncol, n++, ResRange.middle(i), ResRange.middleA(i),
+                   halfDatasetScores.CCaniso(0,i).result().val,
+                   halfDatasetScores.CCaniso(2,i).result().val,
+                   mnIsdResCone[0][i].Mean(),
+                   mnIsdResCone[2][i].Mean(),
+                   halfDatasetScores.CCanisoProjection(0,i).result().val,
+                   halfDatasetScores.CCanisoProjection(2,i).result().val);
+      }
     } else {
-      table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
-                 halfDatasetScores.CCaniso(0,i).result().val,
-                 halfDatasetScores.CCaniso(1,i).result().val,
-                 halfDatasetScores.CCaniso(2,i).result().val,
-                 mnIsdResCone[0][i].Mean(),
-                 mnIsdResCone[1][i].Mean(),
-                 mnIsdResCone[2][i].Mean(),
-                 halfDatasetScores.CCanisoProjection(0,i).result().val,
-                 halfDatasetScores.CCanisoProjection(1,i).result().val,
-                 halfDatasetScores.CCanisoProjection(2,i).result().val);
+      if (curvefitted) {
+        // fitted values
+        for (int j=0;j<3;++j) {
+          if (validfit[j]) {
+            vcc.push_back(resolutionlimits[j].fitvalue(s));
+          }
+        }
+
+      }
+      if (vcc.size() == 0) {
+        table.Line(nc, n++, ResRange.middle(i), ResRange.middleA(i),
+                   halfDatasetScores.CCaniso(0,i).result().val,
+                   halfDatasetScores.CCaniso(1,i).result().val,
+                   halfDatasetScores.CCaniso(2,i).result().val,
+                   mnIsdResCone[0][i].Mean(),
+                   mnIsdResCone[1][i].Mean(),
+                   mnIsdResCone[2][i].Mean(),
+                   halfDatasetScores.CCanisoProjection(0,i).result().val,
+                   halfDatasetScores.CCanisoProjection(1,i).result().val,
+                   halfDatasetScores.CCanisoProjection(2,i).result().val);
+      } else {
+        table.Line(vcc, ncol, n++, ResRange.middle(i), ResRange.middleA(i),
+                   halfDatasetScores.CCaniso(0,i).result().val,
+                   halfDatasetScores.CCaniso(1,i).result().val,
+                   halfDatasetScores.CCaniso(2,i).result().val,
+                   mnIsdResCone[0][i].Mean(),
+                   mnIsdResCone[1][i].Mean(),
+                   mnIsdResCone[2][i].Mean(),
+                   halfDatasetScores.CCanisoProjection(0,i).result().val,
+                   halfDatasetScores.CCanisoProjection(1,i).result().val,
+                   halfDatasetScores.CCanisoProjection(2,i).result().val);
+      }
     }
 
     //^
@@ -1670,27 +1839,32 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
 
   // Totals
   std::string leader = "Overall:          ";
-  fmt = leader+fmt;
+  fmt = leader+fmt1;
+
   if (isplane) {
-    output.logTabPrintf(0,LOGFILE,fmt.c_str(),
-                      halfDatasetScores.CCaniso(0).result().val,
-                      halfDatasetScores.CCaniso(2).result().val,
-                      mnIsd[0].Mean(),
-                        mnIsd[2].Mean(),
-                        halfDatasetScores.CCanisoProjection(0).result().val,
-                        halfDatasetScores.CCanisoProjection(2).result().val);
+    s = FormatOutput::logTabPrintf(0,fmt.c_str(),
+                                   halfDatasetScores.CCaniso(0).result().val,
+                                   halfDatasetScores.CCaniso(2).result().val,
+                                   mnIsd[0].Mean(),
+                                   mnIsd[2].Mean(),
+                                   halfDatasetScores.CCanisoProjection(0).result().val,
+                                   halfDatasetScores.CCanisoProjection(2).result().val);
   } else {
-    output.logTabPrintf(0,LOGFILE,fmt.c_str(),
-                        halfDatasetScores.CCaniso(0).result().val,
-                        halfDatasetScores.CCaniso(1).result().val,
-                        halfDatasetScores.CCaniso(2).result().val,
-                        mnIsd[0].Mean(),
-                        mnIsd[1].Mean(),
-                        mnIsd[2].Mean(),
-                        halfDatasetScores.CCanisoProjection(0).result().val,
-                        halfDatasetScores.CCanisoProjection(1).result().val,
-                        halfDatasetScores.CCanisoProjection(2).result().val);
+    s = FormatOutput::logTabPrintf(0,fmt.c_str(),
+                                   halfDatasetScores.CCaniso(0).result().val,
+                                   halfDatasetScores.CCaniso(2).result().val,
+                                   mnIsd[0].Mean(),
+                                   mnIsd[2].Mean(),
+                                   halfDatasetScores.CCanisoProjection(0).result().val,
+                                   halfDatasetScores.CCanisoProjection(2).result().val);
   }
+  std::string s2;
+  if (ncurvefits > 0) {
+    for (int i=0;i<ncurvefits;++i) {
+      s2 += "    0.0  ";
+    }
+  }
+  output.logTab(0,LOGFILE, s+s2);
 
   int lab1 = leader.size(); // 1st character in column to use labels
   leader.assign(lab1,' ');
@@ -1702,8 +1876,11 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     (halfDatasetScores.AnisoResoLimits());
   std::vector<ResolutionLimit> reslimisig(3);
   for (int i=0;i<3;++i) {
-    // find resolution "limit" where Mn(I/sd) falls below MinimumIoverSigma
-    reslimisig[i].init(mnIsdResCone[i], ResRange, MinimumIoverSigma);
+    if (!(isplane && (i==1))) {
+      // find resolution "limit" where Mn(I/sd) falls below MinimumIoverSigma
+      reslimisig[i].init(mnIsdResCone[i], ResRange, MinimumIoverSigma,
+                         ResolutionLimit::NONE);
+    }
   }
   summarystatistics.StoreMnIsigAnisoresolimit(reslimisig);
 }

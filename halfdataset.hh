@@ -85,7 +85,8 @@ namespace scala {
 
     //! Determine resolution "limits" from half-dataset CCs
     void Analyse(const ResoRange& ResRange,
-		 const double& MinimumHalfdatasetCC);
+		 const double& MinimumHalfdatasetCC,
+		 const double& MinimumHalfdatasetAnomCC);
 
     // return overall resolution limit calculated by Analyse
     ResolutionLimit OverallResoLimit() const {return overallresolimit;}
@@ -93,6 +94,9 @@ namespace scala {
     // return anisotropic resolution limit calculated by Analyse
     std::vector<ResolutionLimit> AnisoResoLimits() const
     {return anisoresolimit;}
+
+    // return anomalous resolution limit calculated by Analyse
+    ResolutionLimit AnomalousResoLimit() const {return anomresolimit;}
 
   private:
     int nresbin;   // number of resolution bins
@@ -129,6 +133,8 @@ namespace scala {
 
     ResolutionLimit overallresolimit;
     std::vector<ResolutionLimit> anisoresolimit; // for axes 0-2
+    // for anomalous
+    ResolutionLimit anomresolimit;
 
   };
 

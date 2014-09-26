@@ -174,11 +174,14 @@ public:
   AnalysisControls() : nresobins(10), nibins(10) {}
   AnalysisControls(const int& Nresobins, const int& Nibins, const double& Coneangle,
 		   const double& MinimumHalfdatasetCC,
+		   const double& MinimumHalfdatasetAnomCC,
 		   const double& MinimumIoverSigma, const double& MinimumBatchIoverSigma,
 		   const int& Nbatchsmooth,
 		   const bool& Detectoranalysis)
     : nresobins(Nresobins), nibins(Nibins), coneangledegrees(Coneangle),
-      minimumhalfdatasetcc(MinimumHalfdatasetCC), minimumioversigma(MinimumIoverSigma),
+      minimumhalfdatasetcc(MinimumHalfdatasetCC),
+      minimumhalfdatasetanomcc(MinimumHalfdatasetAnomCC),
+      minimumioversigma(MinimumIoverSigma),
       minimumbatchioversigma(MinimumBatchIoverSigma), nbatchsmooth(Nbatchsmooth),
       detectoranalysis(Detectoranalysis)
 {}
@@ -187,6 +190,7 @@ public:
   int NiBins() const {return nibins;}
   double ConeAngle() const {return coneangledegrees;}
   double MinimumHalfdatasetCC() const {return minimumhalfdatasetcc;}
+  double MinimumHalfdatasetAnomCC() const {return minimumhalfdatasetanomcc;}
   double MinimumIoverSigma() const {return minimumioversigma;}
   double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
   int NbatchSmooth() const {return nbatchsmooth;}
@@ -198,6 +202,7 @@ private:
   int nibins;       // number of intensity bins
   double coneangledegrees;  // cone angle 
   double minimumhalfdatasetcc;
+  double minimumhalfdatasetanomcc;
   double minimumioversigma;
   double minimumbatchioversigma;
   int nbatchsmooth; // number of batches over which to smooth statistics

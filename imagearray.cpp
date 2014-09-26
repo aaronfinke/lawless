@@ -44,7 +44,7 @@ void Imagearray::init(const clipper::Array2d<double>& array)
 
   for (int i=0;i<size1;++i) { // loop x
     for (int j=0;j<size2;++j) { // loop y
-      ASSERT (array(i,j) >= 0.0);
+      double a = std::max(0.0, array(i,j));
       uint16_t d = scale*array(i,j);
       size_t k = i + j*size1;
       data[k] = d;

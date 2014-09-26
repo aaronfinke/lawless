@@ -17,10 +17,15 @@ namespace scala {
   {
     Anom = false;
     anomNPslope = 0.0;
+    spacegroupname = "";
     averageMosaicity = 0.0;
-    minSDcorrFulls = maxSDcorrFulls = minSDcorrPartials = maxSDcorrPartials = 0.0;
+    minSDcorrFulls = 0.0;
+    maxSDcorrFulls = 0.0;
+    minSDcorrPartials = 0.0;
+    maxSDcorrPartials = 0.0;
     maxinvresolsq = 0.0;
     anisodeltaB = 0.0;
+    nlattices = 0;
   }
   // ------------------------------------------------------------
   void SummaryStatistics::StoreResRanges(const ResoRange& overall,
@@ -138,6 +143,12 @@ namespace scala {
     anomNPslope = anomnpslope;
   }
   // ------------------------------------------------------------
+  // Average unit cell
+  void SummaryStatistics::StoreAverageCell(const Scell& cell) 
+  {
+    averageCell = cell;
+  }
+  // ------------------------------------------------------------
   // Range of SD corrections
   void SummaryStatistics::StoreSDcorrectioRange(const float& minsdcorrfulls, const float& maxsdcorrfulls,
                                                 const float& minsdcorrpartials, const float& maxsdcorrpartials)
@@ -154,6 +165,13 @@ namespace scala {
   (const ResolutionLimit& OverallResolimitCC)
   {
     overallresolimitCC = OverallResolimitCC;
+  }
+  // ------------------------------------------------------------
+  // anomalous limit from half-dataset CCs
+  void SummaryStatistics::StoreHalfdatsetCCanomresolimit
+  (const ResolutionLimit& AnomResolimitCC)
+  {
+    anomresolimitCC = AnomResolimitCC;
   }
   // ------------------------------------------------------------
   // overall limit from Mn(I/sd)
@@ -186,11 +204,14 @@ namespace scala {
   // ------------------------------------------------------------
   std::string ResoLimitWarning(const ResolutionLimit& reslimit)
   {
-    if (reslimit.Status() > 0) {
+    if (!reslimit.sufficientData()) {
+      return
+        "insufficient data";
+    } else if (reslimit.Status() == +1) {
       return " == maximum resolution";
     } else if (reslimit.Status() < 0) {
       return
-        "WARNING: weak or missing data, all observed data below threshold";
+        "weak or missing data, all observed data below threshold";
     }
     return "";
   }
@@ -276,6 +297,16 @@ namespace scala {
                           "Mid-Slope of Anom Normal Probability  %10.3f       -         -  \n",
                           anomNPslope);
 
+      if (anomresolimitCC.valid()) {
+        if (anomresolimitCC.Status() >= 0) {
+          output.logTabPrintf(0,OUTSTREAM,
+                              "\nEstimate of maximum resolution for significant anomalous signal = %5.2fA, from CCanom > %5.2f\n",
+                              anomresolimitCC.HighResolution(), anomresolimitCC.Limit());
+        } else {
+          output.logTab(0,OUTSTREAM,"\nNo significant anomalous signal\n");
+        }
+      }
+
       // Resolution limit estimates
       output.logTab(0,OUTSTREAM,
                     "\nEstimates of resolution limits: overall");
@@ -294,13 +325,18 @@ namespace scala {
         output.logTab(0,OUTSTREAM,
                       "\nEstimates of resolution limits in reciprocal lattice directions:");
         for (int jax=0;jax<3;++jax) {
-          if (anisoresolimitCC[jax].Status() > -2) { // valid direction
+          if (anisoresolimitCC[jax].valid()) { // valid direction
             output.logTab(0,OUTSTREAM, "  Along "+anisoaxislabels[jax]);
-            output.logTabPrintf(1,OUTSTREAM,
-                                "from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
-                                anisoresolimitCC[jax].Limit(),
-                                anisoresolimitCC[jax].HighResolution(),
-                                ResoLimitWarning(anisoresolimitCC[jax]).c_str());
+            if (anisoresolimitCC[jax].sufficientData()) { // some data
+              output.logTabPrintf(1,OUTSTREAM,
+                                  "from half-dataset correlation CC(1/2) > %5.2f: limit = %5.2fA %s\n",
+                                  anisoresolimitCC[jax].Limit(),
+                                  anisoresolimitCC[jax].HighResolution(),
+                                  ResoLimitWarning(anisoresolimitCC[jax]).c_str());
+            } else {
+              output.logTab(1,OUTSTREAM,
+                         "Insufficient CC(1/2) data to determine resolution limit");
+            }
             output.logTabPrintf(1,OUTSTREAM,
                                 "from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
                                 anisoresolimitIsig[jax].Limit(),
@@ -390,6 +426,11 @@ namespace scala {
                                 anomcorrelation[0], anomcorrelation[1], anomcorrelation[2]));
       output.logTab(1,LXML,
                     StringUtil::MakeXMLtag("AnomalousNPslope", StringUtil::ftos(anomNPslope, 8,3)));
+
+      // Anomalous resolution "limit"
+      output.logTab(1,LXML,
+                    MakeXMLresolimit("Overall", "CCanom", anomresolimitCC, true));
+
       output.logTab(1,LXML,
                     MakeXMLresolimit("Overall", "CChalf", overallresolimitCC));
       output.logTab(1,LXML,
@@ -397,7 +438,7 @@ namespace scala {
 
       if (int(anisoresolimitCC.size()) > 0) {
         for (int jax=0;jax<3;++jax) {
-          if (anisoresolimitCC[jax].Status() > -2) { // valid direction
+          if (anisoresolimitCC[jax].valid()) { // valid direction
             output.logTab(1,LXML,
                           MakeXMLresolimit(anisoaxislabels[jax], "CChalf",
                                            anisoresolimitCC[jax]));
@@ -428,6 +469,11 @@ namespace scala {
   //! store statistics for one dataset
   {
     allsummarystatistics.push_back(summarystatistics);
+    //^^
+    //    for (size_t k=0; k<allsummarystatistics.size(); k++) { 
+    //      std::cout << "AllSummaryStatistics AverageCell "<<k<<" "<<
+    //	FormatCell(allsummarystatistics[k].averagecell()) << std::endl;      
+    //    } //^^-
   }
   // ------------------------------------------------------------
   //! print the final summary table for one dataset (idts), as RESULT if Result true
@@ -452,8 +498,6 @@ namespace scala {
   void AllSummaryStatistics::PrintSummaryTable(const bool& Result,
                                                const bool& Anom, phaser_io::Output& output)
   {
-    // // allsummarystatistics[idts]
-
     phaser_io::outStream OUTSTREAM = LOGFILE;
     if (Result) {OUTSTREAM = RESULT;}
     int ndts = allsummarystatistics.size(); // number of datasets
@@ -677,13 +721,18 @@ namespace scala {
         output.logTab(1,OUTSTREAM,
                       "Dataset: "+allsummarystatistics[idts].pxdname.format());
         for (int jax=0;jax<3;++jax) {
-          if (allsummarystatistics[idts].anisoresolimitCC[jax].Status() > -2) { // valid direction
+          if (allsummarystatistics[idts].anisoresolimitCC[jax].valid()) { // valid direction
             output.logTab(2,OUTSTREAM, "  Along axis "+axisname[jax]);
-            output.logTabPrintf(2,OUTSTREAM,
-                                "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
-                                allsummarystatistics[idts].anisoresolimitCC[jax].Limit(),
-                                allsummarystatistics[idts].anisoresolimitCC[jax].HighResolution(),
-                                ResoLimitWarning(allsummarystatistics[idts].anisoresolimitCC[jax]).c_str());
+            if (allsummarystatistics[idts].anisoresolimitCC[jax].sufficientData()) { // some data
+              output.logTabPrintf(2,OUTSTREAM,
+                                  "from half-dataset correlation coefficient > %5.2f: limit = %5.2fA %s\n",
+                                  allsummarystatistics[idts].anisoresolimitCC[jax].Limit(),
+                                  allsummarystatistics[idts].anisoresolimitCC[jax].HighResolution(),
+                                  ResoLimitWarning(allsummarystatistics[idts].anisoresolimitCC[jax]).c_str());
+            } else {
+              output.logTab(2,OUTSTREAM,
+                         "Insufficient CC(1/2) data to determine resolution limit");
+            }
             output.logTabPrintf(2,OUTSTREAM,
                                 "from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
                                 allsummarystatistics[idts].anisoresolimitIsig[jax].Limit(),
@@ -705,8 +754,9 @@ namespace scala {
                     "\nDataset: "+allsummarystatistics[idts].pxdname.format()+"\n");
       output.logTab(1,OUTSTREAM,
                     "Average unit cell: "+allsummarystatistics[idts].averageCell.format());
-      output.logTab(1,OUTSTREAM,
-                    "Space group: "+allsummarystatistics[idts].spacegroupname);
+      //      std::string s = "Space group: "+allsummarystatistics[idts].spacegroupname;
+      output.logTab(1,OUTSTREAM, 
+		    "Space group: "+allsummarystatistics[idts].spacegroupname);
       output.logTabPrintf(1,OUTSTREAM,
                           "Average mosaicity: %6.2f\n",
                           allsummarystatistics[idts].averageMosaicity);
@@ -763,10 +813,15 @@ namespace scala {
   }
   // ------------------------------------------------------------
   std::string MakeXMLresolimit(const std::string& direction, const std::string& type,
-                               const ResolutionLimit& resolimit)
+                               const ResolutionLimit& resolimit, const bool& anomalous)
   // format XML tags for resolution limit estimates
   {
-    std::string s = "<ResolutionLimitEstimate type=\""+type+"\">";
+    std::string s;
+    if (anomalous) {
+      s += "<AnomalousLimitEstimate type=\""+type+"\">";
+    } else {
+      s += "<ResolutionLimitEstimate type=\""+type+"\">";
+    }
     s += StringUtil::MakeXMLtag("Direction", direction);
     s += StringUtil::MakeXMLtag("Threshold",
                                 StringUtil::ftos(resolimit.Limit(),5,2));
@@ -778,7 +833,11 @@ namespace scala {
       // message or warning
       s += StringUtil::MakeXMLtag("Message", warn);
     }
-    s += "</ResolutionLimitEstimate>\n";
+    if (anomalous) {
+      s += "</AnomalousLimitEstimate>\n";
+    } else {
+      s += "</ResolutionLimitEstimate>\n";
+    }
     return s;
   }
 } // namespace scala

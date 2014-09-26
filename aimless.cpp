@@ -199,6 +199,7 @@ int main(int argc, char* argv[])
                                          input.getIntBins(),
                                          input.ConeAngle(),
                                          input.MinimumHalfdatasetCC(),
+                                         input.MinimumHalfdatasetAnomCC(),
                                          input.MinimumIoverSigma(),
                                          input.MinimumBatchIoverSigma(),
                                          NbatchsmoothDefault,
@@ -390,6 +391,8 @@ int main(int argc, char* argv[])
     omp_set_num_threads(controls.refinecontrol.Nprocs());
 #endif
 
+    ApplyScales applyscales;
+
     // Restoring scales from file?
     FC.restore = input.Restore();
     if (FC.restore) {
@@ -399,7 +402,8 @@ int main(int argc, char* argv[])
       initialscale = false; // no initial scales
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
-      overallmeankI = ApplyScales(AllScales, hkl_list, onlyUseSingletons);
+      applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+      overallmeankI = applyscales.meanI();
 
       // Restore SD correction
       if (input.SDC_NumberInput() != 0) {
@@ -518,18 +522,23 @@ int main(int argc, char* argv[])
       output.logTabPrintf(0,LOGFILE,"\n");
 
       // For the 1st round, force any tile corrections to be radially symmetric
-      AllScales.symmetricTiles(true);
+      bool nparchanged = AllScales.symmetricTiles(true);
 
       if (controls.refinecontrol.BFGS()) {
         ScaleRefine(hkl_list, AllScales, SD_model, controls,
                     controls.refinecontrol.Ncyc1(), false, output);
+        if (nparchanged) {
+          // don't use incorrect parameter variances if number has changed
+          AllScales.ignoreParameterVariances();
+        }
       } else {
         ScaleRefineFH(hkl_list, AllScales, controls,
                       controls.refinecontrol.Ncycles(), output);
       }
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
-      overallmeankI = ApplyScales(AllScales, hkl_list, onlyUseSingletons);
+      applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+      overallmeankI = applyscales.meanI();
 
       output.logFlush();
 
@@ -622,7 +631,7 @@ int main(int argc, char* argv[])
       // Apply all scales
       // All observations are scaled, including rejected ones
       hkl_list.ResetReflAccept();  // set to accept everything
-      ApplyScales(AllScales, hkl_list, onlyUseSingletons);
+      applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
       output.logTab(0,LOGFILE,
                     "\nTime for main scaling: "+timer.format(true));
 
@@ -868,13 +877,6 @@ int main(int argc, char* argv[])
     }
     controls.analysis.SetNbatchSmooth(nbatchsmooth);
 
-    // run-run correlations: don't do them if there are too many
-    const int MAXRUNCORRELATION = 100;
-    if ((hkl_list.num_runs() > 1) &&
-        (hkl_list.num_runs() < MAXRUNCORRELATION)) {
-      RunCorrelations runcorrelations(hkl_list, SD_model, NormRes, nresbin);
-      runcorrelations.formatTable(output);
-    }
 
     // Gather & print all statistics for each dataset ------------------------------------
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
@@ -895,11 +897,12 @@ int main(int argc, char* argv[])
       }
 
       AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
-      float aslope = anomProbSlopes[idts];
+      float aslope = anomProbSlopes.at(idts);
       SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
                                              controls, idts, resrangedataset,
                                              NormRes, anomds, aslope,
                                              hklreflist, output);
+
       allsummarystatistics.AddSummaryStatistics(sumstat);
 
       if (multilattice && !onlyUseSingletons) {
@@ -911,12 +914,26 @@ int main(int argc, char* argv[])
         output.logTab(0,LOGFILE,
                       "==============================================================\n");
         Result = false;
+      } else {
+        applyscales.print(output);
       }
+
       // Print summary as a Results table if one dataset, otherwise just to logfile
       allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
       output.logFlush();
+
     } // end loop datasets -----------------------------------------
+
+    // run-run correlations: don't do them if there are too many
+    const int MAXRUNCORRELATION = 20;
+    if ((hkl_list.num_runs() > 1) &&
+        (hkl_list.num_runs() < MAXRUNCORRELATION)) {
+      RunCorrelations runcorrelations(hkl_list, SD_model, NormRes, nresbin);
+      runcorrelations.formatTable(output);
+    }
+
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
+      applyscales.print(output);
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,
                                      controls.anomalouscontrol.Anomalous, output);

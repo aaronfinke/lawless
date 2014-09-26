@@ -193,6 +193,37 @@ std::string StringUtil::removespaces(const std::string& s)
   return sss;
 }
 //--------------------------------------------------------------
+std::string StringUtil::valueSD(const double& v, const double& sd,
+                                const int& totalfw,
+                                const int& fw, const int& fd)
+// Return value v with sd in brackets (converted to integer)
+// totalfw total field width (if <=0, calculate),
+// fw field width for value, fd number of decimals
+{
+  // scale to convert sd to integer
+  double sdscale = 1.0;
+  if (fd > 0) {
+    for (int i=0;i<fd;++i) {sdscale *= 10.0;}
+  }
+  int nd = int(log10(sd*sdscale))+1;   // number of digits in sd
+  bool decinsd = false;
+  if (nd > fd) {
+    nd += 1;
+    decinsd = true;  // decimal point in sd
+  }
+  int tfw = std::max(totalfw, fw + 2 + nd); // set total width
+
+  std::string s;
+  if (decinsd) { // real sd
+    s = StringUtil::Strip(StringUtil::ftos(sd, nd, fd));
+  } else { // integer sd
+    s = StringUtil::Strip(StringUtil::itos(Nint(sd*sdscale), nd));
+  }
+  s = "("+s+")";
+  std::string ss = StringUtil::PadString(StringUtil::ftos(v, fw, fd)+s, tfw);
+  return ss;
+}
+//--------------------------------------------------------------
 // <tag><data</tag>
 std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& data,
                                    const bool& edit)
@@ -391,6 +422,24 @@ std::string StringUtil::FormatSaveVector(const std::vector<int> ivec)
     }
   }
   return s+line+"\n";
+}
+//--------------------------------------------------------------
+//! format real array for dump/save, each row delimited by "{}"
+
+std::string StringUtil::FormatSaveArray(const clipper::Array2d<double>& VC)
+{
+  int nrows = VC.rows();
+  int ncols = VC.cols();
+  std::string s = "";
+
+  for (int ir=0;ir<nrows;++ir) { // loop rows
+    std::vector<double> v(ncols);
+    for (int ic=0;ic<ncols;++ic) { // loop columns
+      v[ic] = VC(ir,ic);
+    }
+    s += "{"+FormatSaveVector(v)+"}\n";
+  }
+  return s;
 }
 //--------------------------------------------------------------
 std::string StringUtil::FormatSaveVector(const std::vector<double> vec)
