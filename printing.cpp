@@ -1436,7 +1436,8 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
     //    yranges[1].update(halfDatasetScores.RMScorrelRatioCen(i));
     yranges[2].update(halfDatasetScores.rsplit(i).result().val);
   }
-  //yranges[0].first() = 0.0;  // CC
+  
+  yranges[0].first() = std::min(yranges[0].first(), 0.0);  // CC
   yranges[0].last() = 1.0;  // CC
 
   std::string title = " CC(1/2) v resolution, max resolution "+
@@ -1643,11 +1644,16 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   xrange.first() = 0.0;    // from 0
   std::vector<Range> yranges(2);   // for each graph
   for (int i=0;i<ResRange.Nbins();++i) {
+    for (int k=0;k<3;++k) {
+      if (!(isplane && k == 1)) {
+	yranges[0].update(halfDatasetScores.CCaniso(k,i).result().val);
+      }
+    }
     yranges[1].update(mnIsdResCone[0][i].Mean());
     yranges[1].update(mnIsdResCone[1][i].Mean());
     yranges[1].update(mnIsdResCone[2][i].Mean());
   }
-  //  yranges[0].first() = 0.0; // CC
+  yranges[0].first() = std::min(yranges[0].first(), 0.0); // CC
   yranges[0].last() = 1.0; // CC
 
   TableGraph table(" Anisotropy analysis of CC(1/2) and I/sd, "+dataset_pxd.dname());
