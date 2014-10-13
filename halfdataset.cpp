@@ -318,6 +318,7 @@ namespace scala {
           ccaniso[jax][i].zero();
         }
       } else {
+	//^^	std::cout << "HDS aniso " << jax <<std::endl;
         anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC,
                                  ResolutionLimit::TANH);
       }
@@ -328,6 +329,7 @@ namespace scala {
     for (size_t i=0;i<ccIreso.size();++i) {
       cc[i] = ccIreso[i].result().val;
     }
+    //^^   std::cout << "HDS overall\n";
     overallresolimit.init(cc, ResRange, MinimumHalfdatasetCC,
                           ResolutionLimit::TANH);
 
@@ -336,6 +338,7 @@ namespace scala {
     for (size_t i=0;i<ccanomreso.size();++i) {
       cc[i] = ccanomreso[i].result().val;
     }
+    //^^    std::cout << "HDS anom\n";
     anomresolimit.init(cc, ResRange, MinimumHalfdatasetCCanom,
                           ResolutionLimit::TANH);
   }

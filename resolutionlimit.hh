@@ -27,9 +27,10 @@ namespace scala {
     ResolutionLimit() : limit(0.0), highres(0.0), status(-3), 
 			sufficientdata(false), nrej(0), fittype(NONE) {}
 
-    // Fittype: NONE  no curve-fitting (eg for mnI/sigI)
-    //          TANH  curve fit to tanh function ~= (0.5*(1-tanh((s-d0)r)
-    enum FitType {NONE, TANH};
+    // Fittype: NONE   no curve-fitting (eg for mnI/sigI)
+    //          TANH   curve fit to tanh function ~= (0.5*(1-tanh((s-d0)r)
+    //          LINEAR straight-line fit (eg for all ~0 or negative)
+    enum FitType {NONE, TANH, LINEAR};
 
     //! construct from score list, resolution range and minimum score
     ResolutionLimit(const std::vector<double> score,
@@ -82,6 +83,8 @@ namespace scala {
     // anomalous == true for assessment of anomalous signal (changes wording)
     std::string format(const bool& anomalous) const;
 
+    std::string formatparameters() const;
+
   private:
     double limit;   // score limit used
     double highres; // high resolution limit, = 0.0 if undefined
@@ -97,9 +100,12 @@ namespace scala {
 
     // =  NONE, no function fit
     // =  TANH, fit radial tanh function (for CC(1/2))
+    // =  LINEAR, fit straight-line (for CCanom)
     FitType fittype;
 
     RadialTanhFunction radialfunction;
+
+    double slope, intercept;  // for straight-line fit
 
     double fit(const std::vector<double> score,
 	       const ResoRange& ResRange);

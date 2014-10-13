@@ -1481,11 +1481,13 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   int nc = collabels.size();
   bool z[] = {false, false, false, true, false, true, true, false, true, true, true};
   std::vector<bool> Zero(z, z+nc);
-  std::string fmt = "%7.3f%9d   %7.3f %7.3f%9d %8.3f"; // excluding 1st 3 columns
+  std::string fmt1 = "%7.3f%9d   %7.3f %7.3f%9d %8.3f"; // excluding 1st 3 columns
+  std::string fmt = fmt1;
   for (int i=0;i<ncurves;++i) { // ncurves may == 0
-    fmt += "%10.3f"; // excluding 1st 3 columns
+    fmt += "%10.3f";
   }
   fmt += "\n";
+  fmt1 += "\n";
   table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
   int n=1;
@@ -1499,10 +1501,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
     table.Line(vcc, nc-ncurves, n++, ResRange.middle(i), ResRange.middleA(i),
                halfDatasetScores.CCanom(i).result().val,
                halfDatasetScores.CCanom(i).result().count,
-               //                          halfDatasetScores.CCanomCen(i).result().val,
-               //                          halfDatasetScores.CCanomCen(i).result().count,
                halfDatasetScores.RMScorrelRatio(i),
-               //                          halfDatasetScores.RMScorrelRatioCen(i),
                halfDatasetScores.CC_Imean(i).result().val,
                halfDatasetScores.CC_Imean(i).result().count,
                halfDatasetScores.rsplit(i).result().val);
@@ -1515,7 +1514,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
 
   // Totals
   std::string leader = "Overall:          ";
-  fmt = leader+fmt;
+  fmt = leader+fmt1;
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                       halfDatasetScores.CCanom().result().val,
                       halfDatasetScores.CCanom().result().count,
@@ -1600,13 +1599,10 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
                       anisoanal.BfactorDifference());
 
   std::vector<ResolutionLimit> resolutionlimits = halfDatasetScores.AnisoResoLimits();
-  bool curvefitted = (resolutionlimits.at(0).Fittype() != ResolutionLimit::NONE);
+  bool curvefitted = false;
   int nax = resolutionlimits.size();
   int ii = 1;
   if (isplane) {ii = 2;}
-  for (int i=ii; i<nax; i++) {
-    ASSERT ((resolutionlimits.at(i).Fittype() != ResolutionLimit::NONE) == curvefitted);
-  }
   std::vector<bool> validfit(nax, false);  // valid fit for each axis
   int ncurvefits = 0;
   for (int i=0; i<nax; i++) {
@@ -1617,6 +1613,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     } else {
       if (validfit[i]) {ncurvefits++;} // number of plotted curve fits
     }
+    if (validfit[i]) {curvefitted = true;}
   }
 
   std::vector<double> highres(nax);
@@ -1752,6 +1749,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
       fmt += "%9.3f";
     }  }
   fmt += "\n";
+  fmt1 += "\n";
 
   table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
@@ -1858,10 +1856,13 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   } else {
     s = FormatOutput::logTabPrintf(0,fmt.c_str(),
                                    halfDatasetScores.CCaniso(0).result().val,
+                                   halfDatasetScores.CCaniso(1).result().val,
                                    halfDatasetScores.CCaniso(2).result().val,
                                    mnIsd[0].Mean(),
+                                   mnIsd[1].Mean(),
                                    mnIsd[2].Mean(),
                                    halfDatasetScores.CCanisoProjection(0).result().val,
+                                   halfDatasetScores.CCanisoProjection(1).result().val,
                                    halfDatasetScores.CCanisoProjection(2).result().val);
   }
   std::string s2;

@@ -10,6 +10,7 @@
 #include "simpleminimise.hh"
 #include "median.hh"
 #include "string_util.hh"
+#include "score_datatypes.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -151,6 +152,9 @@ namespace scala {
   double ResolutionLimit::fit(const std::vector<double> score,
                             const ResoRange& ResRange)
   {
+    // Straight line fit option
+    LinearFit linefit;
+
     std::vector<ResolutionData> data(score.size());
     int ndata = 0; // number of valid data
     int nnegs = 0; // number of negative scores
@@ -162,6 +166,7 @@ namespace scala {
         data[i].w = 0.0;      // weight, <=0 to ignore
       } else {
         ndata++;
+	linefit.add(data[i].s, score[i], data[i].w);
       }
       if (score[i] < 0.0) {
         nnegs++;
@@ -171,6 +176,16 @@ namespace scala {
     }
 
     double smax = ResRange.SResHigh();  // maximum s = 1/d^2
+
+    // check straight-line fit for values which cannot fit the TANH function
+    slope = linefit.result().first;
+    intercept = linefit.result().second;
+    if (slope > 0.0) {
+      // Use Line fit
+      fittype = LINEAR;
+      //      std::cout << "ResolutionLimit::fit type set to LINEAR\n";
+      return 0.0;
+    }
 
     // Should we use 2 or 3 parameters? Only use 3 if there are a
     //  "significant" number of negatives
@@ -329,6 +344,15 @@ namespace scala {
     return s;
   }
   // ------------------------------------------------------------
+  std::string ResolutionLimit::formatparameters() const {
+    if (fittype == LINEAR) {
+      return "Linear fit: slope = " + StringUtil::ftos(slope,9,4)+
+	", intercept = " + StringUtil::ftos(intercept,9,4);
+    } else {
+      return radialfunction.format();
+    }
+  }
+  // ------------------------------------------------------------
   bool ResolutionLimit::testinsufficientdata(const std::vector<double> score) const
   // return true if there are not enough data points to determine
   // maximum resolution
@@ -383,7 +407,11 @@ namespace scala {
   //! return fitted value at s = 1/d^2
   double ResolutionLimit::fitvalue(const double& s) const
   {
-    return radialfunction.value(s);
+    if (fittype == LINEAR) {
+      return intercept + s * slope;
+    } else {
+      return radialfunction.value(s);
+    }
   }
   // ------------------------------------------------------------
 }
