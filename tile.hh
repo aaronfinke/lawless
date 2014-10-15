@@ -752,7 +752,7 @@ private:
     double w;
     double A0;
 
-    std::vector<double> sdties_;  // stored for printing
+    std::vector<double> ties_;  // stored for printing
 
     FourierSmooth Afs; // fall-off parameters, azimuth dependent
 

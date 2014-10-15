@@ -160,8 +160,15 @@ namespace scala
     //! return worst deviation (A), = 0 if only one
     double WorstDeviation() const;
 
+    //! accepted
+    bool accepted() const {return accepted_;}
+
+    //! set accepted flag
+    void setaccepted(const bool& accept) {accepted_ = accept;}
+
   private:
     std::vector<Xdataset> xdatasets;
+    bool accepted_;
 
     // Get index for xdataset setid, = -1 if absent
     int XdatasetIndex(const int& setid) const;

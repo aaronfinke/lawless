@@ -784,8 +784,8 @@ TIE::TIE()
   tiesd_zerob = -1.0;
   // SDs for CCD tile, parameters r, w, A, x0|y0, Fourier components
   // SDs for r, w, xy0 are relative to maximum radius (edge)
-  float sd_tile[] = {0.01, 0.01, 0.001, 0.01, 0.002};
-  tiesd_tile.assign(sd_tile, sd_tile+5);
+  double tie_tile[] = {0.01, 0.01, 0.001, 0.01, 0.002, 0.70, 0.40};
+  ties_tile.assign(tie_tile, tie_tile+7);
 }
 //--------------------------------------------------------------
 Token_value TIE::parse(std::istringstream& input_stream)
@@ -795,9 +795,11 @@ Token_value TIE::parse(std::istringstream& input_stream)
   //              = ROTATION   for primary scale parameters (eg BATCH)
   //              = BFACTOR    for B-factors
   //              = ZEROB      for B-factors tied to B = 0
-  //              = TILE       for tile correction parameters (4 sds)
-  std::vector<double> tsd;  // for tile, up to 5 numbers
-  bool tilesd = false;
+  //              = TILE       for tile correction parameters (5 sds)
+  //              = TARGETTILE targets for tile correction r & w
+  std::vector<double> tsd;      // for tile, up to 5 numbers
+  std::vector<double> targets;  // for tile, up to 2 numbers
+  int tilesd = -1;
   while (get_token(input_stream) != ENDLINE)  {
     if (tokenIs(1,NAME)) {
       if (keyIs("SURFACE") || keyIs("SECONDARY") || keyIs("ABSORPTION")) {
@@ -809,20 +811,31 @@ Token_value TIE::parse(std::istringstream& input_stream)
       } else if (keyIs("ZEROB")) {
         tiesd_zerob = get1num(input_stream);
       } else if (keyIs("TILE")) {
-        tilesd = true;
+        tilesd = 0;
+      } else if (keyIs("TARGETTILE")) {
+        tilesd = +1;
       }
     } else if (tokenIs(1,NUMBER)) {
       // only for TILE
-      if (!tilesd) {
+      if (tilesd < 0) {
         ReportSyntaxError
           (keywords, "TIE: unexpected number when not TILE");
       }
-      tsd.push_back(number_value);
+      if (tilesd == 0) {
+	tsd.push_back(number_value);
+      } else if (tilesd == +1) {
+	targets.push_back(number_value);
+      }
     }
   }
-  ASSERT (tiesd_tile.size() == 5);
+  ASSERT (ties_tile.size() == 7);
   for (size_t i=0;i<tsd.size();++i) {
-    tiesd_tile[i] = tsd[i];  // override defaults
+    ties_tile[i] = tsd[i];  // override defaults
+  }
+  if (targets.size() > 0) {
+    ASSERT (targets.size() == 2);
+    ties_tile[5] = targets[0];
+    ties_tile[6] = targets[1];
   }
   return skip_line(input_stream);
 }

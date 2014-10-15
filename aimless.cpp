@@ -730,7 +730,9 @@ int main(int argc, char* argv[])
                                               analysanom,
                                               resrangeanom, NormRes);
     allAnomDistributions.SetSlope(anomProbSlopes);
-    allAnomDistributions.Print(output);
+    if (hkl_list.num_accepted_datasets() > 1) {
+      allAnomDistributions.Print(output);
+    }
 
     // Do we really have anomalous?
     bool anomfound =
@@ -880,48 +882,49 @@ int main(int argc, char* argv[])
 
     // Gather & print all statistics for each dataset ------------------------------------
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
-      //  hkl_list is const
-      // NormRes just used for intensity binning
-      // Store summary statistics for this dataset
-      // Resolution range for this dataset
-      ResoRange resrangedataset = hkl_list.dataset(idts).ResRange();
+      if (hkl_list.dataset(idts).accepted()) {
+	//  hkl_list is const
+	// NormRes just used for intensity binning
+	// Store summary statistics for this dataset
+	// Resolution range for this dataset
+	ResoRange resrangedataset = hkl_list.dataset(idts).ResRange();
 
-      // For statistics, reset range to go from same "infinite" resolution
-      float lowres = 10000.;
-      resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
-      // Use same resolution bin width for all datasets
-      resrangedataset.SetWidth(resrangewidth);
-      // and check the number of bins is not > nresbin
-      if (resrangedataset.Nbins() > nresbin) {
-        resrangedataset.SetNbins(nresbin);
+	// For statistics, reset range to go from same "infinite" resolution
+	float lowres = 10000.;
+	resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
+	// Use same resolution bin width for all datasets
+	resrangedataset.SetWidth(resrangewidth);
+	// and check the number of bins is not > nresbin
+	if (resrangedataset.Nbins() > nresbin) {
+	  resrangedataset.SetNbins(nresbin);
+	}
+
+	AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
+	float aslope = anomProbSlopes.at(idts);
+	SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
+					       controls, idts, resrangedataset,
+					       NormRes, anomds, aslope,
+					       hklreflist, output);
+
+	allsummarystatistics.AddSummaryStatistics(sumstat);
+
+	if (multilattice && !onlyUseSingletons) {
+	  analyseoverlaps[idts].PrintOverlapTable(output);
+	}
+
+	bool Result = true;
+	if (hkl_list.num_datasets() != 1) {
+	  output.logTab(0,LOGFILE,
+			"==============================================================\n");
+	  Result = false;
+	} else {
+	  applyscales.print(output);
+	}
+
+	// Print summary as a Results table if one dataset, otherwise just to logfile
+	allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
+	output.logFlush();
       }
-
-      AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
-      float aslope = anomProbSlopes.at(idts);
-      SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
-                                             controls, idts, resrangedataset,
-                                             NormRes, anomds, aslope,
-                                             hklreflist, output);
-
-      allsummarystatistics.AddSummaryStatistics(sumstat);
-
-      if (multilattice && !onlyUseSingletons) {
-        analyseoverlaps[idts].PrintOverlapTable(output);
-      }
-
-      bool Result = true;
-      if (hkl_list.num_datasets() != 1) {
-        output.logTab(0,LOGFILE,
-                      "==============================================================\n");
-        Result = false;
-      } else {
-        applyscales.print(output);
-      }
-
-      // Print summary as a Results table if one dataset, otherwise just to logfile
-      allsummarystatistics.PrintOneSummaryTable(idts, Result, output);
-      output.logFlush();
-
     } // end loop datasets -----------------------------------------
 
     // run-run correlations: don't do them if there are too many

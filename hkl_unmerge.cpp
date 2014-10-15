@@ -2243,10 +2243,12 @@ namespace scala {
 
     ResoRange overallrange = ResoLimRange;
     for (int id=0;id<ndatasets;++id) {
-      // Resolution range for each dataset
-      datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
-      // Overall
-      overallrange = overallrange.MaxRange(datasets[id].ResRange());
+      if (datasets[id].accepted()) {
+	// Resolution range for each dataset
+	datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
+	// Overall
+	overallrange = overallrange.MaxRange(datasets[id].ResRange());
+      }
     }
     for (size_t irun=0;irun<runlist.size();++irun) {
       if (!runlist[irun].IsResoRange()) {
@@ -3235,6 +3237,30 @@ namespace scala {
     for (size_t i=0; i<runlist.size(); i++) {
       runlist[i].StoreUse(userun[i]);  // store use flag in runs
     }
+  }
+  //--------------------------------------------------------------
+  int hkl_unmerge_list::num_accepted_datasets() const
+  //!< number of accepted datasets
+  {
+    int ndts = 0;
+    for (size_t id=0; id<datasets.size(); id++) { 
+      if (datasets[id].accepted()) {
+	ndts++;
+      }
+    }
+    return ndts;
+  }
+  //--------------------------------------------------------------
+  std::vector<Dataset> hkl_unmerge_list::AllAcceptedDatasets() const
+  //!< all accepted datasets
+  {
+    std::vector<Dataset> valid_datasets;
+    for (size_t id=0; id<datasets.size(); id++) { 
+      if (datasets[id].accepted()) {
+	valid_datasets.push_back(datasets[id]);
+      }
+    }
+    return valid_datasets;
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::dump_reflection(const Hkl& hkl) const

@@ -686,6 +686,8 @@ namespace MtzIO
     bool accept = false;
     int idataset;
     int j = 0;
+    // false if no accepted batces in dataset
+    std::vector<bool> accepted_datasets(ndatasets, false);
     while (get_batch(j, this_batch)) {
       if (!ForceOneDataset) {
         setid = this_batch.nbsetid; // SetID from file, if not OneDataset
@@ -703,6 +705,9 @@ namespace MtzIO
           datasets[idataset].add_batch(setid, this_batch.num);
           pxdname = datasets[idataset].pxdname(setid); // name for this SetID
         }
+	if (accept) {
+	  accepted_datasets[idataset] = true;
+	}
       } else { // dataset not accepted, so reject batch
         accept = false;
         if (ForceOneDataset) {
@@ -735,6 +740,10 @@ namespace MtzIO
       ndatasets = datasets.size();
     }
     std::sort (batches.begin(), batches.end());
+
+    for (int idataset=0;idataset<ndatasets;++idataset) {
+      datasets[idataset].setaccepted(accepted_datasets[idataset]);
+    }
 
     return averagecell;
   }

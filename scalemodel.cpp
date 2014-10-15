@@ -391,7 +391,7 @@ namespace scala {
     sd_bfactor = input.TIE_sd_bfactor();
     sd_zerob = input.TIE_sd_zerob();
     sd_surface = input.TIE_sd_surface();
-    sd_tile = input.TIE_sd_tile();
+    tie_tile = input.TIE_tile();
     SetupTies();
   }
   //--------------------------------------------------------------
@@ -452,10 +452,10 @@ namespace scala {
     }
     // Ties on detector (tiles)
     if (ndetscales > 0) {
-      if (sd_tile.size() > 0 && sd_tile[0] > 0.0) {
+      if (tie_tile.size() > 0 && tie_tile[0] > 0.0) {
         for (int i=0;i<ndetscales;++i) {
           std::vector<Tie> these_ties =
-            detector_scales[i].Ties(sd_tile, idxrun_detector[i]);
+            detector_scales[i].Ties(tie_tile, idxrun_detector[i]);
           ties.insert(ties.end(), these_ties.begin(), these_ties.end());
           nties_tiles += these_ties.size();
         }
@@ -1785,9 +1785,9 @@ namespace scala {
     ds += "sd_bfactor "+ clipper::String(sd_bfactor)+"\n";
     ds += "sd_zerob "+ clipper::String(sd_zerob)+"\n";
     ds += "sd_surface "+ clipper::String(sd_surface)+"\n";
-    ds += "sd_tile_number "+clipper::String(int(sd_tile.size()))+"\n";
-    for (size_t i=0;i<sd_tile.size();++i) {
-      ds += "sd_tile "+clipper::String(sd_tile[i])+"\n";
+    ds += "tie_tile_number "+clipper::String(int(tie_tile.size()))+"\n";
+    for (size_t i=0;i<tie_tile.size();++i) {
+      ds += "tie_tile "+clipper::String(tie_tile[i])+"\n";
     }
 
     // Normalisation
@@ -1915,10 +1915,10 @@ namespace scala {
     FR.ReadTag("sd_zerob"); sd_zerob = FR.Double();
     FR.ReadTag("sd_surface"); sd_surface = FR.Double();
     int sdtn;
-    FR.ReadTag("sd_tile_number"); sdtn = FR.Int();
-    sd_tile.resize(sdtn);
+    FR.ReadTag("tie_tile_number"); sdtn = FR.Int();
+    tie_tile.resize(sdtn);
     for (int i=0;i<sdtn;++i) {
-      FR.ReadTag("sd_tile"); sd_tile[i] = FR.Double();
+      FR.ReadTag("tie_tile"); tie_tile[i] = FR.Double();
     }
     // Normalisation
     FR.ReadTag("Scalenormrun"); scalenormrun = FR.Int();

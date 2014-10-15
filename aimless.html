@@ -657,7 +657,9 @@ altogether. </dd>
       </dl>
   </dd>
 </dl>
-<h3><a name="tie"></a>TIE [SURFACE &lt;Sd_srf&gt;] [BFACTOR &lt;Sd_bfac&gt;] [ZEROB &lt;Sd_zerob&gt;] [ROTATION &lt;Sd_z&gt;] [TILE &lt;Sd1-5&gt;]<br>
+<h3><a name="tie"></a>TIE [SURFACE &lt;Sd_srf&gt;] [BFACTOR
+&lt;Sd_bfac&gt;] [ZEROB &lt;Sd_zerob&gt;] [ROTATION &lt;Sd_z&gt;] [TILE
+&lt;Sd1-5&gt;] [TARGETTILE &lt;r0&gt; w0&gt;]<br>
  </h3>
 <p>Apply or remove restraints to parameters. These can be pairs of
 neighbouring scale factors on rotation axis (ROTATION = primary beam) to have the same
@@ -682,10 +684,14 @@ SURFACE 0.001]</dt>
 with
 BATCH mode)</dt>
 
-  </dl><dd>TILE: tie the CCD tile parameters. 5 numbers for radius r, width w, amplitude A, centre x0,y0, and Fourier coefficients<br>
+  </dl><dd>TILE: tie the CCD tile parameters. 5 SDs for radius r, width w, amplitude A, centre x0,y0, and Fourier coefficients</dd><dd>TARGETTILE: target values for tile parameters r and w<br>
   </dd>
+</dl>
+<dl>
+
 
 </dl>
+
 <h3><a name="output"></a>OUTPUT [MTZ] [NO]MERGED<span style="color: rgb(255, 102, 0);"></span> [UNMERGED [SPLIT|TOGETHER]] [SCALEPACK [MERGED<span style="color: rgb(255, 102, 0);"></span> | UNMERGED]]</h3>
 
 <h3> </h3>Control what goes in the output file. Two types of output
@@ -1177,7 +1183,8 @@ Amplitude A various azimuthally with the angle phi = tan<sup>-1</sup>(y/x) as a 
 Refined parameters for each tile are r, w, A0, x0, y0, and the four Fourier terms for A, a,b,c,d. <br>
 <br>
 By default, parameters are restrained (TIE) as follows (see <a href="#tie">TIE</a> TILE)<br>
-<div style="margin-left: 40px;">A0, a,b,c,d and x0,y0 are tied to 0.0<br>
+<div style="margin-left: 40px;">A0, a,b,c,d and x0,y0 are tied to 0.0 with their SDs<br>
+r, w are tied to target values with their SDs [default 0.70, 0.40]<br>
 r, w, and A0 are tied to be similar over all tiles<br>
 Five SD values control the strength of the restraints, respectively for r, w, A0, x0|y0, and abcd<br>
 SD = 0 switches off the restraint<br>
@@ -1364,6 +1371,7 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
 
 
 

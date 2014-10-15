@@ -269,11 +269,14 @@ namespace scala {
     double sd_surface;
 
     // For CCD tiles:
-    //  sdties[0] for r
-    //  sdties[1] for w
-    //  sdties[2] for A
-    //  sdties[3] for x0, y0
-    std::vector<double> sd_tile; // other types, no ties
+    //  tie_tile[0] for r
+    //  tie_tile[1] for w
+    //  tie_tile[2] for A
+    //  tie_tile[3] for x0, y0
+    //  tie_tile[4] for Fourier coefficients
+    //  tie_tile[5] for r target
+    //  tie_tile[6] for w target
+    std::vector<double> tie_tile; // other types, no ties
 
     int nparameters;      // Number of parameters
     int nprimaryscale;    //  Number of primary scale parameters

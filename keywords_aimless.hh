@@ -243,11 +243,12 @@ namespace phaser_io {
     // Define parameter restraints ("ties")
     //
     // TIE <parameter> <sd> [sd2>]
-    //  <parameter> = SURFACE    for SECONDARY or ABSORPTION
-    //              = ROTATION   for primary scale parameters (eg BATCH)
-    //              = BFACTOR    for B-factors
-    //              = ZEROB      for B-factors tied to B = 0
-    //              = TILE       for tile correction parameters (4 sds for CCD)
+    //  <parameter> = SURFACE  for SECONDARY or ABSORPTION
+    //              = ROTATION for primary scale parameters (eg BATCH)
+    //              = BFACTOR  for B-factors
+    //              = ZEROB    for B-factors tied to B = 0
+    //              = TILE     for tile correction parameters (5 sds)
+    //              = TARGETTILE targets for tile correction r & w
     //
     // SD parameters defaulted to -1 if no restraint
   {
@@ -263,15 +264,17 @@ namespace phaser_io {
     float TIE_sd_rotation() const {return tiesd_rotation;}
     float TIE_sd_bfactor()  const {return tiesd_bfactor;}
     float TIE_sd_zerob()    const {return tiesd_zerob;}
-    std::vector<double> TIE_sd_tile  ()   const {return tiesd_tile;}
+    std::vector<double> TIE_tile  ()   const {return ties_tile;}
 
   private:
     float tiesd_surface;  // sd for SURFACE, < 0.0 for no restraint
     float tiesd_rotation; // sd for ROTATION, < 0.0 for no restraint
     float tiesd_bfactor;  // sd for BFACTOR, < 0.0 for no restraint
     float tiesd_zerob;    // sd for ZEROB, < 0.0 for no restraint
-   // sds for TILE, < 0.0 for no restraint, 5 values for CCD tiles
-    std::vector<double> tiesd_tile;
+    // sds for TILE, < 0.0 for no restraint, 5 values for CCD tiles
+    // + target values for r, w, ie 7 values
+    std::vector<double> ties_tile;
+
   };
   //--------------------------------------------------------------
   class NAME : public InputBase, virtual public CCP4base

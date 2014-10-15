@@ -625,17 +625,17 @@ namespace scala {
       LargeShift(ipar-idx_tile(idxtile.first, idxtile.second));
   }
   //--------------------------------------------------------------
-  std::vector<Tie> DetectorScale::Ties(const std::vector<double> sdties,
+  std::vector<Tie> DetectorScale::Ties(const std::vector<double> tie_tile,
                                        const int& idx0) const
-  // Return list of ties: sdties are sds for weight, idx0 is index to first global
+  // Return list of ties: tie_tile are sds for weight, idx0 is index to first global
   // parameter for setting ties, since they refer to the global parameter index
   //
   // For CCD tiles:
-  //  sdties[0] for r
-  //  sdties[1] for w
-  //  sdties[2] for A
-  //  sdties[3] for x0, y0
-  //  sdties[4] for Fourier coefficients (if needed)
+  //  tie_tile[0] for r
+  //  tie_tile[1] for w
+  //  tie_tile[2] for A
+  //  tie_tile[3] for x0, y0
+  //  tie_tile[4] for Fourier coefficients (if needed)
   {
     std::vector<Tie> ties;
     if (! ((detectorscaletype == CCD1) ||
@@ -655,11 +655,11 @@ namespace scala {
     }
     for (int i=0;i<ntilex;++i) { // loop tile x
       for (int j=0;j<ntiley;++j) { // loop tile y
-        std::vector<Tie> tileties = tilescales(i,j)->Ties(sdties, idx);
+        std::vector<Tie> tileties = tilescales(i,j)->Ties(tie_tile, idx);
         // ties within tile
         ties.insert(ties.end(), tileties.begin(), tileties.end());
         // Ties between tiles
-        kindexwt.push_back(tilescales(i,j)->TiedParameters(sdties, idx));
+        kindexwt.push_back(tilescales(i,j)->TiedParameters(tie_tile, idx));
         idx += tilescales(i,j)->Nparams(); // point to 1st parameter of next tile
       }}  // end tile loop
 
@@ -1030,16 +1030,16 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! return vector of internal ties, given SDs and 1st global parameter index
-  std::vector<Tie> CCDTile3::Ties(const std::vector<double> sdties,
+  std::vector<Tie> CCDTile3::Ties(const std::vector<double> tie_tile,
                                    const int& idx0)
   {
     // 12 parameters expressed as Fourier series, r,w relative to rad0
     // For all parameter types r,w,A, tie all Fourier coefficients to 0.0
     // no ties if SD = 0
     std::vector<Tie> ties;
-    if (!circularlysymmetric && sdties[4] > 0.0) {
+    if (!circularlysymmetric && tie_tile[4] > 0.0) {
       int nparams_tile = Nparams();
-      double SD = sdties[4];
+      double SD = tie_tile[4];
       double weight = 1.0/(SD*SD);
       int idx = idx0+3;  // skip r0, w0, A0
 
@@ -1054,7 +1054,7 @@ namespace scala {
   //--------------------------------------------------------------
   //! vector of indices and weights for each parameter to be restrained across tiles
   std::pair<std::vector<int>, std::vector<double> >
-  CCDTile3::TiedParameters(const std::vector<double> sdties,
+  CCDTile3::TiedParameters(const std::vector<double> tie_tile,
                  const int& idx0)
   {
     // tie r0,w0,A0 tiles
@@ -1063,8 +1063,8 @@ namespace scala {
     int idx = idx0;
 
     for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r0,w0,A0
-      if (sdties[k] > 0.0) {
-        double weight = 1.0/(sdties[k]*sdties[k]);
+      if (tie_tile[k] > 0.0) {
+        double weight = 1.0/(tie_tile[k]*tie_tile[k]);
         kindexwt.first.push_back(idx);
         kindexwt.second.push_back(weight);
       }
@@ -1415,16 +1415,16 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! return vector of ties, given SDs and 1st global parameter index
-  std::vector<Tie> CCDTile1::Ties(const std::vector<double> sdties,
+  std::vector<Tie> CCDTile1::Ties(const std::vector<double> tie_tile,
                                    const int& idx0)
   {
     // Note that r,w,x0,y0 etc are in fractions of rad0
     std::vector<Tie> ties;
-    if (sdties[3] > 0.0) {
+    if (tie_tile[3] > 0.0) {
       // x0, y0 tie to centre position
-      // sdties[3] is relative to tile size
+      // tie_tile[3] is relative to tile size
       int idx = idx0 + 3;  // first x0 parameter
-      double weight = sdties[3];
+      double weight = tie_tile[3];
       weight = 1./(weight*weight);
       // tie x0 to centre
       ties.push_back(Tie(idx, 0.0, weight));
@@ -1436,15 +1436,15 @@ namespace scala {
   //--------------------------------------------------------------
   //! vector of indices and weights for each parameter to be restrained across tiles
   std::pair<std::vector<int>, std::vector<double> >
-  CCDTile1::TiedParameters(const std::vector<double> sdties,
+  CCDTile1::TiedParameters(const std::vector<double> tie_tile,
                  const int& idx0)
   {
     std::pair<std::vector<int>, std::vector<double> > kindexwt;
     // Tie r,w,A parameters together for all tiles
     int idx = idx0;   // starting global parameter index
     for (int k=0;k<3;++k) { // loop parameters 0,1,2 = r,w,A
-      if (sdties[k] > 0.0) {
-        double weight = sdties[k];
+      if (tie_tile[k] > 0.0) {
+        double weight = tie_tile[k];
         weight = 1./(weight*weight);
         kindexwt.second.push_back(weight);
         std::cout << k <<" tie for r,w,A = 0,1,2\n";
@@ -1697,7 +1697,7 @@ namespace scala {
     w = 0.4;
     A0 = 0.2;
     setSymmetric(false);  // set default to allow A to vary
-    sdties_.assign(5,1.0);
+    ties_.assign(7,1.0);
 
     ncorners.resize(2,2,0); // counts in corners, initialise to 0
     // dcrnmin = sqrt(1/2((xmax/2)^2+(ymax/2)^2)) limit for corner
@@ -1767,25 +1767,40 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! return vector of internal ties, given SDs and 1st global parameter index
-  std::vector<Tie> CCDTile2::Ties(const std::vector<double> sdties,
+  std::vector<Tie> CCDTile2::Ties(const std::vector<double> tie_tile,
                                    const int& idx0)
   {
     std::vector<Tie> ties;
-    sdties_ = sdties;
-    int idx = idx0 + 2;  // skip r, w
+    ties_ = tie_tile;
+    int idx = idx0;  // don't skip r, w
+    //    int idx = idx0 + 2;  // skip r, w
     double weight;
 
+    // ties for r and w to target values
+    double rtarget = tie_tile[5];
+    if (rtarget > 0.0) {
+      weight = 1.0/(4.0*tie_tile[0]*tie_tile[0]);  // r weight
+      ties.push_back(Tie(idx, rtarget, weight));
+    }
+    idx++;
+    double wtarget = tie_tile[6];
+    if (wtarget > 0.0) {
+      weight = 1.0/(4.0*tie_tile[1]*tie_tile[1]);  // w weight
+      ties.push_back(Tie(idx, wtarget, weight));
+    }
+    idx++;
+
     // Tie A0 to 0.0
-    if (sdties[2] > 0.0) {
-      weight = 1.0/(4.0*sdties[2]*sdties[2]);  // sd*2 for tie to zero
+    if (tie_tile[2] > 0.0) {
+      weight = 1.0/(4.0*tie_tile[2]*tie_tile[2]);  // sd*2 for tie to zero
       ties.push_back(Tie(idx, 0.0, weight));
     }
     idx++;
 
     // x0, y0 tie to centre position
-    // sdties[3] is relative to tile size as are x0, y0 parameters
-    if (sdties[3] > 0.0) {
-      weight = sdties[3]; // rad0 in pixels
+    // tie_tile[3] is relative to tile size as are x0, y0 parameters
+    if (tie_tile[3] > 0.0) {
+      weight = tie_tile[3]; // rad0 in pixels
       weight = 1./(weight*weight);
       // tie x0 to centre
       ties.push_back(Tie(idx++, 0.0, weight));
@@ -1794,8 +1809,8 @@ namespace scala {
     } else {
       idx += 2;
     }
-    if (!circularlysymmetric && sdties[4] > 0.0) {
-      weight = 1.0/(sdties[4]*sdties[4]);
+    if (!circularlysymmetric && tie_tile[4] > 0.0) {
+      weight = 1.0/(tie_tile[4]*tie_tile[4]);
       // For parameter type A, tie all Fourier coefficients to 0.0
       for (int j=0;j<nparams_smooth;++j) { // ABCD
         // tie ABCD to 0.0
@@ -1807,34 +1822,34 @@ namespace scala {
   //--------------------------------------------------------------
   //! vector of indices and weights for each parameter to be restrained across tiles
   std::pair<std::vector<int>, std::vector<double> >
-  CCDTile2::TiedParameters(const std::vector<double> sdties,
+  CCDTile2::TiedParameters(const std::vector<double> tie_tile,
                  const int& idx0)
   {
     //  r,w relative to rad0
     // For parameter types r,w,A, tie across tiles
     std::pair<std::vector<int>, std::vector<double> > kindexwt;
-    sdties_ = sdties;
+    ties_ = tie_tile;
 
     int idx = idx0;
     double weight;
 
     // r
-    if (sdties[0] > 0.0) {
-      weight = 1./(sdties[0]*sdties[0]);
+    if (tie_tile[0] > 0.0) {
+      weight = 1./(tie_tile[0]*tie_tile[0]);
       kindexwt.second.push_back(weight);
       kindexwt.first.push_back(idx);
     }
     idx++;
     // w
-    if (sdties[1] > 0.0) {
-      weight = 1./(sdties[1]*sdties[1]);
+    if (tie_tile[1] > 0.0) {
+      weight = 1./(tie_tile[1]*tie_tile[1]);
       kindexwt.second.push_back(weight);
       kindexwt.first.push_back(idx);
     }
     idx++;
     // A0
-    if (sdties[2] > 0.0) {
-      weight = 1./(sdties[2]*sdties[2]);
+    if (tie_tile[2] > 0.0) {
+      weight = 1./(tie_tile[2]*tie_tile[2]);
       kindexwt.second.push_back(weight);
       kindexwt.first.push_back(idx);
     }
@@ -2065,18 +2080,28 @@ namespace scala {
     std::string s =
       std::string("Detector parameters r,w,A0 will be TIED across the tiles,")+
       " with SDs ";
-    s += StringUtil::ftos(sdties_[0],7,3)+","+StringUtil::ftos(sdties_[1],7,3)+","
-      +StringUtil::ftos(sdties_[2],7,4)+"\n";
+    s += StringUtil::ftos(ties_[0],7,3)+","+StringUtil::ftos(ties_[1],7,3)+","
+      +StringUtil::ftos(ties_[2],7,4)+"\n";
+    if (ties_.size() > 5 && ties_[5] > 0.0) {
+      s += "  radius parameter r will be tied to target "+
+	StringUtil::ftos(ties_[5],7,4)+" with SD"+
+	StringUtil::ftos(ties_[0],7,4)+"\n";
+    }
+    if (ties_.size() > 6 && ties_[6] > 0.0) {
+      s += "  width parameter w will be tied to target "+
+	StringUtil::ftos(ties_[6],7,4)+" with SD"+
+	StringUtil::ftos(ties_[1],7,4)+"\n";
+    }
     s += std::string
       ("  amplitude parameter A0 will be tied to zero with SD")+
-      StringUtil::ftos(sdties_[2],7,4)+"\n";
+      StringUtil::ftos(ties_[2],7,4)+"\n";
     s += std::string
       ("  and tile centre positions (x0,y0) will be tied to the true centre with SD")+
-      StringUtil::ftos(sdties_[3],7,3)+"\n";
+      StringUtil::ftos(ties_[3],7,3)+"\n";
     if (!circularlysymmetric) {
       s += std::string(
         "   Fourier coefficients of variation of A will be tied to zero with SD")+
-        StringUtil::ftos(sdties_[4],7,3)+"\n";
+        StringUtil::ftos(ties_[4],7,3)+"\n";
     }
     return s;
   }

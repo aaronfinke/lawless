@@ -611,8 +611,12 @@ namespace scala {
     Rtype DstarMax() const;                                   //!< maximum d* = lambda/d
     // Return dataset stuff
     int num_datasets() const {return ndatasets;} //!< number of datasets
+    int num_accepted_datasets() const; //!< number of accepted datasets
     Dataset dataset(const int& jset) const {return datasets.at(jset);}  //!< jset'th dataset
     std::vector<Dataset> AllDatasets() const {return datasets;} //!< all datasets
+    //!< all accepted datasets
+    std::vector<Dataset> AllAcceptedDatasets() const;
+
     // Return batch stuff
     int num_batches() const {return nbatches;} //!< number of batches
     int num_accepted_batches() const;          //!< number of accepted batches
