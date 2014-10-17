@@ -144,7 +144,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   // Average unit cell
-  void SummaryStatistics::StoreAverageCell(const Scell& cell) 
+  void SummaryStatistics::StoreAverageCell(const Scell& cell)
   {
     averageCell = cell;
   }
@@ -470,9 +470,9 @@ namespace scala {
   {
     allsummarystatistics.push_back(summarystatistics);
     //^^
-    //    for (size_t k=0; k<allsummarystatistics.size(); k++) { 
+    //    for (size_t k=0; k<allsummarystatistics.size(); k++) {
     //      std::cout << "AllSummaryStatistics AverageCell "<<k<<" "<<
-    //	FormatCell(allsummarystatistics[k].averagecell()) << std::endl;      
+    //  FormatCell(allsummarystatistics[k].averagecell()) << std::endl;
     //    } //^^-
   }
   // ------------------------------------------------------------
@@ -755,8 +755,8 @@ namespace scala {
       output.logTab(1,OUTSTREAM,
                     "Average unit cell: "+allsummarystatistics[idts].averageCell.format());
       //      std::string s = "Space group: "+allsummarystatistics[idts].spacegroupname;
-      output.logTab(1,OUTSTREAM, 
-		    "Space group: "+allsummarystatistics[idts].spacegroupname);
+      output.logTab(1,OUTSTREAM,
+                    "Space group: "+allsummarystatistics[idts].spacegroupname);
       output.logTabPrintf(1,OUTSTREAM,
                           "Average mosaicity: %6.2f\n",
                           allsummarystatistics[idts].averageMosaicity);

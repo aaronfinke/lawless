@@ -23,6 +23,14 @@ static std::string Trim(const std::string& s);
 //! Trim off leading & trailing quotes from string
   static std::string Unquote(const std::string& s);
 //--------------------------------------------------------------
+  static bool isquoted(const std::string& s);
+//--------------------------------------------------------------
+//! return +1 if s is a valid integer
+//!        -1 if s is a valid floating point number
+//!         0 if s is a string (not a number)
+//! NB not foolproof
+  static int isanumber(const std::string& s);
+//--------------------------------------------------------------
 //! Return string of length <fieldwidth> with text centred on position cenpos in it
 /*! If string length is > fieldwidth, return full string */
 static std::string CentreString(const std::string& text, const int& fieldwidth,

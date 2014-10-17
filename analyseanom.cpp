@@ -61,44 +61,44 @@ namespace scala
     for (int id=0;id<ndatasets;id++) {
       //      float slope = normalprobanal[id].Slope();  // central slope
       if (hkl_list.dataset(id).accepted()) {
-	output.logTabPrintf(1,LOGFILE,"%7.2f %7.2f %10d          %7.2f %7.2f %10d ",
-			    normalprobanal[id].Slope(0.0,true),
-			    normalprobanal[id].Intercept(0.0,true),
-			    normalprobanal[id].Number(0.0,true),
-			    normalprobanal[id].Slope(),
-			    normalprobanal[id].Intercept(),
-			    normalprobanal[id].Number());
-	if (ndatasets > 1) {
-	  output.logTab(0,LOGFILE,
-			hkl_list.dataset(id).formatNames());
-	} else {
-	  output.logTab(0,LOGFILE,"  ");
-	}
+        output.logTabPrintf(1,LOGFILE,"%7.2f %7.2f %10d          %7.2f %7.2f %10d ",
+                            normalprobanal[id].Slope(0.0,true),
+                            normalprobanal[id].Intercept(0.0,true),
+                            normalprobanal[id].Number(0.0,true),
+                            normalprobanal[id].Slope(),
+                            normalprobanal[id].Intercept(),
+                            normalprobanal[id].Number());
+        if (ndatasets > 1) {
+          output.logTab(0,LOGFILE,
+                        hkl_list.dataset(id).formatNames());
+        } else {
+          output.logTab(0,LOGFILE,"  ");
+        }
       }
     }
     output.logTabPrintf(0,LOGFILE,"\nOutlier rejection limits for I+ v I-\n");
     for (int id=0;id<ndatasets;id++) {
       if (hkl_list.dataset(id).accepted()) {
-	slopes[id] = normalprobanal[id].Slope();
-	// Dataset name
-	if (ndatasets > 1) {
-	  std::string pxdlabel = hkl_list.dataset(id).formatNames();
-	  output.logTab(0,LOGFILE, "\n-- For dataset "+pxdlabel);
-	}
-	// Update reject limits
+        slopes[id] = normalprobanal[id].Slope();
+        // Dataset name
+        if (ndatasets > 1) {
+          std::string pxdlabel = hkl_list.dataset(id).formatNames();
+          output.logTab(0,LOGFILE, "\n-- For dataset "+pxdlabel);
+        }
+        // Update reject limits
 
-	RejectFlags rejflags = controls.outlierMerge.Reject(BOTH, id);
-	rejflags.sdrej  *= FACTOR * normalprobanal[id].Slope();
-	rejflags.sdrej2 *= FACTOR * normalprobanal[id].Slope();
-	controls.outlierMerge.SetReject(rejflags, BOTH, id);
-	output.logTabPrintf(0,LOGFILE,
-			    "    have been adjusted by a factor %7.2f * %7.2f\n\n",
-			    FACTOR, normalprobanal[id].Slope());
-	output.logTab(0,LOGFILE,
-		      controls.outlierMerge.Reject(BOTH, id).format());
+        RejectFlags rejflags = controls.outlierMerge.Reject(BOTH, id);
+        rejflags.sdrej  *= FACTOR * normalprobanal[id].Slope();
+        rejflags.sdrej2 *= FACTOR * normalprobanal[id].Slope();
+        controls.outlierMerge.SetReject(rejflags, BOTH, id);
+        output.logTabPrintf(0,LOGFILE,
+                            "    have been adjusted by a factor %7.2f * %7.2f\n\n",
+                            FACTOR, normalprobanal[id].Slope());
+        output.logTab(0,LOGFILE,
+                      controls.outlierMerge.Reject(BOTH, id).format());
 
-	std::string dname = hkl_list.dataset(id).Dname();
-	if (plot) normalprobanal[id].Plot(NPPlot, dname);
+        std::string dname = hkl_list.dataset(id).Dname();
+        if (plot) normalprobanal[id].Plot(NPPlot, dname);
       }
     }  // end loop datasets
     if (plot) {

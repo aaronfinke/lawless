@@ -686,7 +686,7 @@ namespace MtzIO
     bool accept = false;
     int idataset;
     int j = 0;
-    // false if no accepted batces in dataset
+    // false if no accepted batches in dataset
     std::vector<bool> accepted_datasets(ndatasets, false);
     while (get_batch(j, this_batch)) {
       if (!ForceOneDataset) {
@@ -705,9 +705,9 @@ namespace MtzIO
           datasets[idataset].add_batch(setid, this_batch.num);
           pxdname = datasets[idataset].pxdname(setid); // name for this SetID
         }
-	if (accept) {
-	  accepted_datasets[idataset] = true;
-	}
+        if (accept) {
+          accepted_datasets[idataset] = true;
+        }
       } else { // dataset not accepted, so reject batch
         accept = false;
         if (ForceOneDataset) {

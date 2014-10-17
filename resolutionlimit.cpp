@@ -166,7 +166,7 @@ namespace scala {
         data[i].w = 0.0;      // weight, <=0 to ignore
       } else {
         ndata++;
-	linefit.add(data[i].s, score[i], data[i].w);
+        linefit.add(data[i].s, score[i], data[i].w);
       }
       if (score[i] < 0.0) {
         nnegs++;
@@ -241,7 +241,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   int ResolutionLimit::rejectoutliers(std::vector<ResolutionData>& data,
-				      const double& reject) const
+                                      const double& reject) const
   {
     std::vector<double> delta;  // vector of obs-calc differences
 
@@ -347,7 +347,7 @@ namespace scala {
   std::string ResolutionLimit::formatparameters() const {
     if (fittype == LINEAR) {
       return "Linear fit: slope = " + StringUtil::ftos(slope,9,4)+
-	", intercept = " + StringUtil::ftos(intercept,9,4);
+        ", intercept = " + StringUtil::ftos(intercept,9,4);
     } else {
       return radialfunction.format();
     }

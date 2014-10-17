@@ -320,7 +320,7 @@ namespace MtzIO
       }
       fprintf(scafile, "\n");
       for (int i=0;i<3;++i) {
-        fprintf(scafile, "%3d", Nint(symop.trn()[i]));
+        fprintf(scafile, "%3d", Nint(12.0*symop.trn()[i]));
       }
       fprintf(scafile, "\n");
     }

@@ -35,19 +35,19 @@ std::string StringUtil::Trim(const std::string& s)
 {
   std::string ss;
   if (s.size() > 0) {
-      bool instring = false;  // first non-space character
-      for (size_t i=0;i<s.size();i++) {
-        if (instring || s[i] != ' ') {
-          ss.push_back(s[i]);
-          instring = true;
-        }
+    bool instring = false;  // first non-space character
+    for (size_t i=0;i<s.size();i++) {
+      if (instring || s[i] != ' ') {
+        ss.push_back(s[i]);
+        instring = true;
       }
-      // now remove trailing spaces
-      int j = ss.size()-1;
-      while (j >=0)
-        {if (ss[j--] != ' ') break;}
-      ss.resize(j+2);
     }
+    // now remove trailing spaces
+    int j = ss.size()-1;
+    while (j >=0)
+      {if (ss[j--] != ' ') break;}
+    ss.resize(j+2);
+  }
   return ss;
 }
 //--------------------------------------------------------------
@@ -77,10 +77,63 @@ std::string StringUtil::Unquote(const std::string& sin)
   return ss;
 }
 //--------------------------------------------------------------
+bool StringUtil::isquoted(const std::string& s)
+// true if a quoted string
+{
+  if (s.size()== 0) {return false;}
+
+  bool instring = false;
+  int k = -1;
+  for (size_t i=0;i<s.size();i++) {
+    if ((s[i] == '\'') || (s[i] == '"')) {
+      k = i;
+      break;
+    }
+  }
+  if (k < 0) {return false;}
+
+  // search for trailing quote
+  int j = s.size()-1;
+  bool found = false;
+  while (j > k) {
+    if ((s[j] == '\'') || (s[j] == '"')) {
+      found = true;
+      break;
+    }
+    j--;
+  }
+  return found;
+}
+//--------------------------------------------------------------
+int StringUtil::isanumber(const std::string& s)
+// return +1 if s is a valid integer
+//        -1 if s is a valid floating point number
+//         0 if s is a string (not a number)
+// NB not foolproof
+{
+  if (isquoted(s)) {return 0;} // quoted string
+  std::string ss = StringUtil::Trim(s);  // strip leading and trailing spaces
+  int type = +1;
+  for (size_t i=0;i<ss.size();i++) {
+    if (isspace(s[i])) {
+      return 0;  // no embedded whitespace in a number
+    }
+    if (!std::isdigit(s[i])) {
+      // Allow +, -, e, E, .
+      if (s[i] == '.' || s[i] == 'e' || s[i] == 'E') {
+        type = -1;
+      } else if (!(s[i] == '+' || s[i] == '-')) {
+        return 0; // non-numeric character
+      }
+    }
+  }
+  return type;
+}
+//--------------------------------------------------------------
 // Return string of length <fieldwidth> with text centred on position
 // cenpos (numbered from 0)
 std::string StringUtil::CentreString(const std::string& text, const int& fieldwidth,
-                         const int& cenposition)
+                                     const int& cenposition)
 {
   int cenpos = cenposition;
   if (cenpos == 0) cenpos = fieldwidth/2;
@@ -130,7 +183,7 @@ std::string StringUtil::LeftString(const std::string& text, const int& fieldwidt
 }
 //--------------------------------------------------------------
 std::vector<std::string> StringUtil::split(const std::string& str,
-                               const std::string& sep)
+                                           const std::string& sep)
 // Return substrings split at string "sep" (excluded)
 // modified from clipper_types.cpp
 {
@@ -146,7 +199,7 @@ std::vector<std::string> StringUtil::split(const std::string& str,
 }
 //--------------------------------------------------------------
 std::vector<std::string> StringUtil::split(const std::string& str,
-                               const std::string& sep1, const std::string& sep2)
+                                           const std::string& sep1, const std::string& sep2)
 // Return substrings split at string "sep1" or "sep2" (excluded)
 // modified from clipper_types.cpp
 {
@@ -154,10 +207,10 @@ std::vector<std::string> StringUtil::split(const std::string& str,
   size_t tokbeg = 0, tokend = 0;
   while (1) {
     tokbeg = clipper::Util::max(str.find_first_not_of(sep1, tokend),
-                 str.find_first_not_of(sep2, tokend));
+                                str.find_first_not_of(sep2, tokend));
     if (tokbeg == std::string::npos) return splitstr;
     tokend = clipper::Util::min(str.find_first_of(sep1, tokbeg),
-                 str.find_first_of(sep2, tokbeg));
+                                str.find_first_of(sep2, tokbeg));
     if (tokend-tokbeg > 0) {
       splitstr.push_back(str.substr(tokbeg, tokend-tokbeg) );
     }
@@ -290,7 +343,7 @@ std::string StringUtil::etos(const double f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::WrapLine(const std::string& line,
-         const int& pagewidth, const int& nindent, const std::string& sepc)
+                                 const int& pagewidth, const int& nindent, const std::string& sepc)
 // wrap after field terminated by character sepc (default " ")
 // if sepc = " ", exclude it from field
 {
@@ -347,7 +400,7 @@ std::string StringUtil::WrapLine(const std::string& line,
 std::string StringUtil::formatFraction(const double& fr, const int& width)
 //!< Format a real number as a fraction ie "n/m"
 /*! \param  fr  number of format
-    \param  width  field width for decimal version, if fail to find suitable fraction
+  \param  width  field width for decimal version, if fail to find suitable fraction
 */
 {
   std::string s;
@@ -515,7 +568,7 @@ std::string FormatOutput::logTab(const int& tab, const std::string& text)
 //--------------------------------------------------------------
 //! format using vsstringf
 std::string FormatOutput::logTabPrintf(const int& tab,
-                                  const char* formattext,...)
+                                       const char* formattext,...)
 {
   static const std::size_t temp_size = 8192;
   char temp[temp_size];
@@ -546,11 +599,11 @@ Numberfield::Numberfield(const bool& IntType, const float& MaxValue,
 }
 //--------------------------------------------------------------
 //! (re)initialise from type, minimum field width, and precision
-  /*! \param IntType    true if integer type
-      \param MaxValue   maximum ||value|| for field
-      \param MinWidth   minimum field width
-      \param Precision  number of significant figures
-   */
+/*! \param IntType    true if integer type
+  \param MaxValue   maximum ||value|| for field
+  \param MinWidth   minimum field width
+  \param Precision  number of significant figures
+*/
 void Numberfield::init(const bool& IntType, const float& MaxValue,
                        const int& MinWidth, const int& Precision)
 {
@@ -575,7 +628,7 @@ void Numberfield::init(const bool& IntType, const float& MaxValue,
 //--------------------------------------------------------------
 //! (re)initialise from type, field width, and number of characters after decimal point
 void Numberfield::init(const int& Type, const int& Width, const int& Dec,
-            const std::string& Label1, const std::string& Label2)
+                       const std::string& Label1, const std::string& Label2)
 {type = Type; width = Width; dec = Dec; label1 = Label1; label2 = Label2;}
 //--------------------------------------------------------------
 //======================================================================

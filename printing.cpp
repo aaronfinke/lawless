@@ -1436,7 +1436,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
     //    yranges[1].update(halfDatasetScores.RMScorrelRatioCen(i));
     yranges[2].update(halfDatasetScores.rsplit(i).result().val);
   }
-  
+
   yranges[0].first() = std::min(yranges[0].first(), 0.0);  // CC
   yranges[0].last() = 1.0;  // CC
 
@@ -1643,7 +1643,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
   for (int i=0;i<ResRange.Nbins();++i) {
     for (int k=0;k<3;++k) {
       if (!(isplane && k == 1)) {
-	yranges[0].update(halfDatasetScores.CCaniso(k,i).result().val);
+        yranges[0].update(halfDatasetScores.CCaniso(k,i).result().val);
       }
     }
     yranges[1].update(mnIsdResCone[0][i].Mean());
@@ -1979,51 +1979,51 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       std::vector<Dataset> datasets = hkl_list.AllDatasets();
       std::vector<Run> runlist = hkl_list.RunList();
       for (int k=0; k<ndatasets; k++) {
-	if (!datasets[k].accepted()) {
-	  output.logTab(0,LOGFILE,
-			"\nRejected dataset "+datasets[k].pxdname().format());
-	} else {
-	  output.logTab(0,LOGFILE,"\n"+datasets[k].format());
-	  //      output.logTab(0,LOGFILE,"\n"+datasets[k].formatPrint());
-	  //      output.logTab(3,LOGFILE,"Cell: "+datasets[k].cell().formatPrint());
-	  //      output.logTabPrintf(3,LOGFILE,
-	  //                          "Wavelength %8.5f A\n", datasets[k].wavelength());
-	  if (verbose == 3) {
-	    for (size_t i=0;i<runlist.size();i++) {
-	      if (runlist[i].DatasetIndex() == k) {
-		output.logTab(0,LOGFILE,runlist[i].formatPrintBrief(datasets));
-		std::string rejlist;
-		for (int k=0;k<nrb;k++) {
-		  if (runlist[i].IsInList(rejectedbatches[k].first)) {
-		    // Rejected batches in this run
-		    if (rejlist.size() > 0) rejlist += ", ";
-		    if (rejectedbatches[k].second == 0) {
-		      rejlist +=
-			StringUtil::Strip(clipper::String(rejectedbatches[k].first,6));
-		    } else {
-		      rejlist +=
-			StringUtil::Strip(clipper::String(rejectedbatches[k].first,6)+
-					  "-"+clipper::String(rejectedbatches[k].second,6));
-		    }
-		  }
-		}
-		if (rejlist.size() > 0) {
-		  output.logTab(3,LOGFILE,"Excluded batches: "+rejlist);}
-	      }
-	    }
-	  }
-	}
+        if (!datasets[k].accepted()) {
+          output.logTab(0,LOGFILE,
+                        "\nRejected dataset "+datasets[k].pxdname().format());
+        } else {
+          output.logTab(0,LOGFILE,"\n"+datasets[k].format());
+          //      output.logTab(0,LOGFILE,"\n"+datasets[k].formatPrint());
+          //      output.logTab(3,LOGFILE,"Cell: "+datasets[k].cell().formatPrint());
+          //      output.logTabPrintf(3,LOGFILE,
+          //                          "Wavelength %8.5f A\n", datasets[k].wavelength());
+          if (verbose == 3) {
+            for (size_t i=0;i<runlist.size();i++) {
+              if (runlist[i].DatasetIndex() == k) {
+                output.logTab(0,LOGFILE,runlist[i].formatPrintBrief(datasets));
+                std::string rejlist;
+                for (int k=0;k<nrb;k++) {
+                  if (runlist[i].IsInList(rejectedbatches[k].first)) {
+                    // Rejected batches in this run
+                    if (rejlist.size() > 0) rejlist += ", ";
+                    if (rejectedbatches[k].second == 0) {
+                      rejlist +=
+                        StringUtil::Strip(clipper::String(rejectedbatches[k].first,6));
+                    } else {
+                      rejlist +=
+                        StringUtil::Strip(clipper::String(rejectedbatches[k].first,6)+
+                                          "-"+clipper::String(rejectedbatches[k].second,6));
+                    }
+                  }
+                }
+                if (rejlist.size() > 0) {
+                  output.logTab(3,LOGFILE,"Excluded batches: "+rejlist);}
+              }
+            }
+          }
+        }
       }  // end loop datasets
     } else if (verbose > 3) {
       std::vector<Dataset> datasets = hkl_list.AllDatasets();
       for (size_t k=0; k<datasets.size(); k++) {
-	if (!datasets[k].accepted()) {
-	  output.logTab(0,LOGFILE,
-			"\nRejected dataset "+datasets[k].pxdname().format());
-	} else {
-	  output.logTab(0,LOGFILE,
-			datasets[k].formatPrint());
-	}
+        if (!datasets[k].accepted()) {
+          output.logTab(0,LOGFILE,
+                        "\nRejected dataset "+datasets[k].pxdname().format());
+        } else {
+          output.logTab(0,LOGFILE,
+                        datasets[k].formatPrint());
+        }
       }
     }
     output.logTabPrintf(0,LOGFILE, "\n   Average unit cell: ");

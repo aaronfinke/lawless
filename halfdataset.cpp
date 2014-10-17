@@ -318,7 +318,7 @@ namespace scala {
           ccaniso[jax][i].zero();
         }
       } else {
-	//^^	std::cout << "HDS aniso " << jax <<std::endl;
+        //^^    std::cout << "HDS aniso " << jax <<std::endl;
         anisoresolimit[jax].init(cc, ResRange, MinimumHalfdatasetCC,
                                  ResolutionLimit::TANH);
       }

@@ -74,7 +74,7 @@ namespace scala {
       datasets = hkl_list.AllAcceptedDatasets();
     } else { // just selected dataset
       if (!hkl_list.dataset(dataset_index).accepted()) {
-	Message::message(Message_fatal("MergedList::WriteMTZ rejected dataset"+
+        Message::message(Message_fatal("MergedList::WriteMTZ rejected dataset"+
                                      clipper::String(dataset_index)));
       }
       datasets.assign(1, hkl_list.dataset(dataset_index));
@@ -91,21 +91,21 @@ namespace scala {
 
     for (int idts=0;idts<ndatasets;++idts) {
       if (datasets[idts].accepted()) {
-	// idts is local index to dataset stored, which may be just one
-	// Individual cells for each dataset
-	HKLcell = CG.constrain(datasets[idts].cell());  // constrained cell
-	clipper::Cell dcell = HKLcell.ClipperCell();
-	datasetdata[idts].init(hkl_info_list, dcell);
-	// construct clipper-style mtzpaths
-	PxdName pxdname = datasets[idts].pxdname();  // consensus name, all crystals for this dataset
-	clipper::String mtzpath = pxdname.xname()+"/"+pxdname.dname()+"/";
-	datasetdata[idts].mtzpath = mtzpath+"["+simean+", "+sipm+"]";;
-	datasetdata[idts].mtzpathImean = mtzpath+"["+simean+"]";
-	datasetdata[idts].mtzpathIpm = mtzpath+"["+sipm+"]";
-	datasetdata[idts].cset =
-	  clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
-	datasetdata[idts].cxtl =
-	  clipper::MTZcrystal(pxdname.xname(), pxdname.pname(), dcell);
+        // idts is local index to dataset stored, which may be just one
+        // Individual cells for each dataset
+        HKLcell = CG.constrain(datasets[idts].cell());  // constrained cell
+        clipper::Cell dcell = HKLcell.ClipperCell();
+        datasetdata[idts].init(hkl_info_list, dcell);
+        // construct clipper-style mtzpaths
+        PxdName pxdname = datasets[idts].pxdname();  // consensus name, all crystals for this dataset
+        clipper::String mtzpath = pxdname.xname()+"/"+pxdname.dname()+"/";
+        datasetdata[idts].mtzpath = mtzpath+"["+simean+", "+sipm+"]";;
+        datasetdata[idts].mtzpathImean = mtzpath+"["+simean+"]";
+        datasetdata[idts].mtzpathIpm = mtzpath+"["+sipm+"]";
+        datasetdata[idts].cset =
+          clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
+        datasetdata[idts].cxtl =
+          clipper::MTZcrystal(pxdname.xname(), pxdname.pname(), dcell);
       }
     }
 
@@ -123,50 +123,50 @@ namespace scala {
       //  Apply current SD correction to reflection (all observations)
       SDM.CorrectReflection(this_refl);
       for (int idts=0;idts<ndatasets;++idts) {
-	if (datasets[idts].accepted()) {
-	  // jdts is global index
-	  if (dataset_index == -2)
-	    {jdts = -1;}  // all datasets read together
-	  else if (dataset_index < 0)
-	    {jdts = idts;} // all datasets read separately
-	  else
-	    {jdts = dataset_index;} // selected dataset
-	  // mean I
-	  allobs.init(this_refl, jdts, ALL); // all data for selected dataset
-	  if (allobs.Number() > 0) {
-	    nrefdts[idts]++;
-	    resmaxdts[idts] = Max(resmaxdts[idts], invrsq);
-	    IsigI avI = allobs.Average();
-	    data[0] = avI.I();
-	    data[1] = avI.sigI();
-	    datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
-	    maxintensity = Max(maxintensity, avI.I());
-	    meanI.Add(avI.I());
-	    data[2] = 0.0;
-	    data[3] = 0.0;
-	    data[4] = 0.0;
-	    if (!Centric) {
-	      data[0] = 0.0;
-	      data[1] = 0.0;
-	      obsplus.init(this_refl, jdts, IPLUS); // I+ data for selected dataset
-	      if (obsplus.Number() > 0) {
-		avI = obsplus.Average();
-		data[0] = avI.I();  // I+
-		data[1] = avI.sigI();
-	      }
-	      obsminus.init(this_refl, jdts, IMINUS); // I- data for selected dataset
-	      if (obsminus.Number() > 0) {
-		avI = obsminus.Average();
-		data[2] = avI.I();  // I-
-		data[3] = avI.sigI();
-	      }
-	    } else { // centric, I+ = I- = <I>
-	      data[2] =avI.I();
-	      data[3] =avI.sigI();
-	    }
-	    datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
-	  }
-	}
+        if (datasets[idts].accepted()) {
+          // jdts is global index
+          if (dataset_index == -2)
+            {jdts = -1;}  // all datasets read together
+          else if (dataset_index < 0)
+            {jdts = idts;} // all datasets read separately
+          else
+            {jdts = dataset_index;} // selected dataset
+          // mean I
+          allobs.init(this_refl, jdts, ALL); // all data for selected dataset
+          if (allobs.Number() > 0) {
+            nrefdts[idts]++;
+            resmaxdts[idts] = Max(resmaxdts[idts], invrsq);
+            IsigI avI = allobs.Average();
+            data[0] = avI.I();
+            data[1] = avI.sigI();
+            datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
+            maxintensity = Max(maxintensity, avI.I());
+            meanI.Add(avI.I());
+            data[2] = 0.0;
+            data[3] = 0.0;
+            data[4] = 0.0;
+            if (!Centric) {
+              data[0] = 0.0;
+              data[1] = 0.0;
+              obsplus.init(this_refl, jdts, IPLUS); // I+ data for selected dataset
+              if (obsplus.Number() > 0) {
+                avI = obsplus.Average();
+                data[0] = avI.I();  // I+
+                data[1] = avI.sigI();
+              }
+              obsminus.init(this_refl, jdts, IMINUS); // I- data for selected dataset
+              if (obsminus.Number() > 0) {
+                avI = obsminus.Average();
+                data[2] = avI.I();  // I-
+                data[3] = avI.sigI();
+              }
+            } else { // centric, I+ = I- = <I>
+              data[2] =avI.I();
+              data[3] =avI.sigI();
+            }
+            datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
+          }
+        }
       } // end loop datasets
     } // end loop reflections
     meanintensity = meanI.Mean();

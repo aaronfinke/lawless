@@ -2084,13 +2084,13 @@ namespace scala {
       +StringUtil::ftos(ties_[2],7,4)+"\n";
     if (ties_.size() > 5 && ties_[5] > 0.0) {
       s += "  radius parameter r will be tied to target "+
-	StringUtil::ftos(ties_[5],7,4)+" with SD"+
-	StringUtil::ftos(ties_[0],7,4)+"\n";
+        StringUtil::ftos(ties_[5],7,4)+" with SD"+
+        StringUtil::ftos(ties_[0],7,4)+"\n";
     }
     if (ties_.size() > 6 && ties_[6] > 0.0) {
       s += "  width parameter w will be tied to target "+
-	StringUtil::ftos(ties_[6],7,4)+" with SD"+
-	StringUtil::ftos(ties_[1],7,4)+"\n";
+        StringUtil::ftos(ties_[6],7,4)+" with SD"+
+        StringUtil::ftos(ties_[1],7,4)+"\n";
     }
     s += std::string
       ("  amplitude parameter A0 will be tied to zero with SD")+

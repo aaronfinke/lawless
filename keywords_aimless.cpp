@@ -822,9 +822,9 @@ Token_value TIE::parse(std::istringstream& input_stream)
           (keywords, "TIE: unexpected number when not TILE");
       }
       if (tilesd == 0) {
-	tsd.push_back(number_value);
+        tsd.push_back(number_value);
       } else if (tilesd == +1) {
-	targets.push_back(number_value);
+        targets.push_back(number_value);
       }
     }
   }

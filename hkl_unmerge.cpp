@@ -2244,10 +2244,10 @@ namespace scala {
     ResoRange overallrange = ResoLimRange;
     for (int id=0;id<ndatasets;++id) {
       if (datasets[id].accepted()) {
-	// Resolution range for each dataset
-	datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
-	// Overall
-	overallrange = overallrange.MaxRange(datasets[id].ResRange());
+        // Resolution range for each dataset
+        datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
+        // Overall
+        overallrange = overallrange.MaxRange(datasets[id].ResRange());
       }
     }
     for (size_t irun=0;irun<runlist.size();++irun) {
@@ -3243,9 +3243,9 @@ namespace scala {
   //!< number of accepted datasets
   {
     int ndts = 0;
-    for (size_t id=0; id<datasets.size(); id++) { 
+    for (size_t id=0; id<datasets.size(); id++) {
       if (datasets[id].accepted()) {
-	ndts++;
+        ndts++;
       }
     }
     return ndts;
@@ -3255,9 +3255,9 @@ namespace scala {
   //!< all accepted datasets
   {
     std::vector<Dataset> valid_datasets;
-    for (size_t id=0; id<datasets.size(); id++) { 
+    for (size_t id=0; id<datasets.size(); id++) {
       if (datasets[id].accepted()) {
-	valid_datasets.push_back(datasets[id]);
+        valid_datasets.push_back(datasets[id]);
       }
     }
     return valid_datasets;
