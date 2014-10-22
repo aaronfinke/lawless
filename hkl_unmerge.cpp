@@ -482,6 +482,13 @@ namespace scala {
     return Is;
   }
   //--------------------------------------------------------------
+  bool observation::hasIpr() const
+  {
+    // Return true if there is an IPR value
+    // only need to test 1st or only part
+    return (get_part(0).I_sigIpr().sigI() > 0.0);
+  }
+  //--------------------------------------------------------------
   void observation::sum_partials()
   {
     // Sum (or scale) all partials for this observation
@@ -508,7 +515,11 @@ namespace scala {
         Isum = SelectI::GetCombinedI(Iraw, Ic, Ipr);
       }
     } else if (SelectI::SelectIcolFlag() < 0) { // profile
-      Isum = Ipr;
+      if (Ipr.sigI() > 0.0) {
+        Isum = Ipr;
+      } else {
+        Isum = Ic;
+      }
     } else {
       Isum = Ic;
     }

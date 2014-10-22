@@ -280,6 +280,9 @@ namespace scala {
     // Return "profile" integration I sigI, summed over partials if necessary
     IsigI IsigIpr() const;
 
+    // Return true if there is an IPR value
+    bool hasIpr() const;
+
     // Sum (or scale) all partials for this observation
     // Assumes that SelectI has been set up correctly to choose
     // either summation, profile or combined intensity measurements

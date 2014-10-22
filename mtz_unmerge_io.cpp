@@ -908,11 +908,6 @@ namespace MtzIO
       // Optional columns, set defaults if absent or MNF
       Ipr = check_column(cols, col_mnf, col_sel.col_Ipr, StatusFlag);
       sigIpr = check_column(cols, col_mnf, col_sel.col_sigIpr, StatusFlag);
-      // fill in Ipr from I if missing
-      if (sigIpr <= 0.0) {
-	Ipr = I;
-	sigIpr = sigI;
-      }
 
       fraction_calc = check_column(cols, col_mnf, col_sel.col_fractioncalc, StatusFlag);
       Xdet = check_column(cols, col_mnf, col_sel.col_Xdet, StatusFlag);
@@ -936,18 +931,18 @@ namespace MtzIO
       // Possible input scale
       sigscale = check_column(cols, col_mnf, col_sel.col_sigscale, StatusFlag);
       if (col_sel.col_scale >= 0) {
-	scale = check_column(cols, col_mnf, col_sel.col_scale, StatusFlag);
-	// If the scale column is present but there is no valid
-	// scale then skip this observation
-	if (StatusFlag || scale == 0.0)
+        scale = check_column(cols, col_mnf, col_sel.col_scale, StatusFlag);
+        // If the scale column is present but there is no valid
+        // scale then skip this observation
+        if (StatusFlag || scale == 0.0)
             continue;
-	// Apply input scale immediately
-	I *= scale;
-	sigI = sqrt(scale*sigI*scale*sigI + sigscale*I*sigscale*I);
-	if (col_sel.col_Ipr > 0) {
-	  Ipr *= scale;
-	  sigIpr = sqrt(scale*sigIpr*scale*sigIpr + sigscale*Ipr*sigscale*Ipr);
-	}
+        // Apply input scale immediately
+        I *= scale;
+        sigI = sqrt(scale*sigI*scale*sigI + sigscale*I*sigscale*I);
+        if (col_sel.col_Ipr > 0) {
+          Ipr *= scale;
+          sigIpr = sqrt(scale*sigIpr*scale*sigIpr + sigscale*Ipr*sigscale*Ipr);
+        }
       }
 
       // Multiple lattice options

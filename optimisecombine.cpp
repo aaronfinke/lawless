@@ -64,7 +64,19 @@ namespace scala {
     RPair inner = ResRange.boundsA(0);          // resolution range for inner bin
     std::string s1 = StringUtil::Strip(StringUtil::ftos(inner.first,8,1)+"-"+
                                        StringUtil::ftos(inner.second,8,2));
-    RPair outer = ResRange.boundsA(nresbin-1);  // resolution range for outer bin
+
+    // summation I (do this one first so that we can get maximum resolution bin)
+    imid[0] = 0.0;
+    scores[0] = TestValue(imid[0], hkl_list, Rfacs[0]);
+
+    // Outermost bin with data
+    outerbin = nresbin-1;
+    while (Rfacs[0].at(outerbin).result().count == 0) {
+      outerbin--;
+    }
+    ASSERT (outerbin >= 0);
+
+    RPair outer = ResRange.boundsA(outerbin);  // resolution range for outer bin
     std::string s2 = StringUtil::Strip(StringUtil::ftos(outer.first,8,2)+"-"+
                                        StringUtil::ftos(outer.second,8,2));
 
@@ -78,9 +90,6 @@ namespace scala {
                   StringUtil::RightString(s1,12)+StringUtil::RightString(s2,12));
     output.logTab(0, LOGFILE," ");
 
-    // summation I
-    imid[0] = 0.0;
-    scores[0] = TestValue(imid[0], hkl_list, Rfacs[0]);
     PrintR(imid[0], scores[0], Rfacs[0], output);
 
     // profile I
@@ -198,6 +207,13 @@ namespace scala {
     output.logTab(0,LOGFILE,"\nBest value:");
     PrintR(imid[ib], scores[ib], Rfacs[ib], output);
     SelectI::SetIcolFlag(int(imid[ib]), imid[ib]);
+
+    if (nnoipr > 0) {
+      output.logTabPrintf(0,LOGFILE,
+  "\nNote that %d observations have no profile-fitted values, so only %d observations were used\n",
+                          nnoipr, nboth);
+    }
+
     output.logTab(0, LOGFILE, "\n"+SelectI::format());
   }
   //--------------------------------------------------------------
@@ -212,6 +228,7 @@ namespace scala {
     for (size_t i=0;i<Rmeas.size();++i) {
       R += Rmeas[i];
     }
+    //    std::cout <<"OptimiseCombine::TestValue N " <<R.result().count << std::endl; //^^
     return R.R();
   }
   //--------------------------------------------------------------
@@ -230,10 +247,10 @@ namespace scala {
     }
     output.logTabPrintf(0,LOGFILE,
                         "%40s %11.4f %11.4f %11.4f\n",
-                        s.c_str(), score, Rmeas[0].R(), Rmeas.back().R());
+                        s.c_str(), score, Rmeas[0].R(), Rmeas[outerbin].R());
   }
 //--------------------------------------------------------------
-  std::vector<Rfactor> OptimiseCombine::GetScores(const hkl_unmerge_list& hkl_list) const
+  std::vector<Rfactor> OptimiseCombine::GetScores(const hkl_unmerge_list& hkl_list)
   // Only comes in here if we have both Isummation and Ipr
   // Get various scores
   {
@@ -247,6 +264,9 @@ namespace scala {
 
     hkl_list.rewind();
 
+    nboth = 0;
+    nnoipr = 0;
+
     while (hkl_list.next_reflection(this_refl) >= 0)  {   // * * * * Loop accepted reflections
       for (int idts=0;idts<ndatasets;++idts) { // loop datasets to clear
         intensities[idts].clear();
@@ -257,12 +277,17 @@ namespace scala {
       //  Loop all observations
       for (int i=0;i<this_refl.num_observations();++i) {
         this_obs = this_refl.get_observation(i);
+        // only if accepted and there is a profile-fitted value IPR
         if (this_obs.IsAccepted()) {
-          this_obs.sum_partials();  // with current SelectI settings
-          if (this_obs.sigI() > 0.0) {
-            double I = this_obs.kI();   // scaled I
-            int didx = this_obs.datasetIndex();     // dataset
-            intensities[didx].push_back(I);
+          if (this_obs.hasIpr()) {
+            this_obs.sum_partials();  // with current SelectI settings
+            if (this_obs.sigI() > 0.0) {
+              double I = this_obs.kI();   // scaled I
+              int didx = this_obs.datasetIndex();     // dataset
+              intensities[didx].push_back(I);
+            }
+          } else {
+            nnoipr++;
           }
         }
       }
@@ -273,11 +298,14 @@ namespace scala {
           double w = sqrt(an/(an-1.0));
           for (size_t i=0;i<intensities[idts].size();++i) { // loop observations
             double delI = intensities[idts][i] - AvI;
+            nboth++;
             rmeasRes[mres].add(delI, AvI, w);  // Rmeas in resolution bins
           }
         }
       } // end loop datasets
     } // end loop reflections
+
+
     return rmeasRes;
   }
   //--------------------------------------------------------------
@@ -294,17 +322,19 @@ namespace scala {
       //  Loop all observations
       for (int i=0;i<this_refl.num_observations();++i) {
         this_obs = this_refl.get_observation(i);
-        if (this_obs.IsAccepted()) {
+        if (this_obs.IsAccepted() && this_obs.hasIpr()) {
           this_obs.sum_partials();  // with current SelectI settings
-          double I = this_obs.kI();   // scaled I
-          double lp = this_obs.LP();
-          if (hasLP) {
-            if (lp > 0.0) {
-              double Iraw = I/lp;  // raw intensity
-              mnI.Add(Iraw);
+          if (this_obs.sigI() > 0.0) {
+            double I = this_obs.kI();   // scaled I
+            double lp = this_obs.LP();
+            if (hasLP) {
+              if (lp > 0.0) {
+                double Iraw = I/lp;  // raw intensity
+                mnI.Add(Iraw);
+              }
+            } else {
+              mnI.Add(I);
             }
-          } else {
-            mnI.Add(I);
           }
         }
       }  // end loop observations

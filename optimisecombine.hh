@@ -51,17 +51,22 @@ namespace scala {
 		phaser_io::Output& output);
 
     // Return score, Rfactors vs. resolution    
-    std::vector<Rfactor> GetScores(const hkl_unmerge_list& hkl_list) const;
+    std::vector<Rfactor> GetScores(const hkl_unmerge_list& hkl_list);
     // Return Mean(Iraw)
     double RawIntensityDistribution(const hkl_unmerge_list& hkl_list) const;
 
     // private data
     bool bothIpresent;     // true if both intensity estimates are present in the file
+    int nboth;         // number of observations with both I and IPR
+    int nnoipr;        // number of observations with no IPR
+
     double meanI;          // mean raw intensity
     double Itop;           // top of search range
 
+
     ResoRange ResRange;             // resolution range & bins
     int nresbin;                    // number of resolution bins
+    int outerbin;                   // outermost occupied resolution bin
     std::vector<Rfactor> RmeasBest; // best Rmeas score by resolution
     double Rmbest;                  // best Rmeas overall
     
