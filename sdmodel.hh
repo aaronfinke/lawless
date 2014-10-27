@@ -168,6 +168,10 @@ namespace scala
     //! Set all parameters from vector
     void SetParameters(const std::vector<double>& params);
 
+    //! Set all parameters from vector, parameterupdated true if this paramter has been updated
+    void SetParameters(const std::vector<double>& params,
+		       const std::vector<bool>& parameterupdated);
+
     // return vector elements for each observation in Selobs
     // each element is vector of elements for each parameter
     //  elements for each parameter are d(delta(iobs))/dp(k)

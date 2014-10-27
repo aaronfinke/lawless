@@ -247,12 +247,12 @@ namespace scala
         Nused++;
         g = this_ref->get_observation(i).Gscale();
         Rtype sd = this_ref->get_observation(i).sigI();
-	//	if (sd <= 0.0) {
-	//	  observation obs = this_ref->get_observation(i);
-	//	  std::cout <<"SelObsAverage: "<<g<<" "<<sd
-	//		    <<" "<<obs.hkl_original().format()<<" "
-	//		    <<obs.Batch()<<std::endl;
-	//	} //^^-
+        //      if (sd <= 0.0) {
+        //        observation obs = this_ref->get_observation(i);
+        //        std::cout <<"SelObsAverage: "<<g<<" "<<sd
+        //                  <<" "<<obs.hkl_original().format()<<" "
+        //                  <<obs.Batch()<<std::endl;
+        //      } //^^-
         ASSERT (sd > 0.0);
         w = Weight(sd, g);   // weight according to weighttype
         wgI[i] = w * g * this_ref->get_observation(i).I();

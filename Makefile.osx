@@ -371,6 +371,7 @@ allclean: clean
 export:
 	/bin/rm -rf ../Export/
 	mkdir ../Export
+	libtbx.clean_clutter
 	cp ${SOURCE} ../Export/
 	cp ${CSOURCE} ../Export/
 	cp ${HDR} ../Export/

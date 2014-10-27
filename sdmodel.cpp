@@ -625,6 +625,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   // Set all parameters from vector
   void SDmodel::SetParameters(const std::vector<double>& params)
   {
+    std::vector<bool> parameterupdated(params.size(), true);
+    SetParameters(params, parameterupdated);
+  }
+//-------------------------------------------------------------
+  // Set all parameters from vector
+  // parameterupdated true if this parameter has been updated
+  void SDmodel::SetParameters(const std::vector<double>& params,
+                              const std::vector<bool>& parameterupdated)
+  {
     int npc = Max(sdc_full_run[0].Nparams(), sdc_partial_run[0].Nparams());
     if (int(params.size()) != Nparams()) {
       Message::message(Message_fatal("SDmodel::SetParameters: wrong number of parameters"));
@@ -636,8 +645,11 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       if (allrunssame) k=0; // if allrunssame, one set of parameters for all runs
       int k1=k; // save
       // Always put in values for fulls even if not refined
+      bool updatedfull = false;
       for (int j=0;j<sdc_full_run[irun].Nparams();++j) {
-        pars[j] = params[k++];
+        pars[j] = params[k];
+        if (parameterupdated[k]) {updatedfull = true;}
+        k++;
       }
       sdc_full_run[irun].SetParameters(pars); // set values for fulls anyway
       if (usetype[irun] != 0) { // no actual values for fulls or partialsa
@@ -645,10 +657,22 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         k = k1;
       }
       // Always put in values for partials even if not refined
+      bool updatedpartial = false;
       for (int j=0;j<sdc_partial_run[irun].Nparams();++j) {
-        pars[j] = params[k++];
+        pars[j] = params[k];
+        if (parameterupdated[k]) {updatedpartial = true;}
+        k++;
       }
       sdc_partial_run[irun].SetParameters(pars); // set values for partials
+      // Copy full <-> partial if needed
+      if (updatedfull && !updatedpartial) {
+        //  partial from full
+        sdc_partial_run[irun].SetParameters(sdc_full_run[irun].GetParameters());
+      }
+      if (!updatedfull && updatedpartial) {
+        // full from partial
+        sdc_full_run[irun].SetParameters(sdc_partial_run[irun].GetParameters());
+      }
     } // end loop runs
 
     SetTargetsFromAverageParameters();

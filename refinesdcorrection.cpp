@@ -222,6 +222,9 @@ namespace scala {
     // "SD" of residual in each intensity bin, for weighting by 1/SD^2
     const double SDRESID = 0.04;
 
+    // for each parameter, true if values updated
+    std::vector<bool> parameterupdated(sdmparams.size(), false);
+
     for (int jpc=0;jpc<npargroups;++jpc) { // loop parameter classes
       // weight for each intensity bin, equal (unit) weights
       double w1 = WTREL/(SDRESID*SDRESID*nintbins);
@@ -254,165 +257,168 @@ namespace scala {
       //      std::cout <<"Target contribution from group " << jpc<< " " << R1
       //                << " number " << number <<"\n"; //^-
 
-      std::vector<double> gradient(npar, 0.0); // gradient vector dR/dp
-      clipper::Matrix<double> H(npar,npar,0.0);  // Hessian ~= d2R/dp2
+      if (number > 0) {
+        std::vector<double> gradient(npar, 0.0); // gradient vector dR/dp
+        clipper::Matrix<double> H(npar,npar,0.0);  // Hessian ~= d2R/dp2
 
-      // kpl is parameter number local to parameter class
-      // kpg is global parameter number
-      for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl for this class
-        // dR/dpk = Sum[jc] (w (1 - SD(delta)) d(sigma(delta(jc)))/dpk)
-        for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
-          int jc = sdanal.BinClass(jpc, mint);  // bin class number from param class & intbin
-          if (sddelta[jc] != 0.0) {
-            double r = 1.0 - sddelta[jc]; // deviation
-            gradient[kpl] += wib[mint] * r * dsigDeldp[jpc][mint][kpl];
-            //^
-            //      std::cout << "Gradient k, jc " << kpl << " " << jc
-            //                << " r " << r << " w " << wib[mint]
-            //                << " sddelta " << sddelta[jc]
-            //                << " Number " << sdanal.NumberinClass()[jc]
-            //                << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
-            //                << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
-            //                << "\n";
-            //^-
+        // kpl is parameter number local to parameter class
+        // kpg is global parameter number
+        for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl for this class
+          // dR/dpk = Sum[jc] (w (1 - SD(delta)) d(sigma(delta(jc)))/dpk)
+          for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
+            int jc = sdanal.BinClass(jpc, mint);  // bin class number from param class & intbin
+            if (sddelta[jc] != 0.0) {
+              double r = 1.0 - sddelta[jc]; // deviation
+              gradient[kpl] += wib[mint] * r * dsigDeldp[jpc][mint][kpl];
+              //^
+              //std::cout << "Gradient k, jc " << kpl << " " << jc
+              //                      << " r " << r << " w " << wib[mint]
+              //                      << " sddelta " << sddelta[jc]
+              //                      << " Number " << sdanal.NumberinClass()[jc]
+              //                      << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
+              //                      << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
+              //                      << "\n";
+              //^-
 
-            for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
-              H(kpl,lp) += wib[mint] * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+              for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
+                H(kpl,lp) += wib[mint] * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+              }
             }
+          } // end loop intensity bins
+          //^
+          //      std::cout << "k, Grad(k) no R2 " << kpl <<" "<<gradient[kpl] <<"\n";
+
+          // Restraints: local parameter kpg, parameter group jpc
+          gradient[kpl] += dr2dp[jpc][kpl]; // gradient
+          //^     std::cout << "k, Grad(k)  R2   " << kpl <<" "<<gradient[kpl] <<"\n";
+          for (int jpl=0;jpl<=kpl;++jpl) {  // Loop parameters jpl for this class
+            H(jpl,kpl) += H2[jpc](jpl,kpl); // Hessian
           }
-        } // end loop intensity bins
+        }  // end loop local parameters k
+        double R2 = sdmrestraintR[jpc];  // restraint residual R2
+        double R = R1 + R2; // total residual
+
         //^
-        //      std::cout << "k, Grad(k) no R2 " << kpl <<" "<<gradient[kpl] <<"\n";
+        //      std::cout << "Main residual: " << R1 << " Restraint Residual " << R2
+        //                << " Total " << R <<"\n"; //^-
 
-        // Restraints: local parameter kpg, parameter group jpc
-        gradient[kpl] += dr2dp[jpc][kpl]; // gradient
-        //^     std::cout << "k, Grad(k)  R2   " << kpl <<" "<<gradient[kpl] <<"\n";
-        for (int jpl=0;jpl<=kpl;++jpl) {  // Loop parameters jpl for this class
-          H(jpl,kpl) += H2[jpc](jpl,kpl); // Hessian
+        // Symmetrise Hessian
+        for (int k=0;k<npar-1;k++) {
+          for (int l=k+1;l<npar;l++)
+            {H(k,l) = H(l,k);} // other half
         }
-      }  // end loop local parameters k
-      double R2 = sdmrestraintR[jpc];  // restraint residual R2
-      double R = R1 + R2; // total residual
+        //^
+        //      std::cout <<"Total Hessian:\n";
+        //      for (int k=0;k<npar;k++) {
+        //        for (int l=0;l<npar;l++)
+        //          {std::cout <<" "<<H(l,k);}
+        //        std::cout <<"\n";
+        //      }
+        //      // for npar = 2
+        //      if (npar == 2) {
+        //        double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
+        //        std::cout << "Det [2x2]" << det <<"\n";
+        //      }
+        //^-
 
-      //^
-      //      std::cout << "Main residual: " << R1 << " Restraint Residual " << R2
-      //                << " Total " << R <<"\n"; //^-
+        // Variance/covariance matrix = (R/(m-n)) H^-1
+        //   for m observations, n variables
+        double rmn = R/(double(nintbins-npar));  // scaling factor
 
-      // Symmetrise Hessian
-      for (int k=0;k<npar-1;k++) {
-        for (int l=k+1;l<npar;l++)
-          {H(k,l) = H(l,k);} // other half
-      }
-      //^
-      //      std::cout <<"Total Hessian:\n";
-      //      for (int k=0;k<npar;k++) {
-      //        for (int l=0;l<npar;l++)
-      //          {std::cout <<" "<<H(l,k);}
-      //        std::cout <<"\n";
-      //      }
-      //      // for npar = 2
-      //      if (npar == 2) {
-      //        double det = H(0,0)*H(1,1) - H(0,1)*H(1,0);
-      //        std::cout << "Det [2x2]" << det <<"\n";
-      //      }
-      //^-
-
-      // Variance/covariance matrix = (R/(m-n)) H^-1
-      //   for m observations, n variables
-      double rmn = R/(double(nintbins-npar));  // scaling factor
-
-      std::vector<double> U(npar);    // diagonal of scaling matrix
-      std::vector<double> Uinv(npar); // diagonal of inverse scaling matrix
-      for (int i=0;i<npar;++i) {
-        ASSERT (H(i,i) > 0.0);  // positive definite
-        U[i] = sqrt(H(i,i));
-        Uinv[i] = 1.0/U[i];
-      }
-      clipper::Matrix<double> A(npar,npar);  // scaled Hessian
-      // Scaled gradient vector
-      std::vector<double> ugradient(npar, 0.0);
-      for (int j=0;j<npar;++j) {
-        ugradient[j] = gradient[j] * Uinv[j]; // scaled gradient
+        std::vector<double> U(npar);    // diagonal of scaling matrix
+        std::vector<double> Uinv(npar); // diagonal of inverse scaling matrix
         for (int i=0;i<npar;++i) {
-          A(i,j) = H(i,j) * Uinv[i] * Uinv[j];
-        }}
-
-      // Get A^-1 via eigenvectors
-      std::vector<double> ev = A.eigen();
-      // Diagonal matrix of inverse eigenvalues
-      //   L^-1(ii) = 1/(l(i) + damp)
-      //   or if eigenvalue l(i) = ev[i] <= 0, L^-1ii = 0.0
-      std::vector<double> Linv(npar, 0.0);
-      for (int i=0;i<npar;++i) {
-        if (ev[i] > 0.0) {
-          Linv[i] = 1.0/(ev[i] + damp);
+          ASSERT (H(i,i) > 0.0);  // positive definite
+          U[i] = sqrt(H(i,i));
+          Uinv[i] = 1.0/U[i];
         }
-      }
+        clipper::Matrix<double> A(npar,npar);  // scaled Hessian
+        // Scaled gradient vector
+        std::vector<double> ugradient(npar, 0.0);
+        for (int j=0;j<npar;++j) {
+          ugradient[j] = gradient[j] * Uinv[j]; // scaled gradient
+          for (int i=0;i<npar;++i) {
+            A(i,j) = H(i,j) * Uinv[i] * Uinv[j];
+          }}
 
-      clipper::Matrix<double> Ainv(npar,npar);
-      clipper::Matrix<double> Hinv(npar,npar);
-      // Matrix product:
-      // [AB]ij = Sum(k) [A]ik [B]kj
-      // [[A] [A]T ]ij = Sum(k) [A]ik [A]jk
-      // [A]^-1 = [E] [L]^-1 [E]T  where [L] is diagonal eigenvalues
-      //       [E] is matrix of eigenvectors, transpose [E]T = [E]^-1
-      // A now contains matrix of eigenvectors
-      for (int j=0;j<npar;++j) {
+        // Get A^-1 via eigenvectors
+        std::vector<double> ev = A.eigen();
+        // Diagonal matrix of inverse eigenvalues
+        //   L^-1(ii) = 1/(l(i) + damp)
+        //   or if eigenvalue l(i) = ev[i] <= 0, L^-1ii = 0.0
+        std::vector<double> Linv(npar, 0.0);
         for (int i=0;i<npar;++i) {
-          Ainv(i,j) = 0.0;
-          for (int k=0;k<npar;++k) {
-            // [E] = A
-            // [[E][L^-1]]ik = [E]ik (1/Lk)
-            // [[E][L^-1][E]T]ij = Sum(k) [[E][L^-1]]ik [E]jk
-            Ainv(i,j) += Linv[k] * A(i,k) * A(j,k);
+          if (ev[i] > 0.0) {
+            Linv[i] = 1.0/(ev[i] + damp);
           }
-          // [H]^-1 = U^-1 A^-1 UT^-1
-          Hinv(i,j) = Ainv(i,j) * Uinv[i] * Uinv[j];
         }
-      }
-      // scaled shifts
-      std::vector<double> shifts = Ainv * ugradient;
-      for (int i=0;i<npar;++i) {
-        shifts[i] *= Uinv[i];  // unscale
-      }
-      //^
-      //      std::cout <<"Scaled Hessian:\n";
-      //      for (int k=0;k<npar;k++) {
-      //        for (int l=0;l<npar;l++)
-      //          {std::cout <<" "<<A(l,k);}
-      //        std::cout <<"\n";
-      //      }
-      //      std::cout << "Eigenvalues: ";
-      //      for (int k=0;k<npar;k++) {
-      //        std::cout <<" " << ev[k];
-      //      }
-      //      std::cout <<"\nDamp: " << damp <<"\n";;
-      //^-1
-      // Apply shifts
-      for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
-        int kpg = kpl + idxpar;
-        //^
-        //      std::cout << "Shift: " << kpl <<" "<<kpg<<" "<<shifts[kpl]
-        //                << " old parameter " <<sdmparams[kpg]
-        //                << " new parameter " <<sdmparams[kpg]+shifts[kpl]<<"\n"; //^
 
-        sdmparams[kpg] += shifts[kpl];
-      }
-
-      std::vector<double> sdpkpl(npar);
-      for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
-        sdpkpl[kpl] = rmn * sqrt(Hinv(kpl,kpl));
-        double relshift = shifts[kpl]/sdpkpl[kpl];
-        bigrelshift = Max(bigrelshift, std::abs(relshift));
+        clipper::Matrix<double> Ainv(npar,npar);
+        clipper::Matrix<double> Hinv(npar,npar);
+        // Matrix product:
+        // [AB]ij = Sum(k) [A]ik [B]kj
+        // [[A] [A]T ]ij = Sum(k) [A]ik [A]jk
+        // [A]^-1 = [E] [L]^-1 [E]T  where [L] is diagonal eigenvalues
+        //       [E] is matrix of eigenvectors, transpose [E]T = [E]^-1
+        // A now contains matrix of eigenvectors
+        for (int j=0;j<npar;++j) {
+          for (int i=0;i<npar;++i) {
+            Ainv(i,j) = 0.0;
+            for (int k=0;k<npar;++k) {
+              // [E] = A
+              // [[E][L^-1]]ik = [E]ik (1/Lk)
+              // [[E][L^-1][E]T]ij = Sum(k) [[E][L^-1]]ik [E]jk
+              Ainv(i,j) += Linv[k] * A(i,k) * A(j,k);
+            }
+            // [H]^-1 = U^-1 A^-1 UT^-1
+            Hinv(i,j) = Ainv(i,j) * Uinv[i] * Uinv[j];
+          }
+        }
+        // scaled shifts
+        std::vector<double> shifts = Ainv * ugradient;
+        for (int i=0;i<npar;++i) {
+          shifts[i] *= Uinv[i];  // unscale
+        }
         //^
-        //      std::cout <<"Parameter "<<kpl<<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
-        //                <<" rmn " << rmn<<"\n"; //^-
+        //      std::cout <<"Scaled Hessian:\n";
+        //      for (int k=0;k<npar;k++) {
+        //        for (int l=0;l<npar;l++)
+        //          {std::cout <<" "<<A(l,k);}
+        //        std::cout <<"\n";
+        //      }
+        //      std::cout << "Eigenvalues: ";
+        //      for (int k=0;k<npar;k++) {
+        //        std::cout <<" " << ev[k];
+        //      }
+        //      std::cout <<"\nDamp: " << damp <<"\n";;
+        //^-1
+        // Apply shifts
+        for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
+          int kpg = kpl + idxpar;
+          //^
+          //      std::cout << "Shift: " << kpl <<" "<<kpg<<" "<<shifts[kpl]
+          //                << " old parameter " <<sdmparams[kpg]
+          //                << " new parameter " <<sdmparams[kpg]+shifts[kpl]<<"\n"; //^
+
+          sdmparams[kpg] += shifts[kpl];
+          parameterupdated[kpg] = true;
+        }
+
+        std::vector<double> sdpkpl(npar);
+        for (int kpl=0;kpl<npar;++kpl) {  // Loop parameters kpl
+          sdpkpl[kpl] = rmn * sqrt(Hinv(kpl,kpl));
+          double relshift = shifts[kpl]/sdpkpl[kpl];
+          bigrelshift = Max(bigrelshift, std::abs(relshift));
+          //^
+          //      std::cout <<"Parameter "<<kpl<<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
+          //                <<" rmn " << rmn<<"\n"; //^-
+        }
+        target.Add(R1, R2, R);
       }
-      target.Add(R1, R2, R);
     } // end loop parameter classes
 
     if (Update) {
-      SDM.SetParameters(sdmparams); // update parameters
+      SDM.SetParameters(sdmparams, parameterupdated); // update parameters
       //      std::cout << "Biggest relative shift = " <<bigrelshift<<"\n";
       //      std::cout << "SDM: " << SDM.format() <<"\n"; //^
       if (bigrelshift < tolerance) target.R = -target.R;  // return -target if converged
