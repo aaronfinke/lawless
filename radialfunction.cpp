@@ -71,9 +71,9 @@ namespace scala {
     //^
     //    std::cout << "Inverse: "<<" v = "<<v <<
     //      " z= "<<z<<" a " <<a<<" d0 "<<d0<<" r "<<r;
-    //      if (npar == 3) {
-    //  std::cout << " dcc " <<dcc;
-    //      }
+    //    if (npar == 3) {
+    //      std::cout << " dcc " <<dcc;
+    //    }
     //    std::cout <<std::endl;
     //^-
     return z*r + d0;

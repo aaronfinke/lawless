@@ -92,10 +92,10 @@ namespace scala {
       // Do the fit even if all are above or all below limit
       //  (flagged in status)
       reshigh = fit(score, ResRange);
-      //      std::cout << "status "<<status<<" highres " <<highres<<" reshigh "<<reshigh<<std::endl;
+      //std::cout << "status "<<status<<" highres " <<highres<<" reshigh "<<reshigh<<std::endl;
       if (status == -2 && reshigh > 0.0) {
         highres = 1.0/sqrt(reshigh);
-        //      std::cout << " highres " <<highres<<std::endl;
+        //std::cout << " highres " <<highres<<std::endl;
         status = 0;
       }
     } else { // simply interpolate
@@ -115,7 +115,7 @@ namespace scala {
         highres = ResRange.middle(i1) +
           f * (ResRange.middle(i1+1) - ResRange.middle(i1));
         if (highres > 0.0) highres = 1.0/sqrt(highres);
-        //      std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
+        //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
       }
       if (status == -2) {status = 0;}
     }
@@ -123,8 +123,8 @@ namespace scala {
       highres = std::max(highres, ResRange.ResHigh());
     }
 
-    //    std::cout << "RL resolution " <<highres <<" "<<reshigh<<" Status " << status
-    //    <<std::endl<<std::endl;
+    //std::cout << "RL resolution " <<highres <<" "<<reshigh<<" Status " << status
+    //        <<std::endl<<std::endl;
   }
   // ------------------------------------------------------------
   ResolutionLimit::ResolutionLimit(const std::vector<MeanSD> mnsd,
@@ -197,17 +197,20 @@ namespace scala {
 
     std::vector<double> params(npar);
     params[0] = 0.5*smax;  // d0
-    params[1] = 0.05;      //r
+    params[1] = smax/double(ndata);      //r
+    //std::cout << "Start params " << params[0] <<" "<<params[1]<<std::endl; //^-
     if (npar == 3) {
       params[2] = 1.0;       // dcc, offset to allow for CC < 0
     }
 
     radialfunction.SetParameters(params);  // initial parameters
     FitResolutionData fitresolutiondata(data, radialfunction);
+    // Use LNCOSH target
+    fitresolutiondata.setQuadratic(false);
 
     int ncycles = 10;
     double tolerance = 0.01;
-    double damp = 0.1;
+    double damp = 0.2;
     DampedGaussNewton dampedgaussnewton(fitresolutiondata,
                                         ncycles, tolerance, damp);
 

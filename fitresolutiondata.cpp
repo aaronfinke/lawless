@@ -12,8 +12,18 @@ namespace scala {
     radialfunction = &Radialfunction;
     npar = radialfunction->Nparameters();
     params = radialfunction->parameters();  // initial parameters
-    //targettype = RefineTargets::LNCOSH;  // default ln(cosh()) target
-    targettype = RefineTargets::QUADRATIC;  // default ln(cosh()) target
+    targettype = RefineTargets::LNCOSH;  // default ln(cosh()) target
+    //targettype = RefineTargets::QUADRATIC;  // default ln(cosh()) target
+  }
+  // ---------------------------------------------------------
+  // set true to use quadratic residual, else ln(cosh(d))
+  void FitResolutionData::setQuadratic(const bool& quadratic)
+  {
+    if (quadratic) {
+      targettype = RefineTargets::QUADRATIC;
+    } else {
+      targettype = RefineTargets::LNCOSH;
+    }
   }
   // ---------------------------------------------------------
   void FitResolutionData::ApplyShifts(const std::vector<double> shifts)
@@ -28,7 +38,7 @@ namespace scala {
   // Function to calculate target function, gradient & Hessian
   // returns target, gradient, Hessian
   {
-    //    const bool DEBUG = true;
+    //const bool DEBUG = true;
     const bool DEBUG = false;
 
     target = 0.0;
@@ -160,6 +170,9 @@ namespace scala {
       }
       std::cout << "Parameters: " << radialfunction->format() << std::endl;
     }
+    //^
+    //    std::cout << "Target, Parameters: " << target<<" "
+    //        << radialfunction->format() << std::endl;
 
     return TGH(target, gradient, H);
 

@@ -37,6 +37,9 @@ namespace scala {
     FitResolutionData(const std::vector<ResolutionData>& Rdata,
    		      RadialBase& Radialfunction);
 
+    // set true to use quadratic residual, else ln(cosh(d))
+    void setQuadratic(const bool& quadratic);
+
     int Nparameters() {return npar;}
     int Ndata() {return rdata->size();}
     
