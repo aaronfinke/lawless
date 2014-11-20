@@ -32,14 +32,15 @@ namespace MtzIO
   bool CmtzSymgrpEqual(const CMtz::SYMGRP& sg1, const CMtz::SYMGRP& sg2);
   //--------------------------------------------------------------
   /* Write spacegroup info to mtzout */
-  // Copied from Clipper code, ccp4_mtz_io.cpp::write_spacegroup
+  // Modified from Clipper code, ccp4_mtz_io.cpp::write_spacegroup
   //   written by Kevin Cowtan, copied with his permission 2013/05/20
+  void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const scala::SpaceGroup& sg,
+			     const char& spg_status);
+  // Note clipper::Spacegroup scrambles symops
   //  spg_status  spg_confidence   P => pointgroup correct
   //                               E => spacegroup or enantiomorph
   //                               S => spacegroup is correct
   //                               X => flag not set
-  void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const clipper::Spacegroup& sg,
-			     const char& spg_status);
   //--------------------------------------------------------------
   //! Append to oldhistory
   //  uses version.hh to get program information

@@ -48,8 +48,14 @@ namespace scala {
     void settargetType(const RefineTargets::REFINETARGETTYPES& Targettype)
     {targettype = Targettype;}
     
-    // returns target1
-    TGH TargetGradientHessian();
+    // returns target etc
+    TGH TargetGradientHessian(const bool& dogradient=true);
+
+    // just target
+    double Target();
+
+    std::vector<double> parameters() const;
+    void SetParameters(const std::vector<double>& params);
 
   private:
     const std::vector<ResolutionData>* rdata;

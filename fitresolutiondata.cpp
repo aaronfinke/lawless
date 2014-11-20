@@ -34,9 +34,14 @@ namespace scala {
     radialfunction->SetParameters(params);
   }
   // ---------------------------------------------------------
-  TGH FitResolutionData::TargetGradientHessian()
+  double FitResolutionData::Target()
+  {
+    return TargetGradientHessian(false).target;
+  }
+  // ---------------------------------------------------------
+  TGH FitResolutionData::TargetGradientHessian(const bool& dogradient)
   // Function to calculate target function, gradient & Hessian
-  // returns target, gradient, Hessian
+  // returns target, gradient, Hessian if dogradient true
   {
     //const bool DEBUG = true;
     const bool DEBUG = false;
@@ -88,51 +93,53 @@ namespace scala {
             target += log(cosh(wdi));
           }
         }
-        dvcdp = radialfunction->deriv(s);
-        // dR/dp =  for parameter p
-        double dlncdx = 1.0;
-        if (!quadratictarget) {
-          if (wdi < RefineTargets::MAXCOSHARG) {
-            dlncdx = tanh(w*di);  // signed
-          } else if (di < 0.0) {
-            dlncdx = -1.0;
-          }
-        }
-        for (int ip=0;ip<npar;++ip) {
-          if (quadratictarget) {
-            gradient[ip] -= 2.0 * wdi * dvcdp[ip];
-          } else {
-            gradient[ip] -= dlncdx * dvcdp[ip];
-          }
-        }
-
-        if (quadratictarget) {
-          for (int ip=0;ip<npar;++ip) {
-            int ip1 = ip*npar;
-            for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
-              //   note w^2
-              Hv[(ip1+jp)] += 2.0 * w * dvcdp[ip] * dvcdp[jp];
-              //              if (DEBUG) {
-              //                printf("ip %3d jp %3d dvcdp %8.4f %8.4f H %8.4f\n",
-              //                       ip, jp, dvcdp[ip], dvcdp[jp], Hv[(ip1+jp)]);
-              //            }
+        if (dogradient) {
+          dvcdp = radialfunction->deriv(s);
+          // dR/dp =  for parameter p
+          double dlncdx = 1.0;
+          if (!quadratictarget) {
+            if (wdi < RefineTargets::MAXCOSHARG) {
+              dlncdx = tanh(w*di);  // signed
+            } else if (di < 0.0) {
+              dlncdx = -1.0;
             }
           }
-        } else { // ln cosh target
-          double d2dx = 1.0;
-          // NB test against MAXCOSHARG already done for dlncdx
-          if (std::abs(wdi) > RefineTargets::MINCOSHARG) {
-            d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
-            // exact 2nd derivative
-            //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
-          }
           for (int ip=0;ip<npar;++ip) {
-            int ip1 = ip*npar;
-            for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
-              Hv[(ip1+jp)] += w * w * dvcdp[ip] * dvcdp[jp] * d2dx;
-              if (DEBUG) {
-                printf("ip %3d jp %3d dvcdp %8.4f %8.4f H %8.4f\n",
-                       ip, jp, dvcdp[ip], dvcdp[jp], Hv[(ip1+jp)]);
+            if (quadratictarget) {
+              gradient[ip] -= 2.0 * wdi * dvcdp[ip];
+            } else {
+              gradient[ip] -= dlncdx * dvcdp[ip];
+            }
+          }
+
+          if (quadratictarget) {
+            for (int ip=0;ip<npar;++ip) {
+              int ip1 = ip*npar;
+              for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
+                //   note w^2
+                Hv[(ip1+jp)] += 2.0 * w * dvcdp[ip] * dvcdp[jp];
+                //              if (DEBUG) {
+                //                printf("ip %3d jp %3d dvcdp %8.4f %8.4f H %8.4f\n",
+                //                       ip, jp, dvcdp[ip], dvcdp[jp], Hv[(ip1+jp)]);
+                //            }
+              }
+            }
+          } else { // ln cosh target
+            double d2dx = 1.0;
+            // NB test against MAXCOSHARG already done for dlncdx
+            if (std::abs(wdi) > RefineTargets::MINCOSHARG) {
+              d2dx = dlncdx / (w*di);  // (1/d) tanh(d)
+              // exact 2nd derivative
+              //d2dx = 1.0/(cosh(wdi)*cosh(wdi));
+            }
+            for (int ip=0;ip<npar;++ip) {
+              int ip1 = ip*npar;
+              for (int jp=0;jp<=ip;jp++) { // loop parameters again (to ip)
+                Hv[(ip1+jp)] += w * w * dvcdp[ip] * dvcdp[jp] * d2dx;
+                if (DEBUG) {
+                  printf("ip %3d jp %3d dvcdp %8.4f %8.4f H %8.4f\n",
+                         ip, jp, dvcdp[ip], dvcdp[jp], Hv[(ip1+jp)]);
+                }
               }
             }
           }
@@ -141,32 +148,36 @@ namespace scala {
     } // end loop data
 
     // Symmetrise Hessian
-    for (int i=0;i<npar;i++) {
-      for (int j=0;j<=i;j++) {
-        H(j,i) += Hv[(i*npar+j)];
-        H(i,j) = H(j,i); // other half
+    if (dogradient) {
+      for (int i=0;i<npar;i++) {
+        for (int j=0;j<=i;j++) {
+          H(j,i) += Hv[(i*npar+j)];
+          H(i,j) = H(j,i); // other half
+        }
       }
     }
 
     if (DEBUG) {
       printf("Nobs: %5d\n", nobs);
       printf("Target: %10.1f\n", target);
-      printf("Gradient:\n");
-      for (int i=0;i<npar;i++){
-        printf(" %8.1f", gradient[i]);
-      }
-      printf("\n");
-
-      printf("Full Hessian:\n");
-      for (int j=0;j<npar;j++){
+      if (dogradient) {
+        printf("Gradient:\n");
         for (int i=0;i<npar;i++){
-          printf(" %.3lf", H(i,j));
+          printf(" %8.1f", gradient[i]);
         }
         printf("\n");
-      }
-      if (npar == 2) {
-        double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
-        printf("Determinant %.4f\n", det);
+
+        printf("Full Hessian:\n");
+        for (int j=0;j<npar;j++){
+          for (int i=0;i<npar;i++){
+            printf(" %.3lf", H(i,j));
+          }
+          printf("\n");
+        }
+        if (npar == 2) {
+          double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
+          printf("Determinant %.4f\n", det);
+        }
       }
       std::cout << "Parameters: " << radialfunction->format() << std::endl;
     }
@@ -177,5 +188,15 @@ namespace scala {
     return TGH(target, gradient, H);
 
   } // TargetGradientHessian
-// ---------------------------------------------------------
+  // ---------------------------------------------------------
+  std::vector<double> FitResolutionData::parameters() const
+  {
+    return radialfunction->parameters();
+  }
+  // ---------------------------------------------------------
+  void FitResolutionData::SetParameters(const std::vector<double>& params)
+  {
+    radialfunction->SetParameters(params);
+  }
+  // ---------------------------------------------------------
 }

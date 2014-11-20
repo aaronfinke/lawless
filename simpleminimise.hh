@@ -34,13 +34,19 @@ namespace SimpleMinimise {
     
     virtual void ApplyShifts(const std::vector<double> shifts) = 0;
 
-    virtual TGH TargetGradientHessian() = 0;
+    virtual TGH TargetGradientHessian(const bool& dogradient=true) = 0;
+
+    virtual double Target() = 0;
+
+    virtual std::vector<double> parameters() const = 0;
+    virtual void SetParameters(const std::vector<double>& params) = 0;
+
   };
   // ---------------------------------------------------------
   class DampedGaussNewton {
     // Uses Clipper routines to iterate a Gauss-Newton algorithm, with simple damping
   public:
-    DampedGaussNewton(){}
+    DampedGaussNewton() : valid_(false) {}
     DampedGaussNewton(FitBase& fitstuff,
 		      const int& Ncycles,
 		      const double& tolerance,
@@ -51,7 +57,19 @@ namespace SimpleMinimise {
 	     const double& tolerance,
 	     const double& damp);
 
+    bool valid() const {return valid_;}
+
   private:
+    bool valid_;
+
+    bool linesearch(FitBase& fitstuff,
+		    const std::vector<double>& shifts,
+		    double& target) const;
+
+    std::vector<double>  shift
+    (const std::vector<double>& params0, const double& fract, 
+     const std::vector<double>& shifts) const;
+
   };
 }
 #endif

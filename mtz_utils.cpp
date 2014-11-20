@@ -96,10 +96,11 @@ namespace MtzIO
   //--------------------------------------------------------------
   using namespace clipper;
   /* Write spacegroup info to mtzout */
-  // Copied from Clipper code, ccp4_mtz_io.cpp::write_spacegroup
+  // Modified from Clipper code, ccp4_mtz_io.cpp::write_spacegroup
   //   written by Kevin Cowtan, copied with his permission 2013/05/20
-  void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const Spacegroup& sg,
+  void ccp4_write_spacegroup(CMtz::MTZ* mtzout, const scala::SpaceGroup& sg,
                           const char& spg_status)
+  // Note clipper::Spacegroup scrambles symops
   {
     // tables of MTZ symbols
     char mtzlauetab[231][8]={"?","1","-1","2","2","2","m","m","m","m","2/m","2/m","2/m","2/m","2/m","2/m","222","222","222","222","222","222","222","222","222","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mm2","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","mmm","4","4","4","4","4","4","-4","-4","4/m","4/m","4/m","4/m","4/m","4/m","422","422","422","422","422","422","422","422","422","422","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","4mm","-4m2","-4m2","-4m2","-4m2","-42m","-42m","-42m","-42m","-42m","-42m","-4m2","-4m2","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","4/mmm","3","3","3","3","-3","-3","312","321","312","321","312","321","32","3m1","31m","3m1","31m","3m","3m","-31m","-31m","-3m1","-3m1","-3m","-3m","6","6","6","6","6","6","-6","6/m","6/m","622","622","622","622","622","622","6mm","6mm","6mm","6mm","-62m","-62m","-6m2","-6m2","6/mmm","6/mmm","6/mmm","6/mmm","23","23","23","23","23","m-3","m-3","m-3","m-3","m-3","m-3","m-3","432","432","432","432","432","432","432","432","-43m","-43m","-43m","-43m","-43m","-43m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m","m-3m"};
@@ -122,9 +123,9 @@ namespace MtzIO
     for ( int i = 0; i < sg.num_symops(); i++ ) {
       for ( int j = 0; j < 3; j++ )
         for ( int k = 0; k < 3; k++ )
-          mtzout->mtzsymm.sym[i][j][k] = sg.symop(i).rot()(j,k);
+          mtzout->mtzsymm.sym[i][j][k] = sg.Symop(i).rot()(j,k);
       for ( int j = 0; j < 3; j++ )
-        mtzout->mtzsymm.sym[i][j][3] = sg.symop(i).trn()[j];
+        mtzout->mtzsymm.sym[i][j][3] = sg.Symop(i).trn()[j];
     }
   }
   //--------------------------------------------------------------

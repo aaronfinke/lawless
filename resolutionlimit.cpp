@@ -198,15 +198,16 @@ namespace scala {
     std::vector<double> params(npar);
     params[0] = 0.5*smax;  // d0
     params[1] = smax/double(ndata);      //r
-    //std::cout << "Start params " << params[0] <<" "<<params[1]<<std::endl; //^-
+    //    std::cout << "Start params " << params[0] <<" "<<params[1]<<std::endl; //^-
     if (npar == 3) {
       params[2] = 1.0;       // dcc, offset to allow for CC < 0
     }
 
-    radialfunction.SetParameters(params);  // initial parameters
+    radialfunction.init(params);  // initial parameters
     FitResolutionData fitresolutiondata(data, radialfunction);
     // Use LNCOSH target
     fitresolutiondata.setQuadratic(false);
+    ////fitresolutiondata.setQuadratic(true);
 
     int ncycles = 10;
     double tolerance = 0.01;
@@ -239,7 +240,7 @@ namespace scala {
     reshigh = radialfunction.inverse(limit);
 
     //    std::cout << "ResolutionLimit::fit ResHigh "<<reshigh
-    //                <<"\n"<< radialfunction.format() << "\n"; //^
+    //        <<"\n"<< radialfunction.format() << "\n\n"; //^
     return reshigh;
   }
   // ------------------------------------------------------------

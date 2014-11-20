@@ -18,6 +18,11 @@ namespace scala {
   // ------------------------------------------------------------
   void RadialTanhFunction::init(const std::vector<double>& params)
   {
+    SetParameters(params);
+  }
+  // ------------------------------------------------------------
+  void RadialTanhFunction::SetParameters(const std::vector<double>& params)
+  {
     d0 = params[0];
     r = params[1];
     dcc = 1.0;
@@ -26,9 +31,6 @@ namespace scala {
       dcc = params[2];
     }
   }
-  // ------------------------------------------------------------
-  void RadialTanhFunction::SetParameters(const std::vector<double>& params)
-  {init(params);}
   // ------------------------------------------------------------
   //!  value of function
   double RadialTanhFunction::value(const double& s) const
