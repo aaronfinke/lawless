@@ -326,6 +326,9 @@ public:
   void init(const std::string& Title);
   //! Store id string
   void StoreID(const std::string& idstring) {id = idstring;}
+  //! Store extra title
+  void StoreExtraTitle(const std::string& extraline)
+  {extratitle = extraline;}
 
   //! Add and store a graph (plot)
   void AddGraph(const TableGraphPlot& tgplot);
@@ -420,6 +423,7 @@ private:
 
   std::string  title;             // table title
   std::string id;                 // an id string for this graph
+  std::string extratitle;         // an optional extra title line
 
   int ngraphs;                    // number of graphs in table
   std::vector<TableGraphPlot> graphs;     // list of graphs

@@ -7,6 +7,8 @@
 #include "string_util.hh"
 #include "optimisesdcorr.hh"
 
+using phaser_io::LXML;
+
 namespace scala
 {
   //---------------------------------------------------------------
@@ -717,34 +719,47 @@ namespace scala
     if (outer) {nanalsets *= 2;}
     ASSERT (nanalsets == int(msdanal.size()));
 
-    int c[] =  {2,5,8,11,14}; // possible column numbers for graphs
-    int c1[] =  {2,8,14};      // possible column numbers for graphs
-    int cc[] =  {2,11,14};    // possible column numbers for graphs
+    int c[] =  {5,8,11,14}; // possible y column numbers for graphs
+    int c1[] =  {8,14};      // possible y column numbers for graphs
+    int cc[] =  {11,14};    // possible y column numbers for graphs
+
+    int xcolnum = 2;  // column for x axis
 
     TableGraph table;
     table.init(ttitle);
-    output.logTab(0,LOGFILE,table.formatTitle());
     table.StoreID("Graph-SDanalysis");
 
-    std::vector<int> cln(c,c+nanalsets+1);
+    std::vector<int> cln(c,c+nanalsets);
     std::string graphtitle = " Sigma(scatter/SD)";
     std::string corelimit;
+
     if (outer) {
       corelimit = clipper::String(rejflags.sdrej, 3, 2) + " sd";
       graphtitle += ", within "+corelimit;
       if (both) {
-        cln.assign(cc,cc+nanalsets/2+1); // {2,11,14}
+        cln.assign(cc,cc+nanalsets/2); // {11,14}
       } else {
-        cln.assign(c1,c1+nanalsets/2+1); // {2,8,14}
+        cln.assign(c1,c1+nanalsets/2); // {8,14}
       }
-    };
-    output.logTab(0,LOGFILE, table.Graph(graphtitle,"N",cln));
+    }
+    TableGraphPlot graph(graphtitle);
+    for (size_t i=0;i<cln.size();++i) {
+      graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
+    }
+    graph.SetYaxis("", true); // y from 0
+    table.AddGraph(graph);
+
     if (outer) {
       corelimit = clipper::String(rejflags.sdrej, 3, 2) + " sd";
       graphtitle += ", all and within "+corelimit;
-      cln.assign(c,c+nanalsets+1);
-      output.logTab(0,LOGFILE, table.Graph(graphtitle,"N",cln));
-    };
+      cln.assign(c,c+nanalsets);
+      graph.init(graphtitle);
+      for (size_t i=0;i<cln.size();++i) {
+        graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
+      }
+      graph.SetYaxis("", true); // y from 0
+      table.AddGraph(graph);
+    }
 
     std::string fpclabel;
 
@@ -799,9 +814,10 @@ namespace scala
       fmt = "%9d%6.2f%6.2f%9d%6.2f%6.2f\n";
     }
 
-    output.logTab(0,LOGFILE,"\n              "+fpclabel);
-    output.logTab(0,LOGFILE,
-                  table.ColumnFields(collabels, Zero, "%4d%8.0f"+fmt));
+    // Extra table heading
+    table.StoreExtraTitle("\n              "+fpclabel);
+
+    table.StoreColumnFields(collabels, Zero,"%4d%8.0f"+fmt);
 
     std::vector<MeanSD> mnsdoverall(nanalsets);  // overall values
 
@@ -818,26 +834,24 @@ namespace scala
         mnsdoverall[i] += msdanal[i][mint];
       }
       if (nanalsets == 1) {
-        output.logTab(0,LOGFILE,
-                      table.Line(nc, mint+1, Irange.mean(mint),
-                                 mcount[0], mmean[0], msd[0]));
+        table.Line(nc, mint+1, Irange.mean(mint),
+                                 mcount[0], mmean[0], msd[0]);
       } else if (nanalsets == 2) {
-        output.logTab(0,LOGFILE,
-                      table.Line(nc, mint+1, Irange.mean(mint),
-                                 mcount[0], mmean[0], msd[0],
-                                 mcount[1], mmean[1], msd[1]));
+        table.Line(nc, mint+1, Irange.mean(mint),
+                   mcount[0], mmean[0], msd[0],
+                   mcount[1], mmean[1], msd[1]);
       } else if (nanalsets == 4) {
-        output.logTab(0,LOGFILE,
-                      table.Line(nc, mint+1, Irange.mean(mint),
-                                 mcount[0], mmean[0], msd[0],
-                                 mcount[1], mmean[1], msd[1],
-                                 mcount[2], mmean[2], msd[2],
-                                 mcount[3], mmean[3], msd[3]));
+        table.Line(nc, mint+1, Irange.mean(mint),
+                   mcount[0], mmean[0], msd[0],
+                   mcount[1], mmean[1], msd[1],
+                   mcount[2], mmean[2], msd[2],
+                   mcount[3], mmean[3], msd[3]);
       }
     } // end loop intensity bins
 
-    output.logTab(0,LOGFILE,
-                  table.CloseTable());
+    table.CloseTable();
+    output.logTab(0,LOGFILE, "\n"+table.format());
+    output.logTab(0,LXML,table.XMLformat());
 
     fmt = "Overall:    "+fmt+"\n";
     if (nanalsets == 1) {

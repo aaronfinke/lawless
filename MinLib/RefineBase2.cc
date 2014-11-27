@@ -61,11 +61,11 @@ floatType RefineBase2::finiteGDiffHessian(TNT::Fortran_Matrix<floatType>& Hessia
     x[i] = old_x[i];
     for (int j = 0; j < npars_ref; j++)
     {
-      if (i == j) 
+      if (i == j)
       {
         Hessian(i+1,i+1) = (gplus[i] - g[i])/sz;
       }
-      else 
+      else
       {
         Hessian(i+1,j+1) += (gplus[j] - g[j])/(2*sz);
         Hessian(j+1,i+1) += (gplus[j] - g[j])/(2*sz);
@@ -197,4 +197,3 @@ floatType RefineBase2::finiteFDiffDiagHessian(TNT::Fortran_Matrix<floatType>& He
 }
 
 } //phaser
-

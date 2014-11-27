@@ -33,7 +33,7 @@ int RefineBase::numRefinePars() { return npars_ref; }
 // Also return vector of allowed shifts for each parameter, which
 // can be used to decide which parameters can't be moved along the
 // search direction
-double      RefineBase::getMaxDist(TNT::Vector<double>& x, TNT::Vector<double>& g, TNT::Vector<double>& dist) 
+double      RefineBase::getMaxDist(TNT::Vector<double>& x, TNT::Vector<double>& g, TNT::Vector<double>& dist)
 {
   floatType maxDist(std::numeric_limits<floatType>::max()/2.),ZERO(0);
   bounds1D Lower = getLowerBounds();
@@ -93,7 +93,7 @@ int RefineBase::filterGradient(TNT::Vector<floatType>& g, TNT::Vector<floatType>
     {
       g[i] = 0.;
     }
-    if (g[i] == 0.)  nleft--; 
+    if (g[i] == 0.)  nleft--;
   }
   return nleft;
 }
@@ -105,7 +105,7 @@ void RefineBase::logVector(outStream where,std::string what, Output& output,TNT:
     output.logTabPrintf(1,where,"%3d [% 5.3e] : %s\n", i+1,vec[i],whatAmI(i).c_str());
   output.logBlank(where);
 }
-  
+
 void RefineBase::logHessian(outStream where,Output& output,TNT::Fortran_Matrix<floatType>& Hessian)
 {
   int max_dim(11);
@@ -125,7 +125,7 @@ void RefineBase::logHessian(outStream where,Output& output,TNT::Fortran_Matrix<f
 }
 
 bool RefineBase::fixHessian(TNT::Fortran_Matrix<floatType>& Hessian)
-// Eliminate non-positive curvatures.  
+// Eliminate non-positive curvatures.
 // Return true if any curvatures were non-positive.
 //
 // Determine mean factor by which curvatures differ from 1/largeShift^2
@@ -167,7 +167,7 @@ bool RefineBase::fixHessian(TNT::Fortran_Matrix<floatType>& Hessian)
   }
   else // Fall back on diagonal matrix based on largeShifts shift values
   {
-    for (int i = 0; i < numRefinePars(); i++) 
+    for (int i = 0; i < numRefinePars(); i++)
     {
       Hessian(i+1,i+1) = 100./fn::pow2(largeShifts[i]);
       for (int j = 0; j < numRefinePars(); j++)
@@ -199,7 +199,7 @@ void RefineBase::studyParams(Output& output)
   x = oldx;
   applyShift(unrepar_x);
   floatType fmin(targetFn());
-  
+
   // First check that function values from targetFn, gradientFn and hessianFn agree
   floatType gradLogLike = gradientFn(unrepar_g);
   g = reparGradient(unrepar_x,unrepar_g);
@@ -231,7 +231,7 @@ void RefineBase::studyParams(Output& output)
     output.logTabPrintf(1,LOGFILE,"Refined Parameter #%d (%s)\n",i+1,whatAmI(i).c_str());
     output.logTabPrintf(1,LOGFILE,"Centered on %g\n",oldx[i]);
     floatType xmin = oldx[i] - 2.*largeShifts[i];
-    if (Lower[i].bounded) 
+    if (Lower[i].bounded)
     {
       xmin = std::max(xmin,Lower[i].limit);
       output.logTabPrintf(1,LOGFILE,"Lower limit: %g\n",Lower[i].limit);
@@ -249,7 +249,7 @@ void RefineBase::studyParams(Output& output)
       }
     }
     floatType xmax = oldx[i] + 2.*largeShifts[i];
-    if (Upper[i].bounded) 
+    if (Upper[i].bounded)
     {
       xmax = std::min(xmax,Upper[i].limit);
       output.logTabPrintf(1,LOGFILE,"Upper limit: %g\n",Upper[i].limit);
@@ -336,7 +336,7 @@ TNT::Vector<floatType> RefineBase::reparGradient(TNT::Vector<double>& pars,TNT::
   //df    df   dx   df
   //-- =  -- * -- = -- (x+c)
   //dy    dx   dy   dx
-   
+
   std::vector<reparams> repar = getRepar();
   for (int i = 0; i < numRefinePars() && repar.size(); i++)
     if (repar[i].reparamed)
@@ -375,5 +375,3 @@ void RefineBase::reparLargeShifts(TNT::Vector<floatType>& largeShifts)
 }
 
 } //phaser
-
-

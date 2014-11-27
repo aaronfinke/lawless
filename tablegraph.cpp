@@ -527,6 +527,7 @@ TableGraph::TableGraph(const std::string& Title)
 void TableGraph::init(const std::string& Title)
 {
   title = Title;
+  extratitle = "";
   ngraphs = 0;
   id = "";
   sdatatable.clear();
@@ -924,6 +925,9 @@ std::string TableGraph::format() const
   for (int igr=0;igr<ngraphs;++igr) {
     bool first = (igr == 0);
     s += graphs[igr].format(first);
+  }
+  if (extratitle != "") {
+    s += extratitle+"\n";
   }
   s += " $$\n";
   // Column labels

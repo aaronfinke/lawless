@@ -18,7 +18,7 @@ void Minimizer::run(RefineBase& target,protocolPtr p,Output& output)
   protocol.push_back(p);
   run(target,protocol,output);
 }
-  
+
 void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& output,bool clean_up,bool study_params)
 {
   //this check is also done on Input
@@ -73,7 +73,7 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
       output.logBlank(LOGFILE);
       target.logProtocolPars(LOGFILE,output);
     }
-     
+
     target.rejectOutliers(LOGFILE,output);
 
     for (unsigned small_cyc = 0; small_cyc < protocol[big_cyc]->getNCYC(); small_cyc++)
@@ -88,7 +88,7 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
       TNT::Vector<floatType> xbefore(target.numRefinePars());
       xbefore = target.getRefinePars();
       xbefore = target.reparRefinePars(xbefore);
-  
+
       //if this is first call of the function, initialize reference function values
       if (!small_cyc) firstLogLike = oldLogLike = f;
       if (!small_cyc)
@@ -108,13 +108,13 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
       requiredGain = FTOL*(fabs(f)+fabs(oldLogLike)+EPS)/TWO;
 
       // Call the minimizer, return the new function value, parameter shifts implicit
-      
+
       bool hitBound(false),tooSmallShift(false);
       if (protocol[big_cyc]->getMINIMIZER() == "NEWTON")
       {
         f = newton(target,output,requiredGain,hitBound,tooSmallShift);
       }
-      else if (protocol[big_cyc]->getMINIMIZER() == "BFGS") 
+      else if (protocol[big_cyc]->getMINIMIZER() == "BFGS")
       {
         if (!small_cyc) calcNewHessian = true;
         f = bfgs(target,output,requiredGain,calcNewHessian,needNewHessian,hitBound,tooSmallShift,x_old,g_old,h_old);
@@ -125,12 +125,12 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
         }
       }
       else if (protocol[big_cyc]->getMINIMIZER() == "DESCENT")
-      {  
+      {
         f = descent(target,output,requiredGain,hitBound,tooSmallShift);
       }
-      
+
       target.logCurrent(VERBOSE,output); //current parameters
-  
+
   //  Print out information detailing the minimization progress
       if (std::fabs(firstLogLike) > 10e-3)
       output.logTabPrintf(1,LOGFILE,"#%-5d %13.3f %13.3f %18.3f\n",small_cyc+1,-f,firstLogLike-f,oldLogLike-f);
@@ -145,7 +145,7 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
       const floatType ZERO(0.0);
       for (int i=0; i < target.numRefinePars(); i++)
         if ((xafter[i]-xbefore[i]) != ZERO) zero_shift = false;
-      
+
       if ( zero_shift || tooSmallShift || (oldLogLike-f < requiredGain) )
       {
         if (hitBound)
@@ -159,12 +159,12 @@ void Minimizer::run(RefineBase& target,af::shared<protocolPtr> protocol,Output& 
         }
         else
         {
-	  if (protocol.size() > 1) {
-	    output.logBlank(LOGFILE);
-	    output.logTab(1,LOGFILE,"---CONVERGENCE OF MACROCYCLE---");
-	    output.logBlank(LOGFILE);
-	    target.logCurrent(LOGFILE,output); //current parameters
-	  }
+          if (protocol.size() > 1) {
+            output.logBlank(LOGFILE);
+            output.logTab(1,LOGFILE,"---CONVERGENCE OF MACROCYCLE---");
+            output.logBlank(LOGFILE);
+            target.logCurrent(LOGFILE,output); //current parameters
+          }
           break;
         }
       }
@@ -195,7 +195,7 @@ floatType Minimizer::descent(RefineBase& target,Output& output,floatType require
   floatType f(0.);
   const floatType ZERO(0.), MinDXoverESD(0.1);
   output.logTab(1,DEBUG,"== STEEPEST DESCENT ==");
-  
+
   //get initial parameter values  x
   TNT::Vector<floatType> unrepar_x = target.getRefinePars();
   TNT::Vector<floatType> x = target.reparRefinePars(unrepar_x);
@@ -222,7 +222,7 @@ floatType Minimizer::descent(RefineBase& target,Output& output,floatType require
   output.logBlank(DEBUG);
   target.logVector(DEBUG,"Descent: Gradient",output,g);
   output.logBlank(DEBUG);
-    
+
   // Scale the gradient by factor proportional to large shifts squared.
   // (Hessian is inversely proportional to scale of parameter squared.)
   // Additional factor of 1/100 approximates gradient over curvature,
@@ -232,7 +232,7 @@ floatType Minimizer::descent(RefineBase& target,Output& output,floatType require
   target.reparLargeShifts(largeShifts);
   TNT::Vector<floatType> gs(target.numRefinePars());
   for (int i =0; i < g.size(); i++) gs[i] = g[i]*0.01*fn::pow2(largeShifts[i]);
-  
+
   output.logBlank(DEBUG);
   target.logVector(DEBUG,"Descent: Scaled Gradient",output,g);
   output.logBlank(DEBUG);
@@ -243,28 +243,28 @@ floatType Minimizer::descent(RefineBase& target,Output& output,floatType require
   for (int i = 0; i < g.size(); i++)
     requiredShift = std::max(requiredShift,fabs(gs[i])/(largeShifts[i]/10.));
   requiredShift = MinDXoverESD/requiredShift;
-  
-  f = LineSearch(target,output,x,gradLogLike,g,gs,1.,requiredGain,requiredShift,hitBound,tooSmallShift); 
-  
-  return f;        
+
+  f = LineSearch(target,output,x,gradLogLike,g,gs,1.,requiredGain,requiredShift,hitBound,tooSmallShift);
+
+  return f;
 }
 
 floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGain,
-           bool& calcNewHessian,bool& needNewHessian,bool& hitBound,bool& tooSmallShift, TNT::Vector<floatType>& x_old, 
+           bool& calcNewHessian,bool& needNewHessian,bool& hitBound,bool& tooSmallShift, TNT::Vector<floatType>& x_old,
            TNT::Vector<floatType>& g_old,TNT::Fortran_Matrix<floatType>& h_old)
 {
   floatType f;
   const floatType ZERO(0.), MinDXoverESD(0.1);
   output.logTab(1,DEBUG,"== BFGS ==");
 
-  if (calcNewHessian && (x_old.size() != target.numRefinePars())) 
+  if (calcNewHessian && (x_old.size() != target.numRefinePars()))
   {
     // Resize if the number of parameters has changed
     x_old.newsize(target.numRefinePars());
     g_old.newsize(target.numRefinePars());
     h_old.newsize(target.numRefinePars(),target.numRefinePars());
   }
-  
+
   //get initial parameter values x
   TNT::Vector<floatType> unrepar_x = target.getRefinePars();
   TNT::Vector<floatType> x = target.reparRefinePars(unrepar_x);
@@ -294,7 +294,7 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
   target.logVector(DEBUG,"BFGS: Gradient",output,g);
   output.logBlank(DEBUG);
 
-  if (calcNewHessian) 
+  if (calcNewHessian)
   {
     output.logTab(1,DEBUG,"== Newton Step ==");
     output.logBlank(DEBUG);
@@ -334,7 +334,7 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
       }
       else
       {
-        //  Scale Hessian by pre- and post-multiplication by diagonal matrix to 
+        //  Scale Hessian by pre- and post-multiplication by diagonal matrix to
         //  have unit diagonal prior to computing pseudoinverse. Scale resulting
         //  pseudoinverse again to put back on original scale.
         TNT::Fortran_Matrix<floatType> h(target.numRefinePars(),target.numRefinePars());
@@ -350,10 +350,10 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
           min_to_filter = filtered_last + std::max(1,target.numRefinePars()/10);
           if (min_to_filter >= target.numRefinePars()) {
             min_to_filter = filtered_last + 1;
-	  }
+          }
           if (min_to_filter >= target.numRefinePars()) {
-	    min_to_filter = target.numRefinePars() - 1; // force less than number of parameters
-	  }
+            min_to_filter = target.numRefinePars() - 1; // force less than number of parameters
+          }
         }
         int filtered(0);
         h_old = SymmetricPseudoinverse<floatType>(h,filtered,false,min_to_filter).getInv();
@@ -365,12 +365,12 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
         output.logTab(1,DEBUG,"Pseudoinverse Hessian");
         target.logHessian(DEBUG,output,h_old);
       }
-      
+
       TNT::Vector<floatType> gs = h_old*g;
-      
+
       target.logVector(DEBUG,"BFGS::Newton: Scaled Gradient",output,gs);
       output.logBlank(DEBUG);
-      
+
       // Figure out how far linesearch has to go to shift at least one parameter
       // by minimum shift/esd, using inverse Hessian to estimate covariance matrix
       floatType requiredShift(0.);
@@ -381,10 +381,10 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
       }
       if (requiredShift > 0)
         requiredShift = MinDXoverESD/requiredShift;
-      
+
       f = LineSearch(target,output,x,gradLogLike,g,gs,1.,requiredGain,requiredShift,hitBound,tooSmallShift);
-      
-      //LineSearch sets scaled gradient to zero on boundaries.  
+
+      //LineSearch sets scaled gradient to zero on boundaries.
       //Do same to gradient before BFGS update.
       for (int i = 0; i < g.size(); i++) if (gs[i] == 0) g[i] = 0;
       g_old = g;
@@ -392,7 +392,7 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
   }
   else
   {
-    output.logTab(1,DEBUG,"== BFGS Step =="); 
+    output.logTab(1,DEBUG,"== BFGS Step ==");
     TNT::Vector<floatType> dx(target.numRefinePars());
     TNT::Vector<floatType> dg(target.numRefinePars());
     TNT::Vector<floatType> Hdg(target.numRefinePars());
@@ -425,14 +425,14 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
     output.logBlank(DEBUG);
     target.logHessian(DEBUG,output,h_old);
     output.logBlank(DEBUG);
-    
+
     g_old = g;
     x_old = x;
     TNT::Vector<floatType> gs = h_old*g;
-    
+
     target.logVector(DEBUG,"BFGS: Scaled Gradient",output,gs);
     output.logBlank(DEBUG);
-  
+
     // Figure out how far linesearch has to go to shift at least one parameter
     // by minimum shift/esd, using inverse Hessian to estimate covariance matrix
     floatType requiredShift(0.);
@@ -443,7 +443,7 @@ floatType Minimizer::bfgs(RefineBase& target,Output& output,floatType requiredGa
     }
     if (requiredShift > 0)
       requiredShift = MinDXoverESD/requiredShift;
-    
+
     f = LineSearch(target,output,x,gradLogLike,g,gs,1,requiredGain,requiredShift,hitBound,tooSmallShift);
 
     // Check for positive grad (possibly after modifying at bounds)
@@ -461,7 +461,7 @@ floatType Minimizer::newton(RefineBase& target,Output& output,floatType required
   floatType f;
   const floatType ZERO(0.), MinDXoverESD(0.1);
   output.logTab(1,DEBUG,"==NEWTON==");
-  
+
   //get initial parameter values x
   TNT::Vector<floatType> unrepar_x = target.getRefinePars();
   TNT::Vector<floatType> x = target.reparRefinePars(unrepar_x);
@@ -506,7 +506,7 @@ floatType Minimizer::newton(RefineBase& target,Output& output,floatType required
   }
   else
   {
-// Scale Hessian by pre- and post-multiplication by diagonal matrix to 
+// Scale Hessian by pre- and post-multiplication by diagonal matrix to
 // have unit diagonal prior to computing pseudoinverse.  Scale resulting
 // pseudoinverse again to put back on original scale.
     TNT::Vector<floatType> hscale(target.numRefinePars());
@@ -526,12 +526,12 @@ floatType Minimizer::newton(RefineBase& target,Output& output,floatType required
   }
 
   // this is the scaled gradient (this SHOULD be exact near the minimum)
-  TNT::Vector<floatType> gs = h*g; 
-  
+  TNT::Vector<floatType> gs = h*g;
+
   target.logVector(DEBUG,"Newton: Parameters",output,x);
   target.logVector(DEBUG,"Newton: Scaled Gradient",output,gs);
   output.logBlank(DEBUG);
-  
+
   // Figure out how far linesearch has to go to shift at least one parameter
   // by minimum shift/esd, using inverse Hessian to estimate covariance matrix
   floatType requiredShift(0.);
@@ -540,42 +540,42 @@ floatType Minimizer::newton(RefineBase& target,Output& output,floatType required
     if (h(i+1,i+1) > 0)
       requiredShift = std::max(requiredShift,fabs(gs[i])/std::sqrt(h(i+1,i+1)));
   }
-  if (requiredShift > 0) 
+  if (requiredShift > 0)
     requiredShift = MinDXoverESD/requiredShift;
-  
+
   f = LineSearch(target,output,x,gradLogLike,g,gs,1.,requiredGain,requiredShift,hitBound,tooSmallShift);
   return f;
 }
-  
-  
-void Minimizer::ShiftX(floatType a, RefineBase& target, TNT::Vector<floatType> &x, 
+
+
+void Minimizer::ShiftX(floatType a, RefineBase& target, TNT::Vector<floatType> &x,
                                 TNT::Vector<floatType> &oldx, TNT::Vector<floatType> &gs)
 {
-  for (int i = 0; i < gs.size(); i++) 
+  for (int i = 0; i < gs.size(); i++)
     x[i] = oldx[i]- a*gs[i];
-  
+
   TNT::Vector<floatType> unrepar_x = target.reparRefineParsInv(x);
   target.applyShift(unrepar_x);
 }
-  
-floatType Minimizer::ShiftScore(floatType a, RefineBase& target, TNT::Vector<floatType> &x, 
-  TNT::Vector<floatType> &oldx, TNT::Vector<floatType> &gs, 
+
+floatType Minimizer::ShiftScore(floatType a, RefineBase& target, TNT::Vector<floatType> &x,
+  TNT::Vector<floatType> &oldx, TNT::Vector<floatType> &gs,
   Output* poutput, bool bcount)
 {
   ShiftX(a,target,x,oldx,gs);
   floatType f = target.targetFn();
   if (bcount)
     mincount++;
-  
+
   if (poutput)
     poutput->logTabPrintf(1,VERBOSE,"f(%9.6f) = %10.6f\n", a, f);
-  
+
   return f;
 }
-  
+
 
 floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<floatType> oldx,
-   floatType f, TNT::Vector<floatType> g, TNT::Vector<floatType>& gs, floatType starting_distance, 
+   floatType f, TNT::Vector<floatType> g, TNT::Vector<floatType>& gs, floatType starting_distance,
    floatType requiredGain, floatType requiredShift, bool& hitBound, bool& tooSmallShift)
 {
   hitBound = false;
@@ -584,17 +584,17 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
 
   TNT::Vector<floatType> x(target.numRefinePars());
   TNT::Vector<floatType> unrepar_x(target.numRefinePars());
-  
+
   const floatType ZERO(0.0),HALF(0.5),ONE(1.0),TWO(2.0),FIVE(5.0);
   const floatType GOLDEN((std::sqrt(FIVE)+ONE)/TWO);
   const floatType GOLDFRAC((GOLDEN-ONE)/GOLDEN);
   const floatType WOLFEC1(1.E-4); // 1.E-4 suggested in Nocedal & Wright
   const floatType DTOL(1.e-5);
   const floatType DFILT(DTOL*starting_distance);
-  
+
   output.logTab(1,DEBUG,"Determining Stepsize");
   output.logTabPrintf(1,DEBUG,"|");
-  
+
   // By default, first test point in bracketing is current guess of step
   // Make sure that it will not go past bounds
   TNT::Vector<floatType> dist(target.numRefinePars());
@@ -602,7 +602,7 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
   if (maxDist < DFILT) // If on boundary and moving out, set component of gradient to zero
   {
     int nleft = target.filterGradient(gs,dist,DFILT);
-    if (!nleft) 
+    if (!nleft)
     {
       tooSmallShift = true;
       return f;
@@ -610,13 +610,13 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
     maxDist = target.getMaxDist(oldx,gs,dist);
     PHASER_ASSERT(maxDist >= DFILT);
   }
-  if (starting_distance > maxDist) 
+  if (starting_distance > maxDist)
   {
     output.logTab(1,VERBOSE,"To avoid exceeding bounds, starting distance reduced from "
          + dtos(starting_distance) + " to " + dtos(maxDist));
     starting_distance = maxDist;
   }
-  
+
   // Check grad of function in direction of (possibly modified) line search
   floatType grad(-dot_prod(g,gs));
   if (grad >= ZERO)
@@ -625,25 +625,25 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
     tooSmallShift = true;
     return f;
   }
-  
+
   // Make sure that first test point does not exceed any largeShift
   floatType maxStep = target.getMaxStep(oldx,gs);
-  if (starting_distance > maxStep) 
+  if (starting_distance > maxStep)
   {
     output.logTab(1,VERBOSE,"To avoid exceeding largeShift, starting distance reduced from "
          + dtos(starting_distance) + " to " + dtos(maxStep));
     starting_distance = maxStep;
   }
-  
+
   floatType fk,flo,fhi,dk,dlo,dhi;
   PHASER_ASSERT(gs.size() == oldx.size());
-  
+
   //Sample first test point
   output.logTab(1,DEBUG,"Unit distance = " + dtos(starting_distance));
-  
+
   dk  = starting_distance;
   fk = ShiftScore(dk, target, x, oldx, gs, &output);
-  
+
   const floatType WOLFEFRAC(HALF); // 0.5 slightly better in tests of 0,0.25,0.5,1
   if ((starting_distance >= std::min(maxDist,WOLFEFRAC)) // Significant fraction of (quasi-)Newton shift
       && (fk < f+WOLFEC1*dk*grad)) // Wolfe condition for first step
@@ -651,16 +651,16 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
     output.logTab(1,VERBOSE,"Satisfied Wolfe condition for first step");
     output.logTabPrintf(1,VERBOSE,"Final LLG: %12.6f distance: %12.6f \n", -fk, dk);
     output.logTab(1,VERBOSE,"Bracketing took " + itos(mincount) + " function evaluations");
-    
-    if (dk >= maxDist) 
+
+    if (dk >= maxDist)
       hitBound = true;
-    
+
     return fk;
   }
-  
+
   dlo = ZERO;
   flo = f;
-  
+
   if (f <= fk) // First step is too big
   {
     while (f <= fk)
@@ -683,8 +683,8 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       fk = ShiftScore(dk, target, x, oldx, gs, &output);
     }
     if ((fk < f+WOLFEC1*dk*grad))
-    {     
-      output.logTab(1,VERBOSE,"Satisfied Wolfe condition after backtracking");  
+    {
+      output.logTab(1,VERBOSE,"Satisfied Wolfe condition after backtracking");
       output.logTabPrintf(1,VERBOSE,"Final LLG: %12.6f distance: %12.6f \n", -fk, dk);
       output.logTab(1,VERBOSE,"Bracketing took " + itos(mincount) + " function evaluations");
       if (dk < requiredShift) tooSmallShift = true;
@@ -709,16 +709,16 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       {
         flo = fk;
         dlo = dk;
-        
+
         fk = fhi;
         dk = dhi;
-        
+
         dhi = std::min(maxDist,dk + GOLDEN*(dk-dlo));
         fhi = ShiftScore(dhi, target, x, oldx, gs, &output);
       }
       if (dhi >= maxDist && fk >= fhi)
       {
-        // Reached boundary without defining bracket.  
+        // Reached boundary without defining bracket.
         // Use finite differences to test if still going down.
         // If so, stop this line search.  Otherwise, we've verified bracket.
         dk = (1.-DTOL)*dhi;
@@ -737,32 +737,32 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       output.logTab(1,VERBOSE,"Satisfied Wolfe condition for bigger than initial step");
       output.logTabPrintf(1,VERBOSE,"Final LLG: %12.6f distance: %12.6f \n", -fk, dk);
       output.logTab(1,VERBOSE,"Bracketing took " + itos(mincount) + " function evaluations");
-      
+
       ShiftX(dk,target,x,oldx,gs);  // Set to current best before returning
       if (dk < requiredShift) tooSmallShift = true;
       return fk;
     }
   }
-  
+
   //===================================  End of bracketing
-  
+
   output.logTab(1,VERBOSE,"Bracketing took " + itos(mincount) + " function evaluations");
   output.logTab(1,VERBOSE,"xlow= " + dtos(dlo) + ", xhigh= " + dtos(dhi));
   floatType dmid(dk);
   floatType fmid(fk);
-  
-  // BISECTING/INTERPOLATION STARTS HERE (we now know that the value is between dlo and dhi) 
-  
-  // let tolerance be small but not too close to zero as to ensure our algorithm tries a new value 
+
+  // BISECTING/INTERPOLATION STARTS HERE (we now know that the value is between dlo and dhi)
+
+  // let tolerance be small but not too close to zero as to ensure our algorithm tries a new value
   // distinctly different from existing one
   const floatType XTOL(0.01);
-  
+
   floatType a, b, c;
   floatType stepsize = std::min(dhi-dmid,dmid-dlo);
   floatType lastlaststepsize, laststepsize;
   laststepsize = stepsize*TWO; // permit first step to actually happen
   floatType d1,f1,d2,f2;
-  
+
   output.logTabPrintf(1,VERBOSE,"Line Search |");
   for (int i=0; i<20; i++) // fall-back upper limit on evaluations in interpolation stage
   {
@@ -779,11 +779,11 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       c = ZERO;
       dk = dmid;
     }
-    
+
     lastlaststepsize = laststepsize;
     laststepsize = stepsize;
     stepsize = fabs(dk - dmid);
-    
+
     output.logTabPrintf(0,VERBOSE," stepsize= %12.6f, laststepsize= %12.6f,  ",stepsize, laststepsize);
     if (c > ZERO  // i.e. the interval has a local minimum, not a local maximum so proceed.
         && dk-dlo > XTOL*(dhi-dlo) // New minimum is sufficiently far from previous points
@@ -796,7 +796,7 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       output.logTab(1,DEBUG,"Use quadratic step");
     }
     else // Can't find a quadratic solution. Maybe points are on a line or local maximum
-    {    // Golden search instead     
+    {    // Golden search instead
       dk = (dhi-dmid >= dmid-dlo) ? dmid + GOLDFRAC*(dhi-dmid) : dmid - GOLDFRAC*(dmid-dlo);
       fk = ShiftScore(dk, target, x, oldx, gs, &output);
       output.logTab(1,DEBUG,"Use golden search step");
@@ -820,16 +820,16 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       dmid = dk;
       fmid = fk;
     }
-      
+
     output.logTabPrintf(0,VERBOSE,"=");
-    
+
     output.logTabPrintf(0,DEBUG,"[%12.6f,%12.6f,%12.6f,%12.6f]\n",dlo,d1,d2,dhi);
     output.logTabPrintf(0,DEBUG,"[    ----    ,%12.6f,%12.6f,    ----    ]\n",f1,f2);
     if (f1 < f2)
       output.logTabPrintf(0,DEBUG,"          <        ^^^^        >                     \n");
     else
       output.logTabPrintf(0,DEBUG,"                       <       ^^^^       >          \n");
-      
+
     // convergence tests
     if ((fmid < f - std::max(requiredGain,-WOLFEC1*dmid*grad)) && (dmid >= requiredShift))
     {
@@ -842,20 +842,20 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
       floatType fracStart((d2-d1)/starting_distance);
       if (std::max(fabs(f2-f),fabs(f1-f))<requiredGain && fracStart<0.1)
       {
-        output.logTab(1,DEBUG,"Stop linesearch: no sign of improvement"); 
+        output.logTab(1,DEBUG,"Stop linesearch: no sign of improvement");
         break;
       }
       if (fabs(f2-f1)<requiredGain && fracStart<0.1)
       {
-        output.logTab(1,DEBUG,"Stop linesearch: |f1-f2| < tolerance"); 
+        output.logTab(1,DEBUG,"Stop linesearch: |f1-f2| < tolerance");
         break;
       }
       if (fracStart<0.01)
       {
-        output.logTab(1,DEBUG,"Stop linesearch: |d2-d1|/startdist < 0.01"); 
+        output.logTab(1,DEBUG,"Stop linesearch: |d2-d1|/startdist < 0.01");
         break;
       }
-    } 
+    }
     // Not converged, so prepare for next loop
     if (f1 < f2)
     {
@@ -873,7 +873,7 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
     }
   }
   // converged or limit in steps
-      
+
   if (f < fmid) // Shouldn't happen, but catch possibility that function didn't improve
   {
     unrepar_x = target.reparRefineParsInv(oldx);
@@ -884,7 +884,7 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
     ShiftX(dmid,target,x,oldx,gs);  // Make sure best shift has been applied.
     f = fmid;
   }
-  
+
   output.logBlank(VERBOSE);
   output.logTab(1,VERBOSE,"This line search took " + itos(mincount) + " function evaluations");
   output.logBlank(VERBOSE);
@@ -893,51 +893,51 @@ floatType Minimizer::LineSearch(RefineBase& target,Output& output,TNT::Vector<fl
   output.logTab(1,DEBUG,"Prediction ratio = " +dtos(dmid/starting_distance));
   output.logBlank(DEBUG);
   if (dmid < requiredShift) tooSmallShift = true;
-  return f;        
+  return f;
 }
 
 
 // Find minimum from parabolic interpolation. Return true as long as minimum is between xmin and xmax
-bool Minimizer::GetQuadraticMinimum(floatType &xmin, floatType x1, floatType y1, floatType x2, 
+bool Minimizer::GetQuadraticMinimum(floatType &xmin, floatType x1, floatType y1, floatType x2,
                              floatType y2, floatType x3, floatType y3, floatType xlow, floatType xhigh)
 {
   floatType a,b,c;
   GetQuadraticCoefficients(y1, y2, y3, x1, x2, x3, a, b, c);
   xmin = -b/(2.0*c); // where the derivative of parabolic curve is zero
-  
+
   if (xmin <xlow)
   {
     xmin = xlow;
     return false;
   }
-  
+
   if (xmin >xhigh)
   {
     xmin = xhigh;
     return false;
   }
-  
+
   return true;
 }
 
-// Given three points in the x-y plane get the coefficients corrsponding to 
+// Given three points in the x-y plane get the coefficients corrsponding to
 // the parabolic equation y(x) = a + b*x + c*x^2
-bool Minimizer::GetQuadraticCoefficients(floatType y1, floatType y2, floatType y3, floatType x1, 
+bool Minimizer::GetQuadraticCoefficients(floatType y1, floatType y2, floatType y3, floatType x1,
                                     floatType x2, floatType x3, floatType& a, floatType& b, floatType& c)
 {
   a = b = c = 0.0;
-  
+
   floatType det = x2*x3*x3 - x3*x2*x2 - x1*(x3*x3 - x2*x2) + x1*x1*(x3 - x2);
   if (fabs(det) < std::numeric_limits<floatType>::epsilon()*3) // too close to zero within machine precision
     return false;
-  
+
   floatType invdet = 1.0/det;
-  
+
   //   a = (y1*(x2*x3*x3 - x2*x2*x3) + y2*(x1*x3*x3 - x3*x1*x1) + y3*(x1*x2*x2 - x2*x1*x1))*invdet; // correct but unstable
   b = (y1*(x2*x2 - x3*x3) + y2*(x3*x3 - x1*x1) + y3*(x1*x1 - x2*x2))*invdet;
   c = (y1*(x3 -x2) + y2*(x1 - x3) + y3*(x2 -x1))*invdet;
   a = y1 - (b*x1 +c*x1*x1);
-  
+
   return true;
 }
 

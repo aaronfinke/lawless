@@ -378,7 +378,7 @@ export:
 	cp ${CHDR} ../Export/
 	cp Makefile ../Export/Makefile.osx
 	cp aimless.html ../Export/
-	cd ${MINLIB}; make export
+	cd ${MINLIB}; libtbx.clean_clutter; make export
 
 tar: export
 	cd ../Export; tar cvf ../aimless.tar .
