@@ -215,7 +215,7 @@ namespace scala
             FixSdB = false;
             tolerance = 0.0004;
             rtolerance = 0.001;
-            max_cycles = 100;  // 5
+            max_cycles = 20;  // 5
             //      max_cycles = 20;  // 5
           }
 

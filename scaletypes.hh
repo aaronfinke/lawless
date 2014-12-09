@@ -501,6 +501,45 @@ namespace scala {
     int ntilex, ntiley;  // number of tiles, ntilex < 0 for no correction
     DetectorScale::DetectorScaleType detectorscaletype;
   };
+  //--------------------------------------------------------------
+  class LinkSpecs {
+    // Links for SURFACE parameters
+  public:
+
+    LinkSpecs() : nlinks(0), linkall(false), nunlinks(0) {}
+
+    // true is any [un]links are set
+    bool isSet() const {return ((nlinks != 0) || (nunlinks != 0));}
+
+    void setLinkAll() {linkall = true; nlinks = -1; links.clear();}
+    void setUnlinkAll() {unlinkall = true; nunlinks = -1; unlinks.clear();}
+
+    bool linkAll() const {return linkall;}
+    bool unlinkAll() const {return unlinkall;}
+
+    void addLink(const std::pair<int,int> runs2) {
+      links.push_back(runs2); nlinks = links.size()+1;
+    }
+    void addUnlink(const std::pair<int,int> runs2) {
+      unlinks.push_back(runs2); nunlinks = unlinks.size()+1;
+    }
+
+    int Nlinks() const {return nlinks;}
+    int Nunlinks() const {return nunlinks;}
+
+    std::vector<std::pair<int,int> > Links() const {return links;}
+    std::vector<std::pair<int,int> > Unlinks() const {return unlinks;}
+
+  private:
+    // nlinks = 0, no links, = -1 link all
+    int nlinks;
+    std::vector<std::pair<int,int> > links;    // for each pair, link run(first) -> run(second)
+    bool linkall;
+    // nunlinks = 0, no unlinks, = -1 unlink all
+    int nunlinks;
+    std::vector<std::pair<int,int> > unlinks;  // for each pair, unlink run(first) -> run(second)
+    bool unlinkall;
+  };
 }
 
 #endif

@@ -45,12 +45,13 @@ namespace scala {
     pole = 0;
     std::vector<scala::ScaleSpecification> scaleSpecs =
       input.getScaleSpecifications();
+    LinkSpecs linkspecs = input.getLINKs();
     bool notile = input.noTile();  // true if explicit NOTILE command
     if (!notile) {
       // set automatic TILE settings if appropriate
       autoTiles(scaleSpecs, hkl_list, output);
     }
-    setup(scaleSpecs, hkl_list, output);
+    setup(scaleSpecs, linkspecs, hkl_list, output);
 
     std::vector<Run> runlist = hkl_list.RunList();
     // run number for each lattice number-1 (lattices are numbered from 1)
@@ -145,10 +146,11 @@ namespace scala {
     scala::ScaleSpecification spec;
     spec.SetConstant();
     std::vector<scala::ScaleSpecification> scaleSpecs(1, spec);
-    setup(scaleSpecs, hkl_list, output);
+    setup(scaleSpecs, LinkSpecs(), hkl_list, output);
   }
   //--------------------------------------------------------------
   void ScaleModel::setup(const std::vector<scala::ScaleSpecification>& scaleSpecs,
+                         const LinkSpecs& linkspecs,
                          hkl_unmerge_list& hkl_list,
                          phaser_io::Output& output)
   // Setup from scale specifications and reflection list
@@ -178,7 +180,7 @@ namespace scala {
     sec_scale_index_run.assign(nruns,-1);
     int kscidx = -1;
     int j0 = -1;  // secondary
-    std::vector<int> runDset(nruns,-1);
+    std::vector<std::string> runXname(nruns,"");
     pole = 0; // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     // Tile stuff
     int ktlidx = -1;
@@ -203,13 +205,15 @@ namespace scala {
       }
 
       // Secondary checks
+      //  Assign secondary scales to runs here, but these assignments will be
+      //  replaced later if there are any LINK SURFACE commands
       if (scaleSpecs[isp].sec_abs != scala::SecondaryScale::NONE &&
           validscalemodel.ValidSecondary(irun)) {
         if (j0 < 0) {
           // first run with a secondary correction
           j0 = irun;  //
           sec_scale_index_run[j0] = ++kscidx;  // index for 1st run = 0
-          runDset[j0] = runlist[j0].DatasetIndex();
+          runXname[j0] = runlist[j0].PXDname().xname();
           if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
             //  ABSORPTION, store pole
             pole = scaleSpecs[isp].pole;
@@ -230,12 +234,11 @@ namespace scala {
                              ("You cannot mix SECONDARY and ABSORPTION"));
           }
           // check each run beyond 1st for same dataset
-          int idset = runlist[irun].DatasetIndex();
-          runDset[irun] =  idset;
+          runXname[irun] = runlist[irun].PXDname().xname();
           // search previous runs for same dataset
           bool found = false;
           for (int jrun=0;jrun<irun;jrun++) {
-            if (runDset[jrun] == idset) {
+            if (runXname[jrun] == runXname[irun]) {
               // irun is same dataset as jrun
               sec_scale_index_run[irun] = sec_scale_index_run[jrun];
               found = true;
@@ -280,8 +283,8 @@ namespace scala {
     nsecscales  = ++kscidx;
     ndetscales = ++ktlidx;
     // Process [UN]LINK commands
-    //  ... when I've written them  FIXME
     //    (re)define sec_scale_index_run & nsecscales
+    processLinks(linkspecs, runlist, output);
 
     // make list of secondary scales, initialised to null
     if (nsecscales > 0) {secondary_scales.assign(nsecscales, SecondaryScale());}
@@ -316,6 +319,122 @@ namespace scala {
     }
     // Count parameters, set nparameters & idxrun indices
     CountParameters();
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::processLinks(const LinkSpecs& linkspecs,
+                                const std::vector<Run>& runlist,
+                                phaser_io::Output& output)
+  // (re)define sec_scale_index_run & nsecscales
+  {
+    // sec_scale_index_run will contain the scale index for each run
+    if (!linkspecs.isSet()) {return;}  // no links, nothing to do
+
+    ASSERT (sec_scale_index_run.size() == runlist.size());
+    int numruns = runlist.size();
+
+    if (linkspecs.linkAll()) {
+      // LINK ALL
+      for (int irun=0;irun<numruns;++irun) {
+        sec_scale_index_run[irun] = 0;
+      }
+      nsecscales = 1;
+    } else if (linkspecs.unlinkAll()) {
+      // UNLINK ALL
+      for (int irun=0;irun<numruns;++irun) {
+        sec_scale_index_run[irun] = irun;
+      }
+      nsecscales = numruns;
+    }
+    // LINK r2 TO r1
+    if (linkspecs.Nlinks() > 0) {
+      std::vector<std::pair<int,int> > links = linkspecs.Links();
+      for (size_t k=0; k<links.size(); k++) {
+        std::pair<int,int> runidx = checkLink(links[k], runlist);
+        if (runidx.first >= 0) {
+          // scale index to remove
+          int sclidx = sec_scale_index_run[runidx.first];
+          // list runs with this index
+          std::vector<int> runswithscaleindex = runsWithScaleIndex(sclidx);
+          for (size_t k=0; k<runswithscaleindex.size(); k++) {
+            sec_scale_index_run[runswithscaleindex[k]] =
+              sec_scale_index_run[runidx.second];
+          }
+          // we have now eliminated scale index sclidx, decrement all
+          // indices greater than this
+          for (size_t irun=0; irun<sec_scale_index_run.size(); irun++) {
+            if (sec_scale_index_run[irun] > sclidx) {
+              sec_scale_index_run[irun]--;
+            }
+          }
+        }
+      }
+      // reset and check nsecscales
+      nsecscales = numberSecondaryScale();
+    } // end explicit LINKs
+    // UNLINK r2 TO r1
+    if (linkspecs.Nunlinks() > 0) {
+      std::vector<std::pair<int,int> > unlinks = linkspecs.Unlinks();
+      for (size_t k=0; k<unlinks.size(); k++) {
+        std::pair<int,int> runidx = checkLink(unlinks[k], runlist);
+        if (runidx.first >= 0) {
+          // check that these runs are linked, ignre if not
+          if (sec_scale_index_run[runidx.first] ==
+            sec_scale_index_run[runidx.second]) {
+            // reassign runidx.first to next available slot
+            sec_scale_index_run[runidx.first] = nsecscales;
+            nsecscales++; // increment number
+          }
+        }
+      }
+      // reset and check nsecscales
+      nsecscales = numberSecondaryScale();
+    }  // end explicit UNLINKs
+  }
+  //--------------------------------------------------------------
+  int ScaleModel::numberSecondaryScale() const
+  // get number of secondary scales from sec_scale_index_run, check that all
+  // are present
+  {
+    // can't be more scales than number of runs
+    std::vector<int> sclidx(sec_scale_index_run.size(), -1);
+    int maxsclidx = -1;
+    for (size_t irun=0; irun<sec_scale_index_run.size(); irun++) {
+      int idxscl = sec_scale_index_run[irun];
+      maxsclidx = std::max(idxscl, maxsclidx);
+      sclidx[idxscl]++;
+    }
+    for (int i=0;i<=maxsclidx;++i) {
+      if (sclidx[i] < 0) {
+        // this scale i has not been allocated to a run
+        Message::message(Message_fatal
+                         ("ScaleModel: secondary scale number "+
+                          clipper::String(i)+" is not allocated to a run"));
+      }
+    }
+    return maxsclidx+1;
+  }
+  //--------------------------------------------------------------
+  std::vector<int> ScaleModel::runsWithScaleIndex(const int& sclidx) const
+  // list of run indices which share scale index sclidx
+  {
+    std::vector<int> runswithscaleindex;
+    for (size_t irun=0; irun<sec_scale_index_run.size(); irun++) {
+      if (sec_scale_index_run[irun] == sclidx) {
+        runswithscaleindex.push_back(irun);
+      }
+    }
+    return runswithscaleindex;
+  }
+  //--------------------------------------------------------------
+  std::pair<int,int> ScaleModel::checkLink(const std::pair<int,int>& link,
+                                           const std::vector<Run>& runlist) const
+  // returns run indices for both ends of the link, first = -1 if not found
+  {
+    int numruns = runlist.size();
+    int r1 = FindRunIndex(link.first, runlist);  //run index
+    int r2 = FindRunIndex(link.second, runlist);
+    if ((r1 < 0) || (r2 < 0)) {return std::pair<int,int>(-1,-1);} // not found
+    return std::pair<int,int>(r1, r2);
   }
   //--------------------------------------------------------------
   void ScaleModel::autoTiles(std::vector<scala::ScaleSpecification>& scaleSpecs,
@@ -686,6 +805,14 @@ namespace scala {
                       detector_scales[detector_scale_index_run.at(irun)].format());
       }
     }
+    // Assignment of secondary scales to runs
+    if (nsecscales > 0 && runnumbers.size() > 1) {
+      output.logTab(0,LOGFILE,
+    "\nAllocation of secondary (SURFACE) scales to runs (automatic or from LINKs)");
+      for (int k=0;k<nsecscales;++k) {
+        output.logTab(1,LOGFILE,formatSecondaryrunset(k));
+      }
+    }
     if (nties > 0) {
       output.logTab(0,LOGFILE,"\n");
       if (nties_rot > 0) {
@@ -835,6 +962,27 @@ namespace scala {
     return sds;
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::formatSecondaryrunset(const int& scaleset) const
+  // format as "Set <scaleset>, run[s]: <runnumbers>"
+  {
+    // Get list of runs corresponding to this secondary scale set
+    std::vector<int> runswithscaleindex = runsWithScaleIndex(scaleset);
+    std::string s = "";
+    bool first = true;
+    std::string runtext = "run";
+    for (size_t k=0; k<runswithscaleindex.size(); k++) {
+      if (!first) {
+        s += ", ";
+        runtext = "runs";
+      }
+      first = false;
+      s +=
+        StringUtil::Strip(StringUtil::itos(runnumbers[runswithscaleindex[k]],3));
+    }
+    s = "Scale set "+StringUtil::itos(scaleset+1,2)+" used for "+runtext+" "+s;
+    return s;
+  }
+  //--------------------------------------------------------------
   void ScaleModel::PrintScales(phaser_io::Output& output)
   // Print all scale parameters, with SDs if available
   {
@@ -892,18 +1040,20 @@ namespace scala {
         if (nfreedom > 0) {
           sds = extractSDs(idxrun_secondary[j], secsclpar.size());
         };
-        if (nsecscales > 1) {
-          output.logTabPrintf(0,LOGFILE,"Scale set %3d\n",j+1);
+        if (runnumbers.size() > 1) {
+          output.logTab(0,LOGFILE,"\n"+formatSecondaryrunset(j));
+        } else {
+          output.logTabPrintf(0,LOGFILE,"\nScale set %3d\n",j+1);
         }
         std::vector<int> ndummy;
         if (nfreedom <= 0) {
           output.logTab(0,LOGFILE,
                         PrintWrappingLines(secsclpar, "Coefficient", sds, "",
-                                            ndummy, "",7,3));
+                                           ndummy, "",7,3));
         } else {
           output.logTab(0,LOGFILE,
                         PrintWrappingLinesWithSD(secsclpar,
-                        "Coefficient(Sd)", sds, 7,3));
+                                                 "Coefficient(Sd)", sds, 7,3));
         }
       }
     } // End Secondary

@@ -1,6 +1,7 @@
 //  RefineSDCorrection.cpp
 //
-// residual Sum(j) [ wj (1 - sigma(delta(j)))^2 ]
+// residual Sum(j) [ wj^2 (1 - sigma(delta(j)))^2 ] [QUADRATIC]
+// or       Sum(j) [ ln cosh (wj (1 - sigma(delta(j)))) ] [LNCOSH]
 // delta(hl) = (Ihl - <Ih>!l)/[sqrt(nh/nh-1) * sigma'(hl)]
 // sigma'(hl) = SdFac *sqrt[sigma(hl)^2 + SdB <Ih> + (SdAdd * <Ih>)^2]
 //            = p * sigma(hl)^2  + q * <Ih> + r * <Ih>^2
@@ -21,8 +22,8 @@
 #include "refinesdcorrection.hh"
 
 namespace scala {
-// ---------------------------------------------------------
-// Refine SD correction model using LSQ minimiser for each "bin class" separately
+  // ---------------------------------------------------------
+  // Refine SD correction model using LSQ minimiser for each "bin class" separately
   SDanalysis RefineSDcorrectionFactors(SDmodel& SDM,
                                        const hkl_unmerge_list& hkl_list,
                                        const all_controls& controls,
@@ -30,87 +31,157 @@ namespace scala {
                                        const double& tolerance, const double& rtolerance,
                                        const int&  max_cycles,
                                        phaser_io::Output& output)
-{
-  //^  std::cout << "SDM start: " << SDM.format() <<"\n"; //^
+  {
+    //^  std::cout << "SDM start: " << SDM.format() <<"\n"; //^
 
-  //  int min_cycles = Min(max_cycles, 4); // at least 4 cycles unless < max
-  int min_cycles = Min(max_cycles, 10); // at least N cycles unless < max
-  double lastR = -1.0;
-  double bestR = 10000.0;
-  std::vector<double> bestsdmparams = SDM.GetParameters();
+    //  int min_cycles = Min(max_cycles, 4); // at least 4 cycles unless < max
+    int min_cycles = Min(max_cycles, 5); // at least N cycles unless < max
+    double lastR = -1.0;
+    double bestR = 10000.0;
+    int bestcycle = -1;
+    const int MAXNINCREASING = 3;  // allow 3 cycles with increasing R
+    std::vector<double> bestsdmparams = SDM.GetParameters();
 
-  output.logTab(0,LOGFILE,"\n");
-  SDanalysis sdanal;
+    output.logTab(0,LOGFILE,"\n");
+    SDanalysis sdanal;
 
-  double damp = SDM.Damp(); // damping factor for minimisation
-  if (damp < 0.0) { // unset
-    damp = 0.05;
-  }
-  output.logTabPrintf(0,LOGFILE,"Damping factor: %5.3f\n", damp);
-  // print information about parameter restraints
-  output.logTab(0,LOGFILE, SDM.formatTie());
-
-  SDM.SetTargetsFromAverageParameters();  // if similarity targets
-
-  for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
-    // Accumulate all sums from data
-    bool anomalous = controls.anomalouscontrol.AnomalousSDcorr;
-    sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
-    //^
-    //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
-    //                      SDM, -1, PxdName(), false, output);
-    //^-
-    bool update = (max_cycles > 0); // don't update parameters if zero cycles
-    TargetResiduals target = UpdateParameters(SDM, sdanal, tolerance, damp, update);
-    double R = target.R;
-    if (target.R2 > 0.0) {
-      output.logTabPrintf(0,LOGFILE,
-        "Cycle %3d residual %10.5f   (main residual %8.5f restraint residual %8.5f)\n",
-                        cyc+1, std::abs(R), target.R1, target.R2);
-    } else {
-      output.logTabPrintf(0,LOGFILE,
-        "Cycle %3d residual %10.5f\n",
-                          cyc+1, std::abs(R));
+    double damp = SDM.Damp(); // damping factor for minimisation
+    if (damp < 0.0) { // unset
+      damp = 0.05;
     }
-    //^
-    //    output.logTab(0,LOGFILE,
-    //            "\nSD correction parameters after cycle\n"+SDM.format()); //^-
+    output.logTabPrintf(0,LOGFILE,"Damping factor: %5.3f\n", damp);
+    // print information about parameter restraints
+    output.logTab(0,LOGFILE, SDM.formatTie());
 
-    if (max_cycles <= 0) break;
-    if (R < 0.0) {
-      output.logTab(0,LOGFILE,"Convergence reached");
-      break;
-    }
-    R = std::abs(R);
-    // Record the best so far
-    if (R < bestR) {
-      bestR = R;
-      bestsdmparams = SDM.GetParameters();
-    }
-    if (cyc+1 > min_cycles && lastR > 0.0) {
-      // beyond minimum cycles, should we stop anyway?
-      double diffR = std::abs(R - lastR);
-      if (R > lastR) {
-        // residual gone up, reinstate best parameter set
-        SDM.SetParameters(bestsdmparams); // reset parameters
-        output.logTab(0,LOGFILE,"Residual increasing, revert to best cycle and exit");
+    // Update targets and ties if similarity targets
+    SDM.SetTargetsFromAverageParameters();
+
+    int nmacrocycles = 0;
+    const int MAXMACROCYCLES = 2;
+    double R;
+    std::vector<double> lastsdmparams;
+
+    bool saveSdBfix = SDM.NoSDb(); // SdB fix value, true if fixed
+    bool exit = true;  // to exit from macrocycles
+    while (true) { // Macrocycles
+      nmacrocycles++;
+      if (nmacrocycles > MAXMACROCYCLES) {break;}
+      int nincreasing = 0;
+      lastR = -1.0;
+      bestR = 10000.0;
+      bestcycle = -1;
+
+      for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
+        // Accumulate all sums from data
+        bool anomalous = controls.anomalouscontrol.AnomalousSDcorr;
+        sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
+        //^
+        //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
+        //                  SDM, -1, PxdName(), false, output);
+        //^-
+        lastsdmparams = SDM.GetParameters();
+        bool update = (max_cycles > 0); // don't update parameters if zero cycles
+        TargetResiduals target = UpdateParameters(SDM, sdanal, tolerance, damp, update);
+        R = target.R();
+        if (SDM.restrained()) {  // restraints
+          if (target.quadratic) {
+            output.logTabPrintf(0,LOGFILE,
+                                "Cycle %3d residual %10.5f   (main residual %8.5f restraint residual %8.5f)\n",
+                                cyc+1, R, target.R1, target.R2);
+          } else {
+            output.logTabPrintf(0,LOGFILE,
+                                "Cycle %3d residual %10.5f   (ln(cosh) residual %8.5f LSQresidual %8.5f restraint residual %8.5f)\n",
+                                cyc+1, R, target.R1, target.R1lsq, target.R2);
+          }
+        } else { // no restraints
+          if (target.quadratic) {
+            output.logTabPrintf(0,LOGFILE,
+                                "Cycle %3d residual %10.5f\n",
+                                cyc+1, R);
+          } else {
+            output.logTabPrintf(0,LOGFILE,
+                                "Cycle %3d ln(cosh) residual %10.5f LSQresidual %8.5f\n",
+                                cyc+1, R, target.R1lsq);
+          }
+        }
+        //^
+        //      output.logTab(0,LOGFILE,
+        //                    "\nSD correction parameters after cycle\n"+SDM.format()); //^-
+
+        if (max_cycles <= 0) break;
+        if (target.converged) {
+          output.logTab(0,LOGFILE,"Convergence reached");
+          break;
+        }
+        // Record the best so far
+        if (R < bestR) {
+          bestR = R;
+          bestsdmparams = lastsdmparams;  // before last cycle
+          bestcycle = cyc+1;
+        }
+        // Are the residuals increasing?
+        if (lastR > 0.0 && R > lastR) {
+          nincreasing++;
+        } else {
+          nincreasing = 0;
+        }
+        if (cyc+1 > min_cycles && lastR > 0.0) {
+          // beyond minimum cycles, should we stop anyway?
+          double diffR = std::abs(R - lastR);
+          if (nincreasing > MAXNINCREASING) {
+            // residual gone up, reinstate best parameter set
+            SDM.SetParameters(bestsdmparams); // reset parameters
+            if (nmacrocycles == 1) { // first macrocycle
+              // If we are refining SdB, try again fixing it at the "best" values
+              if (!saveSdBfix) {
+                SDM.SetNoSDb(true);
+                bestsdmparams = SDM.GetParameters();
+
+                exit = false;  // to recycle
+                output.logTabPrintf(0,LOGFILE,
+                                    "Residual increasing, revert to best cycle %4d and try with SdB fixed\n",
+                                    bestcycle);
+                output.logTab(0,LOGFILE,
+                              "\nSD correction parameters\n"+SDM.format()+"\n\n");
+              }
+            } else {
+              output.logTabPrintf(0,LOGFILE,
+                                  "Residual increasing, revert to best cycle %4d and exit\n",
+                                  bestcycle);
+            }
+            break;
+          }
+          if (diffR < rtolerance) {
+            // change in residual less than tolerance
+            break;
+          }
+        }
+        if (cyc < max_cycles-1) { // not last cycle
+          lastR = R;
+        }
+      }  // loop cycles
+      // Pick best cycle
+      if (exit) {
         break;
       }
-      if (diffR < rtolerance) {
-        // change in residual less than tolerance
-          break;
-      }
-    }
-    lastR = std::abs(R);
-  }  // loop cycles
-  //^
-  //  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
-  //                        SDM, -1, PxdName(), false, output);
-  //^-
+    } // loop macrocycles
 
-  return sdanal;
-}
-// ---------------------------------------------------------
+    if (R > bestR) { //
+      SDM.SetParameters(bestsdmparams); // reset parameters
+      output.logTabPrintf(0,LOGFILE,
+                          "Residual increased at end, revert to best cycle %4d and exit\n",
+                          bestcycle);
+    }
+    SDM.SetNoSDb(saveSdBfix); // restore SdB fix value, true if fixed
+
+    //^
+    //  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
+    //                      SDM, -1, PxdName(), false, output);
+    //^-
+
+    return sdanal;
+  }
+  // ---------------------------------------------------------
   SDanalysis SumsforSDcorrection(const SDmodel& SDM,
                                  const hkl_unmerge_list& hkl_list,
                                  const bool& anomalous,
@@ -150,7 +221,7 @@ namespace scala {
           if (Ndatasets > 1) {selobs.init(this_refl, id, ALL, weighttype);} // already done if 1 dataset
           if (selobs.Number() > 1) {
             sdanal.AddSelobsDelta2(selobs, mint);
-            // partial derivatives
+            // partial derivatives, sums for d(delta)/dp
             sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
             nacc++;
           }
@@ -159,14 +230,14 @@ namespace scala {
           selobs.init(this_refl, id, IPLUS, weighttype);
           if (selobs.Number() > 1) {
             sdanal.AddSelobsDelta2(selobs, mint);
-            // partial derivatives
+            // partial derivatives, sums for d(delta)/dp
             sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
             nacc++;
           }
           selobs.init(this_refl, id, IMINUS, weighttype);
           if (selobs.Number() > 1) {
             sdanal.AddSelobsDelta2(selobs, mint);
-            // partial derivatives
+            // partial derivatives, sums for d(delta)/dp
             sdanal.AddDerivatives(selobs, mint, SDM.GetDerivatives(selobs, sig0));
             nacc++;
           }
@@ -188,10 +259,16 @@ namespace scala {
   // Each parameter class is treated independently: this is possible since the
   //  weighted deviations delta within each class are independent, as they are calculated
   //  relative to <Ih>av weighted by 1/sqrt(scale), which is independent of sd(I)
+  //  (at least for 1/sqrtscale weighting)
   //
   // Parameters may be tied to target values (set in SDmodel)
   // If Update false, just calculate residuals, no parameter update
   {
+    //    RefineTargets::REFINETARGETTYPES targettype = RefineTargets::LNCOSH;
+    RefineTargets::REFINETARGETTYPES targettype = RefineTargets::QUADRATIC;
+    bool quadratictarget = false;
+    if (targettype == RefineTargets::QUADRATIC) {quadratictarget = true;}
+
     // Number of parameter groups in analysis
     int npargroups = sdanal.NumberOfParameterGroups();
 
@@ -210,15 +287,19 @@ namespace scala {
     // Restraint R2 for each parameter group
     std::vector<double> sdmrestraintR = SDM.GetRestraintR();
     ASSERT (int(sdmrestraintR.size()) == npargroups);
-    // gradients and Hessians for each parameter group
+    // gradients and Hessians for each parameter group for restraints
     std::vector <std::vector<double> > dr2dp;
     std::vector <clipper::Array2d<double> > H2;
     SDM.GetRestraintDerivatives(dr2dp, H2);
 
-    TargetResiduals target;
+    TargetResiduals target;    // R1, R2, R1lsq
+    target.quadratic = false;
+    if (quadratictarget) {
+      target.quadratic = true;
+    }
     double bigrelshift = -1.0;
     // relative weight for main residual compared to restraint residual
-    const double WTREL = 0.01;
+    const double WTREL = 0.1;
     // "SD" of residual in each intensity bin, for weighting by 1/SD^2
     const double SDRESID = 0.04;
 
@@ -227,12 +308,14 @@ namespace scala {
 
     for (int jpc=0;jpc<npargroups;++jpc) { // loop parameter classes
       // weight for each intensity bin, equal (unit) weights
-      double w1 = WTREL/(SDRESID*SDRESID*nintbins);
+      double w1 = sqrt(WTREL)/(SDRESID*nintbins);
+      //double w1 = sqrt(WTREL)/SDRESID;
       std::vector<double> wib(nintbins, w1);
       // Test! double weight on top bin
-      wib.back() *= 2;
+      wib.back() *= sqrt(2);
 
       double R1 = 0.0; // main residual
+      double R1lsq = 0.0; // main LSQ residual
       double sumw = 0.0;
       int npar = sdanal.Nparam(jpc); // number of parameters for this parameter class
       ASSERT (int(dr2dp[jpc].size()) == npar);
@@ -246,12 +329,29 @@ namespace scala {
         if (sddelta[jc] != 0.0) {
           number += ninclass[jc];
           double r = 1.0 - sddelta[jc]; // deviation
-          R1 += wib[mint] * r * r;       // target residual ( * 2)
-          sumw += wib[mint];
+          // wib is sqrt of LSQ weight, ie weight on Delta
+          double abswr = std::abs(wib[mint] * r);
+          sumw += wib[mint]*wib[mint];
+          R1lsq += abswr * abswr;;       // target residual ( * 2)
+          if (quadratictarget) { // LSQ
+            R1 += R1lsq;;       // target residual ( * 2)
+          } else { // ln cosh
+            if (abswr > RefineTargets::MAXCOSHARG) {
+              R1 += abswr;
+            } else {
+              R1 += log(cosh(abswr));
+            }
+          }
         }
       }
-      if (sumw > 0.0) {R1 = 0.5 * R1/sumw;}
-      else {R1 = 0.0;}  // target residual
+      if (sumw > 0.0) {
+        R1 = 0.5 * R1/sumw;
+        R1lsq = 0.5 * R1lsq/sumw;
+      }
+      else {
+        R1 = 0.0;
+        R1lsq = 0.0;
+      }  // target residual
 
       //^
       //      std::cout <<"Target contribution from group " << jpc<< " " << R1
@@ -269,19 +369,41 @@ namespace scala {
             int jc = sdanal.BinClass(jpc, mint);  // bin class number from param class & intbin
             if (sddelta[jc] != 0.0) {
               double r = 1.0 - sddelta[jc]; // deviation
-              gradient[kpl] += wib[mint] * r * dsigDeldp[jpc][mint][kpl];
-              //^
-              //std::cout << "Gradient k, jc " << kpl << " " << jc
-              //                      << " r " << r << " w " << wib[mint]
-              //                      << " sddelta " << sddelta[jc]
-              //                      << " Number " << sdanal.NumberinClass()[jc]
-              //                      << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
-              //                      << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
-              //                      << "\n";
-              //^-
+              if (quadratictarget) { // LSQ
+                double w2 = wib[mint] * wib[mint];
+                gradient[kpl] += w2 * r * dsigDeldp[jpc][mint][kpl]; //??
+                //^
+                //              std::cout << "Gradient k, jc " << kpl << " " << jc
+                //                        << " r " << r << " w " << wib[mint]
+                //                        << " sddelta " << sddelta[jc]
+                //                        << " Number " << sdanal.NumberinClass()[jc]
+                //                        << " d(sig(delta))/dp " << dsigDeldp[jpc][mint][kpl]
+                //                        << " g(k)(jc) " << - wib[mint] * r * dsigDeldp[jpc][mint][kpl]
+                //                        << "\n";
+                //^-
+                for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
+                  H(kpl,lp) += w2 * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+                }
+              } else { // ln cosh
+                double dlncdwr = 1.0;  // d(ln cosh (wr))/d(wr)
+                double abswr = std::abs(wib[mint] * r);
+                if (abswr < RefineTargets::MAXCOSHARG) {
+                  dlncdwr = tanh(wib[mint] * r);  // signed wr
+                } else if (r < 0.0) {
+                  dlncdwr = -1.0;
+                }
+                gradient[kpl] += wib[mint] * dlncdwr * dsigDeldp[jpc][mint][kpl];
 
-              for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
-                H(kpl,lp) += wib[mint] * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+                double d2dx = 1.0;
+                // NB test against MAXCOSHARG already done for dlndx
+                if (abswr > RefineTargets::MINCOSHARG) {
+                  d2dx = dlncdwr / (wib[mint] * r);  // (1/d) tanh(d)
+                  // exact 2nd derivative
+                  //d2dx = 1.0/(cosh(wr)*cosh(wr));
+                }
+                for (int lp=0;lp<=kpl;++lp) {  // Loop local parameters lp, for half matrix
+                  H(kpl,lp) += wib[mint] * d2dx * dsigDeldp[jpc][mint][kpl] * dsigDeldp[jpc][mint][lp];
+                }
               }
             }
           } // end loop intensity bins
@@ -297,6 +419,7 @@ namespace scala {
         }  // end loop local parameters k
         double R2 = sdmrestraintR[jpc];  // restraint residual R2
         double R = R1 + R2; // total residual
+        double Rlsq = R1lsq + R2; // total residual
 
         //^
         //      std::cout << "Main residual: " << R1 << " Restraint Residual " << R2
@@ -413,17 +536,21 @@ namespace scala {
           //      std::cout <<"Parameter "<<kpl<<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
           //                <<" rmn " << rmn<<"\n"; //^-
         }
-        target.Add(R1, R2, R);
+        target.Add(R1, R2);
+        target.AddLsq(R1lsq);
       }
     } // end loop parameter classes
 
+    target.converged = false;
     if (Update) {
       SDM.SetParameters(sdmparams, parameterupdated); // update parameters
       //      std::cout << "Biggest relative shift = " <<bigrelshift<<"\n";
       //      std::cout << "SDM: " << SDM.format() <<"\n"; //^
-      if (bigrelshift < tolerance) target.R = -target.R;  // return -target if converged
+      if (bigrelshift < tolerance) {
+        target.converged = true;
+      }
     }
     return target;
   }
-// ---------------------------------------------------------
+  // ---------------------------------------------------------
 }

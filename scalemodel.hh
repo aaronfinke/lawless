@@ -208,6 +208,7 @@ namespace scala {
     // Setup from scale specifications and reflection list
     // Sets pole, for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     void setup(const std::vector<ScaleSpecification>& scaleSpecs,
+	       const LinkSpecs& linkspecs,
 	       hkl_unmerge_list& hkl_list,
 	       phaser_io::Output& output);
 
@@ -359,6 +360,23 @@ namespace scala {
     // Variance(gscale)
     double VarScale(const std::vector<double>& dghldp) const;
 
+    void processLinks(const LinkSpecs& linkspecs,
+		      const std::vector<Run>& runlist,
+		      phaser_io::Output& output);
+
+    // returns run indices for both ends of the link, first = -1 if not found
+    std::pair<int,int> checkLink(const std::pair<int,int>& link,
+				 const std::vector<Run>& runlist) const;
+
+    // list of run indices which share scale index sclidx
+    std::vector<int> runsWithScaleIndex(const int& sclidx) const;
+
+    // get number of secondary scales from sec_scale_index_run, check that all
+    // are present
+    int numberSecondaryScale() const;
+
+    // format as "Set <scaleset>, run[s]: <runnumbers>"
+    std::string formatSecondaryrunset(const int& scaleset) const;
 
   }; // class ScaleModel 
 }

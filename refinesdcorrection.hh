@@ -14,19 +14,28 @@
 #include "intensitybin.hh"
 #include "selectedobservations.hh"
 #include "sdanalysis.hh"
+#include "refinetargets.hh"
 
 namespace scala {
   // ---------------------------------------------------------
   class TargetResiduals {
   public:
-    TargetResiduals() : R1(0.0), R2(0.0), R(0.0) {}
-    void Add(const double& r1, const double& r2, const double& r)
-    {R1 += r1;R2 += r2;R += r;}
+    TargetResiduals() : R1(0.0), R1lsq(0.0), R2(0.0), quadratic(true),
+			converged(false) {}
+    void Add(const double& r1, const double& r2)
+    {R1 += r1;R2 += r2;}
+    void AddLsq(const double& r1lsq)
+    {R1lsq += r1lsq;}
 
+    double R()      // == R1 + R2
+    {return R1 + R2;}
+
+    bool quadratic; // true if LSQ
+    bool converged;
     //! Just some residuals
-    double R1;
-    double R2;
-    double R;   // == R1 + R2
+    double R1;     // optimised residual, LSQ or ln cosh
+    double R1lsq;  // LSQ residual, may be equal to R1
+    double R2;     // restraints
   };
   //---------------------------------------------------------------
   // Refine SD correction model using BGFS minimiser

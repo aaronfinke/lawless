@@ -54,13 +54,21 @@ namespace scala {
     // Mean sigIcorrected/sigI
     std::vector<MeanValue> meanRelSDdiff() const {return meanrelsddiff;}
 
-    void print(phaser_io::Output& output) const;
+    void print(const std::vector<Batch>& batches,
+	       phaser_io::Output& output) const;
+
+    void printResolution(phaser_io::Output& output) const;
+
+    void printBatch(const std::vector<Batch>& batches,
+		    phaser_io::Output& output) const;
+
 
   private:
     MeanValue meani;  // mean scaled I within resolution limits
     //  in resolution bins ...
     ResoRange resrange;
     std::vector<MeanValue> meansdk;  // Mean sd(1/g) * g
+    std::vector<MeanValue> meansdkbatch;  // Mean sd(1/g) * g by batch
     std::vector<MeanValue> meanrelsddiff;  // Mean sigIcorrected/sigI
     // sigIcorrected = sd' allows for sd(1/g)
 

@@ -152,7 +152,7 @@ keywords are:</p>
 <p><a style="font-weight: bold;" href="#analysis">ANALYSIS</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#anomalous">ANOMALOUS</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#bins">BINS</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#dump">DUMP</a><span style="font-weight: bold;">,
-</span><a style="font-weight: bold;" href="#exclude">EXCLUDE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklin">HKLIN</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklout">HKLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklref">HKLREF</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#initial">INITIAL</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#intensities">INTENSITIES</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#labref">LABREF</a><span style="font-weight: bold;">,
+</span><a style="font-weight: bold;" href="#exclude">EXCLUDE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklin">HKLIN</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklout">HKLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklref">HKLREF</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#initial">INITIAL</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#intensities">INTENSITIES</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#labref">LABREF</a><span style="font-weight: bold;">, <a href="#link">LINK</a>,&nbsp;
 </span><a style="font-weight: bold;" href="#name">NAME</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#onlymerge">ONLYMERGE</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#output">OUTPUT</a><span style="font-weight: bold;">,
@@ -162,7 +162,7 @@ keywords are:</p>
 </span><a style="font-weight: bold;" href="#scales">SCALES</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#sdcorrection">SDCORRECTION</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#tie">TIE</a><span style="font-weight: bold;">,
-</span><a style="font-weight: bold;" href="#title">TITLE</a><span style="font-weight: bold;">, <a href="#usesdparameter">USESDPARAMETER</a>, </span><a style="font-weight: bold;" href="#xmlout">XMLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xyzin">XYZIN</a><b><br>
+</span><a style="font-weight: bold;" href="#title">TITLE</a><span style="font-weight: bold;">, <a href="#unlink">UNLINK</a>, <a href="#usesdparameter">USESDPARAMETER</a>, </span><a style="font-weight: bold;" href="#xmlout">XMLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#xyzin">XYZIN</a><b><br>
 </b></p>
 <h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
 
@@ -767,20 +767,21 @@ detector</dd>
     </dl>
   </dd>
 </dl><h3><a name="link"></a>LINK [SURFACE] ALL | &lt;run_2&gt; TO
-&lt;run_1&gt;&nbsp;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
-<p>run_2 will use the same SURFACE (or SECONDARY) parameters
+&lt;run_1&gt;&nbsp;<span style="color: rgb(255, 102, 0);"></span> </h3>
+<p>run_2 will use the same SURFACE (SECONDARY or ABSORPTION) parameters
 as run_1. This can be useful when different runs come from the same
-crystal, and may stabilize the parameters. The keyword ALL will be assumed if omitted.
+crystal, and may stabilize the parameters. The keyword ALL will be assumed if omitted. <br>
+
 </p>
 
 <ul>
 
-  <li> For SECONDARY or SURFACE parameters, the default is to link runs
-which come from the same dataset. They should be UNLINKed if they are
+  <li> For SECONDARY or ABSORPTION parameters, the default is to link runs
+which come from the same crystal. They should be UNLINKed if they are
 different.</li>
 </ul>
-<h3><a name="unlink"></a>UNLINK [SURFACE|TAILS] ALL | &lt;run_2&gt; TO
-&lt;run_1&gt;&nbsp;<span style="color: rgb(255, 102, 0);">NOT YET DONE</span> </h3>
+<h3><a name="unlink"></a>UNLINK [SURFACE] ALL | &lt;run_2&gt; TO
+&lt;run_1&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
 <p>Remove links set by LINK command (or by default). The keyword ALL
 will
 be assumed if omitted </p>
@@ -1277,7 +1278,8 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.4.10 add SD analysis graph to XML<br>
+  <h2>RELEASE NOTES</h2>0.5.1 "improved" SD correction refinement. Added [UN]LINK commands, imporved default linking<br>
+0.4.10 add SD analysis graph to XML<br>
 0.4.8,9 improved robustness of maximum resolution curve fit<br>
 0.4.7 better trap for no data in SDCORRECTION refinement<br>
 0.4.5,6 fill in missing IPR columns from I, shouldn't normally happen<br>
@@ -1376,6 +1378,7 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
 
 
 

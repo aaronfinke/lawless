@@ -56,11 +56,18 @@ namespace scala
     //! Add in a new xdataset if 1st or Dname is the same, return true if added
     bool AddXdataset(const Xdataset& xdataset);
 
+    //! Add in all new xdatasets if only the dataset name is the same,
+    //!  return true if added
+    bool AddDataset(const Dataset& other);
+
     //! Add batch number to list for this dataset ID
     void add_batch(const int& setid, const int& batch_num);
 
     //! Add batch number to list for this PxdName
     void add_batch(const PxdName& pxdname, const int& batch_num);
+
+    //! return all Xdatasets
+    std::vector<Xdataset> Xdatasets() const {return xdatasets;}
 
     //! return list of PXDnames
     std::vector<PxdName> pxdnames() const; //!< return all PXD names

@@ -10,11 +10,13 @@ namespace scala {
   //--------------------------------------------------------------
   Run::Run() {clear();}
   //--------------------------------------------------------------
-  Run::Run(const int& DatasetIndex, const int& DatasetID)
+  Run::Run(const int& DatasetIndex, const int& DatasetID,
+           const PxdName& Pxdname)
   {
     clear();
     dataset_index= DatasetIndex;
     datasetID = DatasetID;
+    pxdname = Pxdname;
   }
   //--------------------------------------------------------------
   void Run::clear()
@@ -23,6 +25,7 @@ namespace scala {
     runnumber = 0;
     dataset_index = -1;
     datasetID = -1;
+    pxdname = PxdName();
     batch_number_offset = 0;
     batchserial0 = 0;
     file_number = 0;

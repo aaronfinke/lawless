@@ -565,6 +565,8 @@ namespace scala {
 
     // SD analysis by intensity, runs, full/partial
     SDanalysis sdanalysis(Irange, SDM, false);
+    //^
+    //    sdanalysis.SetDump("sddump.dat");  //^ dumping analysis data
     // "core" data only, ie within smaller limits on delta
     SDanalysis sdanalysiscore(Irange, SDM, false);
 

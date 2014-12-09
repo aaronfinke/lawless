@@ -496,12 +496,12 @@ namespace scala
   std::string Scell::xml() const
   {
     std::string line = "<cell>\n";
-    line += "   <a>"+clipper::String(cell_[0],7,4)+"</a>\n";
-    line += "   <b>"+clipper::String(cell_[1],7,4)+"</b>\n";
-    line += "   <c>"+clipper::String(cell_[2],7,4)+"</c>\n";
-    line += "   <alpha>"+clipper::String(cell_[3],7,4)+"</alpha>\n";
-    line += "   <beta>"+clipper::String(cell_[4],7,4)+"</beta>\n";
-    line += "   <gamma>"+clipper::String(cell_[5],7,4)+"</gamma>\n";
+    line += " <a>"+StringUtil::ftos(cell_[0],8,3)+"</a>";
+    line += " <b>"+StringUtil::ftos(cell_[1],8,3)+"</b>";
+    line += " <c>"+StringUtil::ftos(cell_[2],8,3)+"</c>\n";
+    line += " <alpha>"+StringUtil::ftos(cell_[3],8,3)+"</alpha>";
+    line += " <beta>"+StringUtil::ftos(cell_[4],8,3)+"</beta>";
+    line += " <gamma>"+StringUtil::ftos(cell_[5],8,3)+"</gamma>\n";
     line += "</cell>\n";
     return line;
   }

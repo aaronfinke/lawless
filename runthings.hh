@@ -19,7 +19,7 @@ namespace scala {
     enum FullsAndPartials {FULLSANDPARTIALS, ONLYFULLS, ONLYPARTIALS, FEWFULLS, FEWPARTIALS};
 
     Run();
-    Run(const int& DatasetIndex, const int& DatasetID);
+    Run(const int& DatasetIndex, const int& DatasetID, const PxdName& Pxdname);
     void clear();
     void clearCounts();  // clear reflection/observation counts
 
@@ -34,6 +34,7 @@ namespace scala {
     std::vector<int> BatchList(const bool& Accepted=false) const;
     int DatasetIndex() const {return dataset_index;}
     int DatasetID() const {return datasetID;} // -1 if unset or multiple xdatasets
+    PxdName PXDname() const {return pxdname;}
     // return minimum & maximum batch number
     std::pair<int,int> BatchRange() const;
     // return first batch number
@@ -124,6 +125,7 @@ namespace scala {
     static const int MaxBatchNumber;
     int dataset_index; // index into dataset list
     int datasetID;     // dataset ID, -1 if multiple xdatasets in run
+    PxdName pxdname;   // pxdname for the Xdataset
     std::vector<std::pair<int, bool> > batch_number_list;
     //    std::vector<bool> batch_accepted; // now second of pair
     int batch_number_offset;

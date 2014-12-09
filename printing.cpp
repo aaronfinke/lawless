@@ -158,32 +158,18 @@ FitBfactorLines::FitBfactorLines(const std::vector<Batch>& batches,
   } // end loop batches
 }
 //--------------------------------------------------------------
-class Xbreaks {
-public:
-  Xbreaks(){}
-  Xbreaks(const PxdName& dataset_pxd,
-          const std::vector<Batch>& batches,
-          const int& datasetIndex);
-
-  std::vector<Range> get_breaks() const {return breaks;}
-  IntRange get_batchnumberrange() const {return validbatchnumbers;}
-
-private:
-  std::vector<Range> breaks;
-  IntRange validbatchnumbers;  // 1st and last actual accepted batch numbers, for x-axis range
-};
-
-Xbreaks::Xbreaks(const PxdName& dataset_pxd,
-                 const std::vector<Batch>& batches,
+Xbreaks::Xbreaks(const std::vector<Batch>& batches,
                  const int& datasetIndex)
 // Find all breaks in batch number list, for X axis in plots
+// datasetIndex < 0 for all datasets
 {
   validbatchnumbers.clear();
   int lastbatchnum = -1;
   int mingap = 2; // don't break with fewer than mingap missing
   for (size_t i=0;i<batches.size();++i) {  // even batches that have no reflections
     // ... but not rejected batches
-    if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) {
+    if (((datasetIndex < 0) || (batches[i].datasetindex() == datasetIndex))
+        && batches[i].Accepted()) {
       if (lastbatchnum >= 0) {
         int gap = batches[i].num() - lastbatchnum;
         if (gap > mingap) { // we have a break
@@ -240,7 +226,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   graph.SetYaxis("", true);  // Y from zero
   // Breaks in X axis
   int xcolbr = 4;  // column for real batch number
-  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  Xbreaks xbreaks(batches, datasetIndex);
   std::vector<Range> xbreaklist = xbreaks.get_breaks();
   graph.SetXbreak(xcolbr, xbreaklist);
 
@@ -384,7 +370,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   graph.SetYaxis("", true);  // Y from zero
   // Breaks in X axis
   int xcolbr = 2;  // column for real batch number
-  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  Xbreaks xbreaks(batches, datasetIndex);
   std::vector<Range> xbreaklist = xbreaks.get_breaks();
   // overall batch number range, for XML plot
   Range xrange(xbreaks.get_batchnumberrange());
@@ -589,7 +575,7 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
   graph.SetRightYaxis("", true,Range(0.0,1.0));
   // Breaks in X axis
   int xcolbr = 2;  // column for real batch number
-  Xbreaks xbreaks(dataset_pxd, batches, datasetIndex);
+  Xbreaks xbreaks(batches, datasetIndex);
   std::vector<Range> xbreaklist = xbreaks.get_breaks();
   graph.SetXbreak(xcolbr, xbreaklist);
   Range xrange(xbreaks.get_batchnumberrange());  // overall batch number range

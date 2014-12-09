@@ -400,7 +400,8 @@ namespace phaser_io {
     //        VARIANCE  w = 1/var(I)  [default]
     //        UNIT      w = 1
     //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
-    //     SAMPLESD use sample SD in final averaging
+    //        SCALE     w = g = 1/scale
+    //        SAMPLESD use sample SD in final averaging
   {
   public:
     SDCORRECTION();
@@ -757,6 +758,23 @@ namespace phaser_io {
   private:
     //  {NONE, DIAGONAL, COVARIANCE};
     scala::ScaleSpecification::ParameterSDusage parametersdusage; 
+
+  };
+  //--------------------------------------------------------------
+  class LINK : public InputBase, virtual public CCP4base
+  {
+    // Syntax: [UN]LINK [SURFACE] [ALL] | <run2> TO <run1>
+  public:
+    LINK();
+    virtual ~LINK() {}
+    Token_value parse(std::istringstream&);
+
+    scala::LinkSpecs getLINKs() const
+    {return linkspecs;}
+    void analyse(){}
+
+  private:
+    scala::LinkSpecs linkspecs; 
 
 };
 } // phaser_io

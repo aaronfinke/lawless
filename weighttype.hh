@@ -10,8 +10,9 @@ namespace scala{
     // Weight type for averaging
     //   UNIT        unit weights
     //   VARIANCE    weight = 1/variance
-    //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
-    enum AverageWeightType {UNIT, VARIANCE, SQRTSCALE};
+    //   SQRTSCALE   weight = sqrt(g)  g = 1/scale
+    //   SCALE       weight = g        g = 1/scale
+    enum AverageWeightType {UNIT, VARIANCE, SQRTSCALE, SCALE};
   };
 }
 

@@ -918,7 +918,7 @@ int main(int argc, char* argv[])
                         "==============================================================\n");
           Result = false;
         } else {
-          applyscales.print(output);
+          applyscales.print(batches, output);
         }
 
         // Print summary as a Results table if one dataset, otherwise just to logfile
@@ -936,7 +936,7 @@ int main(int argc, char* argv[])
     }
 
     if (hkl_list.num_datasets() > 1) { // summary for multiple datasets
-      applyscales.print(output);
+      applyscales.print(batches, output);
       bool Result = true;
       allsummarystatistics.PrintSummaryTable(Result,
                                      controls.anomalouscontrol.Anomalous, output);

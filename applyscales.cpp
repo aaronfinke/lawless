@@ -9,6 +9,7 @@
 #include "applyscales.hh"
 #include "tablegraph.hh"
 #include "string_util.hh"
+#include "printing.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -36,6 +37,7 @@ namespace scala {
 
     int nresbin =  resrange.Nbins();
     meansdk.assign(nresbin, MeanValue());  // Mean sd(1/g)
+    meansdkbatch.assign(hkl_list.num_batches(), MeanValue());  // Mean sd(1/g) by batch
     meanrelsddiff.assign(nresbin, MeanValue());  // Mean sigIcorrected/sigI
     maxrelsddiff = -1000.0;
     maxsdk = -1000.0;
@@ -73,6 +75,9 @@ namespace scala {
               maxsdk = sdk;
               maxsdkobs.init(this_obs, invresolsq);
             }
+            int batchn = this_obs.Batch();  // batch number
+            int jbatch = hkl_list.batch_serial(batchn); // batch serial
+            meansdkbatch[jbatch].Add(sdk);
 
             // relative change of sd(I)
             Rtype relsddiff =std::max(0.0f,(sigI - sigI0/gscale))/sigI;
@@ -86,7 +91,14 @@ namespace scala {
     }
   }
   //----------------------------------------------------------------
-  void ApplyScales::print(phaser_io::Output& output) const
+  void ApplyScales::print(const std::vector<Batch>& batches,
+                          phaser_io::Output& output) const
+  {
+    printResolution(output);
+    //printBatch(batches, output);
+  }
+  //----------------------------------------------------------------
+  void ApplyScales::printResolution(phaser_io::Output& output) const
   {
     if (maxrelsddiff < -999.0) {return;}
     std::string s =
@@ -104,6 +116,8 @@ namespace scala {
     s += FormatOutput::logTabPrintf(1, "%s\n     %s\n",
                                     " for observation:",
                                     maxsdkobs.format().c_str());
+    s += "\nAnalysis by resolution\n\n";
+
     output.logTab(0,LXML,StringUtil::MakeXMLtag
                   ("MaximumRelSDcorrection", maxrelsddiff, 8, 3));
     output.logTab(0,LXML,StringUtil::MakeXMLtag
@@ -158,6 +172,52 @@ namespace scala {
                                     meanrelsddiffall.Mean(),
                                     ntotal);
 
+    output.logTab(0,LOGFILE, s);
+  }
+  //----------------------------------------------------------------
+  void ApplyScales::printBatch(const std::vector<Batch>& batches,
+                               phaser_io::Output& output) const
+  {
+    if (maxrelsddiff < -999.0) {return;}
+    std::string s = "\n\nAnalysis by batch\n\n";
+
+    TableGraph table("Effect of parameter variance on sd(I), by batch");
+    table.StoreID("Graph-ParameterVarianceByBatch");
+
+    TableGraphPlot graph("Mean sd(k)/k and relative Delta(sd(I)) vs. batch");
+
+    // Breaks in X axis
+    int xcolbr = 2;  // column for real batch number
+    Xbreaks xbreaks(batches, -1);
+    std::vector<Range> xbreaklist = xbreaks.get_breaks();
+    // overall batch number range, for XML plot
+    Range xrange(xbreaks.get_batchnumberrange());
+    Range xnrange; // dummy for $TABLE range
+    graph.SetXbreak(xcolbr, xbreaklist, xrange);
+    graph.SetXaxis("", false, xnrange, true);
+    graph.SetYaxis("", true);  // y axis from 0 to maximum
+    graph.AddLine(TableGraphPlotline(1,3));
+    table.AddGraph(graph);
+
+    std::vector<std::string> collabels;
+    collabels.push_back("N");         // 1
+    collabels.push_back("Batch");     // 2
+    collabels.push_back("sd(k)/k");    // 3
+    collabels.push_back("Number");   // 4
+    int nc = collabels.size();
+    bool z[] = {false, false, true, false};
+    std::vector<bool> Zero(z, z+nc);
+    std::string fmt = "%5d %7d %8.4f %8d\n";
+    table.StoreColumnFields(collabels, Zero, fmt);
+
+    int n = 1;
+    int nbatches = batches.size();
+    for (int i=0;i<nbatches;++i) {
+      table.Line(nc, n++, batches[i].num(),
+                 meansdkbatch[i].Mean(), meansdkbatch[i].Count());
+    }
+    s += table.format();
+    output.logTab(0,LXML, table.XMLformat());
     output.logTab(0,LOGFILE, s);
   }
   //----------------------------------------------------------------

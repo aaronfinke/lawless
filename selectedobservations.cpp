@@ -207,6 +207,10 @@ namespace scala
       if (g <= 0.0f) return 0.0f;
       // a strong observation has small scale ie large g and high weight not this      return 1.0f/sqrt(g);
       return sqrt(g);
+    } else if (weighttype == WeightType::SCALE) {
+      if (g <= 0.0f) return 0.0f;
+      // a strong observation has small scale ie large g and high weight
+      return g;
     }
     return 1.0f;
   }
@@ -225,7 +229,8 @@ namespace scala
   // Weight depends on weighttype
   //   UNIT        unit weights
   //   VARIANCE    weight = 1/variance
-  //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
+  //   SQRTSCALE   weight = sqrt(g)  g = 1/scale
+  //   SCALE       weight = g        g = 1/scale
   //  Note that a smaller scale = larger g = larger weight
   {
     //  <I> = Sum(w g I) / Sum (w g^2)
@@ -247,12 +252,6 @@ namespace scala
         Nused++;
         g = this_ref->get_observation(i).Gscale();
         Rtype sd = this_ref->get_observation(i).sigI();
-        //      if (sd <= 0.0) {
-        //        observation obs = this_ref->get_observation(i);
-        //        std::cout <<"SelObsAverage: "<<g<<" "<<sd
-        //                  <<" "<<obs.hkl_original().format()<<" "
-        //                  <<obs.Batch()<<std::endl;
-        //      } //^^-
         ASSERT (sd > 0.0);
         w = Weight(sd, g);   // weight according to weighttype
         wgI[i] = w * g * this_ref->get_observation(i).I();
@@ -696,6 +695,7 @@ namespace scala
     if (weighttype == WeightType::UNIT) {return "unit weights";}
     if (weighttype == WeightType::VARIANCE) {return "variance weights";}
     if (weighttype == WeightType::SQRTSCALE) {return "SquareRoot(scale) weights";}
+    if (weighttype == WeightType::SCALE) {return "scale weights";}
     return "";
   }
   // ------------------------------------------------------------

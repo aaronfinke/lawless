@@ -1048,8 +1048,16 @@ namespace scala {
           //          ("\nWARNING: Datasets with same name have different unit cells, 1st one used"));
           //      }
           break;
+        } else {
+          // Add any matching Xdatasets into current one
+          bool added = datasets[j].AddDataset(otherDatasets[i]);
+          if (added) {
+            DtsIndex[i] = j;  // i'th "Other" dataset has same names as j'th
+            break;
+          }
         }
       }
+      // DtsIndex[i] >= 0 (= j) if the i'th new dataset has been added into the j'th old one
       if (DtsIndex[i] < 0) {
         // New dataset
         Dataset OtherDataset = otherDatasets[i];
@@ -1079,6 +1087,7 @@ namespace scala {
       // Update dataset index
       int otherIndex = OtherBatch.datasetindex(); // old dataset index
       int idts = DtsIndex[otherIndex];  // new index
+      ASSERT (idts >= 0);
       OtherBatch.datasetindex() = idts;  // store new index
       PxdName pxdname = OtherBatch.PXDname();  // name
       int ID = datasets[idts].GetID(pxdname);  // datasetID for this Xdataset
@@ -1432,7 +1441,8 @@ namespace scala {
     for (size_t ib=0;ib<batches.size();ib++) {
       if (ib == 0) {
         // First batch, start run, store dataset index in run
-        ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
+        ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID(),
+                      batch(ib).PXDname());
         // Store run index in dataset
         if (batch(ib).Accepted()) {
           datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
@@ -1502,7 +1512,8 @@ namespace scala {
             runlist.push_back(ThisRun);
           }
           // Start new group, store dataset index
-          ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID());
+          ThisRun = Run(batch(ib).datasetindex(), batch(ib).DatasetID(),
+                        batch(ib).PXDname());
           // Store run index
           if (batch(ib).Accepted()) {
             datasets[batch(ib).datasetindex()].AddRunIndex(batch(ib).PXDname(), runlist.size());
@@ -1640,7 +1651,8 @@ namespace scala {
                 ("hkl_unmerge_list:: batch range not found "+br));
         }
         //      start run, store dataset index in run
-        Run ThisRun = Run(batch(ib0).datasetindex(), batch(ib0).DatasetID());
+        Run ThisRun = Run(batch(ib0).datasetindex(), batch(ib0).DatasetID(),
+                          batch(ib0).PXDname());
         for (size_t i=0;i<batchranges.size();++i) { // loop batch ranges
           int ibs1 = NextBatchSerial(batchranges[i].min(), maxbatchnum);
           if (ibs1 < 0) {

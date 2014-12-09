@@ -1100,6 +1100,7 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   targets.assign(3,0.0);
   sdtargets.assign(3,0.0);
   weighttype = scala::WeightType::VARIANCE;
+  //weighttype = scala::WeightType::SCALE;
   sampleSD = false;
 }
 //--------------------------------------------------------------
@@ -1112,12 +1113,13 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 //     TIE [<parameter> <value> <sd>] | NOTIE
 //  <parameter> is "SdFac" "SdB" or "SdAdd" (case insensitive)
 //     SIMILAR <sd1> <sd2> <sd3>   for SDfac, [SDb,] SDadd
-//     WEIGHT VARIANCE | UNIT | SQRTSCALE  set weighting scheme
+//     WEIGHT VARIANCE | UNIT | SQRTSCALE | SCALE | SAMPLESD  set weighting scheme
 //        for averaging Ih in calculating deviations
 //        VARIANCE  w = 1/var(I)  [default]
 //        UNIT      w = 1
+//        SCALE     w = g = 1/scale
 //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
-//     SAMPLESD use sample SD in final averaging
+//        SAMPLESD use sample SD in final averaging
 {
   int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
                            // = -1 maybe expecting number
@@ -1222,6 +1224,8 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         weighttype = scala::WeightType::UNIT;
       } else if (keyIs("SQRTSCALE")) {
         weighttype = scala::WeightType::SQRTSCALE;
+      } else if (keyIs("SCALE")) {
+        weighttype = scala::WeightType::SCALE;
       } else if (keyIs("SAMPLESD")) {
         sampleSD = true;
       } else {
@@ -1886,6 +1890,85 @@ Token_value USESDPARAMETER::parse(std::istringstream& input_stream)
   }
   if (nokey) { // default
     parametersdusage = scala::ScaleSpecification::DIAGONAL;
+  }
+
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+LINK::LINK() : CCP4base(), InputBase()
+{
+  Add_Key("LINK");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+  Add_Key("UNLINK");
+  //Add to CCP4base;
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value LINK::parse(std::istringstream& input_stream)
+// Syntax: [UN]LINK [SURFACE] [ALL] | <run2> TO <run1>
+{
+  std::string command = stoup(string_value);
+  bool link;
+  if (command == "LINK") {
+    link = true;
+  } else if (command == "UNLINK") {
+    link = false;
+  }
+  bool surface = true;  // for now always surface
+  bool all = false;
+
+  int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
+                           // = -1 maybe expecting number
+
+  std::vector<int> runs;
+
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("SURFACE")) {
+        surface = true;
+      } else if (keyIs("ALL")) {
+        all = true;
+        expectingNumber = 0;
+      } else if (keyIs("TO")) {
+        all = false;
+      }
+    } else if (tokenIs(1,NUMBER)) {
+      runs.push_back(Nint(number_value));
+    }
+  }
+
+  // if no runs specified assume ALL
+  if (runs.size() == 0) {
+    all = true;
+  } else {
+    if (runs.size() != 2) {
+      ReportSyntaxError(keywords, "should be LINK <run2> TO <run1>");
+    }
+  }
+
+  if (all) {
+    // link or unlink all
+    if (link) {
+      linkspecs.setLinkAll();
+    } else {
+      linkspecs.setUnlinkAll();
+    }
+  } else {
+    std::pair<int, int> runs2(runs.at(0), runs.at(1));
+    if (link) {
+      if (linkspecs.linkAll()) {
+        ReportSyntaxError(keywords, "can't add explicit LINKs to 'LINK ALL'");
+      }
+      linkspecs.addLink(runs2);
+    } else {
+      if (linkspecs.unlinkAll()) {
+        ReportSyntaxError(keywords, "can't add explicit UNLINKs to 'UNLINK ALL'");
+      }
+      // may have LINK ALL (linkall true)
+      linkspecs.addUnlink(runs2);
+    }
   }
 
   return ENDLINE;

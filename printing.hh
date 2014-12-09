@@ -51,6 +51,21 @@ private:
   std::vector<float> scales;        // for each run
 };
 //--------------------------------------------------------------
+class Xbreaks {
+public:
+  Xbreaks(){}
+  Xbreaks(const std::vector<Batch>& batches,
+          const int& datasetIndex);
+  // datasetIndex = -1 for all datasets
+
+  std::vector<Range> get_breaks() const {return breaks;}
+  IntRange get_batchnumberrange() const {return validbatchnumbers;}
+
+private:
+  std::vector<Range> breaks;
+  IntRange validbatchnumbers;  // 1st and last actual accepted batch numbers, for x-axis range
+};
+//--------------------------------------------------------------
 void PrintScalesByBatch(const PxdName& dataset_pxd,
 			const std::vector<Batch>& batches, const std::vector<Run>& RunList,
 			const int& datasetIndex,

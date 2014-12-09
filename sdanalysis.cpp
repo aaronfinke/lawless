@@ -134,6 +134,7 @@ namespace scala
   void SDanalysis::init(const IntensityBin& Irange, const SDmodel& SDM,
                         const bool& Allsamerun, const bool& Derivatives)
   {
+    dumpfile = NULL;
     irange = Irange;
     numintensitybins = Irange.NumberBins();
     numruns = SDM.Nruns();
@@ -329,9 +330,31 @@ namespace scala
           //                  <<" "<<selobs.Reflection().get_observation(i).sigI()
           //                  <<"\n";
           //      } //^-
+          //^ dumping
+          if (dumpfile != NULL) {
+            observation obs = selobs.Reflection().get_observation(i);
+            Rtype s2 = selobs.Reflection().invresolsq();
+            fprintf(dumpfile,
+                 "%5d%5d%5d%6d%8.4f%8.0f%8.0f%8.4f%8.0f%8.0f%3d%9.3f%9.3f\n",
+                    obs.hkl_original().h(),
+                    obs.hkl_original().k(),
+                    obs.hkl_original().l(),
+                    obs.Batch(), s2,
+                    obs.kI(), obs.ksigI(), obs.Gscale(),
+                    selobs.Average().I(), selobs.Average().sigI(),
+                    mint, delta2[i], selobs.Deviations()[i]);
+          }
         }
       }
     }
+  }
+  // ------------------------------------------------------------
+  //^ dumping for analysis
+  void SDanalysis::SetDump(const std::string& dumpfilename)
+  {
+    dumpfile = OpenFile(dumpfilename, true);
+    fprintf(dumpfile,
+            " h    k    l batch   s          I     sigI  gscale    avI   sigavI mi    del2     del1\n");
   }
   // ------------------------------------------------------------
   void SDanalysis::AddDerivatives(SelectedObservations& selobs,

@@ -9,6 +9,7 @@
 #include "score_datatypes.hh"
 #include "intensitybin.hh"
 #include "selectedobservations.hh"
+#include "file_util.hh" //^^ dumping option
 
 namespace scala
 {
@@ -62,7 +63,7 @@ namespace scala
   // ------------------------------------------------------------
   class SDanalysis {
   public:
-    SDanalysis() : numintensitybins(0) {}
+    SDanalysis() : numintensitybins(0), dumpfile(NULL) {}
     // Construct and clear
     // Derivatives = false, no derivative components accumulated
     SDanalysis(const IntensityBin& Irange, const SDmodel& SDM,
@@ -74,6 +75,9 @@ namespace scala
     // also full/partial
     // just clear
     void clear();
+
+    //^ dumping for analysis
+    void SetDump(const std::string& dumpfilename);
 
     //! returns true if object is empty
     bool Empty() const; 
@@ -213,6 +217,8 @@ namespace scala
     int ParameterGroup(const int& irun, const bool& full) const;
 
     float deltalimit;  // maximum allowed delta, just to eliminate idiocies
+
+    FILE* dumpfile; 
 
   };
   // ------------------------------------------------------------

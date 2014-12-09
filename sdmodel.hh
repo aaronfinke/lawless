@@ -27,7 +27,7 @@ namespace scala
   class SDmodel
   // A set of SDcorrections for each run, and for partials & fulls separately
   // Optionally, the same values may be used for all runs, but separate
-  // vlues are still stored for each run.
+  // values are still stored for each run.
   // Also, for runs with few or no fulls or partials, values for the other
   // full/partial class may be used
   {
@@ -72,6 +72,9 @@ namespace scala
     //! format tie information
     std::string formatTie() const;
 
+    //! true if there are active ties
+    bool restrained() const;
+
     //! Set similarity targets from current parameters (initialising)
     void SetTargetsFromAverageParameters();
 
@@ -103,6 +106,13 @@ namespace scala
     //! Return SDcorrection for partials for given run
     SDcorrection SDCpartial(const int& RunIndex) const
     {return sdc_partial_run.at(RunIndex);}
+
+    //! Set SDcorrection for fulls for given run
+    void setSDCfull(const int& RunIndex, const SDcorrection& sdc)
+    {sdc_full_run.at(RunIndex) = sdc;}
+    //! Set SDcorrection for partials for given run
+    void setSDCpartial(const int& RunIndex, const SDcorrection& sdc)
+    {sdc_partial_run.at(RunIndex) = sdc;}
 
     int NparamsFull(const int& RunIndex) const //!< Number of parameters for fulls
     {return sdc_full_run.at(RunIndex).Nparams();}
@@ -152,6 +162,9 @@ namespace scala
     //! Set SqrtScale weights
     void SetSqrtScaleWeights() {SetWeight(WeightType::SQRTSCALE);}
 
+    //! Set Scale weights
+    void SetScaleWeights() {SetWeight(WeightType::SCALE);}
+
     //! Set unitweights
     void SetUnitWeights() {SetWeight(WeightType::UNIT);}
 
@@ -168,7 +181,7 @@ namespace scala
     //! Set all parameters from vector
     void SetParameters(const std::vector<double>& params);
 
-    //! Set all parameters from vector, parameterupdated true if this paramter has been updated
+    //! Set all parameters from vector, parameterupdated true if this parameter has been updated
     void SetParameters(const std::vector<double>& params,
 		       const std::vector<bool>& parameterupdated);
 

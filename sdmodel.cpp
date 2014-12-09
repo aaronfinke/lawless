@@ -247,11 +247,9 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     }
   }
   //-------------------------------------------------------------
-  //! format tie information
-  std::string SDmodel::formatTie() const
+  //! true if there are active ties
+  bool SDmodel::restrained() const
   {
-    // NB all the same
-    std::string s;
     bool restraints = false;  // true if we have some restraints
     if (ties.tietype != 0) {  // ties.tietype = 0 for no restraints
       // If we are not refining SdB and the only restraint is on SdB, then no restraints
@@ -267,6 +265,15 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         }
       }
     }
+    return restraints;
+  }
+  //-------------------------------------------------------------
+  //! format tie information
+  std::string SDmodel::formatTie() const
+  {
+    // NB all the same
+    std::string s;
+    bool restraints = restrained();  // true if we have some restraints
 
     if (ties.tietype == +2) {
       s = "SD parameters tied to average across all runs";

@@ -38,6 +38,27 @@ namespace scala {
     return added;
   }
   //--------------------------------------------------------------
+  //! Add in all new xdatasets if only the dataset name is the same,
+  //!  return true if added
+  bool Dataset::AddDataset(const Dataset& other)
+  {
+    bool added = false;
+    if (*this == other) {
+      // don't do anything if they are identical, do it elsewhere
+      return added;
+    }
+    if (Dname() == other.Dname()) {
+      // same dataset, Project or Crystal different
+      // add all Xdatasets from other
+      for (size_t i=0;i<other.xdatasets.size();++i) {
+        xdatasets.push_back(other.xdatasets[i]);
+        added = true;
+      }
+    }
+    check(); // belt, braces and piece of string
+    return added;
+  }
+  //--------------------------------------------------------------
   //! Add batch number to list for this dataset ID
   void Dataset::add_batch(const int& setid, const int& batch_num)
   {
