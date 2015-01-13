@@ -70,14 +70,13 @@ void hash_table::add(const int& Nstore, const int& Nfind)
 
   int n = Nstore;
   int index;
-  while (true)
-    {
-      index = n % table_size;
-      if ((n-Nstore) >= 3*table_size)
-        {Message::message(Message_fatal( "hash_table::setup - overflowed hash table"));}
-      if (Nstore_list[index] < 0) break;
-      n += 3;
-    }
+  while (true)  {
+    index = n % table_size;
+    if ((n-Nstore) >= 3*table_size)
+      {Message::message(Message_fatal( "hash_table::setup - overflowed hash table"));}
+    if (Nstore_list[index] < 0) break;
+    n += 3;
+  }
   Nstore_list[index] = Nstore;
   Nfind_list[index] = Nfind;
   return;
@@ -91,13 +90,12 @@ int hash_table::lookup(const int& Nstore) const
   int index;
   int count = 0;
 
-  while (count++ < table_size)
-    {
-      index = n % table_size;
-      if (Nstore == Nstore_list[index])
-        return Nfind_list[index];
-      n += 3;
-    }
+  while (count++ < table_size) {
+    index = n % table_size;
+    if (Nstore == Nstore_list[index])
+      return Nfind_list[index];
+    n += 3;
+  }
   return -1;
 }
 //--------------------------------------------------------------
@@ -106,7 +104,7 @@ int hash_table::lookup(const int& Nstore) const
 int hash_table::number(const int& index) const
 {
   if (index < 0 || index > table_size) {return -1;}
-  for (int i=1;i<table_size;i++) {
+  for (int i=0;i<table_size;i++) {
     if (index == Nfind_list[i])
         return Nstore_list[i];
   }
