@@ -38,6 +38,8 @@ namespace scala {
     // all batch numbers including rejected ones
     std::vector<int> batchnumberlist = thisrun.BatchList(false);
     int nbatches = batchnumberlist.back() - batchnumberlist[0];
+    if (nbatches <= 0) return;  // nothing to do
+
     batch0 = batchnumberlist[0];   // 1st batch
 
     // Make lookup table (hash table)

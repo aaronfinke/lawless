@@ -84,7 +84,7 @@ INCLUDE=-I. ${ILIB} ${ITBX} ${ICLPR} ${ICCP4} ${ITNT}
 # Libraries
 LMIN=${MINLIB}/libbfgs.a
 
-LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4f -lccp4c -lmmdb -lm
+LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4f -lccp4c -lmmdb2 -lm
 
 LCLPR=-L${CLIB} -lclipper-ccp4 -lclipper-contrib -lclipper-minimol -lclipper-mmdb -lclipper-core 
 

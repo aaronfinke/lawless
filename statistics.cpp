@@ -1044,7 +1044,8 @@ namespace scala {
 
     // Radiation damage analysis
     //  only if one run, and not Batch scaling
-    if (runlist.size() == 1 && !AllScales.isAllBatch()) {
+    if (runlist.size() == 1 && !AllScales.isAllBatch()
+        && nbatches > 1) {
       RadiationDamageAnalysis radiationdamageanalysis(hkl_list, 0, -1);
       radiationdamageanalysis.plot(batchcompleteness, output);
     }
