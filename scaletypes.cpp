@@ -1034,27 +1034,29 @@ namespace scala {
     std::string dump = "RelativeBfactor V2 {\n";
     dump += "NbfacIntervals "+itos(nbfacintervals)+"\n";
     dump += "Nbfac "+itos(nbfac)+"\n";
-    dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
-    if (batchbfac) {
-      dump += "Batch\n";
-      dump += batch_lookup.FormatSave();
-      if (allbatches) {
-        ASSERT (int(bfactors.size()) == nbfac);
-        dump += "Allbatches\n";
-        dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
-      } else {
-        dump += "Somebatches\n";
-        dump += "Nbatches "+itos(batchbfacindex.size())+"\n";
-        dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
-        dump += "Batchbfacindex\n"+StringUtil::FormatSaveVector(batchbfacindex);
-        dump += "Nbfacindex "+itos(bfacbatchindex.size())+"\n";
-        dump += "Bfacbatchindex\n"+StringUtil::FormatSaveVector(bfacbatchindex);
+    if (nbfac > 0) {
+      dump += "NobsPar\n"+StringUtil::FormatSaveVector(nobsPar);
+      if (batchbfac) {
+        dump += "Batch\n";
+        dump += batch_lookup.FormatSave();
+        if (allbatches) {
+          ASSERT (int(bfactors.size()) == nbfac);
+          dump += "Allbatches\n";
+          dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+        } else {
+          dump += "Somebatches\n";
+          dump += "Nbatches "+itos(batchbfacindex.size())+"\n";
+          dump += "Bfactors\n"+StringUtil::FormatSaveVector(bfactors);
+          dump += "Batchbfacindex\n"+StringUtil::FormatSaveVector(batchbfacindex);
+          dump += "Nbfacindex "+itos(bfacbatchindex.size())+"\n";
+          dump += "Bfacbatchindex\n"+StringUtil::FormatSaveVector(bfacbatchindex);
+        }
+      } else { // smooth
+        dump += "Smooth\n";
+        dump += "Bfacspacing "+ clipper::String(bfacspacing)+"\n";;
+        dump += "Time0 "+clipper::String(time0)+"\n";
+        dump += "Bfactors\n"+smoothB.FormatSave();
       }
-    } else { // smooth
-      dump += "Smooth\n";
-      dump += "Bfacspacing "+ clipper::String(bfacspacing)+"\n";;
-      dump += "Time0 "+clipper::String(time0)+"\n";
-      dump += "Bfactors\n"+smoothB.FormatSave();
     }
     return dump+"}\n";
   }
@@ -1072,39 +1074,41 @@ namespace scala {
     FR.Skip();
     FR.ReadTag("NbfacIntervals"); nbfacintervals = FR.Int();
     FR.ReadTag("Nbfac"); nbfac = FR.Int();
-    FR.ReadTag("NobsPar"); nobsPar = FR.IntVec(nbfac);
-    std::string tag = FR.GetTag();
-    if (tag == "Batch") {
-      batchbfac = true;
-      batch_lookup.Restore(FR);
-      if (versionnumber >= 2) {
-        std::string tag = FR.GetTag();
-        if (tag == "Allbatches") {
-          allbatches = true;
-          FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
-        } else if (tag == "Somebatches") {
-          FR.ReadTag("Nbatches"); int nbatches = FR.Int();
-          FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
-          FR.ReadTag("Batchbfacindex"); batchbfacindex = FR.IntVec(nbfac);
-          FR.ReadTag("Nbfacindex"); int nbfacindex = FR.Int();
-          FR.ReadTag("Bfacbatchindex"); bfacbatchindex = FR.IntVec(nbfacindex);
+    if (nbfac > 0) {
+      FR.ReadTag("NobsPar"); nobsPar = FR.IntVec(nbfac);
+      std::string tag = FR.GetTag();
+      if (tag == "Batch") {
+        batchbfac = true;
+        batch_lookup.Restore(FR);
+        if (versionnumber >= 2) {
+          std::string tag = FR.GetTag();
+          if (tag == "Allbatches") {
+            allbatches = true;
+            FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+          } else if (tag == "Somebatches") {
+            FR.ReadTag("Nbatches"); int nbatches = FR.Int();
+            FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+            FR.ReadTag("Batchbfacindex"); batchbfacindex = FR.IntVec(nbfac);
+            FR.ReadTag("Nbfacindex"); int nbfacindex = FR.Int();
+            FR.ReadTag("Bfacbatchindex"); bfacbatchindex = FR.IntVec(nbfacindex);
+          } else {
+            Message::message(Message_fatal
+                             ("RelativeBfactor::Restore unrecognised tag "+tag+
+                              " in "+FR.Filename()));
+          }
         } else {
-          Message::message(Message_fatal
-                           ("RelativeBfactor::Restore unrecognised tag "+tag+
-                            " in "+FR.Filename()));
+          FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
         }
+      } else if (tag == "Smooth") { // smooth
+        batchbfac = false;
+        FR.ReadTag("Bfacspacing"); bfacspacing = FR.Double();
+        FR.ReadTag("Time0"); time0 = FR.Double();
+        FR.ReadTag("Bfactors"); smoothB.Restore(FR);
       } else {
-        FR.ReadTag("Bfactors"); bfactors = FR.DoubleVec(nbfac);
+        clipper::Message::message(Message_fatal
+                                  ("RelativeBfactor::Restore unrecognised tag "+tag+
+                                   " in "+FR.Filename()));
       }
-    } else if (tag == "Smooth") { // smooth
-      batchbfac = false;
-      FR.ReadTag("Bfacspacing"); bfacspacing = FR.Double();
-      FR.ReadTag("Time0"); time0 = FR.Double();
-      FR.ReadTag("Bfactors"); smoothB.Restore(FR);
-    } else {
-     clipper::Message::message(Message_fatal
-        ("RelativeBfactor::Restore unrecognised tag "+tag+
-         " in "+FR.Filename()));
     }
     if (!FR.CheckEnd()) {
       clipper::Message::message(Message_warn
