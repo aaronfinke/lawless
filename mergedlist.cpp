@@ -302,11 +302,11 @@ namespace scala {
           float sigIp = 0.0;
           float Im = 0.0;
           float sigIm = 0.0;
-          if (stat == 0 || stat == +1) {
+          if (stat == 0 || stat == +2) { // Ip present
             Ip = scale * datasetdata[idx].Ipm[ih].I_pl();
             sigIp = scale * datasetdata[idx].Ipm[ih].sigI_pl();
           }
-          if (stat == 0 || stat == +2) {
+          if (stat == 0 || stat == +1) { // Im present
             Im = scale * datasetdata[idx].Ipm[ih].I_mi();
             sigIm = scale * datasetdata[idx].Ipm[ih].sigI_mi();
           }
