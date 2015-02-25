@@ -241,7 +241,8 @@ namespace scala {
   }
   // ---------------------------------------------------------
   int MergedList::WriteDatasetToSCA(const std::string& outfilename,
-                                    const int& datasetIndex) const
+                                    const int& datasetIndex,
+                                    phaser_io::Output& output) const
   // Write data for datasetIndex to SCA file
   // Return number of reflections written
   {
@@ -259,12 +260,24 @@ namespace scala {
 
     fprintf(scafile, "    1\n -987\n");
 
-    float scale = 999900.0;  // keep scaled intensity in format %8.1f
-    if (maxintensity > scale) {
-      scale = scale/maxintensity;
-    } else {
-      scale = 1.0;
+    // Scale to prevent overflow of format (1x,f7.1) and keep a reasonable number of significant figures
+    //  ie rescale if too large or too small - maximum value should be in range MINMAXVALUE to MAXVALUE
+    const float MAXVALUE = 99990.0;
+    const float MINMAXVALUE = 1000.0;
+    float scale = 1.0;
+    if (maxintensity > MAXVALUE) {
+      scale = MAXVALUE/maxintensity;
+      output.logTabPrintf(0, LOGFILE,
+      "\nMerged Scalepack format data scaled by %8.4f to keep within format\n",
+                        scale);
+    } else if (maxintensity < MINMAXVALUE) {
+      scale = MINMAXVALUE/maxintensity;
+      output.logTabPrintf(0, LOGFILE,
+      "\nMerged Scalepack format data scaled by %8.4f to avoid small numbers\n",
+                        scale);
     }
+    output.logTabPrintf(0, LOGFILE,
+        "\nMaximum scaled intensity = %8.1f\n", scale*maxintensity);
 
     // cell
     // Impose lattice symmetry constraints on cell

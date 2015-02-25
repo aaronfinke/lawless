@@ -1047,7 +1047,8 @@ namespace scala {
     if (runlist.size() == 1 && !AllScales.isAllBatch()
         && nbatches > 1) {
       RadiationDamageAnalysis radiationdamageanalysis(hkl_list, 0, -1);
-      radiationdamageanalysis.plot(batchcompleteness, output);
+      int maxbatchserial = runlist[0].BatchList(true).size() - 1; // number of accepted batches - 1
+      radiationdamageanalysis.plot(batchcompleteness, maxbatchserial, output);
     }
 
     // Other things for summary

@@ -92,7 +92,7 @@ namespace scala {
                       " to file "+filename+"\n");
         MtzIO::WriteUnmerged unmergedoutput;
         int nref =
-          unmergedoutput.writeUnmergedSCA(hkl_list, SDM, idts, filename, Imax);
+          unmergedoutput.writeUnmergedSCA(hkl_list, SDM, idts, filename, Imax, output);
         output.logTabPrintf(0, LOGFILE,
                             "\nNumber of observations written = %8d\n", nref);
         output.logTabPrintf(0, LOGFILE,
@@ -145,7 +145,7 @@ namespace scala {
       if (outputformat == +1) {
         nref = mergedlist.WriteDatasetToMTZ(filename, idts);
       } else if (outputformat == +2) {
-        nref = mergedlist.WriteDatasetToSCA(filename, idts);
+        nref = mergedlist.WriteDatasetToSCA(filename, idts, output);
       }
 
       float rmax = mergedlist.InvResMax(idts);

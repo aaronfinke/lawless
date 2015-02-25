@@ -21,14 +21,13 @@ namespace scala {
 	      const int& jrun, const int& nbatchgroup=1);
 
     void plot(const std::vector<float>& batchcompleteness,
+	      const int& maxbatchserial,  // maximum batch serial number
 	      phaser_io::Output& output) const;
 
   private:
     int irun;    // run serial number
     int runnum;  // run number
     int batchgroup; // number of batches in group (usually 1)
-
-    hash_table batch_lookup;  // batch lookup for index into run
 
     double phibinsize;  // bin size in degrees
     int batch0;     // 1st batch number

@@ -282,11 +282,13 @@ namespace MtzIO
     return nref;
   }
   //--------------------------------------------------------------
-  int WriteUnmerged::writeUnmergedSCA(const scala::hkl_unmerge_list& hkl_list,
-                                      const SDmodel& SDM,
-                                      const int& datasetIndex,
-                                      const std::string& filename_out,
-                                      const float& maxintensity)
+  int WriteUnmerged::writeUnmergedSCA
+  (const scala::hkl_unmerge_list& hkl_list,
+   const SDmodel& SDM,
+   const int& datasetIndex,
+   const std::string& filename_out,
+   const float& maxintensity,
+   phaser_io::Output& output)
   // Write unmerged scalepack file from hkl_unmerge_list object
   // returns number written
   // Skip multiples
@@ -325,12 +327,31 @@ namespace MtzIO
       fprintf(scafile, "\n");
     }
 
-    float scale = 999900.0;  // keep scaled intensity in format %8.1f
-    if (maxintensity > scale) {
-      scale = scale/maxintensity;
-    } else {
-      scale = 1.0;
+    // Scale to prevent overflow of format (1x,f7.1) and keep a reasonable number of significant figures
+    //  ie rescale if too large or too small - maximum value should be in range MINMAXVALUE to MAXVALUE
+    const float MAXVALUE = 99990.0;
+    const float MINMAXVALUE = 1000.0;
+    float scale = 1.0;
+    if (maxintensity > MAXVALUE) {
+      scale = MAXVALUE/maxintensity;
+      output.logTabPrintf(0, LOGFILE,
+      "\nUnmerged Scalepack format data scaled by %8.4f to keep within format\n",
+                        scale);
+    } else if (maxintensity < MINMAXVALUE) {
+      scale = MINMAXVALUE/maxintensity;
+      output.logTabPrintf(0, LOGFILE,
+      "\nUnmerged Scalepack format data scaled by %8.4f to avoid small numbers\n",
+                        scale);
     }
+    output.logTabPrintf(0, LOGFILE,
+        "\nMaximum scaled intensity = %8.1f\n", scale*maxintensity);
+
+    // Previous version (before v 0.5.5)
+    //    if (maxintensity > scale) {
+    //      scale = scale/maxintensity;
+    //    } else {
+    //      scale = 1.0;
+    //    }
 
     while (hkl_list.next_reflection(this_refl) >= 0)  { // loop reflections
       SDM.CorrectReflection(this_refl);

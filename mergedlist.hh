@@ -55,7 +55,8 @@ namespace scala {
     int WriteDatasetToMTZ(const std::string& outfilename,
 			  const int& datasetIndex) const;
     int WriteDatasetToSCA(const std::string& outfilename,
-			  const int& datasetIndex) const;
+			  const int& datasetIndex,
+			  phaser_io::Output& output) const;
 
     int NumberDatasets() const {return ndatasets;}
 

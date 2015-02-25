@@ -38,7 +38,8 @@ namespace MtzIO
 			 const scala::SDmodel& SDM,
 			 const int& datasetIndex,
 			 const std::string& filename_out,
-			 const float& maxintensity);
+			 const float& maxintensity,
+			 phaser_io::Output& output);
 
     //--------------------------------------------------------------
     int Nreflections() const {return nref;} // number written

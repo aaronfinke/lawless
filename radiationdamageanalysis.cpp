@@ -42,13 +42,6 @@ namespace scala {
 
     batch0 = batchnumberlist[0];   // 1st batch
 
-    // Make lookup table (hash table)
-    // Setup up hash lookup table a bit larger than required
-    batch_lookup.set_size( int(1.2 * nbatches));
-    for (int i = 0; i < nbatches; i++)  {
-      batch_lookup.add(batchnumberlist[i], i);
-    }
-
     phibinsize = 1.0; // 1 degree bins
     batchgroup = nbatchgroup;
     // reset batchgroup to something sensible (~1 degree) if not set
@@ -127,6 +120,7 @@ namespace scala {
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::plot
   (const std::vector<float>& batchcompleteness,
+   const int& maxbatchserial,  // maximum batch serial number
    phaser_io::Output& output) const
   {
     std::string s =
@@ -206,6 +200,7 @@ namespace scala {
     for (int bintime=0;bintime<ntimebin;++bintime) { // loop time|dose bins
       // batch serial number in run, for completeness
       int jbatch = bintime * batchgroup;
+      if (jbatch > maxbatchserial) {break;}
       vals.clear();
       Rfactor rall;  // all resolution bins
       for (int rbin=0;rbin<nresbin;++rbin) { // for each resolution bin
@@ -217,12 +212,10 @@ namespace scala {
       int batch = bintime*batchgroup + batch0;
 
       table.Line(vals, nc0, n, batch, batchcompleteness[jbatch]);
-
       n++;
     }
     table.CloseTable();
     output.logTab(0,LOGFILE, "\n"+table.format());
     output.logTab(0,LXML,table.XMLformat());
-
   }
 } // namespace scala
