@@ -328,6 +328,7 @@ namespace scala {
   {
     // sec_scale_index_run will contain the scale index for each run
     if (!linkspecs.isSet()) {return;}  // no links, nothing to do
+    if (nsecscales <= 0) {return;}
 
     ASSERT (sec_scale_index_run.size() == runlist.size());
     int numruns = runlist.size();
@@ -1154,7 +1155,7 @@ namespace scala {
     for (int i=0;i<nsecscales;++i) {
       std::vector<double> secsclpar = secondary_scales[i].Coefficients();
       params.insert(params.end(), secsclpar.begin(), secsclpar.end());
-      //      std::cout <<  secondary_scales[i].Number() << " " << params.size() << "\n";
+      //std::cout <<  secondary_scales[i].Number() << " " << params.size() << "\n"; //^^
     }
     ASSERT (int(params.size()) == nprimaryscale+nbfactors+nsecondaryscale);
     // Detector
