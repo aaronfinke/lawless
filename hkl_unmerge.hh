@@ -997,6 +997,10 @@ namespace scala {
     // update maxhkloverlappart and latticenumberrange
     void UpdateLatticeNumberRanges(const std::vector<LatticeIndexInfo>& lathkl);
 
+    // Update dataset and run resolution ranges
+    void updateResolutionranges(const std::vector<Range>& invresrangebydataset,
+				const std::vector<Range>& invresrangebyrun);
+
     struct ComparePartOrder
     // This construct seems to be a way of getting pointer-to-function
     // into the argument for sort. Copied from the Web.

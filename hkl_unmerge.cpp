@@ -2263,23 +2263,7 @@ namespace scala {
       if (meanI.Count() > 0) SelectI::SetAverageIntensity(meanI.Mean());
     }
     status = PREPARED;
-
-    ResoRange overallrange = ResoLimRange;
-    for (int id=0;id<ndatasets;++id) {
-      if (datasets[id].accepted()) {
-        // Resolution range for each dataset
-        datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
-        // Overall
-        overallrange = overallrange.MaxRange(datasets[id].ResRange());
-      }
-    }
-    for (size_t irun=0;irun<runlist.size();++irun) {
-      if (!runlist[irun].IsResoRange()) {
-        runlist[irun].StoreResoRange(invresrangebyrun[irun]);
-      }
-    }
-    overallrange.ExtendRange();  // add a little tolerance
-    ResoLimRange = overallrange;
+    updateResolutionranges(invresrangebydataset, invresrangebyrun);
 
     ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
@@ -2402,11 +2386,36 @@ namespace scala {
     }
 
     status = PREPARED;
+    updateResolutionranges(invresrangebydataset, invresrangebyrun);
 
+    ImposeResoByRunLimits();  // mark observations if outside run limits
+    return Nobservations;
+  } // end ::nopartials
+  //--------------------------------------------------------------
+  void hkl_unmerge_list::updateResolutionranges
+  (const std::vector<Range>& invresrangebydataset,
+   const std::vector<Range>& invresrangebyrun)
+  // Update dataset and run resolution ranges
+  {
     ResoRange overallrange = ResoLimRange;
-    for (int id=0;id<ndatasets;++id) {
-      // Resolution range for each dataset
-      datasets[id].SetResRange(ResoRange(invresrangebydataset[id]));
+    for (int id=0;id<ndatasets;++id) { // Resolution range for each dataset
+      ResoRange dtsresrange(invresrangebydataset[id]);
+      // check all runs for this dataset
+      std::vector<int> runindexlist = datasets[id].RunIndexList();
+      ResoRange maxrunresorange = runlist.at(0).GetResoRange();
+      bool runlimits = false;
+      for (size_t irun=0; irun<runindexlist.size(); irun++) {
+        if (runlist[irun].IsResoRange()) {
+          // defined resolution cutoff for this run
+          maxrunresorange =
+            maxrunresorange.MaxRange(runlist[irun].GetResoRange());
+          runlimits = true;
+        }
+      }
+      if (runlimits) {
+        dtsresrange = maxrunresorange; // reset dataset range
+      }
+      datasets[id].SetResRange(dtsresrange);
       // Overall
       overallrange = overallrange.MaxRange(datasets[id].ResRange());
     }
@@ -2417,10 +2426,7 @@ namespace scala {
     }
     overallrange.ExtendRange();  // add a little tolerance
     ResoLimRange = overallrange;
-
-    ImposeResoByRunLimits();  // mark observations if outside run limits
-    return Nobservations;
-  } // end ::nopartials
+  }
   //--------------------------------------------------------------
   void hkl_unmerge_list::UpdateLatticeNumberRanges(const std::vector<LatticeIndexInfo>& lathkl)
   // update maxhkloverlappart and latticenumberrange
