@@ -318,8 +318,8 @@ namespace scala
           //                <<" run "<<selobs.Run(i) <<" full "<<selobs.Full(i)
           //                <<" "<<selobs.Reflection().get_observation(i).I()
           //                <<" "<<selobs.Reflection().get_observation(i).sigI()
+          //                <<" avI "<<selobs.Average().I()
           //                <<" "<<i<<std::endl;
-          //      }
           AddDelta(delta2[i],
                    mint, selobs.Run(i), selobs.Full(i));
           //^

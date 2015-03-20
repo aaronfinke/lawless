@@ -333,25 +333,77 @@ private:
   int basedataset;
 };
 //=================================================================
-class PolarisationControl {
-  //! data for update of polarisation correction, for XDS/INTEGRATE files
+class PolarizationControl {
+  //! data for update of polarization correction, for XDS/INTEGRATE files
+  //
+  // see Kahn et al (1982) J Appl Cryst 15, 330-337
+  // Since this is used for XDS data, the internal conventions here are
+  // as in XDS, except for E'pi (eprimepi)
+
 public:
-  PolarisationControl() : set(false), polarisationfactor(0.0) {}
-
-  void SetFactor(const double& Polarisationfactor) {
-    polarisationfactor = Polarisationfactor;
-    set = true;
-
+  PolarizationControl() : setfraction(false), setnormal(false),
+			  polarizationfraction(-1.0) {}
+  void setFraction(const double& Polarizationfraction)
+  // Polarizationfactor = 0.5 for unpolarised, eg in-house source,
+  //    ~+0.99 for a synchrotron
+  //  Note that this is the definition as in XDS
+  {
+    polarizationfraction = Polarizationfraction;
+    setfraction = true;
   }
-  double Factor() const {return polarisationfactor;}
-  bool IsSet() const {return set;}
+
+  void setDirection(const clipper::Vec3<double>& PN)
+  // PN = polarization normal ie perpendicular to synchrotron plane (as in XDS)
+  {
+    Pn = PN;
+    setnormal = true;
+  }
+
+  double Factor() const {
+    if (setfraction) {
+      if (polarizationfraction == 0.0) { // explicitly turned off
+	return polarizationfraction;
+      }
+      return 2.0*(polarizationfraction - 0.5);
+    } else {
+      // not set, return default
+      return Default();
+    }
+  }
+
+  double Fraction() const {
+    return polarizationfraction;
+  }
+
+  clipper::Vec3<double> Normal() const {return Pn;}
+
+  // component of electric vector in synchrotron plane, = Pn x s0, unit vector
+  //   Cambridge frame
+  void setEprimePi(const clipper::Vec3<double>& Eprimepi) {
+    eprimepi = Eprimepi;}
+
+  //   Cambridge frame
+  clipper::Vec3<double> EprimePi() const {
+    return eprimepi;
+  }
+
+  bool IsFractionSet() const {return setfraction;}
+  bool IsNormalSet() const {return setnormal;}
 
   // Default value for synchrotron
-  static double Default() {return +0.98;}
+  static double Default() {return +0.99;}
 
 private:
-  bool set;                  // true if the value has been explictly set from input
-  double polarisationfactor; // = 0 for unpolarised, eg in-house source
+  bool setfraction;  // true if fraction set
+  bool setnormal;    // true if normal set
+  // = 0.5 for unpolarised, eg in-house source, ~+0.99 for a synchrotron
+  //  Note that this is the definition as in XDS
+  // The electrical field vector of the incident beam is found in
+  // the x,z-plane of the laboratory coordinate system with a
+  // probability of polarizationfraction
+  double polarizationfraction ;
+  clipper::Vec3<double> Pn;         // polarization normal, XDS frame
+  clipper::Vec3<double> eprimepi;
 };
 //=================================================================
 // Controls for analysis and selection of anomalous
@@ -396,7 +448,7 @@ public:
   RefineControl refinecontrol;	
   AnomalousControl anomalouscontrol;
   DatasetControl datasetcontrol;
-  PolarisationControl polarisationcontrol;
+  PolarizationControl polarizationcontrol;
 }; // all_controls
 }  // namespace scala
 #endif

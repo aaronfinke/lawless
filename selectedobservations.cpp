@@ -427,6 +427,12 @@ namespace scala
         if (use[i]) {
           float delI = (this_ref->get_observation(i).kI() - avIsigI.I());
           float sigmai = this_ref->get_observation(i).ksigI();
+          //^^
+          //      observation obs = this_ref->get_observation(i);
+          //      std::cout << fac<<" "<<delI<<" "<<sigmai
+          //                <<" "<<obs.Gscale()<<" "<<obs.sigI()<<" "<<obs.ksigI()
+          //                <<" "<<obs.hkl_original().format()
+          //                <<" fac, delI, sigmaI, g, sigI, ksigI\n"; //^^
           delta2[i] = fac * delI/sigmai;
         }
       }

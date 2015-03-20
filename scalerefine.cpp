@@ -53,6 +53,8 @@ namespace scala {
     bool is_diagonal;
     floatType wd2 = refscl.hessianFn(HM, is_diagonal);
     Hessian H(HM);
+    //^^
+    //    std::cout << "calculateParameterVariances H\n" << H.format() <<"\n"; //^-
     // Invert with scaling and filtering, replace HM
     HM = H.FilteredInverse(minfiltered);
 

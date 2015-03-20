@@ -799,13 +799,13 @@ namespace scala {
     //! Reset reflection accepted flags to accept all (subject to resolution checks etc)
     void ResetReflAccept();
 
-  //! Update polarisation corrections for all parts, returns range of corrections
-  Range UpdatePolarisationCorrections(const bool& Total,
-				     const double& polarisationfactor);
+  //! Update polarization corrections for all parts, returns range of corrections
+  Range UpdatePolarizationCorrections(const bool& Total,
+  	         const scala::PolarizationControl& polarizationcontrol);
     // If Total == true, then apply complete correction
     //   else assume the unpolarised correction is already applied, apply
     //   additional correction for polarised incident beam
-    // polarisationfactor if fraction polarised, = 0 for unpolarised, ~ 0.9 for synchrotrons
+    // polarizationfactor if fraction polarised, = 0 for unpolarised, ~ 0.9 for synchrotrons
 
     //! Adding observation parts (spots)
     void store_part(const Hkl& hkl_in,

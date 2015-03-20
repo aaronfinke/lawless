@@ -283,7 +283,7 @@ namespace scala
     //! format cell
     std::string format(const int w=7, const int p=2) const;
     //! return XML representation
-    std::string xml() const;
+    std::string xml(const std::string& tag = "") const;
     //! return clipper::Cell
     clipper::Cell ClipperCell() const
     {return clipper::Cell(clipper::Cell_descr

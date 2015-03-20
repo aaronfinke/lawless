@@ -523,7 +523,7 @@ namespace scala {
     nties_rot = nties_bfac = nties_zerob = nties_surf = nties_tiles = 0;
 
     // Ties on primary scales
-    if (sd_rotation > 0.0) {
+    if ((sd_rotation > 0.0) && (nprimaryscale > 0)) {
       //  ... within each run
       for (int irun=0;irun<nruns;irun++) {
         // Set up ties for this run, using 1st global parameter index
@@ -1005,10 +1005,15 @@ namespace scala {
                       PrintWrappingLines(pscales, "Scales", sds, "",
                                          nobsPar, "Nobs",9,3));
       } else {
-        sds = extractSDs(idxrun_primary_scales[irun], pscales.size());
-        for (size_t k=0; k<sds.size(); k++) {
-          // sd(k) = sd(1/g) = sd(g) * k^2
-          sds[k] *= pscales[k]*pscales[k];
+        if (nprimaryscale == 0) {
+          ASSERT (pscales.size() == 1);
+          sds.assign(1, 0.0);
+        } else {
+          sds = extractSDs(idxrun_primary_scales[irun], pscales.size());
+          for (size_t k=0; k<sds.size(); k++) {
+            // sd(k) = sd(1/g) = sd(g) * k^2
+            sds[k] *= pscales[k]*pscales[k];
+          }
         }
         output.logTab(0,LOGFILE,
                       PrintWrappingLines(pscales, "Scales", sds, "Sd",
@@ -1093,11 +1098,19 @@ namespace scala {
     idxrun_detector.resize(ndetscales);
 
     // Primary
-    for (int irun=0;irun<nruns;irun++) {
-      idxrun_primary_scales[irun] = nparameters;   // index to 1st primary parameter
-      nparameters += primary_scales[irun].Number();
-      nprimaryscale += primary_scales[irun].Number();
+    // if SCALES CONSTANT and one run, then set nparameters = 0
+    if ((nruns == 1) && (primary_scales[0].Number() <= 1)) {
+      nparameters = 0;
+      nprimaryscale = 0;
+      idxrun_primary_scales[0] = 0;
+    } else {
+      for (int irun=0;irun<nruns;irun++) {
+        idxrun_primary_scales[irun] = nparameters;   // index to 1st primary parameter
+        nparameters += primary_scales[irun].Number();
+        nprimaryscale += primary_scales[irun].Number();
+      }
     }
+
     // B-factors
     for (int irun=0;irun<nruns;irun++) {
       idxrun_bfactors[irun] = nparameters;   // index to 1st bfactor parameter
@@ -1130,7 +1143,7 @@ namespace scala {
   std::vector<double> ScaleModel::GetParameters() const
   // Get vector of parameters
   // Order of parameters:
-  //   1. all primary scale parameters (nprimaryscale)
+  //   1. all primary scale parameters (nprimaryscale) (this may == 0)
   //   2. all B-factors (nbfactors)
   //   3. secondary parameters (nsecondaryscale)
   //   4. detector (ntilescale)
@@ -1138,12 +1151,14 @@ namespace scala {
   {
     std::vector<double> params;
 
-    for (int irun=0;irun<nruns;irun++) {
-      // Append group of scales
-      std::vector<double> pscales = primary_scales[irun].Scales();
-      params.insert(params.end(), pscales.begin(), pscales.end());
+    if (nprimaryscale > 0) {
+      for (int irun=0;irun<nruns;irun++) {
+        // Append group of scales
+        std::vector<double> pscales = primary_scales[irun].Scales();
+        params.insert(params.end(), pscales.begin(), pscales.end());
+      }
+      ASSERT (int(params.size()) == nprimaryscale);
     }
-    ASSERT (int(params.size()) == nprimaryscale);
     // B-factors
     for (int irun=0;irun<nruns;irun++) {
       // Append group of B-factors
@@ -1247,14 +1262,16 @@ namespace scala {
     std::vector<double>::const_iterator pos2;                   // end of range
     std::vector<int>::const_iterator posn1 = Nobs.begin();   // start of range
     std::vector<int>::const_iterator posn2;                  // end of range
-    for (int irun=0;irun<nruns;irun++) {
-      // Extract group of scales
-      pos2 = pos1 + primary_scales[irun].Number();
-      primary_scales[irun].StoreScales(std::vector<double>(pos1, pos2));
-      pos1 = pos2;
-      posn2 = posn1 + primary_scales[irun].Number();
-      primary_scales[irun].StoreNobservations(std::vector<int>(posn1, posn2));
-      posn1 = posn2;
+    if (nprimaryscale > 0) {
+      for (int irun=0;irun<nruns;irun++) {
+        // Extract group of scales
+        pos2 = pos1 + primary_scales[irun].Number();
+        primary_scales[irun].StoreScales(std::vector<double>(pos1, pos2));
+        pos1 = pos2;
+        posn2 = posn1 + primary_scales[irun].Number();
+        primary_scales[irun].StoreNobservations(std::vector<int>(posn1, posn2));
+        posn1 = posn2;
+      }
     }
     for (int irun=0;irun<nruns;irun++) {
       // Extract group of B-factors
@@ -1576,10 +1593,10 @@ namespace scala {
   // Scale observation, returns scale applied and
   // partial derivative vector d(ghl)/dp
   {
-    // Run
-    int irun = obs.run();
     ASSERT (obs.IsSingleton()); // otherwise trouble!
                                 // called here from refinement, which can't handle overlaps
+    // Run
+    int irun = obs.run();
     double g = ScaleFactorDeriv(irun, obs, invresolsq, dghldp);
     obs.SetGscale(g);
     return g;
@@ -1595,10 +1612,16 @@ namespace scala {
     dghldp.assign(nparameters, 0.0);
     double ps;    // Primary scale
     std::vector<double> dgdpm;  // derivatives for this run only
-    if (primary_scales[jscale].IsBatchScale()) {
-      ps = primary_scales[jscale].ScaleDeriv(obs.Batch(), dgdpm);
+    // Special for a single scale for one run only
+    if (nprimaryscale <= 0) {
+      ps = 1.0;
+      dgdpm.clear();
     } else {
-      ps = primary_scales[jscale].ScaleDeriv(obs.phi(), dgdpm);
+      if (primary_scales[jscale].IsBatchScale()) {
+        ps = primary_scales[jscale].ScaleDeriv(obs.Batch(), dgdpm);
+      } else {
+        ps = primary_scales[jscale].ScaleDeriv(obs.phi(), dgdpm);
+      }
     }
 
     // B-factor scale
@@ -1637,11 +1660,13 @@ namespace scala {
     }
 
     // dghl/dp = dg(primary)/dp * bs * ss * ds
-    for (size_t i=0;i<dgdpm.size();++i) {
-      dgdpm[i] *= bs * ss *ds;
+    if (dgdpm.size() > 0) {
+      for (size_t i=0;i<dgdpm.size();++i) {
+        dgdpm[i] *= bs * ss *ds;
+      }
+      std::copy(dgdpm.begin(), dgdpm.end(),
+                dghldp.begin() + idxrun_primary_scales[jscale]);
     }
-    std::copy(dgdpm.begin(), dgdpm.end(),
-              dghldp.begin() + idxrun_primary_scales[jscale]);
 
     // dghl/dp = dg(B)/dp * ps * ss * ds
     for (size_t i=0;i<dgdB.size();++i) {
@@ -1683,20 +1708,22 @@ namespace scala {
   {
     // Scales for normalisation run
     ASSERT (scalenormbatch >= 0);
-    // normalisation factor for scales
-    double scnorm = primary_scales[scalenormrun].Scales()[scalenormbatch];
-    if (scnorm <= 0.0) {
-      std::vector<double> pscales = primary_scales[scalenormrun].Scales();
-      clipper::Message::message(Message_fatal
-                                ("Normalisation scale < 0"));
-    }
-    for (int irun=0;irun<nruns;irun++) {
-      // Scales for this run
-      std::vector<double> pscales = primary_scales[irun].Scales();
-      for (size_t i=0;i<pscales.size();++i) {
-        pscales[i] /= scnorm;
+    if (nprimaryscale > 0) {
+      // normalisation factor for scales
+      double scnorm = primary_scales[scalenormrun].Scales()[scalenormbatch];
+      if (scnorm <= 0.0) {
+        std::vector<double> pscales = primary_scales[scalenormrun].Scales();
+        clipper::Message::message(Message_fatal
+                                  ("Normalisation scale < 0"));
       }
-      primary_scales[irun].StoreScales(pscales);
+      for (int irun=0;irun<nruns;irun++) {
+        // Scales for this run
+        std::vector<double> pscales = primary_scales[irun].Scales();
+        for (size_t i=0;i<pscales.size();++i) {
+          pscales[i] /= scnorm;
+        }
+        primary_scales[irun].StoreScales(pscales);
+      }
     }
     // B-factors
     if (normalisebfac) {  // only if all runs have variable B-factors

@@ -281,6 +281,7 @@ namespace scala {
 
     int nparameters;      // Number of parameters
     int nprimaryscale;    //  Number of primary scale parameters
+			  //  maybe = 0 if one CONSTANT run
     int nbfactors;        //  Number of B-factor parameters
     int nsecondaryscale;  //  Number of secondary scale parameters
     int ntilescale;       //  Number of tile scale parameters

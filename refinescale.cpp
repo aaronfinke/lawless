@@ -190,7 +190,7 @@ namespace scala {
   //
   {
     bool DEBUG = false;
-    //    bool DEBUG = true;
+    //bool DEBUG = true;
     //^    std::cout << "NPROCS " << nprocs <<"\n";
     //^
     //^    std::cout << "Npar " << npar <<"\n";
@@ -319,12 +319,12 @@ namespace scala {
               obs_used.push_back(this_obs);
               ghl.push_back(g);
               dghldp_obs.push_back(dghldp);
-              //          if (DEBUG) {
-              //            std::cout << "\nhkl, Obs, ghl, dghldp " << this_refl.hkl().format()
-              //                      << " " << this_obs.I() << " " << g << "\n";
-              //            for (int i=0;i<npar;++i) {std::cout << "  " << dghldp[i];}
-              //            std::cout << "\n";
-              //          }
+              //              if (DEBUG) {
+              //                std::cout << "\nhkl, Obs, ghl, dghldp " << this_refl.hkl().format()
+              //                          << " " << this_obs.I() << " " << g << "\n";
+              //                for (int i=0;i<npar;++i) {std::cout << "  " << dghldp[i];}
+              //                std::cout << "\n";
+              //              }
           }
         }
         if (nused > 1) {

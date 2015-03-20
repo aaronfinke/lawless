@@ -1125,7 +1125,7 @@ if no independent time value is available), at positions ti (t1, t2, .
   <pre>        B = Sum[i=1,n] ( p(delt) Bi ) / Sum (p(delt))<br><br>        where   Bi  are the B-factors at time ti<br>                delt    = tl - ti<br>                p(delt) = exp ( - (delt)**2 / Vt )<br>                Vt  is "variance" of weight, &amp; controls the smoothness<br>                        of interpolation<br><br>        Thl = exp ( + 2 s B )<br>                s = (sin theta / lambda)**2<br></pre><p><b>b) Scale factors</b> </p>
   <p>For each run, scale factors Cz are determined at intervals on rotation angle z. Then for an observation
 at position (z0), </p>
-  <pre>        Chl(z0) =<br>   Sum(z)[p(delz)*Cxyz]/Sum(z)[p(delz)]<br><br>where   delz    = z - z0<br>        p(delz) = exp(-delz**2/Vz)<br>        Vz is the "variance" of the weight &amp; controls the smoothness of interpolation<br><br></pre>
+  <pre>        Chl(z0) =<br>   Sum(z)[p(delz)*Cz]/Sum(z)[p(delz)]<br><br>where   delz    = z - z0<br>        p(delz) = exp(-delz**2/Vz)<br>        Vz is the "variance" of the weight &amp; controls the smoothness of interpolation<br><br></pre>
   <p>For the SCALES BATCH option, the scale along z is discontinuous:
 the normal option has one scale factor for each batch.&nbsp; </p>
   <p><b>c) Anisotropy factor</b> </p>
@@ -1279,7 +1279,11 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.7 minor bug fix to resolution tables<br>
+  <h2>RELEASE NOTES</h2>0.5.8
+bug fix for case SCALES CONSTANT BROTATION with one run (not sensible
+anyway). Also fixed bug when there are different resolution limits for
+different datasets<br>
+0.5.7 minor bug fix to resolution tables<br>
 0.5.6 bug fix for SCALE CONSTANT with more than one run<br>
 0.5.5 bug fix in radiation damage analysis. Rescale Scalepack output if intensities are small<br>
 0.5.4 bug fix for Sca output with one of I+ or I- missing<br>
@@ -1385,6 +1389,7 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
 
 
 

@@ -493,16 +493,18 @@ namespace scala
     return FormatCell(cell_,w,p);
   }
   //--------------------------------------------------------------
-  std::string Scell::xml() const
+  std::string Scell::xml(const std::string& tag) const
   {
-    std::string line = "<cell>\n";
+    std::string xmltag = "cell";
+    if (tag != "") {xmltag = tag;}
+    std::string line = "<"+xmltag+">\n";
     line += " <a>"+StringUtil::ftos(cell_[0],8,3)+"</a>";
     line += " <b>"+StringUtil::ftos(cell_[1],8,3)+"</b>";
     line += " <c>"+StringUtil::ftos(cell_[2],8,3)+"</c>\n";
     line += " <alpha>"+StringUtil::ftos(cell_[3],8,3)+"</alpha>";
     line += " <beta>"+StringUtil::ftos(cell_[4],8,3)+"</beta>";
     line += " <gamma>"+StringUtil::ftos(cell_[5],8,3)+"</gamma>\n";
-    line += "</cell>\n";
+    line += "</"+xmltag+">\n";
     return line;
   }
   //--------------------------------------------------------------

@@ -312,6 +312,7 @@ namespace scala {
     // Default to 1.0
     smoothscale.StoreValue(1.0);
     allbatches = true;    // use all batches by default
+    nobsPar.assign(nscales, 0);
   }
   //--------------------------------------------------------------
   // Construct batch scaling from list of batch numbers (from run)

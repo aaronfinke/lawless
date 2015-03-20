@@ -959,7 +959,7 @@ namespace scala
     }
 
     bool DEBUG = false;
-    //    bool DEBUG = true;
+    //bool DEBUG = true;
     double average_controlsd = 0.0;
 
     std::vector<double> controlsdv = controlsd;  // copy in case we want to change it
@@ -1053,7 +1053,8 @@ namespace scala
           d += (V[j] - av)*(V[j] - av);  // v1,2,3 equality test
         }
         d123[3] = d;
-        d2max = sqrt(3.0);
+        d2max = 3.0;
+        // Note that this should really be done on d not d^2
         double pequal = Max(0.0, TruncatedLorentzianProb(d, 0.0, average_controlsd, 0.0, d2max));
         double pmax1 = Max(0.0, TruncatedLorentzianProb(0.0, 0.0, average_controlsd, 0.0, d2max));
         double pnotequal = pmax1 - pequal;

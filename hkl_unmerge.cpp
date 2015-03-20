@@ -2404,14 +2404,22 @@ namespace scala {
       std::vector<int> runindexlist = datasets[id].RunIndexList();
       ResoRange maxrunresorange = runlist.at(0).GetResoRange();
       bool runlimits = false;
-      for (size_t irun=0; irun<runindexlist.size(); irun++) {
+      for (size_t jrun=0; jrun<runindexlist.size(); jrun++) {
+        int irun = runindexlist[jrun];
         if (runlist[irun].IsResoRange()) {
           // defined resolution cutoff for this run
           maxrunresorange =
             maxrunresorange.MaxRange(runlist[irun].GetResoRange());
+          //^^
+          //      std::cout <<"\nrun " << irun << " res " << runlist[irun].GetResoRange().format() <<"\n";
           runlimits = true;
         }
       }
+      //^^
+      //      std::cout << "\nhkl_unmerge_list::updateResolutionranges "<<id <<" "
+      //                <<runlimits<<" maxrange "<<maxrunresorange.format()<<
+      //        " dtsresrange " <<dtsresrange.format() <<"\n";
+      //^-
       if (runlimits) {
         dtsresrange = maxrunresorange; // reset dataset range
       }
@@ -3193,19 +3201,25 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
-  Range hkl_unmerge_list::UpdatePolarisationCorrections(const bool& Total,
-                                          const double& polarisationfactor)
-  // Update polarisation corrections for all parts
+  Range hkl_unmerge_list::UpdatePolarizationCorrections(const bool& Total,
+                                        const PolarizationControl& polarizationcontrol)
+  // Update polarization corrections for all parts
   // If Total == true, then apply complete correction
   //   else assume the unpolarised correction is already applied, apply
   //   additional correction for polarised incident beam
-  // polarisationfactor if fraction polarised, = 0 for unpolarised, ~ 0.9 for synchrotrons
-  //
+  // PolarizationControl contains:
+  //  polarizationfactor if fraction polarised, = 0 for unpolarised, ~ +0.9 for synchrotrons
+  //  direction of polarization in current coordinate frame
   // Returns range of correction factors
   //
   // see Kahn, Fourme, Gadet, Janin, Dumas, & Andre,
   // J. Appl. Cryst. (1982). 15, 330-337
   {
+    double polarizationfactor = polarizationcontrol.Factor();
+    // component of electric vector in synchrotron plane, = Pn x s0, unit vector
+    clipper::Vec3<double> EprimePi = polarizationcontrol.EprimePi();
+
+
     Range PFrange;
     Hkl hkl_original;
     observation_part part;
@@ -3217,21 +3231,27 @@ namespace scala {
       int ib = batch_lookup.lookup(part.batch());  // batch serial
       // s(r) = [R][D][U][B]h  camera frame, reciprocal lattice units
       DVect3 sPhi =  batches[ib].HtoSr(hkl_original, part.phi());
-      double z = sPhi[2]; // z coordinate
+      // zp = projection of diffraction vector on to E'pi
+      double zp = clipper::Vec3<double>::dot(sPhi, EprimePi);
+      //^^
+      //      double zd = clipper::Vec3<double>::dot(sPhi, clipper::Vec3<double>(0.0,0.0,1.0));
+      //      std::cout << "z " << sPhi[2] << " zp " << zp <<" zd "<<zd<< "\n"; //^-
+      //      //zp = sPhi[2]; // testing
+      //^-
       double sinSqtheta = 0.25 * (sPhi * sPhi);    // |s| = 2 sin theta; sin^2 theta = 0.25*|s|^2
       double cos2theta = 1. - 2.0 * sinSqtheta;    // cos 2theta = cos^2 theta - sin^2 theta
                                                    //  = 1 - 2 sin^2 theta
       double cosSq2theta = cos2theta * cos2theta;  // cos^2 2theta
       double sinSq2theta = 1.0 - cosSq2theta;      // sin^2 2theta
-      double cosrho = z/sqrt(sinSq2theta);         // cos rho = z/sine 2theta
+      double cosrho = zp/sqrt(sinSq2theta);         // cos rho = zp/sin 2theta
       // P0 = 1/2 [ 1 + cos^2 2 theta]
       double P0 = 0.5*(1.0 + cosSq2theta);  // unpolarised part
       // P' = 1/2 (-Xsi') cos 2rho sin^2 2theta
-      double PP = 0.5 * polarisationfactor * (2.0*cosrho*cosrho - 1.0) * sinSq2theta;
+      double PP = 0.5 * polarizationfactor * (2.0*cosrho*cosrho - 1.0) * sinSq2theta;
       double PolFac = 1.0/P0;
       if (!Total) {
         // P0 already applied, so just correct it
-        //  complete PolFac = P0 - P', negative sign because polarisationfactor should be negative
+        //  complete PolFac = P0 - P', negative sign because polarizationfactor should be negative
         PolFac = P0/(P0 - PP); // inverse
       }
       // Apply it, dividing intensities
@@ -3247,7 +3267,7 @@ namespace scala {
       //^-
     } // end loop parts
     //^
-    //    std::cout << "Range of polarisation corrction factors "
+    //    std::cout << "Range of polarization corrction factors "
     //        << PFrange.min() <<" " << PFrange.max() <<"\n";
     return PFrange;
   }
