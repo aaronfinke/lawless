@@ -525,6 +525,10 @@ int main(int argc, char* argv[])
       bool nparchanged = AllScales.symmetricTiles(true);
 
       if (controls.refinecontrol.BFGS()) {
+        if (nparchanged && AllScales.haveParameterVariances()) {
+          // don't use incorrect parameter variances (from restore) if number has changed
+          AllScales.ignoreParameterVariances();
+        }
         ScaleRefine(hkl_list, AllScales, SD_model, controls,
                     controls.refinecontrol.Ncyc1(), false, output);
         if (nparchanged) {

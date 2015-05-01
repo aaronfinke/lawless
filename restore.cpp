@@ -10,6 +10,13 @@ using clipper::Message_warn;
 
 namespace scala {
   //--------------------------------------------------------------
+  void ScaleRestoreError::error(const std::string& message)
+  {
+    clipper::Message::message(Message_fatal
+                              ("RESTORE error: incompatible save file: "+message));
+  }
+  //--------------------------------------------------------------
+  //--------------------------------------------------------------
   void RunsFromSavefile::init(Fileread& FR, const std::vector<Run>& runlist)
   // Read run block from save file, get run definitions for runs which are wanted
   {

@@ -9,6 +9,15 @@
 #include "runthings.hh"
 
 namespace scala {
+  //--------------------------------------------------------------
+  class ScaleRestoreError {
+    public:
+    static void error(const std::string& message);
+
+  private:
+    ScaleRestoreError(){}  // private constructor to prevent instancing
+  };
+  //--------------------------------------------------------------
   class RunsFromSavefile {
     //! extract run definitions from save (dump) file
   public:

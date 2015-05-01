@@ -88,6 +88,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   int bfac_spec = 0;
   int secabs = 0;         // SECONDARY or ABSORPTION given
                           // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
+  int sectype = 0;        // = 0 None, = +1 SECONDARY, -1 ABSORPTION
   int tile = -1;
 
   while (get_token(input_stream) != ENDLINE) {
@@ -146,12 +147,14 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         spec.sec_abs = scala::SecondaryScale::SECONDARY;
         expectingNumber = -1;
         secabs = +1;
+        sectype = +1;
       } else if (keyIs("ABSORPTION")) {
         spec.sec_abs = scala::SecondaryScale::ABSORPTION;
         expectingNumber = -1;
-        secabs = +2;
+        secabs = +1;
+        sectype = -1;
       } else if (keyIs("POLE")) {
-        if (secabs == +1) {ReportSyntaxError
+        if (sectype == +1) {ReportSyntaxError
             (keywords, "SCALES: can't have SECONDARY & POLE)");}
         secabs = -1;
         expectingNumber = 0;
@@ -215,13 +218,13 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         spec.nbfac = -1;
         spec.bspacing = number_value;
         bfac_spec = +4;
-      } else if (secabs == 1) {
+      } else if (secabs == +1) {
         // Read Lmax
         spec.lmax = Nint(number_value);
         //  force even
         spec.lmax = (spec.lmax/2)*2;
         secabs = +2;
-      } else if (secabs == 2) {
+      } else if (secabs == +2) {
         // Read LmaxOdd
         spec.lmaxodd = Nint(number_value);
         //  force odd & < lmax
@@ -241,7 +244,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         (keywords, "SCALES: invalid syntax");
     }
   }
-  if (secabs == 2) {
+  if (secabs == +2) {
     // set lmaxodd if not defined & lmax is
     spec.lmaxodd = ((spec.lmax+1)/2)*2-1;
   }

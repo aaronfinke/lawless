@@ -200,9 +200,16 @@ namespace scala {
     //! turn off parameter variances
     void ignoreParameterVariances() {nfreedom = 0;}
 
+    //! true if we have parameter variances swtiched on
+    bool haveParameterVariances() const {return (nfreedom > 0);}
+
     //! Usage of parameter variances, = {NONE, DIAGONAL, COVARIANCE};
     scala::ScaleSpecification::ParameterSDusage parameterSDusage() const
     {return parametersdusage;}
+
+    // return false if number of variance parameters is not same as nparameters
+    // OK (true) if no variance used
+    bool checkVarianceNumbers() const;
 
   private:
     // Setup from scale specifications and reflection list

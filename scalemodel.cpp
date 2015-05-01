@@ -1507,9 +1507,6 @@ namespace scala {
     double varg = 0.0;
     if (parametersdusage == scala::ScaleSpecification::DIAGONAL) {
       ASSERT (nfreedom > 0);
-      //      if (dghldp.size() != varpar.size()) { //^^
-      //        std::cout << "VarScale " << dghldp.size() <<" "<< varpar.size()<<"\n";
-      //      }
       ASSERT (dghldp.size() == varpar.size());
       // Diagonal approximation: Var(g) = Sum (dghldp[i]^2 * Var(p[i]))
       for (size_t i=0; i<dghldp.size(); i++) {
@@ -1905,6 +1902,19 @@ namespace scala {
         VC(i,j) = scale * H(i+1,j+1);
       }
     }
+  }
+  //--------------------------------------------------------------
+  // return false if number of variance parameters is not same as nparameters
+  // OK (true) if no variance used
+  bool ScaleModel::checkVarianceNumbers() const
+  {
+    if (parametersdusage == scala::ScaleSpecification::NONE) {
+      return true;
+    }
+    if (nparameters != int(varpar.size())) {
+      return false;
+    }
+    return true;
   }
   //--------------------------------------------------------------
   std::string ScaleModel::FormatSave(const std::vector<Run>& runlist) const

@@ -5,6 +5,7 @@
 #include "jiffy.hh"
 #include "range.hh"
 #include "string_util.hh"
+#include "restore.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -1301,10 +1302,14 @@ namespace scala {
         ("SecondaryScale::Restore incompatible version in "+FR.Filename()));
     }
     FR.Skip();
-    FR.ReadTag("Lmax"); lmax = FR.Int();
+    FR.ReadTag("Lmax"); int lmax_in = FR.Int();
+    if (lmax_in != lmax) {ScaleRestoreError::error("lmax");}
+    lmax = lmax_in;
     FR.ReadTag("LmaxOdd"); lmaxodd = FR.Int();
     FR.ReadTag("Pole"); pole = FR.Int();
-    FR.ReadTag("Ncoeffs"); ncoeffs = FR.Int();
+    FR.ReadTag("Ncoeffs"); int ncoeffs_in = FR.Int();
+    if (ncoeffs_in != ncoeffs) {ScaleRestoreError::error("ncoeffs");}
+    ncoeffs = ncoeffs_in;
     FR.ReadTag("NobsPar"); nobsPar = FR.IntVec(ncoeffs);
     FR.ReadTag("SphCoefficients"); sphcoefficients = FR.DoubleVec(ncoeffs);
     if (pole == 0) {

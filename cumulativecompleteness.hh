@@ -46,9 +46,9 @@ namespace scala {
     int nbatches;  // in all datasets
     int multcy;
     int maxBatSer;
-    std::vector<int> batchserials;
-    std::vector<int> batchserialsPlus;
-    std::vector<int> batchserialsMinus;
+    std::vector<int> batchserials;      // within reflection
+    std::vector<int> batchserialsPlus;  //    "
+    std::vector<int> batchserialsMinus; //    "
     // count of reflections first appearing in this batch
     std::vector<int> batchserialcount;
     std::vector<int> batchserialcountanom;
