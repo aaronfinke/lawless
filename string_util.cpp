@@ -306,7 +306,7 @@ std::string StringUtil::MakeXMLtag(const std::string& tag,
 }
 //--------------------------------------------------------------
 std::string StringUtil::XMLstring(const std::string& s0)
-//! return string modified to replace non-X/HTML characters &<>
+//! return string modified to replace non-X/HTML characters &<>, append NL if long
 {
   std::string s;
   for (size_t i=0;i<s0.size();++i) {
@@ -314,6 +314,10 @@ std::string StringUtil::XMLstring(const std::string& s0)
     else if (s0[i] == '<') {s += "&lt;";}
     else if (s0[i] == '>') {s += "&gt;";}
     else {s += s0[i];}
+  }
+  const size_t MAXLENGTH = 100;
+  if (s0.size() > MAXLENGTH) {
+    s += "\n";
   }
   return s;
 }

@@ -157,13 +157,18 @@ public:
   //! True if RH axis specified
   bool IsRHaxis() const {return rhaxis;}
 
+  //! Set logfile or XML
+  void SetLogorXML(const int& logorxml) {logorXML = logorxml;}
+  // +1 log file only, 0 [default] both, -1 XML only
+
+  int LogorXML() const {return logorXML;}
+
   int Xcol() const {return xcol;} //!< return x-column
   int Ycol() const {return ycol;} //!< return y-column
 
   //! return formatted XML block
   std::string XMLformat(const int& xcolbreak) const;
   //!< if xcolbreak >= 0, then use this column for x axis instead of xcol
-
 
 private:
   int xcol, ycol;  // x & y columns numbers, from 1
@@ -196,6 +201,9 @@ private:
 
   bool rhaxis;  // true if line belongs to RH axis
 
+  // +1 log file only, 0 [default] both, -1 XML only
+  int logorXML;
+
   // convert string to LineStyle
   static std::string Style(const std::string& style);
 
@@ -210,6 +218,9 @@ public:
 
   //! Initialise with graph title
   void init(const std::string& ptitle);
+
+  //! set description text
+  void SetDescription(const std::string& Description) {description = Description;}
 
   //! Define X-axis properties
 
@@ -261,6 +272,7 @@ public:
 private:
   std::string plottype; // "xy"
   std::string title;
+  std::string description;  // optional description
   std::string xlabel, ylabel, ylabel_RH;  // axis labels, if specified
   std::string xscale; // blank or "oneoversqrt" (mostly not needed);
   std::string yscale; // not used

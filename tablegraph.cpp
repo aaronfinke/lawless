@@ -158,6 +158,8 @@ void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
   SetSymbol(symb, symbsize, symbedge);
   SetLine(linestyle, linewidth);
   rhaxis = false;
+  // +1 log file only, 0 [default] both, -1 XML only
+  logorXML = 0;
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::SetSymbol(const std::string& symb,
@@ -199,6 +201,7 @@ void TableGraphPlotline::SetColour(const std::string& colr)
 std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
 // if xcolbreak >= 0, then use this column for x axis instead of xcol
 {
+  if (logorXML > 0) {return "";}
   std::string s;
   // <plotline xcol="ix" ycol="iy">
   int xc = xcol;
@@ -272,6 +275,7 @@ TableGraphPlot::TableGraphPlot(const std::string& ptitle) {
 void TableGraphPlot::init(const std::string& ptitle) {
   plottype = "xy";
   title = ptitle;
+  description = "";
   xlabel = "";
   ylabel = "";
   xscale = "";
@@ -416,6 +420,11 @@ std::string TableGraphPlot::XMLformat() const
   if (title != "") {
     s += StringUtil::MakeXMLtag("title", title)+"\n";
   }
+
+  if (description != "") {
+    s += StringUtil::MakeXMLtag("description", description)+"\n";
+  }
+
   if (xlabel != "") {
     s += StringUtil::MakeXMLtag("xlabel", xlabel)+"\n";
   }
@@ -442,26 +451,23 @@ std::string TableGraphPlot::XMLformat() const
     }
   }
 
-  if (zeroy) {
-    // <yrange min="0" max="None"\>
-    s += "<yrange min=\"0\" max=\"None\"/>\n";
-  } else if (yrange.Valid()) {
+  if (yrange.Valid()) {
     // <yrange min="ymin" max="ymax"\>
     std::string symin = StringUtil::ftos(yrange.min());
     std::string symax = StringUtil::ftos(yrange.max());
     s += "<yrange min=\""+symin+"\" max=\""+symax+"\"/>\n";
+  } else if (zeroy) {
+    // <yrange min="0" max="None"\>
+    s += "<yrange min=\"0\" max=\"None\"/>\n";
   }
-
-  if (zeroy_RH) {
-    if (yrange_RH.Valid()) {
-      // <yrange min="ymin" max="ymax"\>
-      std::string symin = StringUtil::ftos(yrange_RH.min());
-      std::string symax = StringUtil::ftos(yrange_RH.max());
-      s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
-    } else {
-      // <yrange min="0" max="None"\>
-      s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
-    }
+  if (yrange_RH.Valid()) {
+    // <yrange min="ymin" max="ymax"\>
+    std::string symin = StringUtil::ftos(yrange_RH.min());
+    std::string symax = StringUtil::ftos(yrange_RH.max());
+    s += "<yrange min=\""+symin+"\" max=\""+symax+"\" rightaxis=\"true\"/>\n";
+  } else if (zeroy_RH) {
+    // <yrange min="0" max="None"\>
+    s += "<yrange min=\"0\" max=\"None\" rightaxis=\"true\"/>\n";
   }
 
   if (xbreaks.size() > 0) {
@@ -503,12 +509,14 @@ std::string TableGraphPlot::format(const bool& first) const
   std::vector<int> columnNumbers;
   int xcol = plotlines[0].Xcol();
   for (size_t i=0;i<plotlines.size();++i) {
-    if (plotlines[i].Xcol() != xcol) {
-      Message::message(Message_fatal
+    if (plotlines[i].LogorXML() >= 0) {
+      if (plotlines[i].Xcol() != xcol) {
+        Message::message(Message_fatal
                        ("TableGraph::Graph: all lines must have same x column"));
+      }
+      if (i==0) {columnNumbers.push_back(xcol);}
+      columnNumbers.push_back(plotlines[i].Ycol());
     }
-    if (i==0) {columnNumbers.push_back(xcol);}
-    columnNumbers.push_back(plotlines[i].Ycol());
   }
   std::string numbers;
   for (size_t i=0;i<columnNumbers.size();++i) {

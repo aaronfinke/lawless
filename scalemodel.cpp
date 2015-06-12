@@ -1987,7 +1987,7 @@ namespace scala {
     // SD estimates
     // Variance/covariance information
     ds += "Variances{\n";
-    ds += "Nparameters"+clipper::String(nparameters)+"\n";
+    ds += "Nparameters "+clipper::String(nparameters)+"\n";
     ds += "nfreedom "+clipper::String(nfreedom)+"\n";
     ds += "wD2 "+clipper::String(wd2)+"\n";
     ds += "ParameterVariance\n"+StringUtil::FormatSaveVector(varpar)+"\n";
