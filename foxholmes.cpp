@@ -39,7 +39,7 @@ int FoxHolmes::MeanI(const std::vector<DPair>& y,
 // returns number which have non-zero sd
 //
 // On entry:
-//  y is array of data lengtht nparall, including possible empty slots
+//  y is array of data length nparall, including possible empty slots
 // On exit:
 //  mnI   <I>
 //  sumwg2  Sum(w g^2)
@@ -49,11 +49,12 @@ int FoxHolmes::MeanI(const std::vector<DPair>& y,
   double sumwgI = 0.0;
   sumwg2 = 0.0;
   int n = 0;
-  for (int i=0;i<nparall;i++)  {
-    sd = y[i].second;
+  for (int i=0;i<npar;i++)  {
+    int k = idxparam[i];
+    sd = y[k].second;
     if (sd > 0.00001) {
       w = 1./(sd*sd);
-      sumwgI += w * scales[i] * y[i].first;
+      sumwgI += w * scales[i] * y[k].first;
       sumwg2 += w * scales[i] * scales[i];
       n++;
     }
@@ -125,7 +126,7 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
   double sd, di, w, mnI, sumwg2;
   std::vector<double> dmnIdp(npar);
 
-  std::vector<DPair> y(nparall);
+  std::vector<DPair> y(nparall, DPair(0.0,0.0));
   std::vector<double> dmnIgldgi(npar);
 
   while (data->ObsArray(y)) {  // Loop observations
@@ -186,11 +187,11 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
     }
   }
   //^
-  //  std::cout << "** Parameters: ";
+  //std::cout << "** Parameters: ";
   //  for (int i=0;i<npar;i++) {std::cout << scales[i] << " ";}
   //  std::cout <<"\n";
   //  std::cout << "** Target function : " << target << "\n";
-  //-!
+  //
   //  if (DoGradient) {
   //    std::cout << "** Gradient: \n";
   //    for (int i=0;i<npar;i++){
@@ -206,16 +207,15 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
   //      std::cout << "\n";
   //    }
   //  }
+  //^-
   if (DoGradient) gradientOK = true;
 }
 // ---------------------------------------------------------
 void FoxHolmes::applyShift(TNT::Vector<floatType>& newg)
 {
-  //^
-  // std::cout << "<< Apply shift:\n";
   for (int i=0;i<npar;i++)  {
     scales[i] = newg[i];
-    //    std::cout << " " << scales[i];
+    //std::cout << " " << scales[i];
   }
   //  std::cout << "\n";
   gradientOK = false;
