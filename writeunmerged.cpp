@@ -232,8 +232,9 @@ namespace MtzIO
     int nbat = 0;
 
     for (int jbat=0;jbat<hkl_list.num_batches();jbat++)  {
-      // Only output accepted batches
-      if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
+      // Only output accepted batches, but keep empty ones
+      if (hkl_list.batch(jbat).Accepted()) {
+        //      if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
         batch = MtzMallocBatch(); // make space for batch data
 
         if (nbat == 0) {

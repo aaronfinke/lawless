@@ -60,7 +60,7 @@ void GraphAxesType::init(const scala::Range& Xrange,
   zeroy_RH = false;
 }
 //--------------------------------------------------------------
-  // X-axis range and type flag (true for 1/d^2)
+// X-axis range and type flag (true for 1/d^2)
 void GraphAxesType::SetXaxis(const scala::Range& Xrange,
                              const bool& isinvresolsq)
 {
@@ -76,7 +76,8 @@ void GraphAxesType::SetYaxis(const scala::Range& Yrange, const bool& ZeroY)
 }
 //--------------------------------------------------------------
 // Right Y-axis range and ZeroY true to start Y at 0
-void GraphAxesType::SetRightYaxis(const scala::Range& Yrange, const bool& ZeroY)
+void GraphAxesType::SetRightYaxis(const scala::Range& Yrange,
+                                  const bool& ZeroY)
 {
   yrange_RH = Yrange;
   FixYrangeRH(ZeroY);
@@ -103,7 +104,7 @@ void GraphAxesType::FixYrangeRH(const bool& ZeroY)
 }
 //--------------------------------------------------------------
 std::string GraphAxesType::FormatType() const
-  // return formatted for loggraph
+// return formatted for loggraph
 {
   GraphType graphtype1 = graphtype;
   if (xrange.Valid() && yrange.Valid()) {
@@ -124,6 +125,75 @@ std::string GraphAxesType::FormatType() const
     return StringUtil::Strip(s);
   }
   return "A";
+}
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+TablegraphLineStyle::TablegraphLineStyle(const std::string& colr,
+                             const std::string& linestyle,
+                             const int& linewidth)
+{
+  init(colr, linestyle, linewidth);
+}
+//--------------------------------------------------------------
+void TablegraphLineStyle::init(const std::string& colr,
+                         const std::string& linestyle,
+                         const int& linewidth)
+{
+  SetColour(colr);
+  SetLine(linestyle, linewidth);
+}
+//--------------------------------------------------------------
+//! Set colour
+void TablegraphLineStyle::SetColour(const std::string& colr)
+{
+  colour_ = colr;
+}
+//--------------------------------------------------------------
+void TablegraphLineStyle::SetLine(const std::string& linestyle,
+                            const int& width)
+{
+  slinestyle = Style(linestyle);  // standard value
+  linesize = width; // default = -1, unspecified
+  // The style of the line, allowed values:
+  // '-','--','-.',':','.',
+  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'.
+  linestylevalue_ = "";
+  if (slinestyle == "Solid") {
+    linestylevalue_ = "-";
+  } else if (slinestyle == "Dashed") {
+    linestylevalue_ = "--";
+  } else if (slinestyle == "Dash-dot") {
+    linestylevalue_ = "-.";
+  } else if (slinestyle == "Dotted") {
+    linestylevalue_ = ":";
+  } else if (slinestyle == "Blank") {
+    linestylevalue_ = ".";
+  }
+}
+//--------------------------------------------------------------
+// convert string to standard linestyle string (static)
+std::string TablegraphLineStyle::Style(const std::string& style)
+{
+  std::string upperstyle = StringUtil::ToUpper(style);
+  if (upperstyle == "" || upperstyle == "DEFAULT") {
+    return "Solid";
+  }
+  if (upperstyle == "SOLID") {
+    return "Solid";
+  }
+  if (upperstyle == "DASHED") {
+    return "Dashed";
+  }
+  if (upperstyle == "DASH-DOT" || upperstyle == "DASH_DOT") {
+    return "Dash-dot";
+  }
+  if (upperstyle == "DOTTED") {
+    return "Dotted";
+  }
+  if (upperstyle == "BLANK") {
+    return "Blank";
+  }
+  return "Solid";
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -156,7 +226,7 @@ void TableGraphPlotline::init(const int& Xcol, const int& Ycol,
   ycol = Ycol;
   SetColour(colr);
   SetSymbol(symb, symbsize, symbedge);
-  SetLine(linestyle, linewidth);
+  tablegraphlinestyle.init(colr, linestyle, linewidth);
   rhaxis = false;
   // +1 log file only, 0 [default] both, -1 XML only
   logorXML = 0;
@@ -169,27 +239,6 @@ void TableGraphPlotline::SetSymbol(const std::string& symb,
   symbol = symb;
   symbolsize = size;
   symboledge = edge;
-}
-//--------------------------------------------------------------
-void TableGraphPlotline::SetLine(const std::string& linestyle,
-                                 const int& width) {
-  slinestyle = Style(linestyle);  // standard value
-  linesize = width; // default = -1, unspecified
-  // The style of the line, allowed values:
-  // '-','--','-.',':','.',
-  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'.
-  linestylevalue = "";
-  if (slinestyle == "Solid") {
-    linestylevalue = "-";
-  } else if (slinestyle == "Dashed") {
-    linestylevalue = "--";
-  } else if (slinestyle == "Dash-dot") {
-    linestylevalue = "-.";
-  } else if (slinestyle == "Dotted") {
-    linestylevalue = ":";
-  } else if (slinestyle == "Blank") {
-    linestylevalue = ".";
-  }
 }
 //--------------------------------------------------------------
 void TableGraphPlotline::SetColour(const std::string& colr)
@@ -222,11 +271,13 @@ std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
   if (!symboledge) {
     s += StringUtil::MakeXMLtag("markeredgewidth",StringUtil::ftos(0.0,4,1))+"\n";
   }
-  if (linestylevalue != "") {
-    s += StringUtil::MakeXMLtag("linestyle", linestylevalue)+"\n";
+  if (tablegraphlinestyle.linestylevalue() != "") {
+    s += StringUtil::MakeXMLtag("linestyle",
+                tablegraphlinestyle.linestylevalue())+"\n";
   }
-  if (linesize > 0) {
-    s += StringUtil::MakeXMLtag("linesize",StringUtil::itos(linesize,3))+"\n";
+  if (tablegraphlinestyle.linewidth() > 0) {
+    s += StringUtil::MakeXMLtag("linesize",
+                StringUtil::itos(tablegraphlinestyle.linewidth(),3))+"\n";
   }
   if (colour != "") {
     s += StringUtil::MakeXMLtag("colour", colour)+"\n";
@@ -241,26 +292,7 @@ std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
 // convert string to standard linestyle string
 std::string TableGraphPlotline::Style(const std::string& style)
 {
-  std::string upperstyle = StringUtil::ToUpper(style);
-  if (upperstyle == "" || upperstyle == "DEFAULT") {
-    return "Solid";
-  }
-  if (upperstyle == "SOLID") {
-    return "Solid";
-  }
-  if (upperstyle == "DASHED") {
-    return "Dashed";
-  }
-  if (upperstyle == "DASH-DOT" || upperstyle == "DASH_DOT") {
-    return "Dash-dot";
-  }
-  if (upperstyle == "DOTTED") {
-    return "Dotted";
-  }
-  if (upperstyle == "BLANK") {
-    return "Blank";
-  }
-  return "Solid";
+  return TablegraphLineStyle::Style(style);
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -295,7 +327,56 @@ void TableGraphPlot::init(const std::string& ptitle) {
   yintegral_RH = false;
   axistypes.init(GraphAxesType::AUTO_Y); // default Y axis type
   plotlines.clear();
+  lines.clear();
 }
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+TablegraphLine::TablegraphLine(const std::pair<double, double> XY1,
+                               const std::pair<double, double> XY2,
+                               const int& fw, const int& fd,
+                               const std::string& colr,
+                               const std::string& linestyle,
+                               const int& linewidth)
+{
+  init(XY1, XY2, fw, fd, colr, linestyle, linewidth);
+}
+//--------------------------------------------------------------
+void TablegraphLine::init(const std::pair<double, double> XY1,
+                          const std::pair<double, double> XY2,
+                          const int& fw, const int& fd,
+                          const std::string& colr,
+                          const std::string& linestyle,
+                          const int& linewidth)
+{
+  xy1 = XY1;
+  xy2 = XY2;
+
+  fw_ = fw;
+  fd_ = fd;
+
+  tablegraphlinestyle.init(colr, linestyle, linewidth);
+}
+//--------------------------------------------------------------
+//! Return XML format for Pimple
+std::string TablegraphLine::XMLformat() const
+{
+  std::string s = "<line x1=\"" +
+    StringUtil::ftos(xy1.first,fw_,fd_)+"\"" +
+    " x2=\"" + StringUtil::ftos(xy2.first,fw_,fd_)+"\"" +
+    " y1=\"" + StringUtil::ftos(xy1.second,fw_,fd_)+"\"" +
+    " y2=\"" + StringUtil::ftos(xy2.second,fw_,fd_)+"\"";
+  s += " linestyle=\""+tablegraphlinestyle.linestylevalue()+"\"";
+  if (tablegraphlinestyle.linewidth() > 1) {
+    s += " linesize=\""+
+      StringUtil::itos(tablegraphlinestyle.linewidth(),3)+"\"";
+  }
+  if (tablegraphlinestyle.colour() != "") {
+    s += " linecolour=\""+tablegraphlinestyle.colour()+"\"";
+  }
+  s += "/>\n";
+  return s;
+}
+//--------------------------------------------------------------
 //--------------------------------------------------------------
 void TableGraphPlot::SetXaxis(const std::string& label,
                               const bool& isinvresolsq,
@@ -389,9 +470,15 @@ void TableGraphPlot::AddLine(const TableGraphPlotline& pltline)
   // Check for consistent RH axis specification
   if (pltline.IsRHaxis() && !isRHyaxis) {
     Message::message(Message_fatal
-     ("TableGraphPlot::AddLine: must specify RH yaxis to add RH axis line"));
+                     ("TableGraphPlot::AddLine: must specify RH yaxis to add RH axis line"));
   }
   plotlines.push_back(pltline);
+}
+//--------------------------------------------------------------
+// Add a simple line to the plot
+void TableGraphPlot::AddPlainLine(const TablegraphLine& plainline)
+{
+  lines.push_back(plainline);
 }
 //--------------------------------------------------------------
 std::string TableGraphPlot::formatXbreaks() const
@@ -486,6 +573,13 @@ std::string TableGraphPlot::XMLformat() const
       s += plotlines[i].XMLformat(xcolbreak);
     }
   }
+
+  if (lines.size() > 0) {
+    for (int i=int(lines.size())-1;i>=0;--i) {
+      s += lines[i].XMLformat();
+    }
+  }
+
   s += "</plot>\n";
   return s;
 }
@@ -512,7 +606,7 @@ std::string TableGraphPlot::format(const bool& first) const
     if (plotlines[i].LogorXML() >= 0) {
       if (plotlines[i].Xcol() != xcol) {
         Message::message(Message_fatal
-                       ("TableGraph::Graph: all lines must have same x column"));
+                         ("TableGraph::Graph: all lines must have same x column"));
       }
       if (i==0) {columnNumbers.push_back(xcol);}
       columnNumbers.push_back(plotlines[i].Ycol());

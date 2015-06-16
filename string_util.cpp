@@ -288,6 +288,24 @@ std::string StringUtil::MakeXMLtag(const std::string& tag, const std::string& da
   }
 }
 //--------------------------------------------------------------
+// <tag class="messageclass"><data</tag>
+std::string StringUtil::MakeXMLwithclass(const std::string& tag, const std::string& data,
+                                         const bool& edit, const std::string& messageclass)
+{
+  std::string content = data;
+  if (edit) {
+    content = XMLstring(data); // edited to remove "<" characters etc
+  }
+  return "<"+tag+" class=\""+messageclass+"\">"+content+"</"+tag+">";
+}
+//--------------------------------------------------------------
+// <tag class="warningmessage"><data</tag>
+std::string StringUtil::MakeXMLwarning(const std::string& tag, const std::string& data,
+                                       const bool& edit)
+{
+  return MakeXMLwithclass(tag, data, edit, "warningmessage");
+}
+//--------------------------------------------------------------
 //! make XML tag <tag>value</tag>
 std::string StringUtil::MakeXMLtag(const std::string& tag, const int& value,
                                    const int& w)
@@ -454,7 +472,8 @@ std::string StringUtil::ToUpper(const std::string& s)
 }
 //--------------------------------------------------------------
 std::string StringUtil::BuftoLine(const std::string buf)
-// Extract line from buffer, removing any trailing Cr or Lf characters
+// Extract line from buffer, removing any leading or trailing
+// Cr or Lf characters
 {
   std::string line(buf);
   size_t ll = line.size();
@@ -462,7 +481,12 @@ std::string StringUtil::BuftoLine(const std::string buf)
     if (line[ll-1] != '\n' && line[ll-1] != '\r') {break;}
     ll--;
   }
-  return line.substr(0,ll);
+  size_t l0 = 0;
+  while (l0 < ll) {
+    if (line[l0] != '\n' && line[l0] != '\r') {break;}
+    l0++;
+  }
+  return line.substr(l0,ll);
 }
 //--------------------------------------------------------------
 std::string StringUtil::FormatSaveVector(const std::vector<int> ivec)

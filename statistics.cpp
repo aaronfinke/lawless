@@ -674,7 +674,6 @@ namespace scala {
         // Counts for completeness & multiplicity
         //  Total in sphere allowing for symmetry multiplicity
         NumRefSphere[mres] += multcy;      // Total unique in sphere
-
         if (Centric) {
           NumCentric[mres]++;
         } else {

@@ -86,9 +86,10 @@ Token_value SCALES::parse(std::istringstream& input_stream)
                            // = -1 maybe expecting number
   int batch_spec = 0;
   int bfac_spec = 0;
-  int secabs = 0;         // SECONDARY or ABSORPTION given
-                          // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
-  int sectype = 0;        // = 0 None, = +1 SECONDARY, -1 ABSORPTION
+  int secabs = 0;       // SECONDARY or ABSORPTION given
+                        // = +1 looking for Lmax, = +2 Lmax read, = +3 LmaxOdd read
+  int seclmaxset = 0;    // = 0 not set, = +1 lmax set, = -2 lmax & lmaxodd set
+  int sectype = 0;       // = 0 None, = +1 SECONDARY, -1 ABSORPTION
   int tile = -1;
 
   while (get_token(input_stream) != ENDLINE) {
@@ -224,12 +225,15 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         //  force even
         spec.lmax = (spec.lmax/2)*2;
         secabs = +2;
+        seclmaxset = +1;
+        expectingNumber = -1;
       } else if (secabs == +2) {
         // Read LmaxOdd
         spec.lmaxodd = Nint(number_value);
         //  force odd & < lmax
         spec.lmaxodd = ((Min(spec.lmaxodd, spec.lmax)+1)/2)*2-1;
         secabs = +3;
+        seclmaxset = -1;
       } else if (tile == 0) {
         spec.ntilex = Nint(number_value);
         spec.ntiley = spec.ntilex;
@@ -244,7 +248,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         (keywords, "SCALES: invalid syntax");
     }
   }
-  if (secabs == +2) {
+  if (seclmaxset > 0) {
     // set lmaxodd if not defined & lmax is
     spec.lmaxodd = ((spec.lmax+1)/2)*2-1;
   }

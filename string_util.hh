@@ -70,6 +70,14 @@ static std::string valueSD(const double& v, const double& sd,
   static std::string MakeXMLtag(const std::string& tag, const std::string& data,
 				const bool& edit=true);
 //--------------------------------------------------------------
+//! make XML <tag class="messageclass"><data</tag>
+  static std::string MakeXMLwithclass(const std::string& tag, const std::string& data,
+				      const bool& edit, const std::string& messageclass);
+//--------------------------------------------------------------
+//! make XML tag <tag class="warningmessage"><data</tag>
+  static std::string MakeXMLwarning(const std::string& tag, const std::string& data,
+				    const bool& edit=true);
+//--------------------------------------------------------------
 //! make XML tag <tag>value</tag>
   static std::string MakeXMLtag(const std::string& tag, const int& value,
 				const int& w=10);

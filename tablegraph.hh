@@ -93,6 +93,45 @@ private:
   void FixYrangeRH(const bool& ZeroY);
 };
 
+
+class TablegraphLineStyle {
+  //! Linestyles are specified as a string, one of 
+  //! 'Solid','Dashed','Dash-dot','Dotted','Blank' (case-insensitive)
+  //! corresponding to: '-','--','-.',':','.' as used by Pimple
+  //!  also line width (integer) and colour 
+  //! Colour: allowed values red, green, blue, yellow, magenta, cyan, black,
+  //! or r, g, b, y, m, c, k,
+  //! or any other colour specification understood by matplotlib,
+  //! e.g. orange, #ff7700.
+public:
+  TablegraphLineStyle() : linesize(-1) {}
+  
+  TablegraphLineStyle(const std::string& colr, const std::string& linestyle="",
+		const int& linewidth=-1);
+  
+  void init(const std::string& colr="", const std::string& linestyle="",
+	    const int& linewidth=-1);
+
+  //! Set line type
+  void SetLine(const std::string& linestyle, const int& width=-1);
+  //! Set colour
+  void SetColour(const std::string& colr);
+
+  std::string colour() const {return colour_;}
+  std::string linestylevalue() const {return linestylevalue_;}
+  int linewidth() const {return linesize;}
+  
+  static std::string Style(const std::string& style);
+
+private:
+  std::string colour_;
+  // 'Solid','Dashed','Dash-dot','Dotted','Blank' as input
+  std::string slinestyle;
+  // The style of the line, allowed values for Pimple: '-','--','-.',':','.',
+  std::string linestylevalue_;
+  int linesize; // line width
+};
+
 // Definitions in TableGraphPlotline & TableGraphPlot follow Pimple,
 // though not all options are currently supported
 // Many defaults can be left blank
@@ -184,12 +223,7 @@ private:
   int symbolsize;
   bool symboledge;  // false for no black edge
 
-  std::string slinestyle; // 'Solid','Dashed','Dash-dot','Dotted','Blank'
-  // The style of the line, allowed values:
-  // '-','--','-.',':','.',
-  // corresponding to: 'Solid','Dashed','Dash-dot','Dotted','Blank'. 
-  std::string linestylevalue;
-  int linesize; // line width
+  TablegraphLineStyle tablegraphlinestyle;
 
   // Colour: allowed values red, green, blue, yellow, magenta, cyan, black,
   // or r, g, b, y, m, c, k,
@@ -207,6 +241,35 @@ private:
   // convert string to LineStyle
   static std::string Style(const std::string& style);
 
+};
+
+class TablegraphLine {
+  // Just a line in the plot (XML only)
+public:
+  TablegraphLine(const std::pair<double, double> XY1,
+		 const std::pair<double, double> XY2,
+		 const int& fw, const int& fd,
+		 const std::string& colr="",
+		 const std::string& linestyle="",
+		 const int& linewidth=-1);
+
+  void init(const std::pair<double, double> XY1,
+	    const std::pair<double, double> XY2,
+	    const int& fw, const int& fd,
+	    const std::string& colr="",
+	    const std::string& linestyle="",
+	    const int& linewidth=-1);
+
+  //! Return XML format for Pimple
+  std::string XMLformat() const;
+  
+private:
+  std::pair<double, double> xy1; // line start
+  std::pair<double, double> xy2; // line end
+
+  int fw_, fd_;
+  
+  TablegraphLineStyle tablegraphlinestyle;
 };
 
 //! A plot contains one or more plotlines, etc, and styles
@@ -264,6 +327,9 @@ public:
   //! Add a line to the plot
   void AddLine(const TableGraphPlotline& pltline);
 
+  //! Add a simple line to the plot
+  void AddPlainLine(const TablegraphLine& plainline);
+
   //! Return XML format for Pimple
   std::string XMLformat() const;
   //! Return format for loggraph
@@ -295,7 +361,9 @@ private:
 
   std::string formatXbreaks() const;
 
+  std::vector<TablegraphLine> lines; // plain lines
 };
+
 
 //! A class to encapsulate a data table and derived graphs
 class TableGraph
@@ -431,7 +499,6 @@ private:
     int type;      // type: = 0 int; = +1 float
     std::string fmt;
   };
-
 
   std::string  title;             // table title
   std::string id;                 // an id string for this graph
