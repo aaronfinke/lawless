@@ -231,10 +231,13 @@ namespace MtzIO
     MTZBAT* previous_batch;
     int nbat = 0;
 
+    std::vector<Batch> batches = hkl_list.Batches();  //  all batches
+
     for (int jbat=0;jbat<hkl_list.num_batches();jbat++)  {
-      // Only output accepted batches, but keep empty ones
-      if (hkl_list.batch(jbat).Accepted()) {
-        //      if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
+      // Only output accepted batches in appropiriate dataset, but keep empty ones
+      if (batches[jbat].Accepted() &&
+                  (datasetIndex < 0 || batches[jbat].datasetindex() == datasetIndex)) {
+      //      if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
         batch = MtzMallocBatch(); // make space for batch data
 
         if (nbat == 0) {
@@ -246,7 +249,7 @@ namespace MtzIO
         nbat++;
         previous_batch = batch;
 
-        *batch = hkl_list.batch(jbat).batchdata(); // copy data
+        *batch = batches[jbat].batchdata(); // copy data
         // reset time limits if no time data
         if (!col_sel.is_time) {
           batch->time1 = 0.0;
