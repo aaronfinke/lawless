@@ -407,7 +407,9 @@ namespace scala {
       double sumw;
       scale = smoothscale.ValueWeight(phi, w, sumw);
       for (int i=0;i<nscales;i++) {
-        dgdp[i] = w[i]/sumw;
+        if (sumw > 0.0) {
+          dgdp[i] = w[i]/sumw;
+        }
       }
     } else {
       // No derivative, just the scale
@@ -862,7 +864,9 @@ namespace scala {
       double sumw;
       gbfac = exp(0.5 * invresolsq * smoothB.ValueWeight(time, w, sumw));
       for (int i=0;i<nbfac;i++) {
-        dgdp[i] = 0.5 * invresolsq * gbfac * w[i]/sumw;
+        if (sumw > 0.0) {
+          dgdp[i] = 0.5 * invresolsq * gbfac * w[i]/sumw;
+        }
       }
     } else {
       // No derivative, just the B-factor scale

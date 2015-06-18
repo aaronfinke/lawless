@@ -65,6 +65,7 @@ namespace scala {
             Rtype sigI0 = this_obs.sigI(); // sigI before scaling
             Rtype sigI  = this_obs.ksigI(); // sigI after scaling & correction
             ASSERT (sigI > 0.0);
+
             Rtype gscale = this_obs.Gscale(); // inverse scale g
             Rtype varg = this_obs.varGscale(); // inverse scale g
 
