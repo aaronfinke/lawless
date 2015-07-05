@@ -1413,6 +1413,17 @@ namespace scala {
     CheckAllRuns(); // finish run specification
   }
   //--------------------------------------------------------------
+  void hkl_unmerge_list::ResetRuns(const run_controls& Runcontrols)
+  {
+    run_flags = Runcontrols;
+    SetRunInput(); // reset runs from input specifications
+    CheckAllRuns(); // finish run specification
+    run_set = 0;
+    status = SORTED;
+    prepare();
+    sum_partials();
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::AutoSetRun()
   // Divide batches up into runs
   {
@@ -1612,9 +1623,62 @@ namespace scala {
     return -1; // not found
   }
   //--------------------------------------------------------------
+  void hkl_unmerge_list::SetRunByFile()
+  // Set up runs from input specification
+  {
+    // Clear run specs
+    runlist.clear();
+    // Clear dataset run indices
+    for (size_t id=0;id<datasets.size();id++) {
+      datasets[id].ClearRunList();
+    }
+    int currentfilenumber = -1; // initial
+    Run ThisRun;
+    int runnum = -1;
+
+    for (size_t i=0;i<batches.size();++i) { //  loop batches
+      int filenumber = batches[i].FileNumber();
+      if (filenumber != currentfilenumber) {
+        if (currentfilenumber >= 0) {
+          // not first, so close this one
+          ThisRun.SortList();
+          runlist.push_back(ThisRun);
+        }
+        // start new run
+        ThisRun = Run(batches[i].datasetindex(), batches[i].DatasetID(),
+                          batches[i].PXDname());
+        runnum = runlist.size();
+        ThisRun.BatchNumberOffset() = batches[i].BatchNumberOffset();
+        ThisRun.FileNumber() = filenumber;
+        ThisRun.RunNumber() = runnum;
+        int latnum = batches[i].LatticeNumber();
+        ThisRun.SetLatticeNumber(latnum);
+        currentfilenumber = filenumber;
+      }
+      ThisRun.AddBatch(batches[i].num(), batches[i].Accepted());
+      if (batches[i].Accepted()) {
+        // Store run index in batch: this = current size of runlist
+        batches[i].SetRunIndex(runnum);
+      } else {
+        // Store null run index in batch
+        batches[i].SetRunIndex(-1);
+      }
+
+    }  // end loop batches
+
+    if (ThisRun.Nbatches() > 0) {
+      ThisRun.SortList();
+      runlist.push_back(ThisRun);  // close last one
+    }
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::SetRunInput()
   // Set up runs from input specification
   {
+    if (run_flags.Auto()) {return;}  // default AUTO
+    if (run_flags.Byfile()) {SetRunByFile(); return;}  // BYFILE
+
+    // batch ranges
     // List of run numbers specified
     std::vector<int> runnumberlist = run_flags.RunNumberList();
     int nruns = runnumberlist.size();
@@ -2577,9 +2641,16 @@ namespace scala {
     ResoLimRange.SetRange(LowReso, HighReso, Nobservations);
   }
   //--------------------------------------------------------------
+  void hkl_unmerge_list::SetResoLimits(const ResoRange& resRange)
+  {
+    // resolution range limits & bins
+    ResoLimRange = resRange;
+    ResoLimRange.SetRange(Nobservations);
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::ResetResoLimits()
   {
-    // resolution range limits rest to file range
+    // resolution range limits reset to file range
     ResoLimRange = ResolutionRange;
   }
   //--------------------------------------------------------------

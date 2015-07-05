@@ -158,7 +158,8 @@ class FormatOutput {
 public:
   //! just add leading tabs to string and newline if not there already
   /*! usually redundant */
-  static std::string logTab(const int& tab, const std::string& text);
+  static std::string logTab(const int& tab, const std::string& text,
+			    const bool& add_return=true);
   //! format using sstringf
   static std::string logTabPrintf(const int& tab,
 				  const char* formattext,...);

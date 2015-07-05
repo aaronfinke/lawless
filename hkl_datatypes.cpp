@@ -86,26 +86,69 @@ namespace scala
   }
   //--------------------------------------------------------------
   ReindexOp::ReindexOp(const std::string& Operator)
-  // Construct from string eg "2h+k,k,l"
+  // Construct from string eg "2h+k,k,l" (or "x-y,-y,-z")
   {
     float rt44[10][4][4];  // Allocate excess space in case of error
     int Noper = CSym::symfr_driver(Operator.c_str(), rt44);
-    if (Noper != 1)
+    if (Noper != 1) {
       Message::message(Message_fatal
                        ("ReindexOp: syntax error in operator; "+Operator));
+    }
+    // Check whether real or reciprocal space (xyz or hkl)
+    bool realspace = realSpaceOperator(Operator);
 
     Mat33<double> H;
     Vec3<double> v;
-    for (int i=0;i<3;i++)
-      {
-        for (int j=0;j<3;j++)
-          // We want the transpose of the matrix since reindex operator H
-          // applies to index h such that h'T = hT H
-          {H(j,i) = rt44[0][i][j];}
-        v[i] = rt44[0][i][3];
+    for (int i=0;i<3;i++) {
+      for (int j=0;j<3;j++) {
+        // if reciprocal space (normal),
+        // we want the transpose of the matrix since reindex operator H
+        // applies to index h such that h'T = hT H
+        if (realspace) {
+          H(i,j) = rt44[0][i][j];
+        } else {
+          H(j,i) = rt44[0][i][j];
+        }
       }
+      v[i] = rt44[0][i][3];
+    }
+    //^^
+    //std::cout << "H\n"<<H.format()<<"\n";
+    //std::cout << "v\n"<<v.format()<<"\n";
+
+    if (realspace && (v != Vec3<double>(0.0,0.0,0.0))) {
+      Message::message(Message_fatal
+       ("ReindexOp: real-space operatorcannot have translation; "+Operator));
+    }
+
     rot() = H;
     trn() = v;
+  }
+  //--------------------------------------------------------------
+  bool ReindexOp::realSpaceOperator(const std::string& Operator) const
+  // true if real space
+  {
+    int real = -1;
+    bool fail = false;
+    for (size_t k=0; k<Operator.size(); k++) {
+      char c = tolower(Operator[k]);
+      if (c == 'h' || c == 'k' || c == 'l') {
+        // reciprocal
+        if (real == +1)
+          {fail = true;} // mixed
+        else {real = 0;}
+      } else if (c == 'x' || c == 'y' || c == 'z') {
+        // real space
+        if (real == 0)
+          {fail = true;} // mixed
+        else {real = +1;}
+      }
+    }
+    if (fail || real < 0) {
+      Message::message(Message_fatal
+      ("ReindexOp: syntax error, mixed real & reciprocal space; "+Operator));
+    }
+    return (real > 0);
   }
   //--------------------------------------------------------------
   std::string ReindexOp::as_hkl() const

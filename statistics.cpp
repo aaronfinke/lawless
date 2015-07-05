@@ -890,6 +890,7 @@ namespace scala {
                                       MinimumIoverSigmaBatch,
                                       ResolutionLimit::NONE);
         maxresbatch[ib] = batchreslimit.HighResolution();
+        //std::cout <<"Batchlimit " << ib<<" "<<maxresbatch[ib]<<"\n";
       } else {
         maxresbatch[ib] = 0.0;
       }

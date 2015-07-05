@@ -185,6 +185,8 @@ namespace scala
   private:
     bool strict;
     double deviation;
+
+    bool realSpaceOperator(const std::string& Operator) const;
   };
   //--------------------------------------------------------------
   //! Metric tensor  (from Clipper with extensions)

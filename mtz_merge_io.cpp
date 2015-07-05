@@ -79,13 +79,8 @@ namespace MtzIO {
     merged = true;
     std::vector<clipper::String> ColLab = mtzin.column_labels();
     std::vector<std::vector<clipper::String> > LabelTypes(ColLab.size());
-    bool dummy;
-    ClipperLabelPair DummyColumns =
-      ProcessLabels(ColLab, column_labels(), dummy);
-    if (DummyColumns.path == "") {
-      // File is unmerged
-      merged = false;
-    }
+    ProcessLabels processlabels(ColLab, column_labels());
+    merged = processlabels.merged();
     mtzin.close_read();
     bool status = merged;
     return status;
@@ -161,12 +156,14 @@ namespace MtzIO {
     clipper::ftype ResoLimit = file_sel.reslimits().ResHigh();
     clipper::HKL_info hkl_info_list;
     clipper::HKL_data<clipper::data32::I_sigI> IsigData;
-    ClipperLabelPair labelthings = ReadData(mtzin, ResoLimit, column_list,
-                                            hkl_info_list, IsigData,
+    clipper::HKL_data<clipper::data32::I_sigI_ano> IsigDataAnom;
+
+    bool anom;
+    ClipperLabelList labelthings = ReadData(mtzin, ResoLimit, column_list,
+                                            hkl_info_list, anom, IsigData, IsigDataAnom,
                                             mtzdataset, (verbose>0), output);
-
-    bool NoSigI = (labelthings.label2 == "");  // true if no sigma column
-
+    // IsigDataAnom populated if anom = true, IsigData always populated
+    bool NoSigI = labelthings.nosig;  // true if no sigma column
     // Now construct hkl_list
     std::string title = mtzin.title();
     int Nref = hkl_info_list.num_reflections();
@@ -212,31 +209,69 @@ namespace MtzIO {
     // Set start
     clipper::HKL_info::HKL_reference_index hkl_index = IsigData.first();
     at_start = true;
-    IsigI Is;
+    clipper::data32::I_sigI Isig;
+    clipper::data32::I_sigI_ano IsigAnom;
+    //IsigI Is;
     Rtype I, Ipr;
     Rtype sigI = 1.0;   // Dummy sigma = 1
     Rtype sigIpr = 1.0;
 
-    while (next(hkl_index)) {
-      Is = IsigData[hkl_index];
-      if (!Is.missingI()) {  // I column OK
-        if (Is.I() > 0.0) {
-          scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
+    while (next(hkl_index)) {  // increments index if not at_start
+      scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
+      if (anom) {
+        IsigAnom = IsigDataAnom[hkl_index];
+        //      std::cout << "makelist " << hkl.format() <<" "<<IsigDataAnom[hkl_index].I()
+        //                << " " << IsigData[hkl_index].I()<<"\n"; //^^
+        if (!clipper::Util::is_null(IsigAnom.I_pl())) { // I+ not null
           scala::Hkl hred = hkl_list.symmetry().put_in_asu(hkl, isym);
-          I = Is.I();
-          Ipr = Is.I();
+          I = IsigAnom.I_pl();
+          Ipr = I;
           if (!NoSigI) {
-            sigI = Is.sigI();
-            sigIpr = Is.sigI();
+            sigI = IsigAnom.sigI_pl();
+            sigIpr = sigI;
           }
           // Store this observation
           hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
                               Xdet, Ydet, phi, time,
                               fraction_calc, width, LP,
                               Npart, Ipart, ObsFlag);
-          InvResRange.update( hkl_index.invresolsq());  //smin, smax
         }
+        // I- if not centric
+        if (!(spacegroup.hkl_class(hkl.HKL()).centric())) {
+          if (!clipper::Util::is_null(IsigAnom.I_mi())) { // I- not null
+            scala::Hkl hred = hkl_list.symmetry().put_in_asu(-hkl, isym);  // -hkl
+            I = IsigAnom.I_mi();
+            Ipr = I;
+            if (!NoSigI) {
+              sigI = IsigAnom.sigI_mi();
+              sigIpr = sigI;
+            }
+            // Store this observation
+            hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                                Xdet, Ydet, phi, time,
+                                fraction_calc, width, LP,
+                                Npart, Ipart, ObsFlag);
+          }
+        }
+      } else { // no anomalous
+        Isig = IsigData[hkl_index];
+        if (!clipper::Util::is_null(Isig.I_pl())) { // I+ not null
+          scala::Hkl hred = hkl_list.symmetry().put_in_asu(hkl, isym);
+          I = Isig.I_pl();
+          Ipr = I;
+          if (!NoSigI) {
+            sigI = Isig.sigI_pl();
+            sigIpr = sigI;
+          }
+          // Store this observation
+          hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                              Xdet, Ydet, phi, time,
+                              fraction_calc, width, LP,
+                              Npart, Ipart, ObsFlag);
+        }
+
       }
+      InvResRange.update( hkl_index.invresolsq());  //smin, smax
     }
     //
     bool sorted = true;
@@ -254,19 +289,23 @@ namespace MtzIO {
     return FileRead(true, true, true, 0);
   }
   //--------------------------------------------------------------
-  ClipperLabelPair MtzMrgFile::ReadData(clipper::CCP4MTZfile& mtzin,
-                            const double& ResoLimit,
-                            const MtzIO::column_labels& column_list,
-                            clipper::HKL_info& hkl_info_list,
-                    clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
-                            clipper::MTZdataset& mtzdataset,
-                            const bool& verbose,
-                            std::string& output)
+  ClipperLabelList MtzMrgFile::ReadData(clipper::CCP4MTZfile& mtzin,
+                   const double& ResoLimit,
+                   const MtzIO::column_labels& column_list,
+                   clipper::HKL_info& hkl_info_list,
+                   bool& anom,
+                   clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
+                   clipper::HKL_data<clipper::data32::I_sigI_ano>& IsigDataAnom,
+                   clipper::MTZdataset& mtzdataset,
+                   const bool& verbose,
+                   std::string& output)
   // Read all selected data from MTZ file into clipper objects
-  // hkl_info_list, IsigData, mtzdataset
-  // Returns label things
+  // hkl_info_list,  mtzdataset,
+  // data: always fill IsigData (no anomalous), set missing sigmas to 1.0
+  //    if anomalous data present in file, also fill IsoDataAnom
+  // sets setanom = true if anomalous present
+  // Returns label list
   {
-    ///    output = "";
     ResMax = mtzin.resolution().limit();
     if (ResoLimit > 0.0)
       ResMax = Max(ResoLimit, ResMax);
@@ -274,7 +313,6 @@ namespace MtzIO {
     // Set hkl list to desired resolution
     // reflections outside limits will be discarded
     hkl_info_list =
-      ///      clipper::HKL_info(mtzin.spacegroup(), mtzin.cell(),
       clipper::HKL_info(spacegroup, mtzin.cell(),
                         clipper::Resolution(ResMax));
 
@@ -287,23 +325,23 @@ namespace MtzIO {
       }
     }
 
-    bool IorF;
-    ClipperLabelPair labelthings
-      = ProcessLabels(mtzin.column_labels(), column_list, IorF);
+    ProcessLabels processlabels(mtzin.column_labels(), column_list);
+    bool IorF = processlabels.IorF();
+    anom =  processlabels.anom();
 
-    clipper::String LabColI  = labelthings.label1;
-    clipper::String LabColsigI  = labelthings.label2;
-    bool NoSigI = (LabColsigI == "");  // true if there is no sigI column
+    ClipperLabelList labelthings = processlabels.clipperlabellist();
+
+    bool NoSigI = labelthings.nosig;  // true if there is no sigI column
 
     if (verbose) {
       if (IorF) {
         // column found is F
-        output += FormatOutput::logTab(1, "Columns for F, sigF (squared to I): "+
-                      LabColI+"  "+LabColsigI+"\n");
+        output += FormatOutput::logTab(1, "Columns for amplitudes F (squared to I): "+
+                                       labelthings.formatlabels() +"\n");
       } else {
         // column found is I
-        output += FormatOutput::logTab(1, "Columns for I, sigI: "+
-                      LabColI+"  "+LabColsigI+"\n");
+        output += FormatOutput::logTab(1, "Columns for intensities I: "+
+                                       labelthings.formatlabels()+"\n");
       }
     }
 
@@ -312,43 +350,101 @@ namespace MtzIO {
 
     //......................................................
     // Read header info & hkl list
-    mtzin.import_hkl_info(hkl_info_list);
+    mtzin.import_hkl_info(hkl_info_list, false);
     IsigData.init(hkl_info_list, hkl_info_list.cell());
+    if (anom) { // initialise if anomalous data is present
+      IsigDataAnom.init(hkl_info_list, hkl_info_list.cell());
+    }
+    clipper::HKL_info::HKL_reference_index ih;
     if (IorF) {
       // File contains F, square all values
       // I = F^2
       // sigI = 2 F sigF  + sigF^2
-      clipper::HKL_data<clipper::data32::F_sigF> FsigData(hkl_info_list); // temporary for F
+      // temporary for F
+      clipper::HKL_data_base* FsigData = NULL;  // pointer to the data, with
+      if (anom) {
+        FsigData = new clipper::HKL_data<clipper::data32::F_sigF_ano> (hkl_info_list);
+      } else {
+        FsigData = new clipper::HKL_data<clipper::data32::F_sigF> (hkl_info_list);
+      }
       // Read in data
-      mtzin.import_hkl_data(FsigData, labelthings.path);
+      mtzin.import_hkl_data(*FsigData, labelthings.path);
       mtzin.close_read();
 
-      clipper::HKL_info::HKL_reference_index ih;
       clipper::data32::I_sigI Isig;
+      clipper::data32::I_sigI_ano IsigAnom;
       double F;
       double sigF = 1.0;
-      const double iscale = 0.01;  // scale down F^2
+      const double iscale = 0.1;  // scale down F^2, by iscale^2
+      double sigI = 1.0/(iscale*iscale);
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
-        // OK if
-        // 1. NoSigI && F OK, or
-        // 2. F OK
-        if (!clipper::Util::is_null(FsigData[ih].f())) { // F not null
-          sigF = 1.0;
-          if (!NoSigI && !clipper::Util::is_null(FsigData[ih].sigf())) {
-            sigF = FsigData[ih].sigf();  // sigF if present and OK
+        Isig.set_null();
+        IsigAnom.set_null();
+        bool OK = false;
+        // OK if  1. NoSigI && F OK, or  2. F OK
+        if (anom) {
+          // F+, sigF+, F-, sigF-
+          clipper::data32::F_sigF_ano fsig =
+            (*dynamic_cast<clipper::HKL_data<clipper::data32::F_sigF_ano>*>(FsigData))[ih];
+          if (!clipper::Util::is_null(fsig.f_pl())) { // F not null
+            F = fsig.f_pl();
+            IsigAnom.I_pl() = F * F;
+            if (!NoSigI) {
+              sigF = fsig.sigf_pl();
+              sigI = 2.*F*sigF + sigF*sigF;
+            }
+            IsigAnom.sigI_pl() = sigI;
+            OK = true;
           }
-          F = FsigData[ih].f();
-          Isig.I() = F * F;
-          Isig.sigI() = 2.*F*sigF + sigF*sigF;
-          Isig.scale(iscale);
-          IsigData[ih] = Isig;
+          // set I-
+          if (!clipper::Util::is_null(fsig.f_mi())) { // F not null
+            F = fsig.f_mi();
+            IsigAnom.I_mi() = F * F;
+            if (!NoSigI) {
+              sigF = fsig.sigf_mi();
+              sigI = 2.*F*sigF + sigF*sigF;
+            }
+            IsigAnom.sigI_mi() = sigI;
+            OK = true;
+          }
+          if (OK) {
+            IsigAnom.scale(iscale);
+            IsigDataAnom[ih] = IsigAnom;
+            // set IsigData as well
+            IsigData[ih] = clipper::data32::I_sigI(IsigAnom.I(), IsigAnom.sigI());
+          }
+        } else { // no anomalous
+          clipper::data32::F_sigF fsig =
+            (*dynamic_cast<clipper::HKL_data<clipper::data32::F_sigF>*>(FsigData))[ih];
+          if (!clipper::Util::is_null(fsig.f())) { // F not null
+            F = fsig.f();
+            Isig.I() = F * F;
+            if (!NoSigI) {
+              sigF = fsig.sigf();
+              sigI = 2.*F*sigF + sigF*sigF;
+            }
+            Isig.sigI() = sigI;
+            Isig.scale(iscale);
+            IsigData[ih] = Isig;
+          }
         }
       }
     } else {
       // Read in data
-      mtzin.import_hkl_data(IsigData, labelthings.path);
-      mtzin.close_read();
+      if (anom) {
+        mtzin.import_hkl_data(IsigDataAnom, labelthings.path);
+        mtzin.close_read();
+        // Populate IsigData array as well
+        for (ih = IsigDataAnom.first(); !ih.last(); ih.next()) {
+          if (!clipper::Util::is_null(IsigDataAnom[ih].I())) { // I not null
+            IsigData[ih] = clipper::data32::I_sigI(IsigDataAnom[ih].I(), IsigDataAnom[ih].sigI());
+          }
+        }
+      } else {
+        mtzin.import_hkl_data(IsigData, labelthings.path);
+        mtzin.close_read();
+      }
     }
     return labelthings;
   }
@@ -358,9 +454,10 @@ namespace MtzIO {
   // Next IsigI, returns false if end of list
   bool MtzMrgFile::next(clipper::HKL_info::HKL_reference_index& hkl_index)
   {
-    if (!at_start)
+    if (!at_start) {
       // increment index
       hkl_index.next();
+    }
     at_start = false;
     if (hkl_index.last()) return false;
     return true;

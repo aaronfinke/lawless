@@ -109,9 +109,9 @@ std::string EProb::format() const
     s += "     Maximum and minimum normalised F (ie E) for centric reflection "+
       StringUtil::ftos(emaxcentric,10,2)+", "+
       StringUtil::ftos(-NEGATIVE_EMAX_RATIO*emaxcentric,10,2)+"\n";
-    float p = exp(-emaxacen*emaxacen);
-    s += "     Minimum probability before reflection is rejected  "+
-      StringUtil::etos(p,10,3)+"\n";
+    //    float p = exp(-emaxacen*emaxacen);
+    //    s += "     Minimum probability before reflection is rejected  "+
+    //      StringUtil::etos(p,10,3)+"\n";
     return s;
   } else {
     return "No maximum E test\n";

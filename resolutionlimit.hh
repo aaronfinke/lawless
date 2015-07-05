@@ -70,7 +70,7 @@ namespace scala {
     //!          +1 all scores above limit
     //!           0 intermediate limit set
     //!          -2 unset because of no data
-    //!          -3 unset at all 
+    //!          -3 unset at all
     int Status() const { return status;}
 
     //! true if there is a any data
@@ -107,7 +107,7 @@ namespace scala {
 
     double slope, intercept;  // for straight-line fit
 
-    double fit(const std::vector<double> score,
+    double fit(const std::vector<double>& score,
 	       const ResoRange& ResRange);
 
     int rejectoutliers(std::vector<ResolutionData>& data,

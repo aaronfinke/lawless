@@ -587,10 +587,11 @@ std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const 
 }
 //======================================================================
 //! just add leading tabs to string and newline if not there already
-std::string FormatOutput::logTab(const int& tab, const std::string& text)
+std::string FormatOutput::logTab(const int& tab, const std::string& text,
+                                 const bool& add_return)
 {
   std::string nl;
-  if (text[text.size()-1] != '\n') nl = "\n";
+  if (add_return && (text[text.size()-1] != '\n')) nl = "\n";
   return std::string(3*tab, ' ') + text + nl;
 }
 //--------------------------------------------------------------

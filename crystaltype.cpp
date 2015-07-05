@@ -18,29 +18,24 @@ namespace scala
                                            std::string& outstring)
   //! If sgname corresponds to a rhombohedral lattice, return in
   //! hexagonal setting unless specified as R xxx :R
-  //! Print warning message with leading tag
+  //! Print get warning message with leading tag
   {
     char initialLatType = sgname[0];
     std::string revisedname = SGnameHtoR(sgname, 'H');  // H unless :R
     char newLatType = revisedname[0];
     if (initialLatType == 'R' && newLatType != 'R') {
-      outstring = FormatOutput::logTab(0,
-                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-                    tag+"\n   Rhombohedral group name "+sgname+
-                    " will be used in the hexagonal (H) setting "+revisedname+
-                    "\n   To get the rhombohedral lattice setting, give name as "+
-                    SGnameHtoR(sgname,'R')+" :R\n$$\n");
+      outstring = tag+"\n   Rhombohedral group name "+sgname+
+        " will be used in the hexagonal (H) setting "+revisedname+
+        "\n   To get the rhombohedral lattice setting, give name as "+
+        SGnameHtoR(sgname,'R')+" :R\n$$\n";
     } else if (initialLatType == 'R' && newLatType == 'R') {
-      outstring = FormatOutput::logTab(0,
-                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-                    tag+"\n   Rhombohedral group name "+sgname+
-                    " will be used in the rhombohedral setting "+revisedname+"\n$$\n");
+      outstring = tag+"\n   Rhombohedral group name "+sgname+
+        " will be used in the rhombohedral setting "+revisedname+"\n$$\n";
     } else if (newLatType == 'H') {
-      outstring = FormatOutput::logTab(0,
-                    std::string("\n$TEXT:Warning:$$ $$\nWARNING: ")+
-                    tag+"\n   Rhombohedral group name "+sgname+
-                    " will be used in the hexagonal [H] setting "+revisedname+"\n$$\n");
+      outstring = tag+"\n   Rhombohedral group name "+sgname+
+        " will be used in the hexagonal [H] setting "+revisedname+"\n$$\n";
     }
+
     return revisedname;
   }
   //--------------------------------------------------------------

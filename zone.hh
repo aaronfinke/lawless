@@ -133,6 +133,8 @@ namespace scala
     int NgridPoints() const {return npoint;}
     // Return number of contributions
     int Nobs() const;
+    //! return number of unique observations in axis, or total in glide zone
+    int NuniqObs() const;
     // Inverse resolution range
     Range InvResoRange() const {return InvResRange;}
     // Return minimum & maximum indices
@@ -286,6 +288,8 @@ namespace scala
     mutable std::vector<bool> prunedData;  // true if indices of reflection data are
                                          // systematically missing (eg only even orders)
                                          // so that the zone is indeterminate
+
+
 
   };   // Zone
   //================================================================

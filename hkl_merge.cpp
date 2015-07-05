@@ -80,8 +80,10 @@ namespace scala {
 
     clipper::MTZdataset mtzdataset;
     std::string outputstring;
+    bool anom;
+    clipper::HKL_data<clipper::data32::I_sigI_ano> dummy;
     mtzfilein.ReadData(mtzin, ResoLimit, column_list, hkl_info_list,
-                       IsigData, mtzdataset, verbose, outputstring);
+                       anom, IsigData, dummy, mtzdataset, verbose, outputstring);
     output.logTab(0,LOGFILE,outputstring);
 
     fcell = mtzfilein.Cell();

@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
     file_select file_sel(input,0);
 
     // Explicit run definition, if present
-    controls.runs.StoreRunBatchSelection(input.RunBatches());
+    controls.runs.StoreRunBatchSelection(input.Runsetselection());
     // Store input resolution ranges by run, if any set
     controls.runs.StoreResoByRun(input.GetResoByRun());
 

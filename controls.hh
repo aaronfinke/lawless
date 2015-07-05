@@ -7,6 +7,7 @@
 #include "observationflags.hh"
 #include "eprob.hh"
 #include "range.hh"
+#include "runthings.hh"
 
 namespace scala
 {
@@ -21,12 +22,9 @@ namespace scala
     int Status() const {return RunStatus;}
     // true if set up (auto or specified)
     bool Set() const {return (RunStatus >= 0);}
-    // return true if run specifications were given on input, 
-    // irrespective of whether they have been imposed yet or not
-    bool Explicit() const {return ((RunStatus == -2) || (RunStatus == +1));}
 
-    void StoreRunBatchSelection(const BatchSelection& runselection)
-    {batchrangesruns = runselection; RunStatus = -2;}
+    //! store explicit run selection options
+    void StoreRunBatchSelection(const RunSelection& runselection);
 
     //! return run number for batch, -1 if not in list, 0 if no selections
     int RunNumber(const int& batchnumber);
@@ -34,9 +32,20 @@ namespace scala
     //! return list of run numbers specified
     std::vector<int> RunNumberList() const;
 
-    //! return list of batch ranges for specified run
-    std::vector<IntRange> BatchRanges(const int& RunNumber)
-    {return batchrangesruns.BatchRanges(RunNumber);}
+    //! return list of batch ranges for specified run, or empty range for BYFILE or AUTO
+    std::vector<IntRange> BatchRanges(const int& RunNumber);
+
+    // return true if run specifications were given on input, 
+    // irrespective of whether they have been imposed yet or not
+    bool Explicit() const;
+
+    //! Return true if BYFILE
+    bool Byfile() const
+    {return (runsettype == RunSelection::BYFILE);}
+
+    //! Return true if AUTO
+    bool Auto() const
+    {return (runsettype == RunSelection::AUTO);}
 
     //! Store use run flags
     void StoreUseRun(const std::vector<bool>& userun) {
@@ -64,6 +73,7 @@ namespace scala
 
     // Batch selections for explicitly defined runs
     BatchSelection batchrangesruns;
+    RunSelection::RunSetType runsettype;
 
     std::vector<bool> userun_;  // runs to use, see ChooseRuns & SetRunsToUse
 

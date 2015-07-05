@@ -274,6 +274,7 @@ RUNSET::RUNSET() : CCP4base(), InputBase()
   //Add to CCP4base;
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
+  runsetselection.runsettype = scala::RunSelection::AUTO;
 }
 //--------------------------------------------------------------
 Token_value RUNSET::parse(std::istringstream& input_stream)
@@ -352,12 +353,14 @@ Token_value RUNSET::parse(std::istringstream& input_stream)
     //    ReportSyntaxError(keywords,"subkeyword BATCH or DATASET must be given");
   }
   if (all) {
-    batchranges.AddRange(0, 999999, fileSeries, runnum);
+    runsetselection.batchranges.AddRange(0, 999999, fileSeries, runnum);
+    runsetselection.runsettype = scala::RunSelection::EXPLICIT;
   } else if (brange) {
     if (bnum.size() != 2) {
       ReportSyntaxError(keywords,"batch range must be given as 'n1 TO n2'");
     }
-    batchranges.AddRange(bnum[0], bnum[1], fileSeries, runnum);
+    runsetselection.batchranges.AddRange(bnum[0], bnum[1], fileSeries, runnum);
+    runsetselection.runsettype = scala::RunSelection::EXPLICIT;
   } else {
     // List, fail must have range
     ReportSyntaxError(keywords,"batch range must be given as 'n1 TO n2'");

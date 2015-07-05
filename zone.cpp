@@ -738,7 +738,7 @@ namespace scala
   {
       std::vector<double> mnI(maxIndx+1, 0.0);
       std::vector<double> wt(maxIndx+1, 0.0);
-      std::vector<IsigI> Is(maxIndx+1);
+      std::vector<IsigI> Is(maxIndx+1, IsigI(0.0,0.0));
 
       for (size_t i=0;i<IdxIs.size();i++) {
         IsigI Isig = IdxIs[i].Isig;
@@ -765,7 +765,7 @@ namespace scala
     // For axes, "correct" each intensity by subtracting a fraction of neighbouring
     // intensities, if present, add into Fourier sums
     if (axis) {
-      // get average I for each index
+      // get average I for each index,
       averageIsigI = AverageI(IndxIsigI);
       std::vector<IndexIsigI> adjustedIndxIsigI(IndxIsigI.size());
       // Correct intensities
@@ -828,12 +828,11 @@ namespace scala
   void Zone::TestValidIndices() const
   {
     if ((axis && IndxIsigI.size() < 2) ||
-        (maxIndx <= minIndx))
-      {
-        valid = false;
-      }
-    else
+        (maxIndx <= minIndx)) {
+      valid = false;
+    } else {
       valid = true;
+    }
   }
   //--------------------------------------------------------------
   // Internal function to calculate scores
@@ -976,7 +975,7 @@ namespace scala
         // Check for strange values of the control mean, which probably indicate a systematic
         // non-random sample of indices, eg all odd ones already eliminated
         if (DEBUG) {
-          std::cout << "ZoneCalc "
+          std::cout << "ZoneCalc " << i << " "
                     << controlsdv[i] << " " << controlmean[i]
                     << "  V[i] = " << V[i] << "\n";
         }
@@ -1214,6 +1213,29 @@ namespace scala
     return fsum.Nobs();
   }
   //--------------------------------------------------------------
+  int Zone::NuniqObs() const
+  //! return number of unique observations in axis, or total in glide zone
+  {
+    if (axis) {
+      // Con't use averageIsigI as it may not be set up
+      if (IndxIsigI.size() == 0) {
+        clipper::Message::message(clipper::Message_fatal
+                                  ("Zone::NuniqObs no data"));
+      }
+      std::vector<int> counts(maxIndx+1, 0);
+      for (size_t i=0;i<IndxIsigI.size();i++) {
+        int j = std::abs(IndxIsigI[i].index);
+        counts.at(j)++;
+      }
+      int nuniq = 0;
+      for (size_t k=0; k<counts.size(); k++) {
+        if (counts[k] > 0) {nuniq++;}
+      }
+      return nuniq;
+    }
+    return fsum.Nobs(); // glide
+  }
+  //--------------------------------------------------------------
   // Return probability at each grid point
   std::vector<double> Zone::p() const
   {
@@ -1221,33 +1243,35 @@ namespace scala
     return Pfor;
   }
   //--------------------------------------------------------------
-  // Return list of indices
+  // Return list of unique indices
   std::vector<int> Zone::Indices() const
   {
     std::vector<int> IndxList;
     TestValidIndices();
     if (! valid) return IndxList;
-    if (axis)
-      {
-        if (IndxIsigI.size() > 1)
-          {
-            for (size_t i=0;i<IndxIsigI.size();i++)
-              {
-                IndxList.push_back(IndxIsigI[i].index);
-              }
-          }
+    if (axis) {
+      if (IndxIsigI.size() == 0) {
+        clipper::Message::message(clipper::Message_fatal
+                                  ("Zone::Indices no data"));
       }
-    else
-      {
-        if (maxIndx > minIndx)
-          // only if more than one index
-          {
-            for (int i=minIndx;i<=maxIndx;i++)
-              {
-                IndxList.push_back(i);
-              }
-          }
+      std::vector<int> counts(maxIndx+1, 0);
+      for (size_t i=0;i<IndxIsigI.size();i++) {
+        int j = std::abs(IndxIsigI[i].index);
+        counts.at(j)++;
       }
+      for (size_t k=0; k<counts.size(); k++) {
+        if (counts[k] > 0) {
+          IndxList.push_back(int(k));
+        }
+      }
+    } else { // glide
+      if (maxIndx > minIndx) {
+        // only if more than one index
+        for (int i=minIndx;i<=maxIndx;i++) {
+          IndxList.push_back(i);
+        }
+      }
+    }
     return IndxList;
   }
   //--------------------------------------------------------------

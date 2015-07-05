@@ -149,30 +149,71 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
-  std::string Run::formatPrintBrief(const std::vector<Dataset>& datasets) const
+  //! return list of batch number ranges
+  std::vector<scala::IntRange> Run::BatchNumberRanges() const
   {
-    // Only list accepted batches
-    std::string s;
-    int firstbatch = -1;;
-    int lastbatch = -1;
-    for (size_t i=0;i<batch_number_list.size();++i) {
-      if (batch_number_list[i].second) {
-        firstbatch = batch_number_list[i].first;
-        break;
-      }
-    }
-    if (firstbatch >= 0) {
-      for (int i=int(batch_number_list.size())-1;i>=0;i--) {
-        if (batch_number_list[i].second) {
-          lastbatch = batch_number_list[i].first;
-          break;
+    std::vector<scala::IntRange> ranges;
+    int i1 = -1;
+    int i2;
+    for (size_t ib=0;ib<batch_number_list.size();++ib) { // loop batches
+      if (batch_number_list[ib].second) {
+        if (i1 < 0) { // first
+          i1 = batch_number_list[ib].first;
+          i2 = i1;
+        } else { // not first
+          if ((batch_number_list[ib].first - i2) == +1) {
+            // contiguous batch numbers
+            i2 = batch_number_list[ib].first;
+          } else {
+            // break in batch number series, batches i1 to i2
+            ranges.push_back(IntRange(i1,i2));
+            i1 = batch_number_list[ib].first;
+            i2 = i1;
+          }
         }
       }
+    } // end loop batches
+    ranges.push_back(IntRange(i1,i2));
+    return ranges;
+  }
+  //--------------------------------------------------------------
+  std::string Run::formatPrintBrief() const
+  {
+    // Only list accepted batches
+    std::vector<scala::IntRange> batchnumberranges = BatchNumberRanges();
 
-      s = FormatOutput::logTabPrintf(2,
-                                     "Run number: %3d consists of batches %6d to %6d",
-                                     runnumber,
-                                     firstbatch, lastbatch);
+    std::string s;
+
+    if (batchnumberranges.size() > 0) {
+      for (size_t i=0;i<batchnumberranges.size();++i) {
+        if (s != "") s += ", ";
+        s += StringUtil::Strip(clipper::String(batchnumberranges[i].min()))+" - "+
+          StringUtil::Strip(clipper::String(batchnumberranges[i].max()));
+      }
+
+
+      /*
+        int firstbatch = -1;;
+        int lastbatch = -1;
+        for (size_t i=0;i<batch_number_list.size();++i) {
+        if (batch_number_list[i].second) {
+        firstbatch = batch_number_list[i].first;
+        break;
+        }
+        }
+        if (firstbatch >= 0) {
+        for (int i=int(batch_number_list.size())-1;i>=0;i--) {
+        if (batch_number_list[i].second) {
+        lastbatch = batch_number_list[i].first;
+        break;
+        }
+        }
+      */
+
+      s = FormatOutput::logTab(2,
+                               "Run number: "+StringUtil::itos(runnumber, 3)+
+                               " consists of batches "+s, false);
+
       if (latnum > 0) {
         s += " Lattice number " + StringUtil::itos(latnum, 2);
       }

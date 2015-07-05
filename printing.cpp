@@ -1977,7 +1977,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
           if (verbose == 3) {
             for (size_t i=0;i<runlist.size();i++) {
               if (runlist[i].DatasetIndex() == k) {
-                output.logTab(0,LOGFILE,runlist[i].formatPrintBrief(datasets));
+                output.logTab(0,LOGFILE,runlist[i].formatPrintBrief());
                 std::string rejlist;
                 for (int k=0;k<nrb;k++) {
                   if (runlist[i].IsInList(rejectedbatches[k].first)) {

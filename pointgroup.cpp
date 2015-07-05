@@ -1554,6 +1554,7 @@ namespace CCtbxSym
                                               std::vector<scala::Zone>& Zones) const
   {
     bool DEBUG = false;
+    //bool DEBUG = true;
 
     std::string Name = sg.type().lookup_symbol();
     int sgnumber = sg.type().number();
@@ -1571,11 +1572,10 @@ namespace CCtbxSym
     sgtbx::change_of_basis_op SGref = sg.type().cb_op();
     scala::ReindexOp LtoSPGref = SetReindexOp(SGref * ChBasis_ref);
 
-    if (DEBUG)
-      {
-        std::cout << "Reindex Lat to Laue group ref:  " << LtoS.as_hkl() << "\n";
-        std::cout << "Reindex Lat to space group ref: " << LtoSPGref.as_hkl() << "\n";
-      }
+    if (DEBUG) {
+      std::cout << "Reindex Lat to Laue group ref:  " << LtoS.as_hkl() << "\n";
+      std::cout << "Reindex Lat to space group ref: " << LtoSPGref.as_hkl() << "\n";
+    }
 
     std::string condition;
     std::string conditionLG;

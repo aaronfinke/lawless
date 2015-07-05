@@ -54,31 +54,38 @@ namespace scala {
 
     highres = ResRange.ResHigh();
 
-    int nbins = ResRange.Nbins();
     int i1 = -1;
-    int nsafe = 0;
-    int n = 0;
-    for (int i=nbins-1;i>=0;--i) { // loop backwards
-      if (score[i] != 0.0) {  // ignore scores of zero
-        n++;
-        if (score[i] >= limit) {
-          if (i1 < 0) {
-            i1 = i;  // last one above limit
-          }
-          nsafe++;
-        }
-      }
-    }
-
-    if (nsafe == n) { // all above limit
+    int nbins = ResRange.Nbins();
+    if (nbins <= 1) {
       highres = ResRange.ResHigh();
       status = +1;
-    }
+    } else {
+      int nsafe = 0;
+      int n = 0;
+      int ibinmax = -1;  // last occupied bin
+      for (int i=nbins-1;i>0;--i) { // loop backwards but ignore 1st bin
+        if (score[i] != 0.0) {  // ignore scores of zero
+          if (ibinmax < 0) {ibinmax = i;}
+          n++;
+          if (score[i] >= limit) {
+            if (i1 < 0) {
+              i1 = i;  // last one above limit
+            }
+            nsafe++;
+          }
+        }
+      }
 
-    if (i1 < 0) {
-      // All bins below limit, clear highres & set status
-      highres = 0.0;
-      status = -1;
+      if ((nsafe == n) && (ibinmax == nbins-1)) { // all above limit and all present
+        highres = ResRange.ResHigh();
+        status = +1;
+      }
+
+      if (i1 < 0) {
+        // All bins below limit, clear highres & set status
+        highres = 0.0;
+        status = -1;
+      }
     }
 
     if (!sufficientdata) {
@@ -99,23 +106,24 @@ namespace scala {
         status = 0;
       }
     } else { // simply interpolate
-      // linear interpolate on 1/d^2 between bins i1 and i1+1
-      //      ASSERT (score[i1+1] <= score[i1]);  // just checking
-      if (status == +1) {
-        highres = ResRange.ResHigh();
-      } else {
-        double den = score[i1]-score[i1+1];
-        if (score[i1+1] == 0.0) {
-          den = score[i1];
+      if (nbins > 1) {
+        // linear interpolate on 1/d^2 between bins i1 and i1+1
+        if (status == +1 || i1+1 >= int(score.size())) {
+          highres = ResRange.ResHigh();
+        } else {
+          double den = score[i1]-score[i1+1];
+          if (score[i1+1] == 0.0) {
+            den = score[i1];
+          }
+          double f = 1.0;
+          if (den > 0.0) { // trap for divide by 0
+            f = (score[i1]-limit)/den;
+          }
+          highres = ResRange.middle(i1) +
+            f * (ResRange.middle(i1+1) - ResRange.middle(i1));
+          if (highres > 0.0) highres = 1.0/sqrt(highres);
+          //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
         }
-        double f = 1.0;
-        if (den > 0.0) { // trap for divide by 0
-          f = (score[i1]-limit)/den;
-        }
-        highres = ResRange.middle(i1) +
-          f * (ResRange.middle(i1+1) - ResRange.middle(i1));
-        if (highres > 0.0) highres = 1.0/sqrt(highres);
-        //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
       }
       if (status == -2) {status = 0;}
     }
@@ -147,9 +155,10 @@ namespace scala {
       score[i] = mnsd[i].Mean();
     }
     init (score, ResRange, Limit, Fittype);
+    //std::cout << "ResolutionLimit " << highres <<std::endl; //^^
   }
   // ------------------------------------------------------------
-  double ResolutionLimit::fit(const std::vector<double> score,
+  double ResolutionLimit::fit(const std::vector<double>& score,
                             const ResoRange& ResRange)
   {
     // Straight line fit option
@@ -162,6 +171,9 @@ namespace scala {
       data[i].s = ResRange.middle(i);
       data[i].v = score[i];
       data[i].w = 1.0;      // weight, <=0 to ignore
+      if (i == 0) {
+        data[i].w = 0.0;      // ignore first point
+      }
       if (score[i] == 0.0) {
         data[i].w = 0.0;      // weight, <=0 to ignore
       } else {
@@ -247,7 +259,8 @@ namespace scala {
   int ResolutionLimit::rejectoutliers(std::vector<ResolutionData>& data,
                                       const double& reject) const
   {
-    std::vector<double> delta;  // vector of obs-calc differences
+    std::vector<double> deltaabs;  // vector of obs-calc differences for median
+    std::vector<double> delta(data.size(), 0.0);  // vector of obs-calc differences
 
     nrej = 0;
 
@@ -257,7 +270,8 @@ namespace scala {
         double s = data[k].s;
         double v = data[k].v;
         double vcalc = radialfunction.value(s);
-        delta.push_back(v - vcalc);
+        deltaabs.push_back(std::abs(v - vcalc));
+        delta[k] = (v - vcalc);
         //      std::cout << "j, v, vc, del " <<j<<" "
         //                <<v<<" "<<vcalc<<" "<<v-vcalc<<"\n";
         j++;
@@ -266,7 +280,7 @@ namespace scala {
       }
     }
 
-    Median<double> mdn(delta);
+    Median<double> mdn(deltaabs);
     double median = mdn.median();
     double iqr = mdn.interquartilerange();
 
@@ -279,7 +293,7 @@ namespace scala {
         if (std::abs(rdel) > reject) {
           // reject this one
           data[k].w = 0.0;
-          //^     std::cout << "Reject item "<<k<<", rdel = "<<rdel<<"\n";
+          //      std::cout << "Reject item "<<k<<", rdel = "<<rdel<<"\n";
           nrej++;
         }
       }
@@ -376,7 +390,7 @@ namespace scala {
     //    std::cout <<std::endl;
     //^-
 
-    //    std::cout <<"ResolutionLimit: nbins " <<nbins <<" nfilled "<<filledbins.size()<<"\n"; //^^
+    //^std::cout <<"ResolutionLimit: nbins " <<nbins <<" nfilled "<<filledbins.size()<<"\n"; //^^
 
     const size_t MINNUMBER = 4;
     if (filledbins.size() < MINNUMBER) {
@@ -398,10 +412,13 @@ namespace scala {
     double lastfraction = double(filledbins.back()+1)/double(nbins);
     double minlastfraction = std::min(0.9, double(nbins-1)/double(nbins)-0.001);
     if (lastfraction < minlastfraction) {
-      //      std::cout <<"insufficientdata, lastfraction "<<lastfraction<<"\n"; //^
+      //^std::cout <<"insufficientdata, lastfraction "<<lastfraction
+      //^               <<" "<<minlastfraction<<"\n"; //^
       // but allow it if score has already fallen below threshold
-      if (score[filledbins.back()] > limit) {
+      if (score[filledbins.back()] < limit) {
         return false;
+      } else {
+        return true;
       }
     }
 

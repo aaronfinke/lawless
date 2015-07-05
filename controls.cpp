@@ -12,8 +12,25 @@
 namespace scala
 {
   //------------------------------------------------------------
-  run_controls::run_controls() : RunStatus(-1), resobyrun(false) {}
+  run_controls::run_controls() : RunStatus(-1),
+                                 runsettype(RunSelection::AUTO),
+                                 resobyrun(false) {}
  //------------------------------------------------------------
+  // return true if run specifications were given on input,
+  // irrespective of whether they have been imposed yet or not
+  bool run_controls::Explicit() const
+  {
+    if (runsettype == RunSelection::EXPLICIT) {return true;}
+    return ((RunStatus == -2) || (RunStatus == +1));
+  }
+  //------------------------------------------------------------
+  void run_controls::StoreRunBatchSelection(const RunSelection& runselection)
+  {
+    batchrangesruns = runselection.batchranges;
+    runsettype = runselection.runsettype;
+    RunStatus = -2;
+  }
+  //------------------------------------------------------------
   //! return run number for batch, -1 if not in list, 0 if no selections
   int run_controls::RunNumber(const int& batchnumber)
   {
@@ -27,8 +44,18 @@ namespace scala
     return  batchrangesruns.UniqueFlags();
   }
  //------------------------------------------------------------
+  //! return list of batch ranges for specified run
+  std::vector<IntRange> run_controls::BatchRanges(const int& RunNumber)
+  {
+    if (runsettype == RunSelection::EXPLICIT) {
+      return batchrangesruns.BatchRanges(RunNumber);
+    }
+    // if BYFILE or AUTO, return empty vector
+    return std::vector<IntRange>();
+  }
+ //------------------------------------------------------------
   //! set list of RunNumber, resolution range from input
-  void  run_controls::StoreResoByRun
+  void run_controls::StoreResoByRun
   (const std::vector<std::pair<int,ResoRange> > Run_resolution_ranges)
   {
     run_resolution_ranges = Run_resolution_ranges;

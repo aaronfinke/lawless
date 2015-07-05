@@ -10,7 +10,25 @@
 #include "range.hh"
 
 namespace scala {
+  //--------------------------------------------------------------
+  class RunSelection {
+  public:
+    enum RunSetType {AUTO, BYFILE, EXPLICIT};
 
+    RunSelection() : runsettype(AUTO){}
+    RunSelection(const RunSetType& Runsettype, const BatchSelection& Batchranges)
+    {init(Runsettype, Batchranges);}
+
+    void init(const RunSetType& Runsettype, const BatchSelection& Batchranges)
+    {runsettype = Runsettype; batchranges = Batchranges;}
+
+    // true if selection specified in input
+    bool specified() const
+    {return (runsettype != AUTO);}
+    
+    RunSetType runsettype;
+    BatchSelection batchranges;
+  };
   //--------------------------------------------------------------
   class Run
   // A run is a group of contiguous batches belonging to the same dataset
@@ -82,7 +100,7 @@ namespace scala {
     static int MaximumBatchNumber() {return MaxBatchNumber;}
     
     std::string formatPrint(const std::vector<Dataset>& datasets) const;
-    std::string formatPrintBrief(const std::vector<Dataset>& datasets) const;
+    std::string formatPrintBrief() const;
 
     int& Nfulls() {return nfulls;}   //!< set number of fully recorded observations
     int& Npartials() {return npartials;}  //!< set number of partial observations
@@ -147,6 +165,9 @@ namespace scala {
     // returns index into list if found, else -1
     int indexInList(const int& Batchnum) const;
 
+    //! return list of batch number ranges
+    std::vector<scala::IntRange> BatchNumberRanges() const;
+
   };
   //--------------------------------------------------------------
   class RunRange 
@@ -181,5 +202,6 @@ namespace scala {
   // Get run index number for a given run number, from a list of runs
   // returns -1 if not found
   int FindRunIndex(const int& runNumber, const std::vector<Run>& runList);
+
 } // namespace scala
 #endif

@@ -80,12 +80,15 @@ namespace phaser_io {
     RUNSET();
     virtual ~RUNSET() {}
     Token_value parse(std::istringstream&);
+    // Return list of batch ranges associated with a run and selection type
+    scala::RunSelection Runsetselection() const {return runsetselection;}
     // Return list of batch ranges associated with a run
-    scala::BatchSelection RunBatches() const {return batchranges;}
+    scala::BatchSelection RunBatches() const
+    {return runsetselection.batchranges;}
 
     void analyse(){}
   private:
-    scala::BatchSelection batchranges;
+    scala::RunSelection runsetselection;
   };
   //--------------------------------------------------------------
   class RESO : public InputBase, virtual public CCP4base

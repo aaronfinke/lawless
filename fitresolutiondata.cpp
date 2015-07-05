@@ -43,7 +43,7 @@ namespace scala {
   // Function to calculate target function, gradient & Hessian
   // returns target, gradient, Hessian if dogradient true
   {
-    //const bool DEBUG = true;
+    //    const bool DEBUG = true;
     const bool DEBUG = false;
 
     target = 0.0;
@@ -75,6 +75,9 @@ namespace scala {
         double v = (*rdata)[k].v;
         double w = (*rdata)[k].w;
 
+        if (DEBUG) {
+          std::cout << "s,v,w "<<s<<" "<<v<<" "<<w<<"\n";
+        }
         double vc = radialfunction->value(s); // calculated value
         double di = (v - vc);
         double wdi = w * di;  // weighted residual
@@ -145,6 +148,15 @@ namespace scala {
           }
         }
       } // null data
+      //^
+      if (DEBUG) {
+        if ((*rdata)[k].w <= 0.0) {
+          double s = (*rdata)[k].s;
+          double v = (*rdata)[k].v;
+          double w = (*rdata)[k].w;
+          std::cout << "null s,v,w "<<s<<" "<<v<<" "<<w<<"\n";
+        }
+      }
     } // end loop data
 
     // Symmetrise Hessian
@@ -175,7 +187,7 @@ namespace scala {
           printf("\n");
         }
         if (npar == 2) {
-          double det = H(1,1) * H(2,2) - H(1,2) * H(2,1);
+          double det = H(0,0) * H(1,1) - H(0,1) * H(1,0);
           printf("Determinant %.4f\n", det);
         }
       }

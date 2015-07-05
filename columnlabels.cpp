@@ -20,16 +20,32 @@ namespace MtzIO {
     return ((xname == other.xname) && (dname == other.dname));
   }
   //--------------------------------------------------------------
-  ClipperLabelPair::ClipperLabelPair(const std::string& Xname,
-                                     const std::string& Dname,
-                                     const std::string& Label1,
-                                     const std::string& Label2)
-    : xname(Xname), dname(Dname), label1(Label1), label2(Label2)
+  ClipperLabelList::ClipperLabelList(const std::string& Xname,
+                     const std::string& Dname,
+                     const std::vector<std::string>& Labels)
+    : xname(Xname), dname(Dname)
   {
+    ASSERT (Labels.size() > 0);
+    labels = Labels;
     // Make MTZ path string
-    path = "/"+Xname+"/"+Dname+"/["+Label1;
-    if (Label2 != "") {path += ","+Label2;}
+    path = "/"+Xname+"/"+Dname+"/[";
+    int n = 0;
+    for (size_t k=0; k<Labels.size(); k++) {
+      if (Labels[k] != "") {
+        if (n++ > 0) {path += ",";}
+        path += Labels[k];}
+    }
     path += "]";
+  }
+  //--------------------------------------------------------------
+  std::string ClipperLabelList::formatlabels() const
+  {
+    std::string s;
+    for (size_t i=0; i<labels.size(); i++) {
+      s += labels[i];
+      if (i < labels.size()-1) {s += ", ";}
+    }
+    return s;
   }
   //--------------------------------------------------------------
   void CheckPairCols(std::string text, const int& col1,const int& col2)
@@ -277,8 +293,7 @@ namespace MtzIO {
     return ColumnData(substrings[0], substrings[1], LabelTypes[0], LabelTypes[1]);
   }
   //--------------------------------------------------------------
-  int FindColumn(const std::vector<ColumnData>& ColumnInfo,
-                  const std::string& type)
+  int ProcessLabels::FindColumn(const std::string& type) const
   //  searches ColumnInfo array for the first column of type "type"
   // returns column number found or -1 if not found
   {
@@ -290,152 +305,196 @@ namespace MtzIO {
     return -1;
   }
   //--------------------------------------------------------------
-  ClipperLabelPair ProcessLabels(const std::vector<clipper::String>& ColLab,
-                                 const column_labels& ColumnLabels,
-                                 bool& IorF)
+  int ProcessLabels::FindColumnLabel(const std::string& label) const
+  //  searches ColumnInfo array for column with label
+  // returns column number found or -1 if not found
+  {
+    for (size_t i=0;i<ColumnInfo.size();i++) {
+      if (ColumnInfo[i].label == label) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  //--------------------------------------------------------------
+  bool ProcessLabels::CheckColumn(const int& icol,
+                                  const std::string& type) const
+  // return true if ColumnInfo[icol] is of type type
+  {
+    if ((unsigned(icol) < ColumnInfo.size()) &&
+        (ColumnInfo[icol].type == type)) {return true;}
+    return false;
+  }
+  //--------------------------------------------------------------
+  ProcessLabels::ProcessLabels(const std::vector<clipper::String>& ColLab,
+                                     const column_labels& ColumnLabels)
   // This is for merged files
   // A ColLab element is formatted as "/crystal/dataset/label type"
   //    (clipper format)
   //
-  // On entry:
   //  ColLab  clipper column labels from MTZ file
   //  ColumnLabels column labels for "FI" and "SIGFI" if set on input
-  //
-  // Returns:
-  //  ClipperLabelPair   Clipper path & labels for pair of items eg F, SIGF
-  //    SIGF omitted from label if not present
-  //  IorF true if column is F, false if J (intensity)
   //
   {
     //......................................................
     // Column assignments
-    int colI = -1;
-    int colsigI = -1;
-    IorF = false; // true if column is F, false if J (intensity)
-    int fail = +1;
+    std::vector<int> selectedcolnums;
+    IorF_ = false; // true if column is F, false if J (intensity)
+    anom_ = false; // no anomalous
 
-    std::vector<ColumnData> ColumnInfo(ColLab.size()); // data for each column
+    ColumnInfo.resize(ColLab.size()); // data for each column
 
     clipper::String M_ISYM_label = "M_ISYM"; // a marker for unmerged file
 
+    merged_ = true;
     for (size_t i=0;i<ColLab.size();i++) {
       //  each element of ColumnInfo contains xname, dname, label, type
       ColumnInfo[i] = ExtractLabelType(ColLab[i]);
       if (ColumnInfo[i].label == M_ISYM_label) {
-        return ClipperLabelPair();
+        merged_ = false;
+        return;
       }
     }
 
-    if (ColumnLabels.size() > 0) {
+    std::string xname;
+    std::string dname;
+
+    int col1 = -1;
+
+    std::vector<std::string> selectedtypes;
+    int ncol;
+    bool allowmissing = false;
+
+    if (ColumnLabels.size() > 0) {  //   - - - - Specified columns  FIXME
       // We have column label(s) specified for (IorF) & optionally SIG(IorF)
-      for (size_t i=0;i<ColumnInfo.size();i++) {
-        // Look for a given label
-        if (colsigI < 0 && ColumnLabels.Label("FI") == ColumnInfo[i].label) {
-          colI = i;
-          if (ColumnInfo[i].type == "J")
-            IorF = false;
-          else if(ColumnInfo[i].type == "F")
-            IorF = true;
-          else
-            Message::message(Message_fatal
-                             ("hkl_merged_list: column is not of type J or F"));
-        } else if (colsigI < 0 && ColumnLabels.size() > 1) {
-          // Test SIG label
-          if (ColumnLabels.Label("SIGFI") == ColumnInfo[i].label) {
-            colsigI = i;
-            if (ColumnInfo[i].type != "Q") {
-              Message::message(Message_fatal
-                               ("hkl_merged_list: SIG column is not of type Q"));
-              fail = +3;
-            }
-          }
-        }
-      }  // loop columns in file
-    } else {
-      // No column labels specified on entry
-      // Find first viable column of type J or F
+      col1 = FindColumnLabel(ColumnLabels.Label("FI"));
+      if (col1 < 0) { // label not found
+        Message::message(Message_fatal
+         ("no column found with name "+ColumnLabels.Label("FI")));
+      }
+      std::string type = ColumnInfo[col1].type;
+      selectedtypes.push_back(type);
+      if (type == "K") {
+        IorF_ = false;
+        anom_ = true;
+        ncol = 4;
+        // found a I+/- column, the next 3 columns should be of type M,K,M
+        selectedtypes.push_back("M");
+        selectedtypes.push_back("K");
+        selectedtypes.push_back("M");
+      } else if (type == "J") {
+        IorF_ = false;
+        anom_ = false;
+        ncol = 2;
+        // found a I column, the next column should be of type Q
+        selectedtypes.push_back("Q");
+      } else if (type == "G") {
+        IorF_ = true;
+        anom_ = true;
+        ncol = 4;
+        // F+ and F-, the next 3 columns should be of type L,G,L
+        selectedtypes.push_back("L");
+        selectedtypes.push_back("G");
+        selectedtypes.push_back("L");
+      } else if (type == "F") {
+        IorF_ = true;
+        anom_ = false;
+        ncol = 2;
+        // F, the next column should be of type Q, but allow missing
+        selectedtypes.push_back("Q");
+        allowmissing = true;
+      } else {
+        Message::message(Message_fatal
+                ("chosen column is not intensity or F"));
+      }
+    } else {       // - - - - - No column labels specified on entry
+      // Find first viable column of type K, J (intensities), or G, F (amplitudes),
+      //  in this order of preference
+      //   K   I+/-   sigI type M
+      //   J   Imean  sigI type Q
+      //   G   F+/-   sigF type L
+      //   F   Fmean  sigF type Q
       //  find type J if possible
-      if ((colI=FindColumn(ColumnInfo, "J")) >= 0) {
-        IorF = false;
-        // Is the next column type "Q" ie sigma?
-        if (unsigned(colI+1) < ColumnInfo.size() &&
-            ColumnInfo[colI+1].type == "Q") {
-          //  Yes
-          colsigI = colI+1;
-        }
-      }
-      if (colI < 0) {
-        // Search for column or type "F"
-        if ((colI=FindColumn(ColumnInfo, "F")) >= 0) {
-          IorF = true;
-          // Is the next column type "Q" ie sigma?
-          if (unsigned(colI+1) < ColumnInfo.size() &&
-              ColumnInfo[colI+1].type == "Q") {
-            //  Yes
-            colsigI = colI+1;
-          }
-        }
-      }
-      if (colI < 0) {
-        //  find type K if possible
-        if ((colI=FindColumn(ColumnInfo, "K")) >= 0) {
-          IorF = false;
-          // Is the next column type "M" ie sigma?
-          if (unsigned(colI+1) < ColumnInfo.size() &&
-              ColumnInfo[colI+1].type == "M") {
-            //  Yes
-            colsigI = colI+1;
-          }
-        }
+      if ((col1 = FindColumn("K")) >= 0) {
+        // found a I+/- column, the next 3 columns should be of type M,K,M
+        ncol = 4;
+        selectedtypes.push_back("K");
+        selectedtypes.push_back("M");
+        selectedtypes.push_back("K");
+        selectedtypes.push_back("M");
+        IorF_ = false;
+        anom_ = true;
+      } else if ((col1 = FindColumn("J")) >= 0) {
+        ncol = 2;
+        // found a I column, the next column should be of type Q
+        selectedtypes.push_back("J");
+        selectedtypes.push_back("Q");
+        IorF_ = false;
+        anom_ = false;
+      } else if ((col1 = FindColumn("G")) >= 0) {
+        ncol = 4;
+        // F+ and F-, the next 3 columns should be of type L,G,L
+        selectedtypes.push_back("G");
+        selectedtypes.push_back("L");
+        selectedtypes.push_back("G");
+        selectedtypes.push_back("L");
+        IorF_ = true;
+        anom_ = true;
+      } else if ((col1 = FindColumn("F")) >= 0) {
+        ncol = 2;
+        // F, the next column should be of type Q, but allow missing
+        selectedtypes.push_back("F");
+        selectedtypes.push_back("Q");
+        allowmissing = true;
+        IorF_ = true;
+        anom_ = false;
+      } else {
+        Message::message(Message_fatal
+                         ("no intensity or F column found"));
       }
     }  // end no labels specified
 
-    if (colI >= 0 && colsigI > 0) {
-      fail = 0;
-    } else if (colI >= 0 && colsigI < 0) {
-      // Ior F found but not SIG, look for it
-      fail = +2;  //no sigI found
-      if (unsigned(colI+1) < ColLab.size()) {
-        // I or F is not last column
-        // Next column might  be sigma
-        if (ColumnInfo[colI+1].type == "Q") {
-          colsigI = colI+1;
-          fail = 0;
+    if (col1 < 0) {
+      Message::message(Message_fatal
+                       ("no intensity or F column found"));
+    }
+
+    bool nosig = false;
+    for (int i=0;i<ncol;++i) {
+      // check types of columns
+      if (CheckColumn(col1+i, selectedtypes[i])) {
+        // column is of correct type
+        selectedcolnums.push_back(col1+i);
+      } else {
+        if (allowmissing) {
+          // column not there, but allowed to be missed
+          nosig = true; // missing sigma
         } else {
-          fail = +2;  //no sigI found
+          failmessage("Column is of wrong type: "+ColumnInfo[col1+i].type);
         }
       }
     }
 
-    if (fail == +1) {
-      if (ColumnLabels.size() > 0)
-          Message::message(Message_fatal
-                         ("no column found with name "+ColumnInfo[colI].label));
-        else
-          Message::message(Message_fatal
-                         ("no intensity or F column found"));
-      }
-    if (fail == +3)
-      Message::message(Message_fatal
-                       ("sigma column is not of type Q"));
-
-    if (fail == +2) {
-      // colI found but not colsigI
-      // OK
-    } else {
-      // Check that FI & SIG columns come from same dataset
-      if (!ColumnInfo[colI].SameXDname(ColumnInfo[colsigI])) {
+    xname = ColumnInfo[col1].xname;
+    dname = ColumnInfo[col1].dname;
+    std::vector<std::string> selectedlabels;
+    for (size_t k=0; k<selectedcolnums.size(); k++) {
+      // Check that selected columns come from same dataset
+      if (!ColumnInfo[selectedcolnums[0]].
+          SameXDname(ColumnInfo[selectedcolnums[k]])) {
         Message::message(Message_fatal
-                         ("IorF column belongs to a different dataset from the SIG column"));
+                ("Selected columns belong to different datasets"));
       }
+      selectedlabels.push_back(ColumnInfo[selectedcolnums[k]].label);
     }
-
-    std::string sigLabel;
-    if (colsigI >= 0) {sigLabel =  ColumnInfo[colsigI].label;}
-    return ClipperLabelPair(ColumnInfo[colI].xname, ColumnInfo[colI].dname,
-                            ColumnInfo[colI].label, sigLabel);
-
+    clipperlabellist_ = ClipperLabelList(xname, dname, selectedlabels);
+    clipperlabellist_.nosig = nosig;  // flag for no sigma column
+    clipperlabellist_.anom = anom_;
   }  // ProcessLabels
-
-
+  //--------------------------------------------------------------
+  void ProcessLabels::failmessage(const std::string& message) const
+  {
+    Message::message
+                (Message_fatal("ProcessLabels: "+message));
+  }
 } // namespace MtzIO

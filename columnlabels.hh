@@ -44,21 +44,23 @@ namespace MtzIO {
     std::string type;  // column type character
   };
   //======================================================================
-  class ClipperLabelPair {
-    // Clipper path & labels for pair of items eg F, SIGF
-    // path is "/xname/dname/[label1, label2]"
+  class ClipperLabelList {
+    // Clipper path & labels for list of items eg /xname/dname/[I(+), SIGI(+), I(-), SIGI(-)]
+    // path is "/xname/dname/[label1, label2, ...]"
   public:
-    ClipperLabelPair(){}
-    ClipperLabelPair(const std::string& Xname,
+    ClipperLabelList(){}
+    ClipperLabelList(const std::string& Xname,
 		     const std::string& Dname,
-		     const std::string& Label1,
-		     const std::string& Label2);
+		     const std::vector<std::string>& Labels);
+
+    std::string formatlabels() const;
 
     std::string xname;
     std::string dname;
     clipper::String path;
-    clipper::String label1;
-    clipper::String label2;
+    std::vector<std::string> labels;
+    bool nosig;
+    bool anom;
   };
   //======================================================================
   class ColumnNumberLabel {
@@ -149,22 +151,52 @@ namespace MtzIO {
   };  // column_select
   //======================================================================
   //-----------------------------------------------------------------------------
-  // This is for merged files
-  // A ColLab element is formatted as "/crystal/dataset/label type"
-  //    (clipper format)
-  //
-  // On entry:
-  //  ColLab  clipper column labels from MTZ file
-  //  ColumnLabels column labels for "FI" and "SIGFI" if set on input
-  //  
-  // Returns:
-  //  ClipperLabelPair   Clipper path & labels for pair of items eg F, SIGF
-  //  IorF true if column is F, false if J (intensity)
-  //  
-  ClipperLabelPair ProcessLabels(const std::vector<clipper::String>& ColLab,
-		const column_labels& ColumnLabels,
-		bool& IorF);
+  class ProcessLabels {
+    // This is for merged files
+    // A ColLab element is formatted as "/crystal/dataset/label type"
+    //    (clipper format)
+    //
+    // Constructor:
+    //  ColLab  clipper column labels from MTZ file
+    //  ColumnLabels column labels for "F|I|(+/-)" and "SIGFI" if set on input
+    //  IorF true if column is F, false if J (intensity)
 
+  public:
+    ProcessLabels(){}
 
+    ProcessLabels(const std::vector<clipper::String>& ColLab,
+		  const column_labels& ColumnLabels);
+
+    //  Clipper path & labels for list of items eg F, SIGF
+    ClipperLabelList clipperlabellist() const {return clipperlabellist_;}
+    // true if columns are F, false if intensity
+    bool IorF() const {return IorF_;}
+    // true if I+/- or F+/- are present
+    bool anom() const {return anom_;}
+
+    bool merged() const {return merged_;}
+
+  private:
+    std::vector<ColumnData> ColumnInfo;
+    ClipperLabelList clipperlabellist_;
+    bool IorF_;
+    bool anom_;  // true if anomalous present
+    bool merged_;
+
+    //  searches ColumnInfo array for the first column of type "type"
+    // returns column number found or -1 if not found
+    int FindColumn(const std::string& type) const;
+
+    //  searches ColumnInfo array for column with label
+    // returns column number found or -1 if not found
+    int FindColumnLabel(const std::string& label) const;
+
+    // return true if ColumnInfo[icol] is of type type 
+    bool CheckColumn(const int& icol,
+		     const std::string& type) const;
+
+    void failmessage(const std::string& message) const;
+
+  };
 } // namespace MtzIO
 #endif

@@ -77,7 +77,11 @@ namespace scala {
         Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
       }
       sname = StringUtil::Trim(sname.substr(1));
-      std::string lt = std::string(1,lattype) + " ";
+      std::string lt = std::string(1,lattype);
+      if (sgname.find(" ") != std::string::npos) {
+        // if spaces in original name, add a space after lattice type
+        lt += " ";
+      }
       sname = lt+sname;
     }
     return sname;
@@ -106,6 +110,15 @@ namespace scala {
     }
     // Symop string ("x,y,z; ...")
     //    std::cout <<"\nclipper::Spacegroup constructed from operators: "<< symopString<<"\n";
+
+    clipper::Spgr_descr spdescr(symopString, clipper::Spacegroup::Spgr_descr::Symops);
+    //    std::cout << spdescr.spacegroup_number() <<"  ; "
+    //        << spdescr.symbol_xhm() << "\n";
+    if (spdescr.spacegroup_number() <= 0) {
+      Message::message(Message_fatal
+            ("SpaceGroup initialisation from illegal operators (maybe from incorrect reindex):\n"+
+             symopString) );
+    }
 
     clipper::Spacegroup::init(clipper::Spgr_descr(symopString,
                  clipper::Spacegroup::Spgr_descr::Symops));

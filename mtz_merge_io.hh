@@ -41,14 +41,16 @@ namespace MtzIO {
 
     // Read all selected data from MTZ file into clipper objects
     // hkl_info_list, IsigData
-    ClipperLabelPair ReadData(clipper::CCP4MTZfile& mtzin,
-		  const double& ResoLimit,
-		  const MtzIO::column_labels& column_list,
-		  clipper::HKL_info& hkl_info_list,
-		  clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
-		  clipper::MTZdataset& mtzdataset,
-		  const bool& verbose,
-		  std::string& output);
+    ClipperLabelList ReadData(clipper::CCP4MTZfile& mtzin,
+                   const double& ResoLimit,
+		   const MtzIO::column_labels& column_list,
+                   clipper::HKL_info& hkl_info_list,
+	           bool& anom,
+                   clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
+                   clipper::HKL_data<clipper::data32::I_sigI_ano>& IsigDataAnom,
+                   clipper::MTZdataset& mtzdataset,
+                   const bool& verbose,
+			      std::string& output);
 
     // Fill an unmerged hkl_list from a merged file
     // On entry:

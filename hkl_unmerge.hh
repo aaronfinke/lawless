@@ -550,11 +550,14 @@ namespace scala {
 
     // Set controls, limits, etc ----------
     void SetResoLimits(const float& LowReso, const float& HighReso); //!< set resolution
+    void SetResoLimits(const ResoRange& resRange); //!< set resolution
 
     //! reset to file limits
     void ResetResoLimits();
     //! store ice rings, only store ones flagged as "reject"
     void SetIceRings(const Rings& rings);
+    //! clear ice rings
+    void clearIceRings() {SetIceRings(Rings());}
 
     //! If there are any resolution limits set by run, go through the observation
     // list and flag observations which are outside these limits
@@ -647,6 +650,10 @@ namespace scala {
     //! Return use run flags
     std::vector<bool> UseRun() const
     {return run_flags.UseRun();}
+    //! set up explicit runs again
+    void ResetRuns(const run_controls& Runcontrols);
+    //! set runs for input file number
+    void SetRunByFile();
 
     //! Apply offset to batch numbers, one offset for each run
     void OffsetBatchNumbers(const std::vector<int>& runOffsets);
