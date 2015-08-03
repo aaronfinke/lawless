@@ -1529,25 +1529,27 @@ namespace scala
   }
   //--------------------------------------------------------------
   bool BatchSelection::InSelection(const int& batch,
-                                   const int& fileSeriesTest) const
+                                   const int& fileSeriesTest,
+                                   const bool& testfinal) const
   {
-    return (FindInSelection(batch, fileSeriesTest) >= 0);
+    return (FindInSelection(batch, fileSeriesTest, testfinal) >= 0);
   }
   //--------------------------------------------------------------
   int BatchSelection::FindInSelection(const int& batch,
-                                      const int& fileSeriesTest) const
+                                      const int& fileSeriesTest,
+                                      const bool& testfinal) const
   // Return index in list if in selection, for given file series, else -1
   // Two possibilities for selection:
   //  1) Specified selection on final numbering, ie from sole file or
   //  after renumbering of 2nd or subsequent file, fileSeriesList == 0,
-  //  only test if fileSeriesTest == 0
+  //  only test if fileSeriesTest == 0 or testfinal == true
   //
   //  2) Specified selection on original file numbering from 2nd or
   //  subsequent file, fileSeriesList > 0, only test if
   //  fileSeriesTest > 0
   {
     for (size_t i=0;i<batchlist.size();i++) {
-      if (fileseries_list[i] == 0 && fileSeriesTest == 0) {
+      if (fileseries_list[i] == 0 && (fileSeriesTest == 0 || testfinal)) {
         // final numbering
         if (batch == batchlist[i]) return int(i);
       } else if (fileseries_list[i] > 0 && fileseries_list[i] == fileSeriesTest) {
@@ -1556,7 +1558,7 @@ namespace scala
       }
     }
     for (size_t i=0;i<batchranges.size();i++) {
-      if (fileseries_range[i] == 0 && fileSeriesTest == 0) {
+      if (fileseries_range[i] == 0 && (fileSeriesTest == 0 || testfinal)) {
         // final numbering
         if (batchranges[i].InRange(batch)) return int(i);
       } else if (fileseries_range[i] > 0 && fileseries_range[i] == fileSeriesTest) {
@@ -1568,7 +1570,36 @@ namespace scala
     return -1;
   }
   //--------------------------------------------------------------
-    //! return  numerical flag for batch, = -1 if not in list
+  bool BatchSelection::InSelection(const int& runnum,
+                                   const int& batchnum,
+                                   const int& originalbatchnum,
+                                   const int& filenum) const
+  // return true if batch is in the selection for run runnum
+  {
+    if (batchlist.size() > 0) {
+      Message::message(Message_fatal
+       ("BatchSelection::InSelection not valid for batch list, only for batch range"));
+    }
+    if (batchranges.size() == 0) {return true;}
+    ASSERT (batchranges.size() == flaglist.size());
+    ASSERT (batchranges.size() == fileseries_range.size());
+    for (size_t i=0;i<batchranges.size();i++) {
+      if (runnum == flaglist[i]) {
+        if (fileseries_range[i] == 0) {
+          // selection on final numbering
+          if (batchranges[i].InRange(batchnum)) return true;
+        } else if (fileseries_range[i] > 0) {
+          // selection on original numbering
+          if (fileseries_range[i] == filenum) {
+            if (batchranges[i].InRange(originalbatchnum)) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  //--------------------------------------------------------------
+  //! return  numerical flag for batch, = -1 if not in list
   int BatchSelection::FlagNumber(const int& batch)
   {
     int i;

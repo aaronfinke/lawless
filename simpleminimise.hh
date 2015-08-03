@@ -29,8 +29,10 @@ namespace SimpleMinimise {
 
     FitBase(){}
 
-    virtual int Nparameters() = 0;
-    virtual int Ndata() = 0;
+    virtual int Nparameters() const = 0;
+    virtual int Ndata() const = 0;
+    virtual int NvalidData() const = 0;  // number of data with weight > 0
+
     
     virtual void ApplyShifts(const std::vector<double> shifts) = 0;
 

@@ -4,6 +4,7 @@
 #include "scala_util.hh"
 #include "jiffy.hh"
 #include "string_util.hh"
+#include "version.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::stoup;
@@ -40,19 +41,43 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
       StringUtil::split(CommandLine.Echo(), " ", "\n");
 
     copy = false;
+    noinput = false;
+    run = true;
 
     int ifld = 0;
 
-    std::string s;  // for echoing command line arguments
+    commandlineArguments = "";  // for echoing command line arguments
 
     while (ifld < int(fields.size())) {
       if (fields[ifld][0] == '-')       {
         // Switch, ie string beginning with '-'
         //                  std::cout << "Command line switch found: "
         //                            << string_value << "\n";
-        if (fields[ifld++].substr(0,2) == "-c") {
+        std::string option = fields[ifld++];
+        if (option == "--help") {
+          std::string s = "Aimless " + PROGRAM_VERSION + "\n";
+          s += "Usage: aimless [options] hklin <filein> hklout <fileout> etc\n";
+          s += " File assignments may be done on the command line or as input commands\n";
+          s += "Options:\n";
+          s += " --no-input   run immediately without waiting for input\n";
+          s += "\nSee aimless.html for full documentation\n";
+          output.logTab(0,LOGFILE, s);
+          run = false;
+          return;
+        }
+        if ((option == "--version") || (option == "-v")) {
+          std::string s = "Aimless " + PROGRAM_VERSION + "\n";
+          output.logTab(0,LOGFILE, s);
+          run = false;
+          return;
+        }
+        if (option.substr(0,2) == "-c") {
           copy = true;
-          s += "-copy\n";
+          commandlineArguments += "-copy\n";
+        }
+        if (option == "--no-input") {
+          noinput = true;
+          commandlineArguments += "--no-input\n";
         }
       } else  {
         bool fieldpair = true;
@@ -95,15 +120,11 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
           fieldpair = false;
         }
         if (fieldpair && ifld > 0) {
-          s +=  fields[ifld-1] + " ";
+          commandlineArguments +=  fields[ifld-1] + " ";
         }
-        s += fields[ifld] + "\n";
+        commandlineArguments += fields[ifld] + "\n";
         ifld++;
       }
-    }
-    if (s != "") {
-      s = ">>>>> Command line arguments <<<<<\n" + s + "\n";
-      output.logTab(0,LOGFILE, s);
     }
     // Add .mtz if needed, ie non-blank and no extension already
     for (size_t i=0;i<HklinNames.size();i++) {
@@ -114,7 +135,16 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
     scala::AddFileExtension(XmloutName,"xml");
     scala::AddFileExtension(XyzinName,"pdb");
   }
-   //--------------------------------------------------------------
+  //--------------------------------------------------------------
+  void InterpretCommandLine::printCommandLine(phaser_io::Output& output) const
+  {
+    if (commandlineArguments != "") {
+      output.logTab(0,LOGFILE,
+                    ">>>>> Command line arguments <<<<<\n" +
+                    commandlineArguments + "\n");
+    }
+  }
+  //--------------------------------------------------------------
   std::string InterpretCommandLine::getHKLIN1()
   {if (HklinNames.size() > 0) {
       return HklinNames[0];

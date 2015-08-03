@@ -766,6 +766,10 @@ namespace scala
       }
     }
     TableGraphPlot graph(graphtitle);
+    std::string description = "Sigma(scatter)/SD should be close to 1.0 in all intensity bins. ";
+    description += "If not, then the SD correction has not worked well";
+    graph.SetDescription(description);
+
     for (size_t i=0;i<cln.size();++i) {
       graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
     }
@@ -777,6 +781,7 @@ namespace scala
       graphtitle += ", all and within "+corelimit;
       cln.assign(c,c+nanalsets);
       graph.init(graphtitle);
+      graph.SetDescription(description);
       for (size_t i=0;i<cln.size();++i) {
         graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
       }

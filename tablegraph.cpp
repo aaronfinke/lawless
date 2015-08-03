@@ -435,6 +435,9 @@ void TableGraphPlot::SetYaxis(const std::string& label,
   if (range.Valid()) {
     yrange = range;
     if (ZeroY) {yrange.first() = 0.0;}
+    if (yrange.last() == yrange.first()) {
+      yrange.last() = yrange.first() + 1.0;
+    }
   }
   yintegral = integral;
   zeroy = ZeroY;

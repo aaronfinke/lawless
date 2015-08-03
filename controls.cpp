@@ -54,6 +54,23 @@ namespace scala
     return std::vector<IntRange>();
   }
  //------------------------------------------------------------
+  //! Return true if in selection, for given file filenumber
+  bool run_controls::InSelection(const int& runnum,
+                                 const int& batchnum,
+                                 const int& originalbatchnum,
+                                 const int& filenum) const
+  //   runnum             run number
+  //   batchnum           batch number
+  //   originalbatchnum   original batch number before any offset
+  //   filenum            file number for this batch
+  {
+    if (RunStatus == -1 || RunStatus == 0) {
+      return true;  // no specified ranges
+    }
+    // BatchSelection batchrangesruns;
+    return batchrangesruns.InSelection(runnum, batchnum, originalbatchnum, filenum);
+  }
+ //------------------------------------------------------------
   //! set list of RunNumber, resolution range from input
   void run_controls::StoreResoByRun
   (const std::vector<std::pair<int,ResoRange> > Run_resolution_ranges)
@@ -195,6 +212,7 @@ namespace scala
     rejectanom.assign(ndatasets, RejectFlags(9.0, 9.0, RejectFlags::KEEP));
     anomreject = true;
     emaxtest.init(10.0);
+    weighttype = WeightType::VARIANCE; // or SQRTSCALE or SCALE
   }
   //------------------------------------------------------------
   OutlierControl::OutlierControl(const int& Ndatasets)

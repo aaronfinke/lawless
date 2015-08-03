@@ -105,7 +105,8 @@ namespace scala {
         //std::cout << " highres " <<highres<<std::endl;
         status = 0;
       }
-    } else { // simply interpolate
+    }
+    if (status != 0) { // simply interpolate unless fit was successful
       if (nbins > 1) {
         // linear interpolate on 1/d^2 between bins i1 and i1+1
         if (status == +1 || i1+1 >= int(score.size())) {
@@ -160,6 +161,7 @@ namespace scala {
   // ------------------------------------------------------------
   double ResolutionLimit::fit(const std::vector<double>& score,
                             const ResoRange& ResRange)
+  // return reshigh (1/d^2), <= 0 if no valid fit
   {
     // Straight line fit option
     LinearFit linefit;
@@ -216,10 +218,11 @@ namespace scala {
     }
 
     radialfunction.init(params);  // initial parameters
+    // set up data and radial function
     FitResolutionData fitresolutiondata(data, radialfunction);
     // Use LNCOSH target
     fitresolutiondata.setQuadratic(false);
-    ////fitresolutiondata.setQuadratic(true);
+    ////fitresolutiondata.setQuadratic(true);  // quadratic
 
     int ncycles = 10;
     double tolerance = 0.01;
@@ -227,14 +230,22 @@ namespace scala {
     DampedGaussNewton dampedgaussnewton(fitresolutiondata,
                                         ncycles, tolerance, damp);
 
+    double reshigh = -1.0;  // current best estimate of 1/d^2
+    if (dampedgaussnewton.valid()) {
+      reshigh = radialfunction.inverse(limit);
+    }
+
     // Check for outliers
     // multiple of "error" (inter-quartile range of differences)
     int nrej = 0;
     if (ndata > npar+2) {
       double reject = 4.0;
       nrej = rejectoutliers(data, reject);
+      if ((ndata-nrej) <= npar+2) {
+        // give up
+        return reshigh;  // -1
+      }
     }
-    double reshigh;
     if (nrej > 0) {
       //^^
       //      std::cout << "ResolutionLimit::fit before reject\n"<<
@@ -247,9 +258,10 @@ namespace scala {
       //^-
       dampedgaussnewton.run(fitresolutiondata,
                         ncycles, tolerance, damp);
-
+      if (dampedgaussnewton.valid()) {
+        reshigh = radialfunction.inverse(limit);
+      }
     }
-    reshigh = radialfunction.inverse(limit);
 
     //    std::cout << "ResolutionLimit::fit ResHigh "<<reshigh
     //        <<"\n"<< radialfunction.format() << "\n\n"; //^
@@ -275,8 +287,6 @@ namespace scala {
         //      std::cout << "j, v, vc, del " <<j<<" "
         //                <<v<<" "<<vcalc<<" "<<v-vcalc<<"\n";
         j++;
-      } else {
-        nrej++;
       }
     }
 
@@ -289,7 +299,7 @@ namespace scala {
     for (size_t k=0; k<data.size(); k++) { // loop data
       double w = data[k].w;
       if (w > 0) {
-        double rdel = (delta[k] - median) / iqr;
+        double rdel = (std::abs(delta[k]) - median) / iqr;
         if (std::abs(rdel) > reject) {
           // reject this one
           data[k].w = 0.0;
@@ -358,6 +368,54 @@ namespace scala {
       if (fittype != NONE) {
         s += "\n        estimated from the point where the fit drops below threshold\n";
       }
+    }
+    return s;
+  }
+  // ------------------------------------------------------------
+  std::string ResolutionLimit::formatbrief(const bool& anomalous) const
+  // anomalous == true for assessment of anomalous signal (changes wording)
+  // brief version
+  {
+    std::string s;
+    if (status <= -2) {
+      s += "No resolution limit determined\n";
+      return s;
+    }
+    std::string sthreshold =  StringUtil::Strip(StringUtil::ftos(limit, 6, 2));
+
+    if (sufficientdata) {  // sufficent data to determine limit
+      if (status == -1) {
+        s += "All scores are below the threshold "+sthreshold;
+        if (anomalous) {
+          s += ", ie there is no significant anomalous signal\n";
+        } else {
+          s += ", ie the data are very poor even at the lowest resolution\n";
+        }
+      } else if (status == +1) {
+      s += "All scores are above the threshold "+sthreshold;
+      if (anomalous) {
+        s += ", ie there is a significant anomalous signal to the edge at "+
+        StringUtil::ftos(highres, 6, 2)+"A\n";
+      } else {
+        s += " ie data extends to the maximum resolution of "+
+          StringUtil::ftos(highres, 6, 2)+"A\n";
+      }
+    } else if (status == 0) {
+        if (anomalous) {
+          s += "Estimate of the resolution limit for a significant anomalous signal"+
+            StringUtil::ftos(highres, 6, 2)+"A";
+        } else {
+          s += "Estimate of the overall resolution limit: "+
+            StringUtil::ftos(highres, 6, 2)+"A";
+        }
+        if (fittype == NONE) { // no function fit
+          s += ",  from the point at which the score drops below threshold"+sthreshold+"\n";
+        } else {
+          s += ", from the point where the fit drops below threshold "+sthreshold+"\n";
+        }
+      }
+    } else { // insufficient data
+      s += "Insufficient data to determine resolution limit\n";
     }
     return s;
   }

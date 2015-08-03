@@ -14,11 +14,16 @@ namespace phaser_io {
     //  HKLIN, XDSIN, HKLREF, XYZIN, HKLOUT, XMLOUT 
     // Although these may also be read from commands, there is
     // separate code here since the syntax may vary slightly,
-    // specifically [HKLIN] may be omitted if it is the only file 
+    // specifically [HKLIN] may be omitted if it is the only file
+    //
+    // Also switches:
+    //   --no-input, -n  don't read command input, run with defaults
   {
   public:
     InterpretCommandLine(int argc, char* argv[], phaser_io::Output& output);
     InterpretCommandLine(Preprocessor& CommandLine, phaser_io::Output& output);
+    void printCommandLine(phaser_io::Output& output) const;
+
     Token_value parse(std::istringstream&) {return END;}
     void analyse(void) {}
 
@@ -36,6 +41,12 @@ namespace phaser_io {
 
     //  copyFlag true to just copy file
     bool CopyFlag() const {return copy;}
+
+    // true if no input command are read
+    bool noInput() const {return noinput;}
+
+    bool Run() const {return run;}
+
   private:
     std::vector<std::string> HklinNames;
     std::string XDSinName;
@@ -48,7 +59,11 @@ namespace phaser_io {
     std::string XmloutName;
     std::string XyzinName;
 
-    bool copy;  // true from option "-c[opy]", just copy file
+    std::string commandlineArguments;
+
+    bool copy;    // true from option "-c[opy]", just copy file
+    bool noinput; // true from option "--no-input" or "-n", no command input
+    bool run;     // false if program should stop after eg "--help"
 
     void initialise(Preprocessor& CommandLine, phaser_io::Output& output);
 

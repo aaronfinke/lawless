@@ -58,15 +58,6 @@ int main(int argc, char* argv[])
 {
   Timer overalltime;
 
-  // Initialise CCP4 command line parser
-  CCP4::ccp4fyp(argc, argv);
-
-  CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
-  std::string rcsdate = "$Date: "+std::string(PROGRAM_DATE2)+"$";
-  CCP4::ccp4RCSDate     (rcsdate.c_str());
-  CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
-  CCP4::ccp4_banner();
-
   // Initialise output object, CCP4 mode, write header
   phaser_io::Output output;
   output.setPackageCCP4();
@@ -74,6 +65,21 @@ int main(int argc, char* argv[])
   //  output.openOutputStreams("DEBUG");
   //  output.openOutputStreams("VERBOSE");
   //  output.setVerbose(true, true);
+
+  phaser_io::InterpretCommandLine CL(argc, argv, output);
+  if (!CL.Run()) {
+    return 0;
+  }
+
+  // Initialise CCP4 command line parser
+  CCP4::ccp4fyp(argc, argv);
+  CCP4::ccp4ProgramName (PROGRAM_NAME.c_str());
+  std::string rcsdate = "$Date: "+std::string(PROGRAM_DATE2)+"$";
+  CCP4::ccp4RCSDate     (rcsdate.c_str());
+  CCP4::ccp4_prog_vers(PROGRAM_VERSION.c_str());
+  CCP4::ccp4_banner();
+
+  CL.printCommandLine(output);  // echo command line arguments
 
   GlobalControls GC;
   std::string hklin_filename = "";
@@ -85,15 +91,16 @@ int main(int argc, char* argv[])
   try {
     // Input from command line: optional HKLIN filename
     //
-    phaser_io::InterpretCommandLine CL(argc, argv, output);
+    ///    phaser_io::InterpretCommandLine CL(argc, argv, output);
     hklin_filename = CL.getHKLIN1();
     hklref_filename = CL.getHKLREF();
     xyzref_filename = CL.getXYZIN();
     if (CL.getXMLOUT() != "")
       {output.setXmlout(CL.getXMLOUT());}
 
-    // Read input & store if not "online"
-    phaser_io::InputAll input(IsOnline(), output);
+    // Read input & store unless "-n" or "--no-input" switches given
+    phaser_io::InputAll input(CL.noInput(), output);
+    ////    phaser_io::InputAll input(IsOnline(), output);
     input.Analyse();
 
     // Optional HKLIN

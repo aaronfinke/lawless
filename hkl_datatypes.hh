@@ -821,15 +821,17 @@ namespace scala
 
     //! Return index in list if in selection, for given file series, else -1
     int FindInSelection(const int& batch,
-			const int& fileSeriesTest) const;
+			const int& fileSeriesTest,
+			const bool& testfinal=false) const;
 
     //! Return true if in selection, for given file series
-    bool InSelection(const int& batch, const int& fileSeriesTest) const;
+    bool InSelection(const int& batch, const int& fileSeriesTest,
+		     const bool& testfinal=false) const;
 
     //!< Two possibilities for selection:
     //!<  1) Specified selection on final numbering, ie from sole file or
     //!<  after renumbering of 2nd or subsequent file, fileSeriesList == 0,
-    //!<  only test if fileSeriesTest == 0
+    //!<  only test if fileSeriesTest == 0 or testfinal == true
     //<!
     //<!  2) Specified selection on original file numbering from 2nd or
     //<!  subsequent file, fileSeriesList > 0, only test if
@@ -847,6 +849,11 @@ namespace scala
     //! Check that fileSeries specified on selection commands match specified files. Fail here if not
     void CheckSeries(const int& NumFileSeries) const;
 
+    //! return true if batch is in the selection for run runnum
+    bool InSelection(const int& runnum,
+		     const int& batchnum,
+		     const int& originalbatchnum,
+		     const int& filenum) const;
   private:
     std::vector<int> batchlist;         // list of batch number
     std::vector<int> fileseries_list;   // file series numbers for list 

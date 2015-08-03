@@ -1409,7 +1409,9 @@ namespace scala {
     bool explicitruns = run_flags.Explicit();
     // Always do the autoset first, since this also does phi offsets etc
     AutoSetRun();
-    if (explicitruns) SetRunInput(); // reset runs from input specifications
+    if (explicitruns) {
+      SetRunInput(); // reset runs from input specifications
+    }
     CheckAllRuns(); // finish run specification
   }
   //--------------------------------------------------------------
@@ -1582,7 +1584,6 @@ namespace scala {
       runlist.push_back(ThisRun);
     }
     run_flags.SetStatus(0);  // status set to indicate auto run assignment
-
     // All runs now defined
   }
   //--------------------------------------------------------------
@@ -1634,7 +1635,7 @@ namespace scala {
     }
     int currentfilenumber = -1; // initial
     Run ThisRun;
-    int runnum = -1;
+    int runindex = -1;
 
     for (size_t i=0;i<batches.size();++i) { //  loop batches
       int filenumber = batches[i].FileNumber();
@@ -1647,10 +1648,10 @@ namespace scala {
         // start new run
         ThisRun = Run(batches[i].datasetindex(), batches[i].DatasetID(),
                           batches[i].PXDname());
-        runnum = runlist.size();
+        runindex = runlist.size();
         ThisRun.BatchNumberOffset() = batches[i].BatchNumberOffset();
         ThisRun.FileNumber() = filenumber;
-        ThisRun.RunNumber() = runnum;
+        ThisRun.RunNumber() = runindex + 1;
         int latnum = batches[i].LatticeNumber();
         ThisRun.SetLatticeNumber(latnum);
         currentfilenumber = filenumber;
@@ -1658,7 +1659,7 @@ namespace scala {
       ThisRun.AddBatch(batches[i].num(), batches[i].Accepted());
       if (batches[i].Accepted()) {
         // Store run index in batch: this = current size of runlist
-        batches[i].SetRunIndex(runnum);
+        batches[i].SetRunIndex(runindex);
       } else {
         // Store null run index in batch
         batches[i].SetRunIndex(-1);
@@ -1672,11 +1673,15 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
+  //--------------------------------------------------------------
   void hkl_unmerge_list::SetRunInput()
   // Set up runs from input specification
   {
     if (run_flags.Auto()) {return;}  // default AUTO
     if (run_flags.Byfile()) {SetRunByFile(); return;}  // BYFILE
+
+    // set run_controls status
+    run_flags.SetStatus(-2);
 
     // batch ranges
     // List of run numbers specified
@@ -1693,70 +1698,65 @@ namespace scala {
     //  mark all batches as omitted
     int maxbatchnum = -1; // maximum batch number
     for (size_t ib=0;ib<batches.size();ib++) {
+      //      std::cout << "Accepted batches " << ib <<  " "<<batches[ib].num()
+      //                <<" "<<batches[ib].Accepted()<<"\n";
       // Store null run index in batch
       batches[ib].SetRunIndex(-1);
       maxbatchnum = Max(maxbatchnum, batches[ib].num());
     }
     int latnum = 0;
+    Run this_run;
 
     for (int irun=0;irun<nruns;++irun) {    // Loop runs
       int runnum = runnumberlist[irun];  // run number
-      // list of batch ranges for this run
-      std::vector<IntRange> batchranges = run_flags.BatchRanges(runnum);
-      if (batchranges.size() > 0) {
-        int nbatAccepted = 0;
-        // First batch number in first range
-        int ib0 = NextBatchSerial(batchranges[0].min(), maxbatchnum);
-        if (ib0 < 0) {
-          // Batch range not found
-          clipper::String br = clipper::String(batchranges[0].min(),6)+
-            " to "+clipper::String(batchranges[0].max(),6);
-          Message::message(Message_fatal
-                ("hkl_unmerge_list:: batch range not found "+br));
-        }
-        //      start run, store dataset index in run
-        Run ThisRun = Run(batch(ib0).datasetindex(), batch(ib0).DatasetID(),
-                          batch(ib0).PXDname());
-        for (size_t i=0;i<batchranges.size();++i) { // loop batch ranges
-          int ibs1 = NextBatchSerial(batchranges[i].min(), maxbatchnum);
-          if (ibs1 < 0) {
-            // Batch range not found
-            clipper::String br = clipper::String(batchranges[i].min(),6)+
-              " to "+clipper::String(batchranges[i].max(),6);
-            Message::message(Message_fatal
-                             ("hkl_unmerge_list:: batch range not found "+br));
+      bool firstbatchinrun = true;
+      int nbatAccepted = 0;
+      int ib0 = -1;
+      //^^
+      //      std::cout << "\n\nRun " <<runnum<<"\n"; //^-
+      for (size_t ib=0;ib<batches.size();ib++) {
+        // ib is batch serial number
+        int batchnumber = batch(ib).num(); // batch number
+        int filenum = batch(ib).FileNumber()+1; // file number (if relevant)
+        // reconstruct original batch number if offset (else unchanged)
+        int originalbatchnumber = batchnumber - batch(ib).BatchNumberOffset();
+        //^^
+        //      std::cout << "ib, runnum, bnum, origbnum, filenum "
+        //                <<ib<<" "<<runnum<<" "<< batchnumber
+        //                <<" "<< originalbatchnumber<<" "<< filenum<<"\n";
+        if (run_flags.InSelection
+            (runnum, batchnumber, originalbatchnumber, filenum)) {
+          //      std::cout << "Accepted\n"; //^^
+          // this batch is selected to be in this run
+          if (firstbatchinrun) { // 1st batch, start a run
+            ib0 = ib;
+            this_run = Run(batch(ib).datasetindex(), batch(ib).DatasetID(),
+                           batch(ib).PXDname());
           }
-          // batch serial for end of range
-          int ibs2 = LastBatchSerial(batchranges[i].max());
-          if (ibs2 < 0) {
-            // reset to last batch serial
-            ibs2 = num_batches()-1;
+          firstbatchinrun = false;
+          // Add batch to run even if not accepted
+          this_run.AddBatch(batch(ib).num(), batch(ib).Accepted());
+          if (batch(ib).Accepted()) {
+            nbatAccepted++; // count accepted batches
+            // Store run index in batch: this = current size of runlist
+            batches[ib].SetRunIndex(runlist.size());
+          } else {
+            // Store null run index in batch
+            batches[ib].SetRunIndex(-1);
           }
-          for (int ib=ibs1;ib<=ibs2;++ib) {
-            // Add batch to run even if not accepted
-            ThisRun.AddBatch(batch(ib).num(), batch(ib).Accepted());
-            if (batch(ib).Accepted()) {
-              nbatAccepted++; // count accepted batches
-              // Store run index in batch: this = current size of runlist
-              batches[ib].SetRunIndex(runlist.size());
-            } else {
-              // Store null run index in batch
-              batches[ib].SetRunIndex(-1);
-            }
-          } // end loop batches in range
-        } // end loop ranges
-        if (nbatAccepted > 0) {
-          // Store run index in dataset
-          datasets[batch(ib0).datasetindex()].AddRunIndex(batch(ib0).PXDname(), runlist.size());
-          ThisRun.BatchNumberOffset() = batch(ib0).BatchNumberOffset();
-          ThisRun.FileNumber() = batch(ib0).FileNumber();
-          ThisRun.SortList();
-          ThisRun.RunNumber() = runnum;
-          // No   ThisRun.RunNumber() = runlist.size()+1;
-          latnum = batches[batch_lookup.lookup(ThisRun.BatchList()[0])].LatticeNumber();
-          ThisRun.SetLatticeNumber(latnum);
-          runlist.push_back(ThisRun);
         }
+      } // end loop batches in range
+      //      std::cout <<"End Run " << runnum <<" Naccepted " << nbatAccepted <<"\n";
+      if (nbatAccepted > 0) {
+        // Store run index in dataset
+        datasets[batch(ib0).datasetindex()].AddRunIndex(batch(ib0).PXDname(), runlist.size());
+        this_run.BatchNumberOffset() = batch(ib0).BatchNumberOffset();
+        this_run.FileNumber() = batch(ib0).FileNumber();
+        this_run.SortList();
+        this_run.RunNumber() = runnum;
+        latnum = batches[batch_lookup.lookup(this_run.BatchList()[0])].LatticeNumber();
+        this_run.SetLatticeNumber(latnum);
+        runlist.push_back(this_run);
       }
     } // end loop runs
     //  mark batches not in a run as omitted
@@ -1777,6 +1777,8 @@ namespace scala {
       }
     }
     ndatasets = datasets.size();
+    // set run_controls status
+    run_flags.SetStatus(+1);
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::CheckAllRuns() {

@@ -15,7 +15,24 @@ namespace SimpleMinimise {
                                        const double& damp)
   {
     valid_ = false;
-    run(fitstuff, Ncycles, tolerance, damp);
+    //    std::cout << "DampedGaussNewton " << fitstuff.NvalidData()<<
+    //      " "<< fitstuff.Nparameters() << "\n"; //^
+    if (fitstuff.NvalidData() >= fitstuff.Nparameters()+2) {
+      run(fitstuff, Ncycles, tolerance, damp);
+    }
+  }
+  // ---------------------------------------------------------
+  void dumpHmatrix(const clipper::Matrix<double>& H)
+  // dump Hessian (DEBUG)
+  {
+    int npar = H.rows();
+    std::cout << "\n";
+    for (int i=0;i<npar;++i) {
+      for (int j=0;j<npar;++j) {
+        std::cout << " " << H(i,j);
+      }
+      std::cout << "\n";
+    }
   }
   // ---------------------------------------------------------
   void DampedGaussNewton::run(FitBase& fitstuff,
@@ -23,7 +40,7 @@ namespace SimpleMinimise {
                               const double& tolerance,
                               const double& damp)
   // On entry, FitBase contains initial parameters, updated on return
-  // as well as the data, returns false if fails
+  // as well as the data
   {
     int npar = fitstuff.Nparameters();
     ASSERT (npar < 20);  // Clipper can't cope with large matrices
@@ -35,7 +52,6 @@ namespace SimpleMinimise {
     double previoustarget;
     std::vector<double> gradient;
     clipper::Matrix<double> H;    // Hessian
-
 
     bool trying = true;
     double damping = damp;
@@ -54,11 +70,13 @@ namespace SimpleMinimise {
         // Scale Hessian to make diagonals = 1.0
         std::vector<double> U(npar);    // diagonal of scaling matrix
         std::vector<double> Uinv(npar); // diagonal of inverse scaling matrix
+        //      dumpHmatrix(H);
         for (int i=0;i<npar;++i) {
           ASSERT (H(i,i) > 0.0);  // positive definite
           U[i] = sqrt(H(i,i));
           Uinv[i] = 1.0/U[i];
         }
+
         clipper::Matrix<double> A(npar,npar);  // scaled Hessian
         // Scaled gradient vector
         std::vector<double> ugradient(npar, 0.0);
@@ -130,7 +148,7 @@ namespace SimpleMinimise {
           //^
           //      std::cout <<"Parameter "<<kpl<<" Shift "<<shifts[kpl]
           //                <<" sdpk " <<sdpkpl[kpl]<<" relshift " <<relshift
-          //                        <<" rmn " << rmn<<"\n"; //^-
+          //                <<" rmn " << rmn<<"\n"; //^-
         }
 
         if (bigrelshift < tolerance) {
@@ -148,7 +166,7 @@ namespace SimpleMinimise {
       damping += DAMPSTEP;
       fitstuff.SetParameters(params0); // reset parameters
       //^
-      std::cout << damping << " new damp, Not OK\n";
+      //      std::cout << damping << " new damp, Not OK\n";
       //^-
     } // end trying
     valid_ = true;

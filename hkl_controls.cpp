@@ -22,7 +22,11 @@ namespace scala {
       // batch exclusions
       batchexclude = input.BatchExclusions();
       // batch inclusions from explicit RUN specification
-      batchinclude = input.RunBatches();
+      // Do this here only if theer are no file series,
+      // as it may exclude batches which will be renumbered
+      if (NumFileSeries == 0) {
+        batchinclude = input.RunBatches();
+      }
       // Check that fileSeries specified on selection commands match
       // specified files. Fail here if not
       batchexclude.CheckSeries(NumFileSeries);
@@ -57,15 +61,12 @@ namespace scala {
   bool file_select::accept_batch
   (const int& batch_number, const int& fileSeries) const
   // Return false if batch_number is in rejection lists
-  //  NB for reject options specifying batch numbers _after_
-  //  any renumbering (fileSeriesList == 0), no test will be done
-  //  (ie always returns true) unless fileSeries == 0
   {
     bool accept = true;
     if (!batchinclude.Null()) {
       // We have inclusions from specified RUNs
       //  accept if within selection
-      accept = batchinclude.InSelection(batch_number, fileSeries);
+      accept = batchinclude.InSelection(batch_number, fileSeries, true);
     }
     if (batchexclude.InSelection(batch_number, fileSeries)) {
       accept = false;

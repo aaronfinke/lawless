@@ -20,6 +20,7 @@ LFLAGS= ${OPT}
 #STATIC=
 #STATIC= -shared-libgcc -lstdc++-static
 #STATIC= -static-libgcc -lstdc++-static
+
 STATIC=  -static-libgcc  -static-libstdc++
 #STATIC= -static-libgcc 
 

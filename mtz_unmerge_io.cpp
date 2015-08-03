@@ -697,6 +697,7 @@ namespace MtzIO
         // This batch is in accepted dataset
         // Do we want this batch? (batch exclusions etc)
         accept = file_sel.accept_batch(this_batch.num, fileSeries);
+        //std::cout << "MTZread "<<this_batch.num<<" "<<fileSeries<<" "<<accept<<"\n";
         // Store list of batch numbers for this dataset
         if (ForceOneDataset) {
           OneDataset.add_batch(setid, this_batch.num);
@@ -908,6 +909,7 @@ namespace MtzIO
       // Optional columns, set defaults if absent or MNF
       Ipr = check_column(cols, col_mnf, col_sel.col_Ipr, StatusFlag);
       sigIpr = check_column(cols, col_mnf, col_sel.col_sigIpr, StatusFlag);
+
       fraction_calc = check_column(cols, col_mnf, col_sel.col_fractioncalc, StatusFlag);
       Xdet = check_column(cols, col_mnf, col_sel.col_Xdet, StatusFlag);
       Ydet = check_column(cols, col_mnf, col_sel.col_Ydet, StatusFlag);
@@ -929,21 +931,20 @@ namespace MtzIO
       }
       // Possible input scale
       sigscale = check_column(cols, col_mnf, col_sel.col_sigscale, StatusFlag);
-      if (col_sel.col_scale >= 0)
-        {
-          scale = check_column(cols, col_mnf, col_sel.col_scale, StatusFlag);
-          // If the scale column is present but there is no valid
-          // scale then skip this observation
-          if (StatusFlag || scale == 0.0)
+      if (col_sel.col_scale >= 0) {
+        scale = check_column(cols, col_mnf, col_sel.col_scale, StatusFlag);
+        // If the scale column is present but there is no valid
+        // scale then skip this observation
+        if (StatusFlag || scale == 0.0)
             continue;
-          // Apply input scale immediately
-          I *= scale;
-          sigI = sqrt(scale*sigI*scale*sigI + sigscale*I*sigscale*I);
-          if (col_sel.col_Ipr > 0) {
-            Ipr *= scale;
-            sigIpr = sqrt(scale*sigIpr*scale*sigIpr + sigscale*Ipr*sigscale*Ipr);
-          }
+        // Apply input scale immediately
+        I *= scale;
+        sigI = sqrt(scale*sigI*scale*sigI + sigscale*I*sigscale*I);
+        if (col_sel.col_Ipr > 0) {
+          Ipr *= scale;
+          sigIpr = sqrt(scale*sigIpr*scale*sigIpr + sigscale*Ipr*sigscale*Ipr);
         }
+      }
 
       // Multiple lattice options
       std::vector<LatticeIndexInfo> lathkl;

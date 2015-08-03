@@ -728,6 +728,7 @@ namespace scala {
         }
         if (allobs.Number() > 1) {
           rmsDbatch[jbatch].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
+          // Rmerge(batch) all I+ and I-
           AddDelStats(delI[idx], AvIsig.I(), jbatch, rmergebatch);
           rmsDRes[mres].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
           rmsDInt[mint].Add(delI[idx]*delI[idx]);  // Sum(DelI^2) (all I+-)
@@ -739,19 +740,15 @@ namespace scala {
             detectoranalysis.AddStats(this_obs.kI(), AvIothers[idx].I(),
                                       this_obs.run(), xd, yd);
           }
-        }
-        if (Centric) {
-          // No anomalous
-          if (allobs.Number() > 1) {
-            // Rmerge etc
+          if (Centric) {
+            // No anomalous
+            // Rmerge etc  (added in later for acentrics)
             AddDelStats(delI[idx], AvIsig.I(), allobs.Number(),
                         jbatch, rmergebatch,
                         mres, isfull,
                         rmergeRes, rmergeResFull, rmeasRes, rpimRes,
                         mint, rmergeInt, rmeasInt, rpimInt);
           }
-        }
-        if (allobs.Number() > 1) {
           // over all I+ & I- sets
           AddDelStatsOv(delI[idx], AvIsig.I(), allobs.Number(),
                         jbatch, rmergebatchOv,
@@ -821,6 +818,7 @@ namespace scala {
           if (obsplus.Number() > 1) {
             // Rmerge etc
             bool isfull = (this_obs.PartFlag() == FULL);
+            ///     jbatch = -1;  // rmergebatch already done for all I+ and I-, switch off here
             AddDelStats(delIplus[idx], AvIsigplus.I(), obsplus.Number(),
                         jbatch, rmergebatch,
                         mres, isfull,
@@ -837,6 +835,7 @@ namespace scala {
           if (obsminus.Number() > 1) {
             // Rmerge etc
             bool isfull = (this_obs.PartFlag() == FULL);
+            ///     jbatch = -1;  // rmergebatch already done for all I+ and I-, switch off here
             AddDelStats(delIminus[idx], AvIsigminus.I(), obsminus.Number(),
                         jbatch, rmergebatch,
                         mres, isfull,

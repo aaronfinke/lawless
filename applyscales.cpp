@@ -128,14 +128,30 @@ namespace scala {
     table.StoreID("Graph-ParameterVariance");
 
     TableGraphPlot graph("Mean sd(k)/k and relative Delta(sd(I)) vs. resolution");
+    std::string description =
+      "Estimated errors in the applied scales increase the individual sigma(I) estimates. ";
+    description +=
+      "sd(k)/k is the average relative error in the applied scale factor. ";
+    description += "relSD is the average relative change in sigma(I) due to sd(k)";
+    graph.SetDescription(description);
 
     Range xrange = resrange; // x axis range to full resolution limit
     xrange.first() = 0.0;    // from 0
 
+    double ymaxsdk = 0.0;
+    double ymaxrsd = 0.0;
+    for (size_t mres=0; mres<meansdk.size(); mres++) {
+      ymaxsdk = std::max(ymaxsdk, meansdk[mres].Mean());
+      ymaxrsd = std::max(ymaxrsd, meanrelsddiff[mres].Mean());
+    }
+
     graph.AddLine(TableGraphPlotline(2,4));
-    graph.AddLine(TableGraphPlotline(2,5));
+    TableGraphPlotline relsdline(2,5);
+    relsdline.SetRHaxis();
+    graph.AddLine(relsdline);
     graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
-    graph.SetYaxis("", true);  // y axis from 0 to maximum
+    graph.SetYaxis("", true, Range(0.0, ymaxsdk*1.05));  // y axis from 0 to maximum
+    graph.SetRightYaxis("", true, Range(0.0, ymaxrsd*1.05));  // y axis from 0 to maximum
     table.AddGraph(graph);
 
     std::vector<std::string> collabels;

@@ -8,6 +8,7 @@
 #include "file_util.hh"
 #include "observationstatuscontrol.hh"
 #include "string_util.hh"
+#include "weighttype.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -65,6 +66,9 @@ namespace scala {
     // Update reflection with new observation status flags
     void UpdateReflection();
 
+    static void setWeightType(const WeightType::AverageWeightType& Weighttype)
+    {weighttype = Weighttype;}
+
   private:
     reflection* this_refl;
     const OutlierControl* outliercontrol;
@@ -73,7 +77,10 @@ namespace scala {
     std::vector<ObservationStatus> statusflags;
     std::vector<float> deviations;
     bool discrepant;
+    // Weighting scheme for averaging observations in outlier testing
+    static WeightType::AverageWeightType weighttype;   // type of weighting for average
   };
+  WeightType::AverageWeightType RejectList::weighttype = WeightType::SQRTSCALE;
   // ------------------------------------------------------------
   void RejectList::Check(const AnomalousClass& selclass, const int& dts_index,
                          const ObservationStatus& status)
@@ -82,7 +89,7 @@ namespace scala {
   // "rejected " and "statusflags". Status for rejects is in "status"
   //
   {
-    SelectedObservations sel(*this_refl, dts_index, selclass);
+    SelectedObservations sel(*this_refl, dts_index, selclass, weighttype);
     RejectFlags rejflags = outliercontrol->Reject(selclass, dts_index);
     std::vector<int> outlierindexlist =
       sel.OutlierIndexList(rejflags);

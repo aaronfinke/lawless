@@ -261,6 +261,10 @@ namespace scala {
     xrange.first() = 0.0;    // from 0
 
     TableGraphPlot graph(s);
+    std::string description =
+      "Correlations between runs may point out bad runs; a full matrix table is given in the log file";
+    graph.SetDescription(description);
+
     for (int k=0;k<ncc;++k) {
       graph.AddLine(TableGraphPlotline(2,k+4)); // column numbers for x,y
     }

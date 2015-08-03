@@ -374,13 +374,13 @@ namespace MtzIO {
       clipper::data32::I_sigI Isig;
       clipper::data32::I_sigI_ano IsigAnom;
       double F;
-      double sigF = 1.0;
       const double iscale = 0.1;  // scale down F^2, by iscale^2
-      double sigI = 1.0/(iscale*iscale);
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
         Isig.set_null();
         IsigAnom.set_null();
+        double sigF = 1.0;
+        double sigI = 1.0/(iscale*iscale);
         bool OK = false;
         // OK if  1. NoSigI && F OK, or  2. F OK
         if (anom) {
@@ -391,8 +391,10 @@ namespace MtzIO {
             F = fsig.f_pl();
             IsigAnom.I_pl() = F * F;
             if (!NoSigI) {
-              sigF = fsig.sigf_pl();
-              sigI = 2.*F*sigF + sigF*sigF;
+              if (!clipper::Util::is_null(fsig.sigf_pl())) { // F not null
+                sigF = fsig.sigf_pl();
+                sigI = 2.*F*sigF + sigF*sigF;
+              }
             }
             IsigAnom.sigI_pl() = sigI;
             OK = true;
@@ -402,8 +404,10 @@ namespace MtzIO {
             F = fsig.f_mi();
             IsigAnom.I_mi() = F * F;
             if (!NoSigI) {
-              sigF = fsig.sigf_mi();
-              sigI = 2.*F*sigF + sigF*sigF;
+              if (!clipper::Util::is_null(fsig.sigf_mi())) { // F not null
+                sigF = fsig.sigf_mi();
+                sigI = 2.*F*sigF + sigF*sigF;
+              }
             }
             IsigAnom.sigI_mi() = sigI;
             OK = true;
@@ -421,8 +425,10 @@ namespace MtzIO {
             F = fsig.f();
             Isig.I() = F * F;
             if (!NoSigI) {
-              sigF = fsig.sigf();
-              sigI = 2.*F*sigF + sigF*sigF;
+              if (!clipper::Util::is_null(fsig.sigf())) { // F not null
+                sigF = fsig.sigf();
+                sigI = 2.*F*sigF + sigF*sigF;
+              }
             }
             Isig.sigI() = sigI;
             Isig.scale(iscale);

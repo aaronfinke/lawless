@@ -40,9 +40,11 @@ namespace scala {
     // set true to use quadratic residual, else ln(cosh(d))
     void setQuadratic(const bool& quadratic);
 
-    int Nparameters() {return npar;}
-    int Ndata() {return rdata->size();}
+    int Nparameters() const {return npar;}
+    int Ndata() const {return rdata->size();}
     
+    int NvalidData() const;  // number of data with weight > 0
+
     void ApplyShifts(const std::vector<double> shifts);
     
     void settargetType(const RefineTargets::REFINETARGETTYPES& Targettype)

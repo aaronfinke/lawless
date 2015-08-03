@@ -45,7 +45,7 @@ namespace MtzIO {
                    const double& ResoLimit,
 		   const MtzIO::column_labels& column_list,
                    clipper::HKL_info& hkl_info_list,
-	           bool& anom,
+	           bool& setanom,
                    clipper::HKL_data<clipper::data32::I_sigI>& IsigData,
                    clipper::HKL_data<clipper::data32::I_sigI_ano>& IsigDataAnom,
                    clipper::MTZdataset& mtzdataset,

@@ -221,6 +221,10 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   table.StoreID("Graph-ScalesVsRotationRange");
 
   TableGraphPlot graph("Mn(k) & 0k (theta=0) v. batch");
+  std::string description =
+    "Mn(k) (red) is the mean scale over the whole resolution range for each Batch.";
+  description += " 0k is the scale at the lowest resolution, ie excluding the relative B-factor";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,5,"red"));  // Mn(k)
   graph.AddLine(TableGraphPlotline(1,6,"blue"));  // 0k
   graph.SetYaxis("", true);  // Y from zero
@@ -235,8 +239,12 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Relative Bfactor & Decay v. batch");
-  graph.AddLine(TableGraphPlotline(1,8,"red"));  // Mn(k)
-  graph.AddLine(TableGraphPlotline(1,9,"blue"));  // 0k
+  description = "The relative B-factor is largely a radiation damage correction.";
+  description += " Negative values below perhaps -10 may indicate sever radiation damage.";
+  description += " Bdecay is a straight-line fit to the B-factors";
+  graph.SetDescription(description);
+  graph.AddLine(TableGraphPlotline(1,8,"red"));  // Bfactor
+  graph.AddLine(TableGraphPlotline(1,9,"blue"));  // Bdecay
   graph.SetXbreak(xcolbr, xbreaklist);
   graph.SetXaxis("", false, xrange, true);
   graph.SetYaxis("", false);  // Y not from zero
@@ -361,12 +369,18 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   table.StoreID("Graph-StatsVsBatch");
 
   TableGraphPlot graph("Rmerge v Batch for all runs");
+  std::string description =
+    "Increase of Rmerge towards the end of a run probably indicates radiation damage";
+
   if (smoothR) { // smoothed, 2 lines, smoothed first
-    graph.AddLine(TableGraphPlotline(1,13,"red")); // smoothed
+    graph.AddLine(TableGraphPlotline(1,13,"red",
+                                     "",0,false,"Solid",2)); // smoothed
     graph.AddLine(TableGraphPlotline(1,6,"blue")); // unsmoothed
+    description += ". The red line is smoothed over adjacent batches";
   } else {
     graph.AddLine(TableGraphPlotline(1,6,"blue")); // unsmoothed
   }
+  graph.SetDescription(description);
   graph.SetYaxis("", true);  // Y from zero
   // Breaks in X axis
   int xcolbr = 2;  // column for real batch number
@@ -381,17 +395,29 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Cumulative %completeness & Anom%cmpl v Batch");
-  graph.AddLine(TableGraphPlotline(1,9,"red"));  // completeness
+  description = std::string("In conjunction with radiation damage indicators, ")+
+    "cumulative completeness may indicate a suitable point for cutting back poor data."+
+    " The blue line is the completeness of anomalous differences";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,10,"blue"));  // anomalous completeness
+  graph.AddLine(TableGraphPlotline(1,9,"red"));  // completeness
   graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
   graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
-  std::string s = "Maximum resolution limit, I/sigma > "+StringUtil::ftos(MinimumIoverSigma,5,1);
+  std::string s = "Maximum resolution limit, I/sigma > "+
+    StringUtil::Strip(StringUtil::ftos(MinimumIoverSigma,5,1));
   graph.init(s);
+  description =
+    "The resolution limit estimate is the point at which I/sig(I) falls below "+
+    StringUtil::Strip(StringUtil::ftos(MinimumIoverSigma,5,1))+
+    ", red line smoothed over adjacent batches. "+
+    "A sharp increase probably indicates radiation damage";
+  graph.SetDescription(description);
+
   if (smoothMaxRes) {
-    graph.AddLine(TableGraphPlotline(1,14,"red"));  // smoothed
+    graph.AddLine(TableGraphPlotline(1,14,"red","",0,false,"Solid",2));  // smoothed
     graph.AddLine(TableGraphPlotline(1,11,"blue"));  // unsmoothed
   } else {
     graph.AddLine(TableGraphPlotline(1,11,"blue"));  // unsmoothed
@@ -401,14 +427,10 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   graph.SetXbreak(xcolbr, xbreaklist, xrange);
   table.AddGraph(graph);
 
-  graph.init("Cumulative multiplicity");
-  graph.AddLine(TableGraphPlotline(1,12,"red"));
-  graph.SetXaxis("", false, xnrange, true);
-  graph.SetYaxis("", true);  // Y from zero
-  graph.SetXbreak(xcolbr, xbreaklist, xrange);
-  table.AddGraph(graph);
-
   graph.init("Imean & RMS Scatter");
+  description = "Major deviations may indicate bad images";
+  graph.SetDescription(description);
+
   graph.AddLine(TableGraphPlotline(1,3,"red"));
   graph.AddLine(TableGraphPlotline(1,4,"blue"));
   graph.SetXaxis("", false, xnrange, true);
@@ -417,6 +439,8 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Imean/RMS scatter");
+  description = "Major deviations may indicate bad images";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,5,"red"));
   graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
@@ -425,6 +449,13 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 
   graph.init("Number of rejects");
   graph.AddLine(TableGraphPlotline(1,8,"red"));
+  graph.SetXaxis("", false, xnrange, true);
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXbreak(xcolbr, xbreaklist, xrange);
+  table.AddGraph(graph);
+
+  graph.init("Cumulative multiplicity");
+  graph.AddLine(TableGraphPlotline(1,12,"red"));
   graph.SetXaxis("", false, xnrange, true);
   graph.SetYaxis("", true);  // Y from zero
   graph.SetXbreak(xcolbr, xbreaklist, xrange);
@@ -700,7 +731,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                 " sd      :- average standard deviation derived from experimental SDs, after\n"+
                 "             application of SdFac SdB SdAdd 'correction' terms\n"+
                 " Mn(I/sd):- average < merged< Ih >/sd(< Ih >) > ~= signal/noise\n"+
-                " Frcbias :- partial bias = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
+                " Frcbias :- partial bias, = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
                 "             for mixed sets only (If is a full if present, else the\n"+
                 "             partial with the smallest number of parts)\n\n");
   if (Anom) {
@@ -719,6 +750,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   std::vector<Range> yranges(4);   // for each graph
   // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   // (as qloggraph does)
+  bool anyFulls = false;
   for (int i=0;i<ResRange.Nbins();++i) {
     float frcbias = 0.0;
     if (biasIRes[i].Count() > 0) {
@@ -742,10 +774,18 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     yranges[2].update(sqrt(Max(0.0,rmsDRes[i].Mean())));  // RMSdeviation
     yranges[2].update(Max(0.0,avSdRes[i].Mean()));  // Sd
     yranges[3].update(frcbias);
+    if (rmergeRes[i].R() > 0.0) {
+      anyFulls = true;
+    }
   } // end line loop
 
 
   TableGraphPlot graph("I/sigma, Mean Mn(I)/sd(Mn(I))");  // 1st graph
+  std::string description =
+    std::string("I/sigma = I / rms scatter before merging. ")+
+    "Mean(I/sd) after averaging, ~= signal/noise";
+  graph.SetDescription(description);
+
   graph.AddLine(TableGraphPlotline(2,13)); // column numbers for x,y
   graph.AddLine(TableGraphPlotline(2,14));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
@@ -753,6 +793,12 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Rmerge, Rfull, Rmeas, Rpim v Resolution");  // 2nd graph
+  description = "Rmerge, classic R-factor; ";
+  if (anyFulls) {
+    description +=  "Rfull, for fully-recordeds only; ";
+  }
+  description += "Rmeas, multiplicity-weighted R; Rpim, precision-indicating R";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,4));
   graph.AddLine(TableGraphPlotline(2,5));
   graph.AddLine(TableGraphPlotline(2,6));
@@ -762,6 +808,8 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Average I, RMSdeviation and Sd");  // 3rd graph
+  description = "RMSdev is RMS scatter, sd is average corrected sig(I) estimate";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,10));
   graph.AddLine(TableGraphPlotline(2,11));
   graph.AddLine(TableGraphPlotline(2,12));
@@ -770,6 +818,11 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Fractional bias");  // 4th graph
+  description =
+    std::string("FrcBias = Mean( Mn(If) - Ip )/Mean( Mn(I) ), ")+
+                "where If is a full if present, else the partials "+
+                "with the smallest number of parts";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,15));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
   graph.SetYaxis("", false, yranges[3]);  // y axis from minimum to maximum
@@ -1019,6 +1072,8 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
   yrange.first() = 0.0;  // from 0
 
   TableGraphPlot graph("Rmerge, Rmeas, Rpim v Resolution");
+  std::string description = "within I+/I- sets, and over all data (Ov values)";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,4));
   graph.AddLine(TableGraphPlotline(2,5));
   graph.AddLine(TableGraphPlotline(2,8));
@@ -1117,6 +1172,11 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   table.StoreID("Graph-StatsVsIntensity");
 
   TableGraphPlot graph("Rmerge v Intensity");
+  std::string description = "The important values are in the top bin: ";
+  description += " Rmerge: "+StringUtil::ftos(rmergeInt.back().R(), 7,3);
+  description += " Rmerge: "+StringUtil::ftos(rmeasInt.back().R(), 7,3);
+  description += " Rmerge: "+StringUtil::ftos(rpimInt.back().R(), 7,3);
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,2));
   graph.AddLine(TableGraphPlotline(1,4));
   graph.AddLine(TableGraphPlotline(1,5));
@@ -1241,6 +1301,10 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   table.StoreID("Graph-CompletenessVsResolution");
 
   TableGraphPlot graph("Completeness v Resolution ");
+  std::string description = "%poss, completeness in shell; C%poss, cumulative completeness. ";
+  description +=  "Anomalous completeness (AnomCmpl) is the percentage of possible anomalous differences measured. ";
+  description +=  "AnomFrc is the % of measured acentric reflections for which an anomalous difference has been measured";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,7));
   graph.AddLine(TableGraphPlotline(2,8));
   graph.AddLine(TableGraphPlotline(2,10));
@@ -1250,6 +1314,8 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   table.AddGraph(graph);
 
   graph.init("Multiplicity v Resolution");
+  description = "Total multiplicity and anomalous multiplicity";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,9));
   graph.AddLine(TableGraphPlotline(2,12));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
@@ -1431,6 +1497,11 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
     ", anom "+ StringUtil::Strip(StringUtil::ftos(anomhighres,8,2));
 
   TableGraphPlot graph(title);
+  double cchalflimit = overallresolimit.Limit();
+  double ccanomlimit = anomresolimit.Limit();
+  std::string description = "Resolution estimate: "+overallresolimit.formatbrief(false)+
+    ". Anomalous resolution: "+ anomresolimit.formatbrief(true);
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,4));
   graph.AddLine(TableGraphPlotline(2,7));
   for (int i=0;i<ncurves;++i) { // ncurves may == 0
@@ -1441,12 +1512,17 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init(" RMS correlation ratio ");
+  description = "RMS correlation ratio > 1.0 indicates significant anomlous differences";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,6));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
   graph.SetYaxis("", true, yranges[1]);  // y axis from 0 to maximum
   table.AddGraph(graph);
 
   graph.init(" Rsplit ");
+  description
+    = "Rsplit is the R-factor equivalent of CC(1/2), but less useful";
+  graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,9));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
   graph.SetYaxis("", true, yranges[2]);  // y axis from 0 to maximum
@@ -1607,16 +1683,16 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     highres[i] = resolutionlimits[i].HighResolution();
   }
 
-  s = "\n Estimated maximum resolution limits, ";
+  std::string smaxres = "\n Estimated maximum resolution limits, ";
   if (isplane) {
-    s += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
+    smaxres += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
       axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
   } else {
-    s += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
+    smaxres += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
       axlabels[1]+":"+StringUtil::ftos(highres[1],6,2)+", "+
       axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
   }
-  output.logTab(0,LOGFILE, s);
+  output.logTab(0,LOGFILE, smaxres);
 
   if (curvefitted) {
     output.logTab(0,LOGFILE,
@@ -1657,10 +1733,13 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     cln.push_back(i+j1);
   }
 
-  TableGraphPlot graph(" Imean CCs v resolution");
+  TableGraphPlot graph(" Anisotropic CC(1/2) v resolution");
+  std::string description = "CC(1/2) in cones along principle directions. " + smaxres; // maximum resolution limits
+  graph.SetDescription(description);
+
   for (size_t i=1; i<cln.size(); i++) { // from 1
     if (cln[i] >= j1) {
-      graph.AddLine(TableGraphPlotline(2,cln[i],"","",0)); // curve fit, no symbols
+      graph.AddLine(TableGraphPlotline(2,cln[i],"","",0,false,"Solid",1)); // curve fit, no symbols
     } else {
       graph.AddLine(TableGraphPlotline(2,cln[i]));
     }
@@ -1676,7 +1755,10 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     int c2[] = {2,7,8,9};
     cln.assign(c2,c2+4);
   }
-  graph.init(" Mn(I/sd) v resolution");
+  graph.init(" Anisotropic Mn(I/sd) v resolution");
+  description = "Mn(I/sd) in cones along principle directions"; // maximum resolution limits
+  graph.SetDescription(description);
+
   for (size_t i=1; i<cln.size(); i++) { // from 1
     graph.AddLine(TableGraphPlotline(2,cln[i]));
   }
@@ -1691,7 +1773,9 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     int c3[] = {2,10,11,12};
     cln.assign(c3,c3+4);
   }
-  graph.init(" Projected Imean CCs v resolution");
+  graph.init(" Projected CC(1/2) v resolution");
+  description = "CC(1/2) projected on principle directions"; // maximum resolution limits
+  graph.SetDescription(description);
   for (size_t i=1; i<cln.size(); i++) { // from 1
     graph.AddLine(TableGraphPlotline(2,cln[i]));
   }

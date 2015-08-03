@@ -82,6 +82,9 @@ namespace scala {
 
     // anomalous == true for assessment of anomalous signal (changes wording)
     std::string format(const bool& anomalous) const;
+    // brief version
+    std::string formatbrief(const bool& anomalous) const;
+
 
     std::string formatparameters() const;
 

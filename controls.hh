@@ -8,6 +8,7 @@
 #include "eprob.hh"
 #include "range.hh"
 #include "runthings.hh"
+#include "weighttype.hh"
 
 namespace scala
 {
@@ -34,6 +35,12 @@ namespace scala
 
     //! return list of batch ranges for specified run, or empty range for BYFILE or AUTO
     std::vector<IntRange> BatchRanges(const int& RunNumber);
+
+    //! Return true if in selection, for given file filenum
+    bool InSelection(const int& runnum,
+		     const int& batchnum,
+		     const int& originalbatchnum,
+		     const int& filenum) const;
 
     // return true if run specifications were given on input, 
     // irrespective of whether they have been imposed yet or not
@@ -80,7 +87,7 @@ namespace scala
     std::vector<std::pair<int,ResoRange> > run_resolution_ranges; // run ID number and reso range
     bool resobyrun;  // true if there have ever been run_resolution_ranges set, even if cleared
   }; // run_controls
-  //------------------------------------------------------------
+  //-----------------------------------------------------------
   class partial_controls
   // Selection & treatment of partials 
   //  accept_fract_min, accept_fract_max
@@ -259,6 +266,9 @@ public:
  // return true if rejection is set between I+ & I- for all datasets
   bool Anom() const {return anomreject;}
 
+  // Weighting scheme for averaging observations in outlier testing
+  WeightType::AverageWeightType weightType() const {return weighttype;}
+
   void SetNdatasets(const int& Ndatasets); // copy outliercontrols from 1st dataset
 
   // rejection criteria, within I+, I-  or between I+ & I-
@@ -283,6 +293,9 @@ private:
   std::vector<RejectFlags> rejectanom;      // between I+ & I-
   bool anomreject;             // true if any rejection between I+ & I-
   EProb emaxtest;  
+  // Weighting scheme for averaging observations in outlier testing
+  WeightType::AverageWeightType weighttype;   // type of weighting for average
+
 }; // OutlierControl
 //=================================================================
   //! Controls on scale refinement  

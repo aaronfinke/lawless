@@ -14,12 +14,14 @@
 <a href="#release_notes">Release Notes</a><br>
 </p>
 <h2><a name="description"></a>DESCRIPTION</h2>
-<p><a href="#scaling_options">Scaling options</a><br>
+<p><a href="#running">Running the program</a><a href="#scaling_options"><br>
+Scaling options</a><br>
 <a href="#control_of_flow">Control of flow through the program</a><br>
 <a href="#Appendix1">Partially recorded reflections</a><br>
 <a href="#Scaling">Scaling algorithm<br></a><a href="#data_from_denzo">Data from Denzo</a><br>
 <a href="#datasets">Datasets</a><a href="#data_harvesting"></a><br>
 </p>
+
 <p>This program scales together multiple observations of reflections,
 and merges multiple observations into an average intensity: it is a successor program to SCALA </p>
 <p> Various scaling models can be used. The scale factor is a function
@@ -66,9 +68,30 @@ outliers rejected, for each dataset<br>
 determination (I+ &amp; I- observations are treated together), but the
 merged file always contains I+ &amp; I-, even if the ANOMALOUS OFF
 command is used. Switching ANOMALOUS ON does affect the statistics and
-the outlier rejection (qv)
+the outlier rejection (qv) <br>
 </p>
+<h2><a name="running"></a>Running the program</h2>
+Aimless will often be run from the CCP4 GUI, but may also be run from a
+script. In a script the input and output files may be assigned on the
+command line, or some of them (marked with an asterisk in the list
+below) may be assigned as keyworded input commands. The option switch
+"--no-input" forces the program to run immediately with default
+options, without waiting for input commands, using file assignments
+from the command line.<br>
+<br>
+Input files:<br>
+<a href="#hklin">HKLIN</a>*, <a href="#hklref">HKLREF</a>*, <a href="#xyzin">XYZIN</a>*<br>
+<br>
+Output files:<br>
+ <a href="#hklout">HKLOUT</a>*, <a href="#xmlout">XMLOUT</a>*,  <a href="#dump">SCALES</a>*, <a href="#rogues">ROGUES</a>, <a href="#tileimage">TILEIMAGE</a><br>
+<br>
+<a href="#plots">Plot files</a> also represented in XMLOUT:<br>
+ROGUEPLOT, NORMPLOT, ANOMPLOT, CORRELPLOT<br>
+<br>
+Explicit file assignments for <a href="#Reflection_files">optional output reflection files</a>, otherwise generated from HKLOUT:<br>
+HKLOUTUNMERGED, SCALEPACK, SCALEPACKUNMERGED
 <h2><a name="scaling_options"></a>Scaling options</h2>
+
 <p>The optimum form of the scaling will depend a great deal on how the
 data were collected. It is not possible to lay down definitive rules,
 but some of the following hints may help. For most purposes, my normal
@@ -112,7 +135,7 @@ default if multiple datasets are present in the input file.<br>
 </ol>
 Other options are described in greater detail under the <a href="#keywords"> KEYWORDS</a>.
 <h2><a name="control_of_flow"></a>Control of flow through the program</h2>The
-ONLYMERGE flag skips the scaling (usually in conjuction with RESTORE to
+ONLYMERGE flag skips the scaling (often in conjuction with RESTORE to
 read in previously determined scales),&nbsp; calculates statistics and
 outputs the data.<br>
 <h2>Partially recorded
@@ -882,17 +905,17 @@ XYZIN&nbsp; as an alternative to HKLREF, a coordinate file may be
 given, from which amplitudes and intensities will be calculated<br>
 <h3>Output</h3>
 
-<h4>Reflection files output </h4>
+<h4><a name="Reflection_files"></a>Reflection files output </h4>
 
 
 
 In all cases, separate files
 are written for each dataset:&nbsp; files are named with the base
-HKLOUT name with the dataset name appended, as "_dataset"
-<dl>
-<span style="font-family: monospace;"><br>
+HKLOUT name with the dataset name appended, as "_dataset"<br>
+<br>
+<span style="font-family: monospace;">
     </span>
-</dl>
+
 (a) HKLOUT: option OUTPUT [MTZ] MERGED
     <br>
 <br>
@@ -947,10 +970,10 @@ specified then the filename will be taken from SCALEPACK with&nbsp;
 
 
   <dd>scale factors from DUMP, used by RESTORE option </dd>
-  <dt>ROGUES </dt>
-  <dd>list of bad agreements </dd><dt>TILEIMAGE</dt><dd>a detector image representing the CCD TILE correction, if <a href="#scales_tile">activated</a>, in ADSC image format which may be viewed with <span style="font-style: italic;">adxv</span><br>
+  <dt><a name="rogues"></a>ROGUES </dt>
+  <dd>list of bad agreements </dd><dt><a name="tileimage"></a>TILEIMAGE</dt><dd>a detector image representing the CCD TILE correction, if <a href="#scales_tile">activated</a>, in ADSC image format which may be viewed with <span style="font-style: italic;">adxv</span><br>
   </dd>
-</dl>The following 4 files are also represented in the XMLOUT file:<br>
+</dl><a name="plots"></a>The following 4 files are also represented in the XMLOUT file:<br>
 <dl compact="compact">
   <dt>NORMPLOT </dt>
 
@@ -1279,7 +1302,11 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.13 fix memory leak in resolution calculation<br>
+  <h2>RELEASE NOTES</h2>0.5.14
+bug fix in Rmerge(batch), was double counting. Change to expect stdin
+input unless "--no-input" given on command line. Added "descriptions"
+to graphs, for ccp4i2. <br>
+0.5.13 fix memory leak in resolution calculation<br>
 0.5.10,11,12
 bug fix in setting spherical harmonic orders. Keep empty batches in
 unmerged file output. Bug fix in scaling one lattice from multilattice
@@ -1395,6 +1422,8 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
+
 
 
 

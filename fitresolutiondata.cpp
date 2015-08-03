@@ -26,6 +26,16 @@ namespace scala {
     }
   }
   // ---------------------------------------------------------
+  int FitResolutionData::NvalidData() const
+  // number of data with weight > 0
+  {
+    int n = 0;
+    for (size_t k=0; k<rdata->size(); k++) { // loop data
+      if ((*rdata)[k].w > 0.0) {n++;}
+    }
+    return n;
+  }
+  // ---------------------------------------------------------
   void FitResolutionData::ApplyShifts(const std::vector<double> shifts)
   {
     for (int i=0;i<npar;++i) {
@@ -43,7 +53,7 @@ namespace scala {
   // Function to calculate target function, gradient & Hessian
   // returns target, gradient, Hessian if dogradient true
   {
-    //    const bool DEBUG = true;
+    //const bool DEBUG = true;
     const bool DEBUG = false;
 
     target = 0.0;

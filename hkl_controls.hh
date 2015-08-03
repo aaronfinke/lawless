@@ -39,9 +39,6 @@ namespace scala
     {return true;} //!< always true for now
 
     //! Return false if batch_number is in rejection lists
-    //  NB for reject options specifying batch numbers _after_
-    //  any renumbering, no test will be done
-    //  (ie always returns true) unless fileSeries == 1
     bool accept_batch(const int& batch_number, const int& fileSeries) const;
 
     BatchSelection BatchExclude() const {return batchexclude;} //!< return list of excluded batches
