@@ -37,6 +37,7 @@ namespace scala {
     const Normalise* normres;  // pointer to Normalisation object
     std::vector<double> mnCC_E2; // CC(E^2) for each pair
     std::vector<int> nmeanCC;
+    std::vector<int> runnumbers; // actual runnumbers for runs by index
 
     std::vector<std::vector<correl_coeff> > CC_E2_res;  // on E^2
 

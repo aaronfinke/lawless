@@ -217,7 +217,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   }
 
   // $TABLE  start
-  TableGraph table(" >>> Scales v rotation range, "+dataset_pxd.dname());
+  TableGraph table(" === Scales v rotation range, "+dataset_pxd.dname());
   table.StoreID("Graph-ScalesVsRotationRange");
 
   TableGraphPlot graph("Mn(k) & 0k (theta=0) v. batch");
@@ -497,7 +497,7 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
     if (batches[i].datasetindex() == datasetIndex && batches[i].Accepted()) { // ... but not rejected batches
       if (rmergebatch[i].result().count > 0) {
         float r = 0.0;
-        if (rmsDbatch[i].Count() > 0) {
+        if (rmsDbatch[i].Mean() > 0) {
           r = imeanbatch[i].Mean()/sqrt(rmsDbatch[i].Mean());
         }
         if (nbatchsmooth == 1) { // no smoothed stats
@@ -747,7 +747,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 
   Range xrange = ResRange; // x axis range to full resolution limit
   xrange.first() = 0.0;    // from 0
-  std::vector<Range> yranges(4);   // for each graph
+  std::vector<Range> yranges(5);   // for each graph
   // Get y ranges for each graph (if loggraph would accept just an xrange, wouldn't need to do this)
   // (as qloggraph does)
   bool anyFulls = false;
@@ -764,16 +764,21 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
     double sd = sqrt(Max(rmsDRes[i].Mean(), 0.0));
     double Iovsd = 0.0;
     if ( sd > 0.0) {Iovsd = imeanRes[i].Mean()/sd;}
+
     yranges[0].update(Iovsd);  // I/sigma
     yranges[0].update(mnIsdRes[i].Mean()); //Mn(I/sd)
+
     yranges[1].update(rmergeRes[i].R());   // Rmerge
     yranges[1].update(rmergeResFull[i].R());   // Rfull
     yranges[1].update(rmeasRes[i].R());    // Rmeas
     yranges[1].update(rpimRes[i].R());     // Rpim
+
     yranges[2].update(Max(0.0,imeanRes[i].Mean())); // AvI
     yranges[2].update(sqrt(Max(0.0,rmsDRes[i].Mean())));  // RMSdeviation
-    yranges[2].update(Max(0.0,avSdRes[i].Mean()));  // Sd
+
     yranges[3].update(frcbias);
+    yranges[4].update(Max(0.0, sqrt(rmsDRes[i].Mean()))); // RMSdev
+    yranges[4].update(Max(0.0,avSdRes[i].Mean()));  // Sd
     if (rmergeRes[i].R() > 0.0) {
       anyFulls = true;
     }
@@ -782,7 +787,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 
   TableGraphPlot graph("I/sigma, Mean Mn(I)/sd(Mn(I))");  // 1st graph
   std::string description =
-    std::string("I/sigma = I / rms scatter before merging. ")+
+    std::string("I/sigma = I/RMS = I/(rms scatter before merging). ")+
     "Mean(I/sd) after averaging, ~= signal/noise";
   graph.SetDescription(description);
 
@@ -810,11 +815,16 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   graph.init("Average I, RMSdeviation and Sd");  // 3rd graph
   description = "RMSdev is RMS scatter, sd is average corrected sig(I) estimate";
   graph.SetDescription(description);
-  graph.AddLine(TableGraphPlotline(2,10));
-  graph.AddLine(TableGraphPlotline(2,11));
-  graph.AddLine(TableGraphPlotline(2,12));
+  graph.AddLine(TableGraphPlotline(2,10)); // AvI
+  TableGraphPlotline line1(2,11);
+  line1.SetRHaxis();
+  graph.AddLine(line1); // RMSdev
+  line1.init(2,12);
+  line1.SetRHaxis();
+  graph.AddLine(line1); // Mn(I/sd)
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
   graph.SetYaxis("", true, yranges[2]);  // y axis from 0 to maximum
+  graph.SetRightYaxis("", true, yranges[4]);
   table.AddGraph(graph);
 
   graph.init("Fractional bias");  // 4th graph
@@ -859,6 +869,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   MeanSD Imean, rmsD, avSd, mnIsd, bias, biasI;
 
   int n=1;
+  double Iovsd = 0.0;
   for (int i=0;i<ResRange.Nbins();++i) {
     Rcum += rmergeRes[i];
     float frcbias = 0.0;
@@ -866,7 +877,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
       frcbias = biasRes[i].Mean()/biasIRes[i].Mean();
     }
     double sd = sqrt(Max(rmsDRes[i].Mean(), 0.0));
-    double Iovsd = 0.0;
+    Iovsd = 0.0;
     if ( sd > 0.0) {Iovsd = imeanRes[i].Mean()/sd;}
     // Store each table line
     table.Line(nc, n++, ResRange.middle(i),
@@ -899,11 +910,15 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   output.logTab(0,LXML,table.XMLformat());
 
   fmt = "Overall:          "+fmt;
+  Iovsd = 0.0;
+  if (rmsD.Mean() > 0.0) {
+    Iovsd = Imean.Mean()/sqrt(rmsD.Mean());
+  }
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                       Rcum.R(), Rfull.R(), Rcum.R(),
                       Rmeas.R(), Rpim.R(), Rcum.result().count,
                       Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
-                   Imean.Mean()/sqrt(rmsD.Mean()), mnIsd.Mean(), frcbias);
+                      Iovsd, mnIsd.Mean(), frcbias);
   output.logTab(0,LOGFILE,table.RawLabels());
   // Store things in summary object
   summarystatistics.StoreMnIsd(mnIsd.Mean(), mnIsdRes[0].Mean(),
@@ -1174,8 +1189,8 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   TableGraphPlot graph("Rmerge v Intensity");
   std::string description = "The important values are in the top bin: ";
   description += " Rmerge: "+StringUtil::ftos(rmergeInt.back().R(), 7,3);
-  description += " Rmerge: "+StringUtil::ftos(rmeasInt.back().R(), 7,3);
-  description += " Rmerge: "+StringUtil::ftos(rpimInt.back().R(), 7,3);
+  description += " Rmeas: "+StringUtil::ftos(rmeasInt.back().R(), 7,3);
+  description += " Rpim: "+StringUtil::ftos(rpimInt.back().R(), 7,3);
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,2));
   graph.AddLine(TableGraphPlotline(1,4));
@@ -1206,18 +1221,23 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
   Rfactor Rmeas, Rpim;
   MeanSD Imean, rmsD, avSd, mnIsd, bias, biasI;
 
+  double Iovsd = 0.0;
   for (int i=0;i<Irange.NumberBins();++i) {
     Rcum += rmergeInt[i];
     float frcbias = 0.0;
     if (biasIInt[i].Count() > 0) {
       frcbias = biasInt[i].Mean()/biasIInt[i].Mean();
     }
+    Iovsd = 0.0;
+    if (rmsDInt[i].Mean() > 0.0) {
+      Iovsd = imeanInt[i].Mean()/sqrt(rmsDInt[i].Mean());
+    }
     table.Line(nc, Irange.bounds(i).second,
                rmergeInt[i].R(), Rcum.R(),
                rmeasInt[i].R(), rpimInt[i].R(),
                rmergeInt[i].result().count,
                Nint(imeanInt[i].Mean()), Nint(sqrt(rmsDInt[i].Mean())),
-               Nint(avSdInt[i].Mean()), imeanInt[i].Mean()/sqrt(rmsDInt[i].Mean()),
+               Nint(avSdInt[i].Mean()), Iovsd,
                mnIsdInt[i].Mean(), frcbias);
     // Totals
     Rmeas += rmeasInt[i];
@@ -1239,11 +1259,15 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
     frcbias = bias.Mean()/biasI.Mean();
   }
   fmt = "Overall:  "+fmt+"\n";
+  Iovsd = 0.0;
+  if (rmsD.Mean() > 0.0) {
+    Iovsd = Imean.Mean()/sqrt(rmsD.Mean());
+  }
   output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                    Rcum.R(), Rcum.R(),
                       Rmeas.R(), Rpim.R(), Rcum.result().count,
                    Nint(Imean.Mean()), Nint(sqrt(rmsD.Mean())), Nint(avSd.Mean()),
-                   Imean.Mean()/sqrt(rmsD.Mean()), mnIsd.Mean(), frcbias);
+                   Iovsd, mnIsd.Mean(), frcbias);
   output.logTab(0,LOGFILE,table.RawLabels());
 }
 //--------------------------------------------------------------
@@ -1302,8 +1326,8 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
 
   TableGraphPlot graph("Completeness v Resolution ");
   std::string description = "%poss, completeness in shell; C%poss, cumulative completeness. ";
-  description +=  "Anomalous completeness (AnomCmpl) is the percentage of possible anomalous differences measured. ";
-  description +=  "AnomFrc is the % of measured acentric reflections for which an anomalous difference has been measured";
+  description +=  "\nAnomalous completeness (AnomCmpl) is the percentage of possible anomalous differences measured. ";
+  description +=  "\nAnomFrc is the % of measured acentric reflections for which an anomalous difference has been measured";
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,7));
   graph.AddLine(TableGraphPlotline(2,8));
@@ -1500,7 +1524,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   double cchalflimit = overallresolimit.Limit();
   double ccanomlimit = anomresolimit.Limit();
   std::string description = "Resolution estimate: "+overallresolimit.formatbrief(false)+
-    ". Anomalous resolution: "+ anomresolimit.formatbrief(true);
+    +"\n"+"Anomalous resolution: "+ anomresolimit.formatbrief(true);
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,4));
   graph.AddLine(TableGraphPlotline(2,7));
@@ -1512,7 +1536,7 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init(" RMS correlation ratio ");
-  description = "RMS correlation ratio > 1.0 indicates significant anomlous differences";
+  description = "RMS correlation ratio > 1.0 indicates significant anomalous differences";
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,6));
   graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
@@ -1683,7 +1707,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
     highres[i] = resolutionlimits[i].HighResolution();
   }
 
-  std::string smaxres = "\n Estimated maximum resolution limits, ";
+  std::string smaxres = "Estimated maximum resolution limits, ";
   if (isplane) {
     smaxres += axlabels[0]+":"+StringUtil::ftos(highres[0],6,2)+", "+
       axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
@@ -1692,7 +1716,7 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
       axlabels[1]+":"+StringUtil::ftos(highres[1],6,2)+", "+
       axlabels[2]+":"+StringUtil::ftos(highres[2],6,2);
   }
-  output.logTab(0,LOGFILE, smaxres);
+  output.logTab(0,LOGFILE, "\n "+smaxres);
 
   if (curvefitted) {
     output.logTab(0,LOGFILE,
@@ -2124,44 +2148,55 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
     float resmax = hkl_list.ResRange().ResHigh();
     output.logTab(1,LXML,
                   StringUtil::MakeXMLtag("ResolutionHigh",
-                                         StringUtil::ftos(resmax,8,2)));
-    output.logTabPrintf(1,LXML,
-                        "<NumberReflections>  %10d </NumberReflections>\n",
-                        hkl_list.num_reflections_valid());
-    output.logTabPrintf(1,LXML,
-                        "<NumberObservations> %10d </NumberObservations>\n",
-                        hkl_list.num_observations());
-    output.logTabPrintf(1,LXML,
-                        "<NumberParts>        %10d </NumberParts>\n",
-                        hkl_list.num_parts());
+                                         resmax,8,2));
+    output.logTab(1,LXML,
+                  StringUtil::MakeXMLtag("NumberReflections",
+                  hkl_list.num_reflections_valid(),10));
+    output.logTab(1,LXML,
+                  StringUtil::MakeXMLtag("NumberObservations",
+                                         hkl_list.num_observations(),10));
+    output.logTab(1,LXML,
+                  StringUtil::MakeXMLtag("NumberParts",
+                                         hkl_list.num_parts(),10));
+    int numberoflattices = hkl_list.NumberofMainLattices();
     output.logTab(1,LXML,
                   StringUtil::MakeXMLtag("NumberLattices",
-                        StringUtil::itos(hkl_list.NumberofMainLattices())));
-    output.logTabPrintf(1,LXML,
-                        "<NumberBatches>      %10d </NumberBatches>\n",
-                        hkl_list.num_batches());
-    output.logTabPrintf(1,LXML,
-                        "<NumberDatasets>     %10d </NumberDatasets>\n",
-                        hkl_list.num_datasets());
+                                         numberoflattices));
+    output.logTab(1,LXML,
+                  StringUtil::MakeXMLtag("NumberBatches",
+                                         hkl_list.num_batches(),10));
+    output.logTab(1,LXML,
+                  StringUtil::MakeXMLtag("NumberDatasets",
+                                         hkl_list.num_datasets(),10));
 
     int ndatasets = hkl_list.num_datasets();
     std::vector<Dataset> datasets = hkl_list.AllDatasets();
     for (int k=0; k<ndatasets; k++) {
+      std::cout << "Dataset " << k<<"\n"; //^
       output.logTabPrintf(1,LXML, "<Dataset  name=\"%s\">\n",
                           datasets[k].formatNames().c_str());
       for (size_t i=0;i<runlist.size();i++) {
         if (runlist[i].DatasetIndex() == k) {
-          output.logTabPrintf(2,LXML,"<Run> <number> %3d </number>\n",i+1);
-          output.logTabPrintf(2,LXML,
-                              "<BatchRange> %8d %8d </BatchRange>\n",
-                              runlist[i].BatchRange().first, runlist[i].BatchRange().second);
-          output.logTabPrintf(2,LXML,"<BatchOffset> %8d </BatchOffset>\n",
-                              runlist[i].BatchNumberOffset());
+          std::cout << "Run in dataset " << i <<"\n"; //^
+          output.logTabPrintf(2,LXML,"<Run> <number> %3d </number>\n",
+                              runlist[i].RunNumber());
+          output.logTab(2,LXML,
+                        StringUtil::MakeXMLtag("BatchRange",
+                        StringUtil::itos(runlist[i].BatchRange().first,8)+
+                        StringUtil::itos(runlist[i].BatchRange().second,8)));
+
+          output.logTab(2,LXML,StringUtil::MakeXMLtag("BatchOffset",
+                                                      runlist[i].BatchNumberOffset(),8));
           if (!OneFile) {
             hklstream =
               StringUtil::Strip("HKLIN"+clipper::String(runlist[i].FileNumber()));
           }
-          output.logTab(2,LXML,"<FileStream> "+hklstream+" </FileStream>");
+          output.logTab(2,LXML,StringUtil::MakeXMLtag("FileStream", hklstream));
+          if (numberoflattices > 1) {
+            output.logTab(2,LXML,
+                          StringUtil::MakeXMLtag("Lattice",runlist[i].LatticeNumber()));
+          }
+          std::cout << "end run\n";
           output.logTabPrintf(2,LXML,"</Run>\n",i+1);
         }
       }

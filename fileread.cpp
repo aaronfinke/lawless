@@ -1,11 +1,10 @@
 // fileread.cpp
 
 #include "fileread.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
 
 //--------------------------------------------------------------
 Fileread::Fileread(std::ifstream& File,
@@ -15,8 +14,7 @@ Fileread::Fileread(std::ifstream& File,
 {
   if (!file) {
     filename = Filename;
-    clipper::Message::message(Message_fatal
-      ("Failed to open "+label+" file "+filename));
+    ReportErrors::printFatalError("Failed to open "+label+" file "+filename);
   }
 }
 //--------------------------------------------------------------
@@ -33,8 +31,8 @@ void Fileread::ReadTag(const std::string& tag) const
 {
   GetTag();
   if (s == tag) return;
-  clipper::Message::message(Message_fatal
-     (label+" tag error: "+s+" != "+tag));
+  ReportErrors::printFatalError
+    (label+" tag error: "+s+" != "+tag);
 }
 //--------------------------------------------------------------
 void Fileread::Skip() const
@@ -126,8 +124,8 @@ clipper::Array2d<double> Fileread::Array2d(const int& Nrows,
       A(i,j) = Double();
     }
     if (!CheckEnd()) {
-      clipper::Message::message(Message_fatal
-                                ("FILEREAD::Array2d error: wrong length line"));
+      ReportErrors::printFatalError
+        ("FILEREAD::Array2d error: wrong length line");
     }
   }
   return A;
@@ -144,7 +142,7 @@ std::string Fileread::Label() const
 //--------------------------------------------------------------
 void Fileread::EOFerror(const std::string& tag) const
 {
-  clipper::Message::message(Message_fatal
-    ("FILEREAD error:"+label+" end of file when looking for "+tag));
+  ReportErrors::printFatalError
+    ("FILEREAD error:"+label+" end of file when looking for "+tag);
 }
 //--------------------------------------------------------------

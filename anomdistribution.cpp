@@ -275,7 +275,7 @@ namespace scala {
                           pxdnames[id].format().c_str());
     }
 
-    std::string title = ">>> Correlation of Anomalous Differences between datasets";
+    std::string title = "=== Correlation of Anomalous Differences between datasets";
     std::string graphtitle = "Anom CCs v resln -";
     for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
     std::string cl1 = "1st dataset         ";

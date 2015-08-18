@@ -57,7 +57,7 @@ set(SHARED_SOURCES
     openinputfile.cpp pointgroup.cpp probfunctions.cpp range.cpp
     rotation.cpp runthings.cpp scala_util.cpp score_datatypes.cpp
     spacegroupreindex.cpp spline.cpp string_util.cpp timer.cpp
-    zone.cpp tablegraph.cpp runcorrelations.cpp
+    zone.cpp tablegraph.cpp runcorrelations.cpp report_errors.cpp
 )
 
 add_executable(aimless ${AIMLESS_SOURCES} ${SHARED_SOURCES} ${MINLIB_SOURCES})

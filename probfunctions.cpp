@@ -2,6 +2,7 @@
 
 #include "probfunctions.hh"
 #include <scitbx/math/erf.h>
+#include "report_errors.hh"
 
 
 namespace scala{
@@ -14,8 +15,7 @@ namespace scala{
   //   where z = (val-mean)/sd
 {
   if (sd <= 0.0)
-    clipper::Message::message(clipper::Message_fatal
-                              ("GaussProb: sd must be > 0"));
+    ReportErrors::printFatalError("GaussProb: sd must be > 0");
   double z = (val-mean)/sd;
   return (1./(sd*sqrt(clipper::Util::twopi()))) * exp (-0.5*z*z);
 }
@@ -44,14 +44,11 @@ namespace scala{
   //                     ie the cumulative distribution function
 {
   if (sd <= 0.0)
-    clipper::Message::message(clipper::Message_fatal
-                              ("GaussProb: sd must be > 0"));
+    ReportErrors::printFatalError("GaussProb: sd must be > 0");
   if (val < minval || val > maxval)
-    clipper::Message::message(clipper::Message_fatal
-                              ("GaussProb: value must lie between limits"));
+    ReportErrors::printFatalError("GaussProb: value must lie between limits");
   if (mean < minval || mean > maxval)
-    clipper::Message::message(clipper::Message_fatal
-                              ("GaussProb: mean must lie between limits"));
+    ReportErrors::printFatalError("GaussProb: mean must lie between limits");
   double z = (val-mean)/sd;
   double z1 = (minval-mean)/sd;
   double z2 = (maxval-mean)/sd;
@@ -75,14 +72,11 @@ double TruncatedLorentzianProb(const double& val,
 //     T = pi/(atan(zmax)-atan(zmin))    [note: pi cancels]
 {
   if (sd <= 0.0)
-    clipper::Message::message(clipper::Message_fatal
-                              ("LorentzianProb: sd must be > 0"));
+    ReportErrors::printFatalError("LorentzianProb: sd must be > 0");
   if (val < minval || val > maxval)
-    clipper::Message::message(clipper::Message_fatal
-                              ("LorentzianProb: value must lie between limits"));
+    ReportErrors::printFatalError("LorentzianProb: value must lie between limits");
   if (mean < minval || mean > maxval)
-    clipper::Message::message(clipper::Message_fatal
-                              ("LorentzianProb: mean must lie between limits"));
+    ReportErrors::printFatalError("LorentzianProb: mean must lie between limits");
   double sz = (val-mean);
   double z1 = (minval-mean)/sd;
   double z2 = (maxval-mean)/sd;
@@ -152,8 +146,7 @@ double DM_1minusmCu::dprob(const double& am) const
 // Integrate probability over possible ideal values
 {
   if (sd <= 0.0)
-    clipper::Message::message(clipper::Message_fatal
-                              ("IntgrtProb::Prob: sd must be > 0"));
+    ReportErrors::printFatalError("IntgrtProb::Prob: sd must be > 0");
   double m1 = DMeanModel->HighProb();
   double m2 = DMeanModel->LowProb();
   // Swap if wrong way round (make m2 > m1)
@@ -198,8 +191,7 @@ double DM_1minusmCu::dprob(const double& am) const
 // Integrate probability over possible ideal values
 {
   if (sd <= 0.0)
-    clipper::Message::message(clipper::Message_fatal
-                              ("IntgrtProb::LorentzProb: sd must be > 0"));
+    ReportErrors::printFatalError("IntgrtProb::LorentzProb: sd must be > 0");
   double m1 = DMeanModel->HighProb();
   double m2 = DMeanModel->LowProb();
   // Swap if wrong way round (make m2 > m1)

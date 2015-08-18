@@ -1,11 +1,10 @@
 // range.cpp
 
 #include "range.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
 
 namespace scala
 {
@@ -87,13 +86,12 @@ namespace scala
   {
     if (width == 0.0) {
       if (Nbin_ <= 0)
-        clipper::Message::message(Message_fatal("Range: Nbin <= 0 "
-                                                  +clipper::String(Nbin_)));
+        ReportErrors::printFatalError("Range: Nbin <= 0 "
+                                      +clipper::String(Nbin_));
       width = (double(last_ - first_))/double(Nbin_);
       if (ascending && width <= 0.0) {
-        clipper::Message::message(Message_fatal("Range: width <= 0  "
-
-                                                +clipper::String(width)));
+        ReportErrors::printFatalError("Range: width <= 0  "
+                                      +clipper::String(width));
       } else if (width == 0.0) {
         // If width == 0, reset Nbin to 1
         Nbin_ = 1;

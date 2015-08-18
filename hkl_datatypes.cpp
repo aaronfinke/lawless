@@ -5,9 +5,6 @@
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
-using clipper::Message_warn;
 
 #include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
@@ -18,6 +15,7 @@ using clipper::Message_warn;
 #include "matvec_utils.hh"
 #include "string_util.hh"
 #include "hkl_symmetry.hh"
+#include "report_errors.hh"
 
 namespace scala
 {
@@ -91,8 +89,8 @@ namespace scala
     float rt44[10][4][4];  // Allocate excess space in case of error
     int Noper = CSym::symfr_driver(Operator.c_str(), rt44);
     if (Noper != 1) {
-      Message::message(Message_fatal
-                       ("ReindexOp: syntax error in operator; "+Operator));
+      ReportErrors::printFatalError
+        ("ReindexOp: syntax error in operator; "+Operator);
     }
     // Check whether real or reciprocal space (xyz or hkl)
     bool realspace = realSpaceOperator(Operator);
@@ -117,8 +115,8 @@ namespace scala
     //std::cout << "v\n"<<v.format()<<"\n";
 
     if (realspace && (v != Vec3<double>(0.0,0.0,0.0))) {
-      Message::message(Message_fatal
-       ("ReindexOp: real-space operatorcannot have translation; "+Operator));
+      ReportErrors::printFatalError
+        ("ReindexOp: real-space operatorcannot have translation; "+Operator);
     }
 
     rot() = H;
@@ -145,8 +143,8 @@ namespace scala
       }
     }
     if (fail || real < 0) {
-      Message::message(Message_fatal
-      ("ReindexOp: syntax error, mixed real & reciprocal space; "+Operator));
+      ReportErrors::printFatalError
+        ("ReindexOp: syntax error, mixed real & reciprocal space; "+Operator);
     }
     return (real > 0);
   }
@@ -1015,8 +1013,7 @@ namespace scala
     for (int i=0;i<NBATCHREALS;++i) {fltbuf[i]=0.0;}
     int status = CMtz::MtzArrayToBatch(intbuf, fltbuf, &batchinfo);
     if (!status) {
-      Message::message(Message_fatal
-                       ("Batch::initBatchInfo fail"));
+      ReportErrors::printFatalError("Batch::initBatchInfo fail");
     }
     strcpy(batchinfo.title, "");                /**< batch title */
     strcpy(batchinfo.gonlab[0], "        ");    /**< names of the three axes */
@@ -1168,12 +1165,13 @@ namespace scala
       if (std::abs(phirange - batchinfo.phirange) > tolerance) {
         double dif = batchinfo.phistt+batchinfo.phirange-batchinfo.phiend;
         if (std::abs(fmod(dif,360.0)) > tolerance) {
-          Message::message(Message_warn(
-                "Inconsistent rotation information in header for batch "+
-                                        clipper::String(batchinfo.num)+
-                "\n  Phi1: "+clipper::String(batchinfo.phistt)+
-                " Phi2: "+clipper::String(batchinfo.phiend)+
-                " DelPhi: "+clipper::String(batchinfo.phirange)));
+          ReportErrors::printWarning
+            ("Inconsistent rotation information in header for batch "+
+             clipper::String(batchinfo.num)+
+             "\n  Phi1: "+clipper::String(batchinfo.phistt)+
+             " Phi2: "+clipper::String(batchinfo.phiend)+
+             " DelPhi: "+clipper::String(batchinfo.phirange),
+             "WarningMessage", false);
         } else
           // Fix up phi end if off by multiple of 360
           {batchinfo.phiend = batchinfo.phistt + batchinfo.phirange;}
@@ -1577,8 +1575,8 @@ namespace scala
   // return true if batch is in the selection for run runnum
   {
     if (batchlist.size() > 0) {
-      Message::message(Message_fatal
-       ("BatchSelection::InSelection not valid for batch list, only for batch range"));
+      ReportErrors::printFatalError
+        ("BatchSelection::InSelection not valid for batch list, only for batch range");
     }
     if (batchranges.size() == 0) {return true;}
     ASSERT (batchranges.size() == flaglist.size());
@@ -1604,8 +1602,8 @@ namespace scala
   {
     int i;
     if (batchlist.size() > 0) {
-      Message::message(Message_fatal
-       ("BatchSelection::FlagNumber not valid for batch list, only for batch range"));
+      ReportErrors::printFatalError
+       ("BatchSelection::FlagNumber not valid for batch list, only for batch range");
     }
     if ((i = FindInSelection(batch, 0)) >= 0) {
       return flaglist[i];
@@ -1648,18 +1646,18 @@ namespace scala
   {
     for (size_t i=0;i<batchlist.size();i++) {
       if (fileseries_list[i] > NumFileSeries) {
-        Message::message(Message_fatal
-                         ("Batch selection specifies file[series] "+
-                          clipper::String(fileseries_list[i],3)+
-                          " which does not exist"));
+        ReportErrors::printFatalError
+          ("Batch selection specifies file[series] "+
+           clipper::String(fileseries_list[i],3)+
+           " which does not exist");
       }
     }
     for (size_t i=0;i<batchranges.size();i++) {
       if (fileseries_range[i] > NumFileSeries) {
-        Message::message(Message_fatal
-                         ("Batch selection specifies file[series] "+
-                          clipper::String(fileseries_range[i],3)+
-                          " which does not exist"));
+        ReportErrors::printFatalError
+          ("Batch selection specifies file[series] "+
+           clipper::String(fileseries_range[i],3)+
+           " which does not exist");
       }
     }
   }

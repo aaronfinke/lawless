@@ -1,11 +1,10 @@
 // Clipper
 #include <clipper/clipper.h>
 using clipper::Message;
-using clipper::Message_fatal;
-using clipper::Message_warn;
 
 #include "dataset.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 namespace scala {
   //--------------------------------------------------------------
@@ -64,8 +63,8 @@ namespace scala {
   {
     int idx = XdatasetIndex(setid);
     if (idx < 0) { // not found
-      Message::message(Message_fatal
-                       ("Dataset::add_batch, setid not found "+clipper::String(setid)));
+      ReportErrors::printFatalError
+        ("Dataset::add_batch, setid not found "+clipper::String(setid));
     }
     xdatasets[idx].add_batch(batch_num);  // add it
   }
@@ -75,8 +74,8 @@ namespace scala {
   {
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
-      Message::message(Message_fatal
-                       ("Dataset::add_batch, pxdname not found "+pxdname.format()));
+      ReportErrors::printFatalError
+        ("Dataset::add_batch, pxdname not found "+pxdname.format());
     }
     xdatasets[idx].add_batch(batch_num);  // add it
   }
@@ -96,8 +95,8 @@ namespace scala {
   {
     int idx = XdatasetIndex(setid);
     if (idx < 0) { // not found
-      Message::message(Message_fatal
-                       ("Dataset::pxdname, setid not found "+clipper::String(setid)));
+      ReportErrors::printFatalError
+        ("Dataset::pxdname, setid not found "+clipper::String(setid));
     }
     return xdatasets[idx].pxdname();
   }
@@ -189,8 +188,8 @@ namespace scala {
     dieIfEmpty("wavelength named");
     int idx = XdatasetIndex(xname);
     if (idx < 0) {
-      Message::message(Message_fatal
-                       ("Dataset::wavelength, xname not found "+xname));
+      ReportErrors::printFatalError
+        ("Dataset::wavelength, xname not found "+xname);
     }
     return xdatasets[idx].wavelength();
   }
@@ -286,8 +285,8 @@ namespace scala {
   {
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
-      Message::message(Message_fatal
-                       ("Dataset::AddRunIndex, pxdname not found "+pxdname.format()));
+      ReportErrors::printFatalError
+        ("Dataset::AddRunIndex, pxdname not found "+pxdname.format());
     }
     xdatasets[idx].AddRunIndex(RunIndex);  // add it
   }
@@ -335,8 +334,8 @@ namespace scala {
     dieIfEmpty("GetID");
     int idx = XdatasetIndex(pxdname);
     if (idx < 0) { // not found
-      Message::message(Message_fatal
-                       ("Dataset::GetID, pxdname not found "+pxdname.format()));
+      ReportErrors::printFatalError
+        ("Dataset::GetID, pxdname not found "+pxdname.format());
     }
     return xdatasets[idx].setid();
   }
@@ -506,8 +505,7 @@ namespace scala {
         // Die, die, die!
         std::string names = xdatasets[0].pxdname().dname()+" != "
           +xdatasets[i].pxdname().dname();
-        Message::message(Message_fatal
-                         ("Dataset::check failed "+names));
+        ReportErrors::printFatalError("Dataset::check failed "+names);
       }
     }
   }
@@ -516,8 +514,8 @@ namespace scala {
   // Die here if nothing in list
   {
     if (xdatasets.size() <= 0) {
-      Message::message(Message_fatal
-                       ("Dataset:: empty dataset list, function: "+where));
+      ReportErrors::printFatalError
+        ("Dataset:: empty dataset list, function: "+where);
     }
   }
   //--------------------------------------------------------------

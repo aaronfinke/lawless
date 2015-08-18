@@ -378,7 +378,7 @@ namespace scala {
   {
     std::string s;
     if (status <= -2) {
-      s += "No resolution limit determined\n";
+      s += "No resolution limit determined";
       return s;
     }
     std::string sthreshold =  StringUtil::Strip(StringUtil::ftos(limit, 6, 2));
@@ -387,18 +387,18 @@ namespace scala {
       if (status == -1) {
         s += "All scores are below the threshold "+sthreshold;
         if (anomalous) {
-          s += ", ie there is no significant anomalous signal\n";
+          s += ", ie there is no significant anomalous signal";
         } else {
-          s += ", ie the data are very poor even at the lowest resolution\n";
+          s += ", ie the data are very poor even at the lowest resolution";
         }
       } else if (status == +1) {
       s += "All scores are above the threshold "+sthreshold;
       if (anomalous) {
         s += ", ie there is a significant anomalous signal to the edge at "+
-        StringUtil::ftos(highres, 6, 2)+"A\n";
+        StringUtil::ftos(highres, 6, 2)+"A";
       } else {
         s += " ie data extends to the maximum resolution of "+
-          StringUtil::ftos(highres, 6, 2)+"A\n";
+          StringUtil::ftos(highres, 6, 2)+"A";
       }
     } else if (status == 0) {
         if (anomalous) {
@@ -409,13 +409,13 @@ namespace scala {
             StringUtil::ftos(highres, 6, 2)+"A";
         }
         if (fittype == NONE) { // no function fit
-          s += ",  from the point at which the score drops below threshold"+sthreshold+"\n";
+          s += ",  from the point at which the score drops below threshold"+sthreshold;
         } else {
-          s += ", from the point where the fit drops below threshold "+sthreshold+"\n";
+          s += ", from the point where the fit drops below threshold "+sthreshold;
         }
       }
     } else { // insufficient data
-      s += "Insufficient data to determine resolution limit\n";
+      s += "Insufficient data to determine resolution limit";
     }
     return s;
   }
@@ -442,6 +442,7 @@ namespace scala {
     }
 
     //^^
+    //std::cout << "ResolutionLimit::testinsufficientdata\n";
     //    for (int i=0;i<nbins;++i) {
     //      std::cout <<" "<<score[i];
     //    }
@@ -453,7 +454,7 @@ namespace scala {
     const size_t MINNUMBER = 4;
     if (filledbins.size() < MINNUMBER) {
       // too few datapoints
-      //      std::cout <<"insufficientdata, Nfilledbins "<<filledbins.size()<<"\n"; //^
+      //^std::cout <<"insufficientdata, Nfilledbins "<<filledbins.size()<<"\n"; //^
       return true;
     }
 
@@ -462,7 +463,7 @@ namespace scala {
     const double MINFILLEDFRACTION = 0.2;
     if (filledfraction < MINFILLEDFRACTION) {
       // too few datapoints
-      //      std::cout <<"insufficientdata, filledfraction "<<filledfraction<<"\n"; //^
+      //^std::cout <<"insufficientdata, filledfraction "<<filledfraction<<"\n"; //^
       return true;
     }
 

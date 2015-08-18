@@ -8,6 +8,7 @@
 #include "mtz_merge_io.hh"
 #include "hkl_datatypes.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 namespace MtzIO {
   //--------------------------------------------------------------
@@ -39,9 +40,9 @@ namespace MtzIO {
   // returns false if fails
   {
     if (fileopen)
-      Message::message( Message_fatal( "MtzMrgFile: open_read - File already open" ) );
+      ReportErrors::printFatalError("MtzMrgFile: open_read - File already open");
     if ( filename_in == "")
-      Message::message( Message_fatal( "MtzMrgFile: open_read - no filename given" ) );
+      ReportErrors::printFatalError("MtzMrgFile: open_read - no filename given");
 
     // store filename
     if (getenv(filename_in.c_str()) != NULL) {
@@ -118,12 +119,10 @@ namespace MtzIO {
   // Returns FileRead.Read() true if the MTZ file has been read, false if has failed
   {
     if (!merged) {  // file must be merged for this function
-      Message::message
-        (Message_fatal("MtzMrgFile::MakeHklList: not a merged file"));
+      ReportErrors::printFatalError("MtzMrgFile::MakeHklList: not a merged file");
     }
     if (!hkl_list.IsEmpty()) {
-      Message::message
-        (Message_fatal("MtzMrgFile::MakeHklList: hkl_list is not empty"));
+      ReportErrors::printFatalError("MtzMrgFile::MakeHklList: hkl_list is not empty");
     }
 
     clipper::CCP4MTZfile mtzin;

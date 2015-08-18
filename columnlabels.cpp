@@ -8,6 +8,7 @@
 
 #include "columnlabels.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -53,8 +54,8 @@ namespace MtzIO {
     // Fail if not
   {
     if ((col1 == 0 && col2 != 0) || (col2 == 0 && col1 != 0))
-      Message::message(Message_fatal
-       ( "Column pair must be both present or both absent: "+text+"\n"));
+      ReportErrors::printFatalError
+        ( "Column pair must be both present or both absent: "+text+"\n");
   }
   //--------------------------------------------------------------
   void column_labels::add(const std::string& loglabel,
@@ -87,7 +88,7 @@ namespace MtzIO {
   // return column number (from 0) for requested column, else -1
   {
     if (!setup)
-      Message::message(Message_fatal("column_labels::lookup_col - list not set up"));
+      ReportErrors::printFatalError("column_labels::lookup_col - list not set up");
     std::map<std::string, ColumnNumberLabel>::const_iterator p = columns.find(loglabel);
     if (p == columns.end()) {
       // Label not found
@@ -138,8 +139,7 @@ namespace MtzIO {
       p = columns.find(loglabel);
     if (p == columns.end()) {
       // Label not found
-      Message::message(Message_fatal
-       ( "Column label not found: "+loglabel+"\n"));
+      ReportErrors::printFatalError( "Column label not found: "+loglabel+"\n");
     }
     return p->second;
   }
@@ -226,8 +226,7 @@ namespace MtzIO {
           if (column_label_list.lookup_col(label) >= 0) {
             col_latscale = true;
           } else if (col_latscale) {
-            Message::message(Message_fatal
-                             ( "Inconsistent SCALEn columns\n"));
+            ReportErrors::printFatalError( "Inconsistent SCALEn columns\n");
           }
         } else {
           // Scheme 2, label should be Hn where n is 1->9
@@ -369,8 +368,8 @@ namespace MtzIO {
       // We have column label(s) specified for (IorF) & optionally SIG(IorF)
       col1 = FindColumnLabel(ColumnLabels.Label("FI"));
       if (col1 < 0) { // label not found
-        Message::message(Message_fatal
-         ("no column found with name "+ColumnLabels.Label("FI")));
+        ReportErrors::printFatalError
+          ("no column found with name "+ColumnLabels.Label("FI"));
       }
       std::string type = ColumnInfo[col1].type;
       selectedtypes.push_back(type);
@@ -404,8 +403,7 @@ namespace MtzIO {
         selectedtypes.push_back("Q");
         allowmissing = true;
       } else {
-        Message::message(Message_fatal
-                ("chosen column is not intensity or F"));
+        ReportErrors::printFatalError("chosen column is not intensity or F");
       }
     } else {       // - - - - - No column labels specified on entry
       // Find first viable column of type K, J (intensities), or G, F (amplitudes),
@@ -449,14 +447,12 @@ namespace MtzIO {
         IorF_ = true;
         anom_ = false;
       } else {
-        Message::message(Message_fatal
-                         ("no intensity or F column found"));
+        ReportErrors::printFatalError("no intensity or F column found");
       }
     }  // end no labels specified
 
     if (col1 < 0) {
-      Message::message(Message_fatal
-                       ("no intensity or F column found"));
+      ReportErrors::printFatalError("no intensity or F column found");
     }
 
     bool nosig = false;
@@ -482,8 +478,8 @@ namespace MtzIO {
       // Check that selected columns come from same dataset
       if (!ColumnInfo[selectedcolnums[0]].
           SameXDname(ColumnInfo[selectedcolnums[k]])) {
-        Message::message(Message_fatal
-                ("Selected columns belong to different datasets"));
+        ReportErrors::printFatalError
+                ("Selected columns belong to different datasets");
       }
       selectedlabels.push_back(ColumnInfo[selectedcolnums[k]].label);
     }
@@ -494,7 +490,6 @@ namespace MtzIO {
   //--------------------------------------------------------------
   void ProcessLabels::failmessage(const std::string& message) const
   {
-    Message::message
-                (Message_fatal("ProcessLabels: "+message));
+    ReportErrors::printFatalError("ProcessLabels: "+message);
   }
 } // namespace MtzIO

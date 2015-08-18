@@ -2,9 +2,6 @@
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
-using clipper::Message_warn;
 
 #include "ccp4/csymlib.h"    // CCP4 symmetry stuff
 
@@ -12,6 +9,7 @@ using clipper::Message_warn;
 #include "score_datatypes.hh"
 #include "scala_util.hh"
 #include "spacegroupreindex.hh"
+#include "report_errors.hh"
 
 using phaser_io::LOGFILE;
 
@@ -182,7 +180,7 @@ namespace scala
   {
     //  One of n & nw should be == 0
     if (n*nw != 0)
-      Message::message(Message_fatal("correl_coef.result: mixed weighting schemes") );
+      ReportErrors::printFatalError("correl_coef.result: mixed weighting schemes");
     return n+nw;  // either
   }
   //--------------------------------------------------------------
@@ -211,7 +209,7 @@ namespace scala
     // CC weighted by wx, wy
     //  One of n & nw should be == 0
     if (n*nw != 0)
-      Message::message(Message_fatal("correl_coef.result: mixed weighting schemes") );
+      ReportErrors::printFatalError("correl_coef.result: mixed weighting schemes");
     double denom = 0.0;
     if (n > 4) {
       // Same or unit weighting for x & y
@@ -477,7 +475,7 @@ namespace scala
       // H -> R reindex operator
       htor = reindex_orig.inverse();  // back to original
     } else {
-      htor = SpacegroupReindexOp("H 3", "R 3");  // H to R general
+      htor = SpacegroupReindexOp("H 3", "R 3").Reindex();  // H to R general
     }
 
     //^

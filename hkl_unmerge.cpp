@@ -16,13 +16,11 @@
 #include "hkl_unmerge.hh"
 #include "scala_util.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
 #include "clipper/clipper-ccp4.h"
-using clipper::Message;
-using clipper::Message_fatal;
-using clipper::Message_warn;
 
 
 namespace scala {
@@ -896,8 +894,8 @@ namespace scala {
   // Apply offset to batch numbers, one offset for each run
   {
     if (!run_flags.Set()) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list::OffsetBatchNumbers - no runs set"));
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::OffsetBatchNumbers - no runs set");
     }
     if (run_set == 0) set_run();  // setup runs in part list if not already done
     ASSERT (runOffsets.size() == runlist.size());
@@ -943,8 +941,8 @@ namespace scala {
 
     //std::cout <<"OffsetLatticeNumbers " << latticeoffset <<std::endl; //^
     if (!run_flags.Set()) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list::OffsetLatticeNumbers - no runs set"));
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::OffsetLatticeNumbers - no runs set");
     }
     if (run_set == 0) set_run();  // setup runs in part list if not already done
 
@@ -1080,9 +1078,8 @@ namespace scala {
       Batch OtherBatch = otherBatches[i];
       // Check that we don't already have this batch number
       if (batch_lookup.lookup(OtherBatch.num()) >= 0) {
-        Message::message
-          (Message_fatal("Non-unique batch number"+
-                         clipper::String(otherBatches[i].num())));
+        ReportErrors::printFatalError
+          ("Non-unique batch number"+clipper::String(otherBatches[i].num()));
       }
       // Update dataset index
       int otherIndex = OtherBatch.datasetindex(); // old dataset index
@@ -1111,8 +1108,8 @@ namespace scala {
   {
     // Fail on self-append
     if (&OtherList == this) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list::Append - cannot append to self"));
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::Append - cannot append to self");
     }
     // otherwise construct it
 
@@ -1129,8 +1126,8 @@ namespace scala {
     int istat = 0;
     // Same symmetry (ignoring translations)
     if (!refl_symm.equals_r(OtherList.refl_symm)) {
-      Message::message(Message_warn
-                       ("\nWARNING: Cannot combine reflection lists with different symmetry"));
+      ReportErrors::printWarning
+        ("\nWARNING: Cannot combine reflection lists with different symmetry", "WarningMessage",false);
       istat = 1;
       return istat;
     }
@@ -1141,8 +1138,7 @@ namespace scala {
       N_part_list++;
     }
     if (obs_part_list.size() != N_part_list)
-      Message::message
-        (Message_fatal("hkl_unmerge_list::close_part - Wrong length list") );
+      ReportErrors::printFatalError("hkl_unmerge_list::close_part - Wrong length list");
     obs_part_list.resize(N_part_list);
     obs_part_pointer.resize(N_part_list);
     // Set pointer list
@@ -1274,7 +1270,7 @@ namespace scala {
                                         const bool& Sorted)
   {
     if (obs_part_list.size() != N_part_list) {
-      Message::message(Message_fatal("hkl_unmerge_list::close_part - Wrong length list") );}
+      ReportErrors::printFatalError("hkl_unmerge_list::close_part - Wrong length list");}
     obs_part_list.resize(N_part_list);
     obs_part_pointer.resize(N_part_list);
     // Set pointer list
@@ -1847,7 +1843,7 @@ namespace scala {
         if (irun < 0) { // specified run not found
           clipper::String s = "\n**** Run "+clipper::String(resobyrun[i].first)+
             " specified on RESOLUTION RUN command does not exist ****\n";
-          Message::message(Message_fatal(s));
+          ReportErrors::printFatalError(s);
         }
         // Store resolution range limit for this run, forced to be within file range
         runlist[irun].StoreResoRange(resobyrun[i].second.MinRange(ResolutionRange));
@@ -1865,7 +1861,7 @@ namespace scala {
   //
   {
     if (status != RAWLIST && status != SORTED)
-      Message::message(Message_fatal("hkl_unmerge_list::set_run - not RAWLIST or SORTED") );
+      ReportErrors::printFatalError("hkl_unmerge_list::set_run - not RAWLIST or SORTED");
 
     for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations
       // Assign run
@@ -1918,13 +1914,14 @@ namespace scala {
               // change of orientation should change run
               double rot = (clipper::Rotation(batch.Umat()) * U0inv).abs_angle();
               if (rot > rotlim) {
-                Message::message(Message_warn
-                                 ("WARNING: problem in run "+clipper::String(int(irun+1))+
-                                  " batch "+clipper::String(batchlist[ib])+
-                                  "  has a different orientation that of initial batch "+
-                                  clipper::String(batchlist[0])+
-                                  "\n Orientation difference = "+
-                                  clipper::String(clipper::Util::rad2d(rot))+"\n"));
+                ReportErrors::printWarning
+                  ("WARNING: problem in run "+clipper::String(int(irun+1))+
+                   " batch "+clipper::String(batchlist[ib])+
+                   "  has a different orientation that of initial batch "+
+                   clipper::String(batchlist[0])+
+                   "\n Orientation difference = "+
+                   clipper::String(clipper::Util::rad2d(rot))+"\n",
+                   "WarningMessage",false);
                 sameOrientation = false;
               }
             }  // end valid orientation
@@ -1959,11 +1956,10 @@ namespace scala {
     if (status == RAWLIST)
       sort();
     if (status != SORTED)
-      Message::message(Message_fatal(
-                                     "hkl_unmerge_list::organise - not SORTED") );
+      ReportErrors::printFatalError("hkl_unmerge_list::organise - not SORTED");
 
     if (run_set < 0)
-      Message::message(Message_fatal("hkl_unmerge_list::organise - run not set") );
+      ReportErrors::printFatalError("hkl_unmerge_list::organise - run not set");
     if (run_set == 0) set_run();  // setup runs in list if not already done
 
     const int MaxIndex = 99999999;
@@ -2018,12 +2014,13 @@ namespace scala {
   // Returns number of observations
   {
     if (status != ORGANISED)
-      {Message::message(Message_fatal("hkl_unmerge_list::partials - not ORGANISED") );}
+      {ReportErrors::printFatalError("hkl_unmerge_list::partials - not ORGANISED");}
     if (partial_flags.noPartials()) {
       return nopartials();  // simpler processing if no partials
     }
     if (!partial_set)
-      Message::message(Message_fatal("hkl_unmerge_list::partials - no partial selection information") );
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::partials - no partial selection information");
     Nobservations = 0;
     int batchgap;
     partial_flags.Clear();
@@ -2564,7 +2561,7 @@ namespace scala {
   {
     if (!forcesum && (status == SUMMED)) return Nobs_partial;
     if (!(status == PREPARED) && (status != SUMMED))
-      Message::message(Message_fatal("hkl_unmerge_list::sum_partials - not PREPARED") );
+      ReportErrors::printFatalError("hkl_unmerge_list::sum_partials - not PREPARED");
 
     sigmamin = +1000000.;
     double sm;
@@ -2598,8 +2595,8 @@ namespace scala {
   // Also generate resolution ranges for each dataset
   {
     if (!((status == SUMMED) || (status == PREPARED))) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list::ImposeResoByRunLimits - not PREPARED or SUMMED") );
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::ImposeResoByRunLimits - not PREPARED or SUMMED");
     }
     if (!run_flags.IsResoByRun()) {return;}
 
@@ -2704,8 +2701,7 @@ namespace scala {
       // retrieve cell for a dataset
       // If dataset name blank, get average over all datasets
       if (ndatasets <= 0) {
-        Message::message(Message_fatal(
-                                       "hkl_unmerge_list::cell - no datasets") );
+        ReportErrors::printFatalError("hkl_unmerge_list::cell - no datasets");
       }
 
       if (PXDsetName.is_blank()) {
@@ -2716,8 +2712,8 @@ namespace scala {
         if (PXDsetName == datasets[k].pxdname()) {
             return datasets[k].cell();
         }}
-      Message::message(Message_fatal(
-                      "hkl_unmerge_list::cell - dataset not found "+PXDsetName.format()) );
+      ReportErrors::printFatalError
+        ("hkl_unmerge_list::cell - dataset not found "+PXDsetName.format());
       return Scell(); // dummy
     }
   //--------------------------------------------------------------
@@ -2779,8 +2775,7 @@ namespace scala {
   int hkl_unmerge_list::next_reflection(reflection& refl) const
   {
     if (status != SUMMED)
-      Message::message(Message_fatal(
-                "hkl_unmerge_list::next_reflection - not SUMMED") );
+      ReportErrors::printFatalError("hkl_unmerge_list::next_reflection - not SUMMED");
 
     if (NextRefNum < 0) {
       // First time, some initialisations
@@ -2817,8 +2812,8 @@ namespace scala {
   //  unconditional                  ^^^^^^^^^^^^
   {
     if (status != PREPARED && status != SUMMED)
-      Message::message(Message_fatal(
-                  "hkl_unmerge_list::get_reflection - not PREPARED or SUMMED") );
+      ReportErrors::printFatalError(
+                  "hkl_unmerge_list::get_reflection - not PREPARED or SUMMED");
     NextRefNum = jref;      // record current reflection
     return refl_list[jref];
   }
@@ -2828,8 +2823,7 @@ namespace scala {
   int hkl_unmerge_list::get_reflection(reflection& refl, const Hkl& hkl) const
   {
     if (status != SUMMED)
-      Message::message(Message_fatal(
-                "hkl_unmerge_list::reflection - not SUMMED") );
+      ReportErrors::printFatalError("hkl_unmerge_list::reflection - not SUMMED");
     if (!is_hkl_lookup) {MakeHklLookup();}  // make lookup table if needed
     int idx = hkl_lookup.index_of(hkl.HKL());
     if (idx >= 0) {refl = refl_list[idx];}
@@ -3010,8 +3004,8 @@ namespace scala {
       // Some fractional indices have been found & discarded
       // Is this allowed?
       if (!AllowFractIndex) {
-        Message::message(Message_fatal
-            ("hkl_unmerge_list::change_symmetry: illegal fractional indices generated by reindex operator") );
+        ReportErrors::printFatalError
+          ("hkl_unmerge_list::change_symmetry: illegal fractional indices generated by reindex operator");
       }
         // Pack down pointer list
       int j = 0;
@@ -3031,11 +3025,9 @@ namespace scala {
     // returns number of reflections
   {
     if (status == EMPTY)
-      Message::message(Message_fatal(
-                                     "hkl_unmerge_list::prepare - EMPTY") );
+      ReportErrors::printFatalError("hkl_unmerge_list::prepare - EMPTY");
     if (N_part_list == 0) {
-      Message::message(Message_fatal(
-                     "hkl_unmerge_list::prepare  No observations in list") );
+      ReportErrors::printFatalError("hkl_unmerge_list::prepare  No observations in list");
     }
     int n = Nref;
     if (status == RAWLIST) {
@@ -3421,8 +3413,7 @@ namespace scala {
   hkl_unmerge_list::hkl_unmerge_list(const hkl_unmerge_list& List)
   {
     if (List.status != EMPTY) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list: illegal copy constructor"));
+      ReportErrors::printFatalError("hkl_unmerge_list: illegal copy constructor");
     }
     clear();
   }
@@ -3431,8 +3422,7 @@ namespace scala {
   hkl_unmerge_list& hkl_unmerge_list::operator= (const hkl_unmerge_list& List)
   {
     if (List.status != EMPTY) {
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list: illegal copy operation"));
+      ReportErrors::printFatalError("hkl_unmerge_list: illegal copy operation");
     }
     clear();
     return *this;

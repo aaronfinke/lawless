@@ -17,6 +17,7 @@
 #include "scala_util.hh"
 #include "string_util.hh"
 #include "cctbx_utils.hh"
+#include "report_errors.hh"
 
 using namespace cctbx;
 using phaser_io::LOGFILE;
@@ -44,8 +45,8 @@ namespace CCtbxSym
           std::string ext = StringUtil::Trim(parts[1]);
           if (!(ext == "H" || ext == "R")) {
             // extension must be H or R
-            clipper::Message::message(clipper::Message_fatal
-                ("CCTBX_SGsymbol_HorR: Illegal space group name "+SName));
+            ReportErrors::printFatalError
+              ("CCTBX_SGsymbol_HorR: Illegal space group name "+SName);
           }
         } else {
           // No extension, so add one, :R or :H
@@ -244,8 +245,8 @@ namespace CCtbxSym
     int SpaceGroupNumber = SpaceGroup.type().number();
     if ( ! scala::AllowedLatticeType(LatType))
       {
-        clipper::Message::message(clipper::Message_fatal
-                  ("LatticeGroup: Illegal lattice-type "+std::string(1,LatType)));
+        ReportErrors::printFatalError
+          ("LatticeGroup: Illegal lattice-type "+std::string(1,LatType));
       }
 
     std::string LatGrpSymbol = "";

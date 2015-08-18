@@ -16,6 +16,7 @@
 #include "score_datatypes.hh"
 #include "scala_util.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 namespace scala {
   //--------------------------------------------------------------
@@ -309,8 +310,9 @@ namespace scala {
   float Normalise::applyAvg(const float& I, const float& sSqr) const
   // Average correction
   {
-    if (!validAll)
-      Message::message(Message_fatal("Applying invalid B-Normalise"));
+    if (!validAll) {
+      ReportErrors::printFatalError("Applying invalid B-Normalise");
+    }
     // Dividing scale
     float c = AvgFactor.Factor(sSqr);
     if (type == +1) {
@@ -324,8 +326,9 @@ namespace scala {
   //--------------------------------------------------------------
   IsigI Normalise::applyAvg(const IsigI& Is, const float& sSqr) const
   {
-    if (!validAll)
-      Message::message(Message_fatal("Applying invalid B-Normalise"));
+    if (!validAll) {
+      ReportErrors::printFatalError("Applying invalid B-Normalise");
+    }
     // Dividing scale
     float c = AvgFactor.Factor(sSqr);
     float scorr;
@@ -349,8 +352,9 @@ namespace scala {
   float Normalise::CorrAvg(const float& sSqr) const
   // Average correction, multiplying scale
   {
-    if (!validAll)
-      Message::message(Message_fatal("Applying invalid B-Normalise"));
+    if (!validAll) {
+      ReportErrors::printFatalError("Applying invalid B-Normalise");
+    }
     // Dividing scale
     float c = AvgFactor.Factor(sSqr);
     if (type == +1) {
@@ -373,8 +377,9 @@ namespace scala {
     normdumpnumber++;
     std::string name = StringUtil::Strip("I"+StringUtil::itos(normdumpnumber,3))+".plot";
     file = fopen(name.c_str(), "w");
-    if (file == NULL)
-      Message::message(Message_fatal("Can't open file "+name));
+    if (file == NULL) {
+      ReportErrors::printFatalError("Can't open file "+name);
+    }
 
     int Nruns = sums_st.size();
     // Constant term (intercept), dividing scale
@@ -560,7 +565,7 @@ namespace scala {
     if (numobs == 0) {
       clipper::String msg = "No general reflections accepted in normalisation:\n";
       msg += clipper::String(zonalrefs)+" reflections in potential zero levels (eg h,k,l = 0) not used";
-      Message::message(Message_fatal(msg));
+      ReportErrors::printFatalError(msg);
     }
 
     // (<I>) v. sSqr & time

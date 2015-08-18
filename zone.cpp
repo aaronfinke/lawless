@@ -6,6 +6,7 @@
 #include "probfunctions.hh"
 #include "score_datatypes.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -139,8 +140,7 @@ namespace scala
       permute = ReindexOp("h,k,l");
     }
     else {
-      clipper::Message::message(clipper::Message_fatal
-                                ("Illegal argument to Zone Axis: "+Axis));
+      ReportErrors::printFatalError("Illegal argument to Zone Axis: "+Axis);
     }
     lgsymm = LGsym;  // Laue group symmetry
     init(disable);
@@ -183,8 +183,7 @@ namespace scala
       diagonal = true;
     }
     else {
-      clipper::Message::message(clipper::Message_fatal
-                                ("Illegal argument to Zone Plane: "+GlidePlane));
+      ReportErrors::printFatalError("Illegal argument to Zone Plane: "+GlidePlane);
     }
 
     // cond is vector to convert input hkl to Fourier index
@@ -233,8 +232,7 @@ namespace scala
       }
     }
     else {
-      clipper::Message::message(clipper::Message_fatal
-                                ("Illegal argument to Zone Glide: "+GlidePlane));
+      ReportErrors::printFatalError("Illegal argument to Zone Glide: "+GlidePlane);
     }
     lgsymm = LGsym;  // Laue group symmetry
     init(disable);
@@ -372,8 +370,7 @@ namespace scala
     for (int i=0;i<3;i++)
       {if (!Close(v1[i], double(Nint(v1[i])), tol)) integral = false;}
     if (!integral)
-      {clipper::Message::message(clipper::Message_fatal
-                                 ("IntVector: non-integral vector "+v1.format()));}
+      {ReportErrors::printFatalError("IntVector: non-integral vector "+v1.format());}
     clipper::Vec3<int> iv;
     for (int i=0;i<3;i++) {iv[i] = Nint(v1[i]);}
     return iv;
@@ -967,9 +964,8 @@ namespace scala
       int ninvalid = 0;
       for (int i=1;i<npoint;i++) {
         if (controlsdv[i] < -0.0001) {
-          clipper::Message::message(clipper::Message_fatal
-                                    ("Zone: "+
-                                     formatRefFrame()+": results requested with SD unset"));
+          ReportErrors::printFatalError
+            ("Zone: "+formatRefFrame()+": results requested with SD unset");
         }
 
         // Check for strange values of the control mean, which probably indicate a systematic
@@ -1189,8 +1185,8 @@ namespace scala
   void Zone::StoreProb(const double& ProbYes)
   {
     if (!singleprob)
-      clipper::Message::message(clipper::Message_fatal
-                                ("Zone::StoreProb called for case of no single value "));
+      ReportErrors::printFatalError
+        ("Zone::StoreProb called for case of no single value ");
     prob_yes = ProbYes;
   }
   //--------------------------------------------------------------
@@ -1198,8 +1194,8 @@ namespace scala
   double Zone::Prob() const
   {
     if (!singleprob)
-      clipper::Message::message(clipper::Message_fatal
-                                ("Zone::Prob called for case of no single value "));
+      ReportErrors::printFatalError
+        ("Zone::Prob called for case of no single value ");
     CalcResults();
     return prob_yes;
   }
@@ -1219,8 +1215,7 @@ namespace scala
     if (axis) {
       // Con't use averageIsigI as it may not be set up
       if (IndxIsigI.size() == 0) {
-        clipper::Message::message(clipper::Message_fatal
-                                  ("Zone::NuniqObs no data"));
+        ReportErrors::printFatalError("Zone::NuniqObs no data");
       }
       std::vector<int> counts(maxIndx+1, 0);
       for (size_t i=0;i<IndxIsigI.size();i++) {
@@ -1251,8 +1246,7 @@ namespace scala
     if (! valid) return IndxList;
     if (axis) {
       if (IndxIsigI.size() == 0) {
-        clipper::Message::message(clipper::Message_fatal
-                                  ("Zone::Indices no data"));
+        ReportErrors::printFatalError("Zone::Indices no data");
       }
       std::vector<int> counts(maxIndx+1, 0);
       for (size_t i=0;i<IndxIsigI.size();i++) {
@@ -1368,8 +1362,7 @@ namespace scala
             Chkl.push_back(hkl);
           }
         else
-          clipper::Message::message(clipper::Message_fatal
-                                    ("Zone::GlideTestHkl: shouldn't happen"));
+          ReportErrors::printFatalError("Zone::GlideTestHkl: shouldn't happen");
       }
     else
       // 110 etc  treat all as 110, hhl zone
@@ -1401,8 +1394,7 @@ namespace scala
             Chkl.push_back(hkl);
           }
         else
-          clipper::Message::message(clipper::Message_fatal
-                                    ("Zone::GlideTestHkl: shouldn't happen"));
+          ReportErrors::printFatalError("Zone::GlideTestHkl: shouldn't happen");
       }
 
     // Unpermute to original form, convert to "New" frame

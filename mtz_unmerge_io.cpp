@@ -43,6 +43,8 @@
 #include "columnlabels.hh"
 #include "string_util.hh"
 #include "openinputfile.hh"
+#include "report_errors.hh"
+
 //#include "timer.hh"
 
 namespace MtzIO
@@ -79,9 +81,9 @@ namespace MtzIO
   // returns false if fails
   {
     if ( mode != NONE ) {
-      Message::message( Message_fatal( "MtzUnmrgFile: open_read - File already open" ) );}
+      ReportErrors::printFatalError("MtzUnmrgFile: open_read - File already open");}
     if ( filename_in == "") {
-      Message::message( Message_fatal( "MtzUnmrgFile: open_read - no filename given" ) );}
+      ReportErrors::printFatalError("MtzUnmrgFile: open_read - no filename given");}
 
     // store filename
     if (getenv(filename_in.c_str()) != NULL) {
@@ -93,7 +95,6 @@ namespace MtzIO
     mtzin = CMtz::MtzGet( filename_in_.c_str(), 0 );
     if ( mtzin == NULL) {
       return false;
-      //      Message::message( Message_fatal( "MtzUnmrgFile: open_read - failed assignment" ) );
     }
     if (!CMtz::MtzAssignHKLtoBase( mtzin )) {return false;}
     // get the list of datasets (fdatasets) from the file
@@ -379,16 +380,14 @@ namespace MtzIO
       }
       opened = true;
     } else {
-      Message::message
-        (Message_fatal("MtzUnmrgFile::AddHklList: file not opened READ"));
+      ReportErrors::printFatalError("MtzUnmrgFile::AddHklList: file not opened READ");
     }
     if (!opened) {
       // Failed to open file
       return FileRead(false, false, false, 0);
     }
     if (merged) {  // file must be unmerged for this function
-      Message::message
-        (Message_fatal("MtzUnmrgFile::AddHklList: not an unmerged file"));
+      ReportErrors::printFatalError("MtzUnmrgFile::AddHklList: not an unmerged file");
     }
 
     //   transfer the actual column numbers  into col_select for file reading
@@ -451,8 +450,7 @@ namespace MtzIO
              "**** ERROR: cannot combine files belonging to different crystal systems");
           errormsg += "\n   Systems: "+symmset.formatCrysSys()+" : "+
             hkl_symmetry(spacegroup_).formatCrysSys();
-          Message::message(Message_fatal
-                           (errormsg+"\n**** Incompatible symmetries ****"));
+          ReportErrors::printFatalError(errormsg+"\n**** Incompatible symmetries ****");
         }
         if (spacegroup_.Symbol_hm() != symmset.symbol_xHM()) {
           // Different space group, but same crystal system. What to do?
@@ -524,8 +522,7 @@ namespace MtzIO
     //    std::cout << "XDS::ReadObservations time " << timer.Dtime() << " elapsed " << timer.Etime() << "\n";
     //^-
     if (Nread <= 0)
-      Message::message(Message_fatal
-                       ("hkl_unmerge_list:: No reflections read") );
+      ReportErrors::printFatalError("hkl_unmerge_list:: No reflections read");
 
     // list is sorted if file was & no index is changed, for 1st file only
     sorted = sorted && !ChangeIndex && first;
@@ -874,8 +871,8 @@ namespace MtzIO
       flag = flag || StatusFlag;
 
       if (flag) {
-        Message::message(
-                         Message_fatal( "get_refs: MNF in compulsory column near hkl "+hkl.format() ) );
+        ReportErrors::printFatalError
+          ("get_refs: MNF in compulsory column near hkl "+hkl.format() );
       }
       if (sigI <= 0.0) { // reject negative or zero sigma
         continue;
@@ -994,9 +991,8 @@ namespace MtzIO
           }
         } // end loop lattices
         if (flag) {
-          Message::message(
-                 Message_fatal
-                 ("get_refs: MNF in compulsory multilattice column near hkl "+hkl.format()));
+          ReportErrors::printFatalError
+            ("get_refs: MNF in compulsory multilattice column near hkl "+hkl.format());
         }
         // count entries for each lattice
         numberinlattice.at(latnum)++;
@@ -1145,7 +1141,7 @@ namespace MtzIO
   // Fails if compulsory column not found
   {
     if (ColumnLabels.size() == 0) {
-      Message::message(Message_fatal("MtzUnrgFile::get_col_lookup - no columns in list"));
+      ReportErrors::printFatalError("MtzUnrgFile::get_col_lookup - no columns in list");
     }
     ColumnLabels.start();  // start loop on column data
     ColumnNumberLabel CNL;
@@ -1161,8 +1157,7 @@ namespace MtzIO
         ColumnLabels.Store(CNL); // store back it current position
       } else {
         if (CNL.number < 0) {  // compulsory column not found
-          Message::message( Message_fatal(
-                  "Compulsory column not in input file - " + CNL.label));
+          ReportErrors::printFatalError("Compulsory column not in input file - " + CNL.label);
         }
       }
     }
@@ -1371,9 +1366,8 @@ namespace MtzIO
         if (hkln.first != 3 || hkln.second != hn) {OK = false;} // fail
         if (columntypes.at(ic+2) != "H") {OK = false;} // fail
         if (!OK) {
-          Message::message
-            (Message_fatal
-             ("MtzUnmrgFile: CheckMultipleLattices - inconsistent HKL column labels or types" ) );
+          ReportErrors::printFatalError
+            ("MtzUnmrgFile: CheckMultipleLattices - inconsistent HKL column labels or types");
         }
         // Store extra column labels
         for (int i=0;i<3;++i) {
@@ -1427,8 +1421,7 @@ namespace MtzIO
   MtzUnmrgFile::MtzUnmrgFile(const MtzUnmrgFile& MUfile)
   {
     if (MUfile.mtzin != NULL)      {
-      Message::message(Message_fatal
-                       ("MtzUnmrgFile: illegal copy constructor"));
+      ReportErrors::printFatalError("MtzUnmrgFile: illegal copy constructor");
     }
     clear();
   }
@@ -1437,8 +1430,7 @@ namespace MtzIO
   MtzUnmrgFile& MtzUnmrgFile::operator= (const MtzUnmrgFile& MUfile)
   {
     if (MUfile.mtzin != NULL)      {
-      Message::message(Message_fatal
-                       ("MtzUnmrgFile: illegal copy operation"));
+      ReportErrors::printFatalError("MtzUnmrgFile: illegal copy operation");
     }
     clear();
     return *this;

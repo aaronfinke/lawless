@@ -5,6 +5,7 @@
 #include "hkl_symmetry.hh"
 #include "matvec_utils.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 namespace scala {
   //--------------------------------------------------------------
@@ -74,7 +75,7 @@ namespace scala {
         lattype = HorR;
       }
       if (!scala::AllowedLatticeType(lattype)) {
-        Message::message(Message_fatal(clipper::String("Illegal lattice type ")+lattype));
+        ReportErrors::printFatalError(clipper::String("Illegal lattice type ")+lattype);
       }
       sname = StringUtil::Trim(sname.substr(1));
       std::string lt = std::string(1,lattype);
@@ -115,9 +116,9 @@ namespace scala {
     //    std::cout << spdescr.spacegroup_number() <<"  ; "
     //        << spdescr.symbol_xhm() << "\n";
     if (spdescr.spacegroup_number() <= 0) {
-      Message::message(Message_fatal
-            ("SpaceGroup initialisation from illegal operators (maybe from incorrect reindex):\n"+
-             symopString) );
+      ReportErrors::printFatalError
+        ("SpaceGroup initialisation from illegal operators (maybe from incorrect reindex):\n"+
+         symopString);
     }
 
     clipper::Spacegroup::init(clipper::Spgr_descr(symopString,
@@ -278,7 +279,7 @@ namespace scala {
   {
     // Check valid isym
     if (isym < 1 || isym > 2*Nsymp)
-      Message::message(Message_fatal("get_from_asu - ISYM out of range") );
+      ReportErrors::printFatalError("get_from_asu - ISYM out of range");
     clipper::HKL h = hkl.transform(invrotsymops[(isym-1)/2]);
     if (isym%2 == 0) {return -h;}
     else {return h;}
@@ -288,7 +289,7 @@ namespace scala {
   clipper::Symop SpaceGroup::SymopFromIsym(const int& isym) const
   {
     if (isym < 1 || isym > 2*Nsymp)
-      Message::message(Message_fatal("SymopFromIsym - ISYM out of range") );
+      ReportErrors::printFatalError("SymopFromIsym - ISYM out of range");
     return csymops[(isym-1)/2];
   }
   //--------------------------------------------------------------
@@ -639,8 +640,8 @@ namespace scala {
       if (i == 0) {
         if (!spaceGroup.IsSymopIdentity(0)) {
           // First symmetry operator is not identity, fatal
-          Message::message(Message_fatal(
-            "hkl_symmetry: Illegal spacegroup, identity not first"));
+          ReportErrors::printFatalError(
+            "hkl_symmetry: Illegal spacegroup, identity not first");
         }
       }
       // Start new group
@@ -737,8 +738,7 @@ namespace scala {
     // Check that all symops are assigned to an element
     for (int i=0;i<Nsymp;i++) {
       if (element_index[i] < 0)
-        Message::message(
-             Message_fatal("hkl_symmetry: symmetry operator not in element"));
+ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
     }
     // Make lookup-table of ISYM/2 pairs pointing to corresponding
     // symmetry operator
@@ -771,7 +771,7 @@ namespace scala {
           }
         }
         if (jsym < 0) {
-              Message::message(Message_fatal("hkl_symmetry - operator not in group") );
+          ReportErrors::printFatalError("hkl_symmetry - operator not in group");
         }
         //^+
         //          std::cout << "  Op2 " << i2 << " " << InvSymOpFormat(spacegroup_.symop[i2])
@@ -1153,9 +1153,9 @@ namespace scala {
     } else if (LatType == 'H') {
       return ((-hkl.h()+hkl.k()+hkl.l())%3 == 0);
     } else {
-      Message::message
-        (Message_fatal(clipper::String("hkl_symmetry::LatticePresent: unrecognised lattice ")
-                       +LatType));
+      ReportErrors::printFatalError
+        (clipper::String("hkl_symmetry::LatticePresent: unrecognised lattice ")
+         +LatType);
     }
     return false;  // dummy, never gets here
   }
@@ -1223,9 +1223,9 @@ namespace scala {
     //   1-2     triclinic (and 0)
     CrystalSystem CrysSys;
     if (SpaceGroupNumber < 0 || SpaceGroupNumber > 230)
-      {Message::message(Message_fatal
+      {ReportErrors::printFatalError
                         ("Illegal space group number "+
-                         clipper::String(SpaceGroupNumber)));}
+                         clipper::String(SpaceGroupNumber));}
     if (SpaceGroupNumber > 194)
       {CrysSys = CUBIC;}
     else if (SpaceGroupNumber > 167)

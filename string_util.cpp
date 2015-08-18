@@ -543,10 +543,15 @@ std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const 
                                             const std::vector<std::string>& names,
                                             const std::string& valTag,
                                             const std::vector<std::pair<double,int> >& valCount)
-// valCount array is in order:-
-//   ab, ac, ad, ...
-//       bc, bd, ...
-//           cd, ...
+// elementid      name for XML element
+// tableid        id=tableid
+// names          for each column/row
+// valTag         XML tag string for value
+// valCount       value and count
+//  valCount array is in order:-
+//    ab, ac, ad, ...
+//        bc, bd, ...
+//            cd, ...
 {
   std::string s = "\n<"+Strip(elementid)+" id=\""+tableid+"\">\n";
   int nval = names.size();

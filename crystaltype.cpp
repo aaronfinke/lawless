@@ -4,11 +4,10 @@
 #include "hkl_symmetry.hh"
 #include "util.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
 
 namespace scala
 {
@@ -55,8 +54,8 @@ namespace scala
     if (type == 'R' || type == 'H') {
       if (!(RH == 'R' || RH == 'H')) {
         // invalid rhombohedral lattice type
-        Message::message(Message_fatal("RhombohedralLatType must be R or H not "+
-                                       std::string(1,RH)));
+        ReportErrors::printFatalError("RhombohedralLatType must be R or H not "+
+                                      std::string(1,RH));
       }
       return RH;
     }

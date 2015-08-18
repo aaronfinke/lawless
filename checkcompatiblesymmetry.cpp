@@ -4,6 +4,7 @@
 
 #include "checkcompatiblesymmetry.hh"
 #include "scala_util.hh"
+#include "report_errors.hh"
 
 
 namespace scala{
@@ -20,10 +21,6 @@ namespace scala{
   {
     if (! (TestSym.CrysSys() == RefSym.CrysSys())) {
       return false;
-      //      std::string
-      //        error("Test dataset (HKLIN) has different lattice symmetry to reference set");
-      //      Message::message(Message_fatal
-      //                       (error+"\n**** Incompatible symmetries ****"));
     }
     if (!TestDataMerged) {return true;}
 
@@ -34,8 +31,8 @@ namespace scala{
       // Merged test data must have same Laue group as reference set
         std::string
           error("Merged test dataset (HKLIN) has different Laue symmetry to reference set");
-        Message::message(Message_fatal
-                       (error+"\n**** Incompatible symmetries ****"));
+        ReportErrors::printFatalError
+          (error+"\n**** Incompatible symmetries ****");
     }
     return SameLaueGroup;
   }
