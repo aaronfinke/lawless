@@ -2172,12 +2172,10 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
     int ndatasets = hkl_list.num_datasets();
     std::vector<Dataset> datasets = hkl_list.AllDatasets();
     for (int k=0; k<ndatasets; k++) {
-      std::cout << "Dataset " << k<<"\n"; //^
       output.logTabPrintf(1,LXML, "<Dataset  name=\"%s\">\n",
                           datasets[k].formatNames().c_str());
       for (size_t i=0;i<runlist.size();i++) {
         if (runlist[i].DatasetIndex() == k) {
-          std::cout << "Run in dataset " << i <<"\n"; //^
           output.logTabPrintf(2,LXML,"<Run> <number> %3d </number>\n",
                               runlist[i].RunNumber());
           output.logTab(2,LXML,
@@ -2196,7 +2194,6 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
             output.logTab(2,LXML,
                           StringUtil::MakeXMLtag("Lattice",runlist[i].LatticeNumber()));
           }
-          std::cout << "end run\n";
           output.logTabPrintf(2,LXML,"</Run>\n",i+1);
         }
       }
