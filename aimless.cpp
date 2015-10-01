@@ -565,12 +565,17 @@ int main(int argc, char* argv[])
 
       // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
-      RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
-                    controls.outlierScale, DummyRogues);
-      std::vector<int> nrejs = CountOutliers(hkl_list);
-      output.logTabPrintf(0,LOGFILE,
-          "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-                          nrejs[0], nrejs[1], nrejs[2]);
+      std::vector<int> nrejs;
+      if (controls.outlierScale.GetOutlierPolicy() != OutlierControl::NOREJECT) {
+        RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
+                      controls.outlierScale, DummyRogues);
+        nrejs = CountOutliers(hkl_list);
+        output.logTabPrintf(0,LOGFILE,
+                            "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                            nrejs[0], nrejs[1], nrejs[2]);
+      } else {
+        output.logTab(0,LOGFILE,"\nNo outlier rejection in scaling");
+      }
       output.logFlush();
       // -- End 1st outlier rejection
 
@@ -607,12 +612,16 @@ int main(int argc, char* argv[])
 
       // -- 2nd outlier rejection
       // Use outlier flags appropriate for scaling
-      RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
-                    controls.outlierScale, DummyRogues);
-      nrejs = CountOutliers(hkl_list);
-      output.logTabPrintf(0,LOGFILE,
-          "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-                          nrejs[0], nrejs[1], nrejs[2]);
+      if (controls.outlierScale.GetOutlierPolicy() != OutlierControl::NOREJECT) {
+        RejectOutlier(hkl_list, SD_model, NormRes, anomOn,
+                      controls.outlierScale, DummyRogues);
+        nrejs = CountOutliers(hkl_list);
+        output.logTabPrintf(0,LOGFILE,
+                            "\nNumber of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                            nrejs[0], nrejs[1], nrejs[2]);
+      } else {
+        output.logTab(0,LOGFILE,"\nNo outlier rejection in scaling");
+      }
       output.logFlush();
       // -- End 2nd outlier rejection
 
@@ -792,25 +801,30 @@ int main(int argc, char* argv[])
     for (int i=0;i<hkl_list.num_datasets();++i) {
       wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
-    // doRoguePlot true as long as we have geometric data for all batches
-    // to calculate detector position
-    bool doRoguePlot = hkl_list.validOrientation();  // false if no orientation
-    WriteRogues RoguesList(true, doRoguePlot, multilattice,
-                           runTitle, hkl_list.Srange().max(), wavelength,
-                           controls.outlierMerge);
-    //  hkl_list is updated for status, but SDs are not changed
-    RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,
-                  controls.outlierMerge, RoguesList);
-    RoguesList.End();
-    std::vector<int> nrejs = CountOutliers(hkl_list);
-    output.logTabPrintf(0,LOGFILE,
-        "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
-                        nrejs[0], nrejs[1], nrejs[2]);
-    output.logTab(0,LXML,CountOutliersXML(nrejs));
-    output.logFlush();
-    if (doRoguePlot) {
-      // ROGUEPLOT to XML
-      output.logTab(0,LXML, RoguesList.formatXML());
+
+    if (controls.outlierMerge.GetOutlierPolicy() != OutlierControl::NOREJECT) {
+      // doRoguePlot true as long as we have geometric data for all batches
+      // to calculate detector position
+      bool doRoguePlot = hkl_list.validOrientation();  // false if no orientation
+      WriteRogues RoguesList(true, doRoguePlot, multilattice,
+                             runTitle, hkl_list.Srange().max(), wavelength,
+                             controls.outlierMerge);
+      //  hkl_list is updated for status, but SDs are not changed
+      RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,
+                    controls.outlierMerge, RoguesList);
+      RoguesList.End();
+      std::vector<int> nrejs = CountOutliers(hkl_list);
+      output.logTabPrintf(0,LOGFILE,
+                          "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
+                          nrejs[0], nrejs[1], nrejs[2]);
+      output.logTab(0,LXML,CountOutliersXML(nrejs));
+      output.logFlush();
+      if (doRoguePlot) {
+        // ROGUEPLOT to XML
+        output.logTab(0,LXML, RoguesList.formatXML());
+      }
+    } else {
+      output.logTab(0,LOGFILE,"\nNo outlier rejection in merging");
     }
 
     // for each dataset

@@ -176,7 +176,7 @@ keywords are:</p>
 <p><a style="font-weight: bold;" href="#analysis">ANALYSIS</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#anomalous">ANOMALOUS</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#bins">BINS</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#dump">DUMP</a><span style="font-weight: bold;">,
-</span><a style="font-weight: bold;" href="#exclude">EXCLUDE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklin">HKLIN</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklout">HKLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklref">HKLREF</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#initial">INITIAL</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#intensities">INTENSITIES</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#labref">LABREF</a><span style="font-weight: bold;">, <a href="#link">LINK</a>,&nbsp;
+</span><a style="font-weight: bold;" href="#exclude">EXCLUDE</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklin">HKLIN</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklout">HKLOUT</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#hklref">HKLREF</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#initial">INITIAL</a><span style="font-weight: bold;">, </span><a style="font-weight: bold;" href="#intensities">INTENSITIES</a><span style="font-weight: bold;">, <a href="#keep">KEEP</a>, </span><a style="font-weight: bold;" href="#labref">LABREF</a><span style="font-weight: bold;">, <a href="#link">LINK</a>,&nbsp;
 </span><a style="font-weight: bold;" href="#name">NAME</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#onlymerge">ONLYMERGE</a><span style="font-weight: bold;">,
 </span><a style="font-weight: bold;" href="#output">OUTPUT</a><span style="font-weight: bold;">,
@@ -455,8 +455,9 @@ profile-fitted for weak data, summation integration value for strong.</dd></dl>
 <dd> &lt;Sdrej&gt; [&lt;Sdrej2&gt;]
 </dd>
 <dd> [ALL &lt;Sdrej+-&gt; [&lt;Sdrej2+-&gt;]] </dd>
-<dd>[KEEP | REJECT | LARGER | SMALLER]</dd><dt>[EMAX &lt;Emax&gt;]</dt><dd>[BATCH &lt;batchrejectfactor&gt;]<br>
-</dd>
+<dd>[KEEP | REJECT | LARGER | SMALLER]</dd><dt>[EMAX &lt;Emax&gt;]</dt><dd>[BATCH &lt;batchrejectfactor&gt;]</dd><dt>[NONE]<br>
+</dt>
+
 
 
 </h3>
@@ -484,8 +485,11 @@ are
 flagged "@" in the ROGUES file.</p>
 <p>REJECT BATCH &lt;batchrejectfactor&gt; is intended for batch scaling
 of eg XFEL data. After the initial scales are calculated, very weak
-batches with scale factorsbatchrejectfactor x median scale are rejected
+batches with scale factorsbatchrejectfactor x median scale are rejected</p>
+<p>REJECT NONE skips all outlier checking<br>
+
  </p>
+
 
 <dl>
   <dt>Subkeys: </dt>
@@ -757,7 +761,7 @@ sigI-, depending on the "anomalous" flag. </dd>
   </dd>
 </dl><h3><a name="keep"></a>KEEP [OVERLOADS|BGRATIO
 &lt;bgratio_max&gt;|PKRATIO &lt;pkratio_max&gt;|GRADIENT
-&lt;bg_gradient_max&gt;|EDGE]&nbsp;<span style="color: rgb(255, 102, 0);"></span> </h3>
+&lt;bg_gradient_max&gt;|EDGE | MISFIT]&nbsp;<span style="color: rgb(255, 102, 0);"></span> </h3>
 
 <p>Set options to accept observations flagged as rejected by the FLAG
 column from Mosflm. By default, any
@@ -787,7 +791,10 @@ observations</dd>
 bg_gradient_max [default in Mosflm 0.03].</dd>
       <dt><a name="accept_edge"></a>EDGE </dt>
       <dd>Accept profile-fitted observations on edge of active area of
-detector</dd>
+detector</dd><dt><a name="accept_misfit"></a>MISFIT</dt>
+      <dd>Accept reflections flagged as MISFIT by XDS (in XDS_ASCII.HKL file), ie flagged as outliers in the CORRECT step<br>
+      </dd>
+
     </dl>
   </dd>
 </dl><h3><a name="link"></a>LINK [SURFACE] ALL | &lt;run_2&gt; TO
@@ -1302,7 +1309,11 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.15 bug fix in run pair correlations. Fix to XML for multiple datasets<br>
+  <h2>RELEASE NOTES</h2>0.5.16
+improved the robustness of SDcorrection refinement with a few fulls.
+REJECT NONE option. <br>
+Option to accept XDS "misfits" (outliers) (KEEP MISFIT)<br>
+0.5.15 bug fix in run pair correlations. Fix to XML for multiple datasets<br>
 0.5.14
 bug fix in Rmerge(batch), was double counting. Change to expect stdin
 input unless "--no-input" given on command line. Added "descriptions"
@@ -1423,6 +1434,7 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
 
 
 

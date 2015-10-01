@@ -40,7 +40,7 @@ namespace scala
   //  3     8         Gradient too high                      FLAG_GRADIENT
   //  4    16         Profile fitted overload                FLAG_OVERLOAD
   //  5    32         Profile fitted "edge" reflection       FLAG_EDGE
-  //  
+  //  6    64         XDS MISFIT ie outlier                  FLAG_MISFIT
   //
   // (2) bgpk       packed BG/PK ratios
   //   packed as 
@@ -49,7 +49,7 @@ namespace scala
   {
   public:
     ObservationFlag() : bitflags(0), bgpk(0.0) {}
-    ObservationFlag(const int& ObsFlag, const float& bgpkratio)
+    ObservationFlag(const int& ObsFlag, const float& bgpkratio=0.0)
       : bitflags(ObsFlag), bgpk(bgpkratio){}
     ObservationFlag(const ObservationFlag& flag);
 
@@ -68,12 +68,13 @@ namespace scala
 
     // Return individual bit flags
     //  true if bit set
-    bool TestBGratio() const {return (bitflags & 1) != 0;}
-    bool TestPKratio() const {return (bitflags & 2) != 0;}
-    bool TestTooNeg() const {return (bitflags & 4) != 0;}
-    bool TestGradient() const {return (bitflags & 8) != 0;}
-    bool TestOverload() const {return (bitflags & 16) != 0;}
-    bool TestEdge() const {return (bitflags & 32) != 0;}
+    bool TestBGratio() const {return (bitflags & FLAG_BGRATIO) != 0;}
+    bool TestPKratio() const {return (bitflags & FLAG_PKRATIO) != 0;}
+    bool TestTooNeg() const {return (bitflags & FLAG_TOONEGATIVE) != 0;}
+    bool TestGradient() const {return (bitflags & FLAG_GRADIENT) != 0;}
+    bool TestOverload() const {return (bitflags & FLAG_OVERLOAD) != 0;}
+    bool TestEdge() const {return (bitflags & FLAG_EDGE) != 0;}
+    bool TestMisfit() const {return (bitflags & FLAG_MISFIT) != 0;}
 
     //! return brief formatted version of which flags are set
     std::string format() const;
@@ -84,6 +85,7 @@ namespace scala
     static const int FLAG_GRADIENT;    //      8
     static const int FLAG_OVERLOAD;    //     16
     static const int FLAG_EDGE;        //     32
+    static const int FLAG_MISFIT;      //     64
     
   private:
     unsigned int bitflags;
@@ -112,6 +114,7 @@ namespace scala
     void SetGradlimit(const float& Gradlim);
     void SetAcceptOverload();
     void SetAcceptEdge();
+    void SetAcceptMisfit();
 
     // Returns true is observation accepted, & count them
     bool IsAccepted(const ObservationFlag& flag);
@@ -133,6 +136,7 @@ namespace scala
     float grdlim;  // maximum on gradient  < 0.0 for no test
     bool acceptoverload; // true to accept overloads
     bool acceptedge;     // true to accept edge reflections
+    bool acceptmisfit;   // true to accept XDS misfits (outliers)
     
     int NBGratio;    // count of BGratio flags
     int NPKratio;    // count of PKratio flags
@@ -140,6 +144,7 @@ namespace scala
     int NGradient;   // count of gradient flags
     int Noverload;   // count of overload flags
     int Nedge;       // count of edge flags
+    int Nmisfit;     // count of misfit flags
     
     int NaccBGratio;    // count of BGratio acceptances
     int NaccPKratio;    // count of PKratio acceptances
@@ -147,6 +152,7 @@ namespace scala
     int NaccGradient;   // count of gradient acceptances
     int Naccoverload;   // count of overload acceptances
     int Naccedge;       // count of edge acceptances
+    int Naccmisfit;     // count of misfit acceptances
 
     float MaxBGratio;    // Maximum BGratio
     float MaxPKratio;    // Maximum PKratio 

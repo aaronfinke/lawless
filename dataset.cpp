@@ -13,6 +13,7 @@ namespace scala {
   {
     xdatasets.clear();
     AddXdataset(xdataset);
+    averagecell_ = Scell();  // unless explicitly set
   }
   //--------------------------------------------------------------
   //! Add in a new xdataset if dataset name is the same, return true if added
@@ -148,6 +149,9 @@ namespace scala {
   Scell Dataset::cell() const
   {
     dieIfEmpty("cell");
+    if (!averagecell_.null()) {
+      return averagecell_;
+    }
     if (xdatasets.size() == 1) { //only one
       return xdatasets[0].cell();
     }

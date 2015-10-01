@@ -60,6 +60,14 @@ namespace scala
 				      std::vector<float>& averageMosaicity,
 				      std::vector<float>& averageWavelength);
   //--------------------------------------------------------------
+  // Average unit cells over all batches for specified dataset
+  // On entry:
+  //  batches     list of batches
+  //  idts        dataset index
+  // Returns:   average cell for dataset
+  Scell AverageBatchCellforDataset(const std::vector<Batch>& batches,
+				   const int& idts);
+  //--------------------------------------------------------------
   // Average wavelengths over all datasets & store average
   // On entry:
   //  datasets     list of datasets

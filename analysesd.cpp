@@ -508,6 +508,8 @@ namespace scala
     for (int iset=0;iset<Nsets;iset++) {
       float slopef = slopes[iset].first;
       float slopep = slopes[iset].second;
+      if (slopef <= 0.0) {slopef = 1.0;}
+      if (slopep <= 0.0) {slopep = 1.0;}
       int nf = sdmnums.nfnp[iset].first;
       int np = sdmnums.nfnp[iset].second;
       if (fixup) {  // never true at present!

@@ -115,6 +115,9 @@ namespace scala
     //! add in another cell and wavelength, put into 1st Xdataset
     void AddCellWavelength(const Scell& newcell, const float& wavel);
 
+    //! store average cell, return as cell() if this is set
+    void setAverageCell(const Scell& avcell) {averagecell_ = avcell;}
+
     //! add to run index list for given Xdataset
     void AddRunIndex(const PxdName& pxdname, const int& RunIndex);
 
@@ -176,6 +179,7 @@ namespace scala
   private:
     std::vector<Xdataset> xdatasets;
     bool accepted_;
+    Scell averagecell_;
 
     // Get index for xdataset setid, = -1 if absent
     int XdatasetIndex(const int& setid) const;

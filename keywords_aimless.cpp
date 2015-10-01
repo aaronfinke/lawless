@@ -646,7 +646,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   //            NOALL (== ALL 0) switches off this test
   //            Only applies to merging step (scaling step checks all anyway)
   //  EMAX <Emax> maximum normalised F accepted
-  //
+  //  NONE no outlier rejection
 
   // default to current values
   float sdrej = outliercontrolsmerge.Reject(scala::ALL).sdrej;
@@ -664,6 +664,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   bool anom = false;
   bool first = true;  // first of pair
   bool batchreject = false; // REJECT BATCH
+  bool none = false;  // do some rejection
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
@@ -692,6 +693,8 @@ Token_value REJECT::parse(std::istringstream& input_stream)
         emaxgiven = true;
       } else if (keyIs("BATCH")) {
         batchreject = true;
+      } else if (keyIs("NONE")) {
+        none = true;
       } else {
         ReportSyntaxError
           (keywords, "REJECT: unrecognised keyword");
@@ -736,6 +739,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
     outliercontrolsscale.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
                                                       batchrejectfactor), scala::BOTH);
     if (emax > 0.0) outliercontrolsscale.SetEmax(emax);
+    if (none) {
+      outliercontrolsscale.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
+    }
   }
   //  MERGE or both
   if (merge >= 0) {
@@ -744,6 +750,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
     outliercontrolsmerge.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
                                                       batchrejectfactor), scala::BOTH);
     if (emax > 0.0) outliercontrolsmerge.SetEmax(emax);
+    if (none) {
+      outliercontrolsmerge.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
+    }
   }
 
   return skip_line(input_stream);
@@ -1490,6 +1499,9 @@ Token_value KEEP::parse(std::istringstream& input_stream)
         expectingNumber = +1;
       } else if (keyIs("EDGE")) {
         observationflagcontrol.SetAcceptEdge();
+        expectingNumber = 0;
+      } else if (keyIs("MISFIT")) {
+        observationflagcontrol.SetAcceptMisfit();
         expectingNumber = 0;
       }
     } else if (tokenIs(1,NUMBER)) {

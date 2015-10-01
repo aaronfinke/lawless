@@ -187,9 +187,33 @@ namespace scala
         averagecell[j] = UnitCellSet(allcells[j]).AverageCell();
         averageMosaicity[j] /= float(n[j]);
         averageWavelength[j]  /= float(n[j]);
+        //^
+        //std::cout << "AverageBatchCell: dataset "<<j<<"  "<<nbatches<<" batches "
+        //                <<"\nAverage cell: "<< averagecell[j].format() <<"\n";
+        //^-
       }
     }
     return averagecell;
+  }
+  //--------------------------------------------------------------
+  Scell AverageBatchCellforDataset(const std::vector<Batch>& batches,
+                                   const int& idts)
+  // Average unit cells over all batches for specified dataset
+  // On entry:
+  //  batches     list of batches
+  //  idts        dataset index
+  // Returns:   average cell for dataset
+  {
+    int nbatches = batches.size();
+    UnitCellSet cellset;
+
+    for (int k=0; k<nbatches; k++)  {
+      int idx = batches[k].datasetindex(); // dataset index
+      if (idx == idts) {
+        cellset.AddCell(batches[k].cell()); // add batch cell
+      }
+    }
+    return cellset.AverageCell();
   }
   //--------------------------------------------------------------
   float AverageWavelength(const std::vector<float>& allwavelengths,

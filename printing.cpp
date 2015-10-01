@@ -731,7 +731,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                 " sd      :- average standard deviation derived from experimental SDs, after\n"+
                 "             application of SdFac SdB SdAdd 'correction' terms\n"+
                 " Mn(I/sd):- average < merged< Ih >/sd(< Ih >) > ~= signal/noise\n"+
-                " Frcbias :- partial bias, = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
+                " Frcbias :- partial bias = Mean( Mn(If) - Ip )/Mean( Mn(I) )\n"+
                 "             for mixed sets only (If is a full if present, else the\n"+
                 "             partial with the smallest number of parts)\n\n");
   if (Anom) {

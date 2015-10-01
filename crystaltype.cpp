@@ -19,6 +19,8 @@ namespace scala
   //! hexagonal setting unless specified as R xxx :R
   //! Print get warning message with leading tag
   {
+    outstring = "";
+    if (sgname == "HKLIN") {return sgname;}
     char initialLatType = sgname[0];
     std::string revisedname = SGnameHtoR(sgname, 'H');  // H unless :R
     char newLatType = revisedname[0];
@@ -26,13 +28,13 @@ namespace scala
       outstring = tag+"\n   Rhombohedral group name "+sgname+
         " will be used in the hexagonal (H) setting "+revisedname+
         "\n   To get the rhombohedral lattice setting, give name as "+
-        SGnameHtoR(sgname,'R')+" :R\n$$\n";
+        SGnameHtoR(sgname,'R')+" :R";
     } else if (initialLatType == 'R' && newLatType == 'R') {
       outstring = tag+"\n   Rhombohedral group name "+sgname+
-        " will be used in the rhombohedral setting "+revisedname+"\n$$\n";
+        " will be used in the rhombohedral setting "+revisedname;
     } else if (newLatType == 'H') {
       outstring = tag+"\n   Rhombohedral group name "+sgname+
-        " will be used in the hexagonal [H] setting "+revisedname+"\n$$\n";
+        " will be used in the hexagonal [H] setting "+revisedname;
     }
 
     return revisedname;

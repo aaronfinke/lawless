@@ -442,7 +442,6 @@ namespace scala {
     }
 
     //^^
-    //std::cout << "ResolutionLimit::testinsufficientdata\n";
     //    for (int i=0;i<nbins;++i) {
     //      std::cout <<" "<<score[i];
     //    }
@@ -454,7 +453,7 @@ namespace scala {
     const size_t MINNUMBER = 4;
     if (filledbins.size() < MINNUMBER) {
       // too few datapoints
-      //^std::cout <<"insufficientdata, Nfilledbins "<<filledbins.size()<<"\n"; //^
+      //      std::cout <<"insufficientdata, Nfilledbins "<<filledbins.size()<<"\n"; //^
       return true;
     }
 
@@ -463,7 +462,7 @@ namespace scala {
     const double MINFILLEDFRACTION = 0.2;
     if (filledfraction < MINFILLEDFRACTION) {
       // too few datapoints
-      //^std::cout <<"insufficientdata, filledfraction "<<filledfraction<<"\n"; //^
+      //      std::cout <<"insufficientdata, filledfraction "<<filledfraction<<"\n"; //^
       return true;
     }
 

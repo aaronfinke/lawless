@@ -25,41 +25,54 @@ void NormalProbAnal::Fit()
 // Fit points to line
 {
   int Nobs = deltalist.size();
-  if (Nobs == 0)
-    {
-      slope_all = 0.0;
-      intercept_all = 0.0;
-      num_all = 0;
-      slope_sel = 0.0;
-      intercept_sel = 0.0;
-      num_sel = 0;
+  slope_all = 0.0;
+  intercept_all = 0.0;
+  num_all = 0;
+  slope_sel = 0.0;
+  intercept_sel = 0.0;
+  num_sel = 0;
+  if (Nobs == 0)  {
       return;
-    }
+  }
   // Sort list
   std::sort(deltalist.begin(), deltalist.end());
   scala::LinearFit LineAll;
   scala::LinearFit LineSel;
   NormalProbability NormProb;
   float w = 1.0; // unit weights
+  //^^
+  //  std::cout <<"\nNormalProbAnal::Fit() Nobs "<<Nobs<<std::endl;
 
-  for (int i=0;i<Nobs;i++)
-    {
-      // Expected delta
-      // rank is 1->Nobs = i+1
-      float DeltaExp = NormProb.ExpectedDelta(i+1, Nobs);
-      LineAll.add(DeltaExp, deltalist[i], w);
-      if (std::abs(DeltaExp) < dltlim)
-        LineSel.add(DeltaExp, deltalist[i], w);
-    }
+  float dltlimused = dltlim;
+  if (Nobs < 5) {
+    dltlimused = std::max(dltlimused, 1.2f);
+  }
+  for (int i=0;i<Nobs;i++)  {
+    // Expected delta
+    // rank is 1->Nobs = i+1
+    float DeltaExp = NormProb.ExpectedDelta(i+1, Nobs);
+    //^^
+    //    std::cout << "NormalProbAnal::Fit() "<<deltalist[i]<<" "<<DeltaExp
+    //        <<" "<< dltlimused <<std::endl;//^-
+    LineAll.add(DeltaExp, deltalist[i], w);
+    if (std::abs(DeltaExp) < dltlimused)
+      LineSel.add(DeltaExp, deltalist[i], w);
+  }
 
   RPair FitAll = LineAll.result();
-  slope_all = FitAll.first;
-  intercept_all = FitAll.second;
   num_all = LineAll.Number();
+  if (num_all > 3) {
+    slope_all = FitAll.first;
+    intercept_all = FitAll.second;
+  }
   RPair FitSel = LineSel.result();
-  slope_sel = FitSel.first;
-  intercept_sel = FitSel.second;
   num_sel = LineSel.Number();
+  if (num_sel > 3) {
+    slope_sel = FitSel.first;
+    intercept_sel = FitSel.second;
+  }
+  //  std::cout << "Slopes " <<slope_all<<" "<<num_all<<" "<<
+  //    slope_sel<<" "<<num_sel<<"\n"; //^^
 
   Fitted = true;
 }

@@ -206,22 +206,26 @@ namespace scala
   OutlierControl::OutlierControl()
   // Set defaults
   {
-    combine = true;  // default combine
-    reject = RejectFlags(6.0, 6.0, RejectFlags::KEEP);
-    int ndatasets = 1;
-    rejectanom.assign(ndatasets, RejectFlags(9.0, 9.0, RejectFlags::KEEP));
-    anomreject = true;
-    emaxtest.init(10.0);
-    weighttype = WeightType::VARIANCE; // or SQRTSCALE or SCALE
+    init(1);
   }
   //------------------------------------------------------------
   OutlierControl::OutlierControl(const int& Ndatasets)
+  // Set defaults, if Ndatasets <= 0 clear anomalous flags
+  {
+    init(Ndatasets);
+  }
+  //------------------------------------------------------------
+  void OutlierControl::init(const int& Ndatasets)
   // Set defaults, if Ndatasets <= 0 clear anomalous flags
   {
     combine = true;  // default combine
     reject = RejectFlags(6.0, 6.0, RejectFlags::KEEP);
     emaxtest.init(10.0);
     SetNdatasets(Ndatasets);
+    anomreject = true;
+    emaxtest.init(10.0);
+    weighttype = WeightType::VARIANCE; // or SQRTSCALE or SCALE
+    outlierpolicy = OutlierControl::REJECTBOTH;
   }
   //------------------------------------------------------------
   void OutlierControl::SetNdatasets(const int& Ndatasets)

@@ -32,6 +32,7 @@ namespace scala {
 
     bool quadratic; // true if LSQ
     bool converged;
+    std::vector<bool> updated;   // true if updated, for each class
     //! Just some residuals
     double R1;     // optimised residual, LSQ or ln cosh
     double R1lsq;  // LSQ residual, may be equal to R1

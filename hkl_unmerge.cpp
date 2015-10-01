@@ -1156,6 +1156,9 @@ namespace scala {
     ndatasets = datasets.size();
 
     SetBatchList();
+    for (int j=0;j<ndatasets;j++) {
+      datasets[j].setAverageCell(AverageBatchCellforDataset(batches, j));
+    }
 
     is_hkl_lookup = false;
     // Set up run definitions

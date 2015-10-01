@@ -16,6 +16,7 @@ namespace scala
     const int ObservationFlag::FLAG_GRADIENT =     8;
     const int ObservationFlag::FLAG_OVERLOAD =    16;
     const int ObservationFlag::FLAG_EDGE =        32;
+    const int ObservationFlag::FLAG_MISFIT =      64;
 //--------------------------------------------------------------
   ObservationFlag::ObservationFlag(const ObservationFlag& flag)
   {
@@ -68,6 +69,7 @@ namespace scala
     if (TestGradient()) {s[3] = 'G';}
     if (TestOverload()) {s[4] = 'O';}
     if (TestEdge()) {s[5] = 'E';}
+    if (TestMisfit()) {s[5] = 'M';}
     return s;
   }
 //--------------------------------------------------------------
@@ -92,6 +94,7 @@ namespace scala
     grdlim = -1.0;
     acceptoverload = false;
     acceptedge = false;
+    acceptmisfit = false;
     Clear();
 
   }
@@ -104,12 +107,14 @@ namespace scala
     NGradient = 0;
     Noverload = 0;
     Nedge = 0;
+    Nmisfit = 0;
     NaccBGratio = 0;
     NaccPKratio = 0;
     NaccTooNeg = 0;
     NaccGradient = 0;
     Naccoverload = 0;
     Naccedge = 0;
+    Naccmisfit = 0;
 
     MaxBGratio = 0.0;
     MaxPKratio = 0.0;
@@ -143,6 +148,11 @@ namespace scala
   void ObservationFlagControl::SetAcceptEdge()
   {
     acceptedge = true;
+  }
+//--------------------------------------------------------------
+  void ObservationFlagControl::SetAcceptMisfit()
+  {
+    acceptmisfit = true;
   }
 //--------------------------------------------------------------
   // Returns true is observation accepted, & count them
@@ -207,6 +217,14 @@ namespace scala
         else
           {OK = false;}
       }
+      // Misfit
+      if (flag.TestMisfit()) {
+        Nmisfit++;
+        if (acceptmisfit)
+          {Naccmisfit++;}
+        else
+          {OK = false;}
+      }
       return OK;
     }
   }
@@ -214,8 +232,9 @@ namespace scala
   std::string ObservationFlagControl::PrintCounts() const
   {
     std::string s;
-    if (NBGratio+NPKratio+NTooNeg+NGradient+Noverload+Nedge == 0) return s;
-
+    if (NBGratio+NPKratio+NTooNeg+NGradient+Noverload+Nedge+Nmisfit == 0) {
+      return s;
+    }
     s += FormatOutput::logTab(0,
                    "\n\nNumbers of observations marked in the FLAG column");
     s += FormatOutput::logTab(0,
@@ -234,8 +253,10 @@ namespace scala
                          NGradient, NaccGradient, MaxGradient, MaxAccGradient);
     s += FormatOutput::logTabPrintf(0, "   Profile-fitted overloads%8d%8d\n",
                          Noverload, Naccoverload);
-    s += FormatOutput::logTabPrintf(0, "   Spots on edge           %8d%8d\n\n",
+    s += FormatOutput::logTabPrintf(0, "   Spots on edge           %8d%8d\n",
                          Nedge, Naccedge);
+    s += FormatOutput::logTabPrintf(0, "   XDS misfits (outliers)  %8d%8d\n\n",
+                         Nmisfit, Naccmisfit);
     return s;
   }
   //--------------------------------------------------------------
@@ -271,6 +292,8 @@ namespace scala
                                 XMLset(Noverload, Naccoverload), false);
     s += StringUtil::MakeXMLtag("Edge",
                                 XMLset(Nedge, Naccedge), false);
+    s += StringUtil::MakeXMLtag("Misfit",
+                                XMLset(Nmisfit, Naccmisfit), false);
     s += "</ObservationFlags>\n";
     return s;
   }

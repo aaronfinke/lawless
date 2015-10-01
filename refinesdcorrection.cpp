@@ -20,6 +20,7 @@
 #define ASSERT assert
 
 #include "refinesdcorrection.hh"
+#include "string_util.hh"
 
 namespace scala {
   // ---------------------------------------------------------
@@ -60,6 +61,8 @@ namespace scala {
     const int MAXMACROCYCLES = 2;
     double R;
     std::vector<double> lastsdmparams;
+
+    std::string sparsedatamessage = "";
 
     bool saveSdBfix = SDM.NoSDb(); // SdB fix value, true if fixed
     bool exit = true;  // to exit from macrocycles
@@ -107,7 +110,21 @@ namespace scala {
         //^
         //      output.logTab(0,LOGFILE,
         //                    "\nSD correction parameters after cycle\n"+SDM.format()); //^-
-
+        size_t nupdates = 0;
+        for (size_t jj=0; jj<target.updated.size(); jj++) {
+          if (target.updated[jj]) {nupdates++;}
+        }
+        if (nupdates == 0) {
+          output.logTab(0,LOGFILE,"No parameters determined");
+          break;
+        } else if (nupdates < target.updated.size()) {
+          sparsedatamessage = "\nSome parameter sets (runs/full/partial) not updated due to sparse data, numbers: ";
+          for (size_t jj=0; jj<target.updated.size(); jj++) {
+            if (!target.updated[jj]) {
+              sparsedatamessage += " " + StringUtil::itos(jj+1, 3);
+            }
+          }
+        }
         if (max_cycles <= 0) break;
         if (target.converged) {
           output.logTab(0,LOGFILE,"Convergence reached");
@@ -173,6 +190,10 @@ namespace scala {
                           bestcycle);
     }
     SDM.SetNoSDb(saveSdBfix); // restore SdB fix value, true if fixed
+
+    if (sparsedatamessage != "") {
+      output.logTab(0,LOGFILE,sparsedatamessage);
+    }
 
     //^
     //  PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
@@ -275,13 +296,25 @@ namespace scala {
     // SD(delta(jc)) for each bin class jc (over all parameter classes)
     std::vector<double> sddelta = sdanal.SDdelta();
     std::vector<int> ninclass = sdanal.NumberinClass();  // number in each class
+    //^^
+    //    std::cout << "sddelta size " << sddelta.size();
+    //    for (size_t ii=0; ii<sddelta.size(); ii++) {
+    //      std::cout <<" "<<sddelta[ii];
+    //    }
+    //    std::cout <<std::endl;
+    //    std::cout << "ninclass size " << ninclass.size();
+    //    for (size_t ii=0; ii<ninclass.size(); ii++) {
+    //      std::cout <<" "<<ninclass[ii];
+    //    }
+    //^    std::cout <<std::endl;
+
 
     //  dsigDeldp[jc][inb][k] partial derivatives d(sigma(delta(jc)))/dp(k) for
     //       parameter class jc, intensity bin inb, parameter k, k is index local to class jc
     std::vector<std::vector<std::vector<double> > > dsigDeldp = sdanal.Derivatives();
 
     int nintbins = sdanal.NumberIntensityBins();
-
+    //    std::cout <<"nintbins "<<nintbins<<std::endl; //^
     std::vector<double> sdmparams = SDM.GetParameters();
 
     // Restraint R2 for each parameter group
@@ -305,6 +338,7 @@ namespace scala {
 
     // for each parameter, true if values updated
     std::vector<bool> parameterupdated(sdmparams.size(), false);
+    target.updated.assign(npargroups, false);
 
     for (int jpc=0;jpc<npargroups;++jpc) { // loop parameter classes
       // weight for each intensity bin, equal (unit) weights
@@ -323,18 +357,21 @@ namespace scala {
       // index to 1st parameter in global list for class jpc
       int idxpar = sdanal.IdxParam(jpc);
       int number = 0;
+      int noccupiedbins = 0;
 
       for (int mint=0;mint<nintbins;++mint) { // loop intensity bins
         int jc = sdanal.BinClass(jpc, mint);
         if (sddelta[jc] != 0.0) {
           number += ninclass[jc];
+          noccupiedbins++; // count number of occupied bins
           double r = 1.0 - sddelta[jc]; // deviation
           // wib is sqrt of LSQ weight, ie weight on Delta
           double abswr = std::abs(wib[mint] * r);
           sumw += wib[mint]*wib[mint];
-          R1lsq += abswr * abswr;;       // target residual ( * 2)
+          R1lsq += abswr * abswr;       // target residual ( * 2)
           if (quadratictarget) { // LSQ
-            R1 += R1lsq;;       // target residual ( * 2)
+            R1 += abswr * abswr;       // target residual ( * 2)
+            ////            R1 += R1lsq;;       // target residual ( * 2)
           } else { // ln cosh
             if (abswr > RefineTargets::MAXCOSHARG) {
               R1 += abswr;
@@ -355,9 +392,13 @@ namespace scala {
 
       //^
       //      std::cout <<"Target contribution from group " << jpc<< " " << R1
-      //                << " number " << number <<"\n"; //^-
+      //                << " number " << number <<" noccupiedbins "<< noccupiedbins<<"\n"; //^-
 
-      if (number > 0) {
+      // Number of occupied intensity bins must be > MINOCCBINS fraction of bins
+      const double MINOCCBINS = 0.6;
+      if (noccupiedbins >= int(MINOCCBINS*nintbins)) {
+        ////      if (number > 0) {
+        ///      if (number > 5) {
         std::vector<double> gradient(npar, 0.0); // gradient vector dR/dp
         clipper::Matrix<double> H(npar,npar,0.0);  // Hessian ~= d2R/dp2
 
@@ -538,6 +579,7 @@ namespace scala {
         }
         target.Add(R1, R2);
         target.AddLsq(R1lsq);
+        target.updated.at(jpc) = true;  //
       }
     } // end loop parameter classes
 

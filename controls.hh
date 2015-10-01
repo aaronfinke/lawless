@@ -257,8 +257,15 @@ public:
 class OutlierControl
 {
 public:
+
+  // Outlier rejection: 
+  //  No outlier check, [just on discrepancies, just on Emax,] Both [default]
+  enum OutlierPolicy {NOREJECT, REJECTDIFFERENCES, REJECTEMAX, REJECTBOTH};
+
   OutlierControl(); // Set defaults: COMBINE
   OutlierControl(const int& Ndatasets); // Set defaults: COMBINE
+
+  void init(const int& Ndatasets);
 
   bool& Combine() {return combine;}       // Set
   bool Combine() const {return combine;}  // Get
@@ -286,6 +293,9 @@ public:
   void SetEmax(const float& Emax); //!< set Emax (acentric)
   EProb EMaxTest() const {return emaxtest;}
 
+  void SetOutlierPolicy(const OutlierPolicy& Outlierpolicy) {outlierpolicy = Outlierpolicy;}
+  OutlierPolicy GetOutlierPolicy() const {return outlierpolicy;}
+
 private:
   bool combine;                // true for outlier checks between datasets
   RejectFlags reject;          // main rejection criteria, within I+, I- set
@@ -295,6 +305,7 @@ private:
   EProb emaxtest;  
   // Weighting scheme for averaging observations in outlier testing
   WeightType::AverageWeightType weighttype;   // type of weighting for average
+  OutlierPolicy outlierpolicy;
 
 }; // OutlierControl
 //=================================================================
