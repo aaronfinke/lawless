@@ -177,10 +177,12 @@ namespace MtzIO {
     Batches[0].PXDname() = pxdname;
     int setid = 1;
     Batches[0].DatasetID() = setid;
+    Batches[0].SetWavelength(float(mtzdataset.wavelength()));
 
     hkl_list.init(title, Nref,
                   hkl_symmetry(spacegroup), all_controls(),
                   DataSets, Batches);
+
     hkl_list.SetSpaceGroupStatus(spg_status);
 
     std::vector<clipper::String> chistory = mtzin.history();
@@ -217,6 +219,7 @@ namespace MtzIO {
 
     while (next(hkl_index)) {  // increments index if not at_start
       scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
+      bool written = false;
       if (anom) {
         IsigAnom = IsigDataAnom[hkl_index];
         //      std::cout << "makelist " << hkl.format() <<" "<<IsigDataAnom[hkl_index].I()
@@ -229,11 +232,14 @@ namespace MtzIO {
             sigI = IsigAnom.sigI_pl();
             sigIpr = sigI;
           }
-          // Store this observation
-          hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-                              Xdet, Ydet, phi, time,
-                              fraction_calc, width, LP,
-                              Npart, Ipart, ObsFlag);
+          // Store this observation, but not if sigI <= 0
+          if (sigI > 0.0) {
+            written = true;
+            hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                                Xdet, Ydet, phi, time,
+                                fraction_calc, width, LP,
+                                Npart, Ipart, ObsFlag);
+          }
         }
         // I- if not centric
         if (!(spacegroup.hkl_class(hkl.HKL()).centric())) {
@@ -245,11 +251,14 @@ namespace MtzIO {
               sigI = IsigAnom.sigI_mi();
               sigIpr = sigI;
             }
-            // Store this observation
-            hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-                                Xdet, Ydet, phi, time,
-                                fraction_calc, width, LP,
-                                Npart, Ipart, ObsFlag);
+            // Store this observation, but not if sigI <= 0
+            if (sigI > 0.0) {
+              written = true;
+              hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                                  Xdet, Ydet, phi, time,
+                                  fraction_calc, width, LP,
+                                  Npart, Ipart, ObsFlag);
+            }
           }
         }
       } else { // no anomalous
@@ -262,15 +271,20 @@ namespace MtzIO {
             sigI = Isig.sigI_pl();
             sigIpr = sigI;
           }
-          // Store this observation
-          hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-                              Xdet, Ydet, phi, time,
-                              fraction_calc, width, LP,
-                              Npart, Ipart, ObsFlag);
+          // Store this observation, but not if sigI <= 0
+          if (sigI > 0.0) {
+            written = true;
+            hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
+                                Xdet, Ydet, phi, time,
+                                fraction_calc, width, LP,
+                                Npart, Ipart, ObsFlag);
+          }
         }
 
       }
-      InvResRange.update( hkl_index.invresolsq());  //smin, smax
+      if (written) {
+        InvResRange.update( hkl_index.invresolsq());  //smin, smax
+      }
     }
     //
     bool sorted = true;
@@ -285,6 +299,7 @@ namespace MtzIO {
     //^!    hkl_list.StoreDataFlags(col_select.DataFlags());
     // Store file name
     hkl_list.AppendFileName(filenamein);
+
     return FileRead(true, true, true, 0);
   }
   //--------------------------------------------------------------

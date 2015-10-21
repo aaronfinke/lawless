@@ -97,7 +97,7 @@ void  Preprocessor::deleteLine(std::string key)
   while (pos < echo.size())
   {
     size_t pos_return = echo.find('\n',pos);
-    if (pos_return != std::string::npos);
+    if (pos_return != std::string::npos)
     {
       std::string new_line = echo.substr(pos,pos_return-pos);
       int key_pos(0); //first position that is interesting (not a space)

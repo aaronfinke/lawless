@@ -353,9 +353,13 @@ namespace scala {
     std::pair<ScaleParameterType, int>  partypeidx = GetParameterType(Ipar);
     switch (partypeidx.first) {
     case ReferenceScaleModel::SCALE:
-      return 0.001;
+      Lower = 0.001;
+      return true;
     case ReferenceScaleModel::ANISO:
-      return anisomodel.GetLowerBound(partypeidx.second, Lower);
+      Lower = anisomodel.GetLowerBound(partypeidx.second, Lower);
+      return true;
+    case ReferenceScaleModel::NONE:
+      return false;
     }
     return false;
   }
@@ -366,9 +370,13 @@ namespace scala {
     std::pair<ScaleParameterType, int>  partypeidx = GetParameterType(Ipar);
     switch (partypeidx.first) {
     case ReferenceScaleModel::SCALE:
-      return 1000.;
+      Upper = 1000.;
+      return true;
     case ReferenceScaleModel::ANISO:
-      return anisomodel.GetUpperBound(partypeidx.second, Upper);
+      Upper = anisomodel.GetUpperBound(partypeidx.second, Upper);
+      return true;
+    case ReferenceScaleModel::NONE:
+      return false;
     }
     return false;
   }
@@ -382,6 +390,8 @@ namespace scala {
       return 0.5*kscale0; // use initial value to get large shift
     case ReferenceScaleModel::ANISO:
       return anisomodel.GetLargeShift(partypeidx.second);
+    case ReferenceScaleModel::NONE:
+      return 0.0;
     }
     return 0.0;
   }

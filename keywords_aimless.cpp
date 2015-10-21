@@ -1322,7 +1322,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
       sdtargets[0] = 0.2;
       sdtargets[1] = 3.0;
       sdtargets[2] = 0.04;
-    } else if (!similarset == 3) {
+    } else if (!(similarset == 3)) {
       ReportSyntaxError
         (keywords, "SDCORRECTION:: SIMILAR needs 0 or 3 numbers for target SDs");
     }

@@ -566,7 +566,7 @@ namespace scala
     bool secondsdanal = !sdanal2.Empty();
 
     output.logTab(0,LOGFILE,
-                  "SD corrections:- SdFac * Sqrt[sd](I**2 + SdB I + (SdAdd I)**2)\n");
+                  "SD corrections:- SdFac * Sqrt[sd(I)**2 + SdB I + (SdAdd I)**2]\n");
 
     //^ Residuals
     //    SDresiduals resids = SDcorrResidual(sdanal1).Residual();

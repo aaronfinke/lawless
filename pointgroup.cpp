@@ -1161,7 +1161,7 @@ namespace CCtbxSym
     ChBasis = ChBasis_ref * ChBasis_cell;
     uctbx::unit_cell uccell_chb = ChBasis.apply(uccell);
     //^
-    //    std::cout << "\n>>> SetCell " << RefLGname() << " <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+    //    std::cout << "\n=== SetCell " << RefLGname() << " <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
     //^-
     // Try to get "best" setting of cell and new reference
     //  cb_op_best transforms reference to "best"
@@ -1234,7 +1234,7 @@ namespace CCtbxSym
   //--------------------------------------------------------------
   void PointGroup::dump() const
   {
-    printf("\n>>>>> PG dump <<<<<\n");
+    printf("\n==== PG dump ====\n");
     show_space_group_type(LaueGrp_ref_type);
     printf("\n");
     // All possible symbols
@@ -1247,9 +1247,9 @@ namespace CCtbxSym
 
     printf("Change of basis Cell -> Constructor (ChBasis_cell, SGreindexOrig)\n");
     PrintChBOp(ChBasis_cell);
-    std::cout << ">>> Cell to standard/reference (ChBasis, RefSGreindex):\n";
+    std::cout << "=== Cell to standard/reference (ChBasis, RefSGreindex):\n";
     PrintChBOp(ChBasis);
-    std::cout << ">>> Constructor to standard/reference (ChBasis_ref, SGreindex):\n";
+    std::cout << "=== Constructor to standard/reference (ChBasis_ref, SGreindex):\n";
     PrintChBOp(ChBasis_ref);
 
     if (input_cell[0] > 0.0) {

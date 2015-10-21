@@ -650,6 +650,7 @@ namespace scala
     Scell cell() const {return bcell;} //!< return cell
     float Mosaicity() const {return batchinfo.crydat[0];} //!< return mosaicity
     float Wavelength() const {return batchinfo.alambd;} //!< return wavelength
+    void SetWavelength(const float& wvl) {batchinfo.alambd = wvl;}
 
     //! true if we have valid orientation information
     bool ValidOrientation() const {return valid_Umat;}

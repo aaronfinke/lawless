@@ -217,15 +217,13 @@ namespace MtzIO
 
     bool ok = true;
 
-    for (int i=0;i<5;i++)
-      {
-        if (mtzin->order[i] != NULL)
-          if (mtzin->order[i]->label != NULL)
-            if (mtzin->order[i]->label == keys[i])
-              continue;
-        ok = false;
-        break;
-      }
+    for (int i=0;i<5;i++) {
+      if (mtzin->order[i] != NULL)
+        if (mtzin->order[i]->label == keys[i])
+          continue;
+      ok = false;
+      break;
+    }
     return ok;
   }
   //--------------------------------------------------------------
@@ -1213,7 +1211,7 @@ namespace MtzIO
     if (Ndatasets == 0) {
       float wavelength = 0.0;
       int setid = 1;
-      //      std::cout << "\n>>> WARNING: no datasets in file, creating one <<<\n";
+      //      std::cout << "\n==== WARNING: no datasets in file, creating one ====\n";
       Xdataset xdts(PxdName("UnspecifiedProject",
                             "UnspecifiedCrystal",
                             "UnspecifiedDataset"),

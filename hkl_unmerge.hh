@@ -663,6 +663,9 @@ namespace scala {
     //! Mark batch with serial number jbat as not accepted, flag in run if fromrun true
     /*! Data records are not changed */
     void RejectBatchSerial(const int& jbat, const bool& fromrun=false);
+    //! Mark all batches as accepted
+    //*! Data records are not changed, runlist is updated if fromrun true */
+    void ResetAllBatchAccept(const bool& fromrun=true);
 
     //! Remove all observation parts belonging to rejected batches: returns number of parts rejected
     int PurgeRejectedBatches();

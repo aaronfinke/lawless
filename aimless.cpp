@@ -32,6 +32,7 @@
 #include "referencelist.hh"
 #include "rejectbatches.hh"
 #include "runcorrelations.hh"
+#include "report_errors.hh"
 
 #if _OPENMP
 #include <omp.h>
@@ -65,6 +66,8 @@ int main(int argc, char* argv[])
   //  output.openOutputStreams("DEBUG");
   //  output.openOutputStreams("VERBOSE");
   //  output.setVerbose(true, true);
+
+  ReportErrors reportErrors(output);
 
   phaser_io::InterpretCommandLine CL(argc, argv, output);
   if (!CL.Run()) {

@@ -816,18 +816,21 @@ namespace scala {
   {
     // Average batch cells for each dataset
     // also mosaicity & wavelength, and store in dataset object
-    std::vector<float> averageMosaicity, averageWavelength;
-    std::vector<Scell> avbcell = AverageBatchCell(batches, ndatasets,
-                                    averageMosaicity, averageWavelength);
-    for (int j=0;j<ndatasets;j++) {
-      if (avbcell[j].null()) {
-        // Average batch cell is invalid, use dataset cell instead
-        avbcell[j] = datasets[j].cell();
+    if (nbatches > 0) {
+      std::vector<float> averageMosaicity, averageWavelength;
+      std::vector<Scell> avbcell = AverageBatchCell(batches, ndatasets,
+                                     averageMosaicity, averageWavelength);
+
+      for (int j=0;j<ndatasets;j++) {
+        if (avbcell[j].null() || (nbatches == 0)) {
+          // Average batch cell is invalid, use dataset cell instead
+          avbcell[j] = datasets[j].cell();
+        }
+        ///      datasets[j].SetCell(avbcell[j]);
+          datasets[j].SetMosaicity(averageMosaicity[j]);
+          float wvl = averageWavelength[j];
+          datasets[j].SetCellWavelength(avbcell[j], wvl);
       }
-      ///      datasets[j].SetCell(avbcell[j]);
-      datasets[j].SetMosaicity(averageMosaicity[j]);
-      float wvl = averageWavelength[j];
-      datasets[j].SetCellWavelength(avbcell[j], wvl);
     }
     averagecell = AverageDsetCell(datasets);
   }
@@ -998,7 +1001,21 @@ namespace scala {
     if (fromrun) {
       int irun = batch(jbat).RunIndex();
       int batchnum = batch(jbat).num();
-      runlist.at(jbat).SetBatchAccept(batchnum, false);
+      runlist.at(irun).SetBatchAccept(batchnum, false);
+    }
+  }
+  //--------------------------------------------------------------
+  void hkl_unmerge_list::ResetAllBatchAccept(const bool& fromrun)
+  // Mark all batches as accepted
+  // Data records are not changed, runlist is updated if fromrun true
+  {
+    for (int jbat=0;jbat<nbatches;++jbat) {
+      batches.at(jbat).SetAccept(true);
+      if (fromrun) {
+        int irun = batch(jbat).RunIndex();
+        int batchnum = batch(jbat).num();
+        runlist.at(irun).SetBatchAccept(batchnum, true);
+      }
     }
   }
   //--------------------------------------------------------------

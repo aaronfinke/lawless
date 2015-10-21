@@ -140,7 +140,7 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
   {
     if (commandlineArguments != "") {
       output.logTab(0,LOGFILE,
-                    ">>>>> Command line arguments <<<<<\n" +
+                    "==== Command line arguments ====\n" +
                     commandlineArguments + "\n");
     }
   }
