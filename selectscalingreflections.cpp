@@ -29,6 +29,7 @@ namespace scala {
   //   AllScales   scale model just used to set Phi bins for I/sd cutoff
   //   IovSDmin    minimum value for  <I>/sd'(<I>), == 0 no test
   //                < 0 negative value from default, to be reset here
+  //               [default set to -3.0 in controls.cpp]
   //   E2min       minimum |E^2|, <= 0 no test
   //   E2max       maximum |E^2|, <= 0 no test
   //
@@ -75,27 +76,18 @@ namespace scala {
         runlist[irun].PhiRange().SetNbin(Max(1,nranges_run[irun])); // set up binning on phi
       } // end loop runs
 
-      const int nIovSbins = 12;  // bins on I/sig(I)
-      std::vector<float> IovSbins(nIovSbins);
+      const int NIOVSBINS = 13;  // bins on I/sig(I)
+      //std::vector<float> IovSbins(NIOVSBINS);
       // lower bin limits
-      IovSbins[0] = 0.0;
-      IovSbins[1] = 2.0;
-      IovSbins[2] = 3.0;
-      IovSbins[3] = 4.0;
-      IovSbins[4] = 6.0;
-      IovSbins[5] = 8.0;
-      IovSbins[6] = 10.0;
-      IovSbins[7] = 12.0;
-      IovSbins[8] = 14.0;
-      IovSbins[9] = 17.0;
-      IovSbins[10] = 20.0;
-      IovSbins[11] = 25.0;
+      float ibins[] = {0.0, 0.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 17.0,  20.0, 25.0};
+      std::vector<float> IovSbins(ibins, ibins+NIOVSBINS);
 
       nrotranges = Max(1,nrotranges);
-      nI.resize(nrotranges, nIovSbins);
+      nI.resize(nrotranges, NIOVSBINS);
       for (int i=0;i<nrotranges;++i) {
-        for (int j=0;j<nIovSbins;++j) {nI(i,j) = 0;}}
+        for (int j=0;j<NIOVSBINS;++j) {nI(i,j) = 0;}}
 
+      float IovSDmax = -100000.;
       observation this_obs;
       hkl_list.rewind();
       int index;
@@ -107,8 +99,9 @@ namespace scala {
           Rtype phi = this_obs.phi();
           int irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
           float IovS = this_obs.I()/this_obs.sigI();
+          IovSDmax = Max(IovSDmax, IovS);
           int isbin = -1;
-          for (int i=nIovSbins-1;i>=0;--i) {
+          for (int i=NIOVSBINS-1;i>=0;--i) {
             if (IovS >= IovSbins[i]) {
               isbin = i;
               break;
@@ -131,7 +124,8 @@ namespace scala {
       for (int ir=0;ir<nrotranges;++ir) { // loop rotation ranges
         int n = 0;
         int isbin = -1;
-        for (int i=nIovSbins-1;i>=0;--i) { // loop bins backwards
+        for (int i=NIOVSBINS-1;i>=0;--i) { // loop bins backwards
+          //std::cout << "ir, i, nI(ir,i) " <<ir<<" "<<i<<" "<<nI(ir,i)<<"\n";
           nmin2 = n;
           n += nI(ir,i);
           if (n >= NOBSINBIN_SIGM) {
@@ -158,7 +152,7 @@ namespace scala {
       if (IovSDmin > STARTIOVSDMIN - 1.0) {  // minimum I/sd is too small
         // Set to default
         const float IOVSDMINDEFAULT = 2.0;
-        IovSDmin = IOVSDMINDEFAULT;
+        IovSDmin = Min(IOVSDMINDEFAULT, 0.1*IovSDmax);
       } else {
         // if we still have many reflections above IovSDmin, then just use every
         // nskip'th reflection

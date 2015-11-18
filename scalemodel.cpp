@@ -11,6 +11,7 @@
 #include "fileread.hh"
 #include "scala_util.hh"
 #include "restore.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -130,6 +131,8 @@ namespace scala {
     SetupTies(input);
     // Always calculate all secondary beams & diffraction vectors
     bool secbeamsOK = hkl_list.CalcSecondaryBeams(pole);
+    negativeSecScale = 0;
+    negativeSecScaleOccurred = 0;
 
     if (nsecscales > 0 && !secbeamsOK) {
       // if we have secondary scales we must have secondary beams calculated
@@ -139,7 +142,14 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
-  void ScaleModel:: SetConstant(hkl_unmerge_list& hkl_list, phaser_io::Output& output)
+  // return > 0 if a negative secondary scale occurred, and clear the flag
+  int ScaleModel::NegativeSecScaleOccurred() {
+    int count = negativeSecScaleOccurred;
+    negativeSecScaleOccurred = 0;
+    return count;
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::SetConstant(hkl_unmerge_list& hkl_list, phaser_io::Output& output)
 
   // set SCALE CONSTANT for all runs
   {
@@ -1454,6 +1464,11 @@ namespace scala {
       varg = VarScale(dghldp);
       obs.SetGscaleVar(g, varg);
     }
+    //    if (g <= 0.0) {
+    //      std::string message = "ScaleObs: non-positive scale "+StringUtil::ftos(g)+
+    //  " "+obs.hkl_original().format();
+    //      ReportErrors::printWarning(message,"NegativeScale",false);
+    //    }
 
     // For multiple lattice observations, get appropriate inverse scale factors
     if (!obs.IsSingleton() && !onlyUseSingletons) {
@@ -1572,6 +1587,9 @@ namespace scala {
         double thetap, phip;
         obs.GetS2(thetap, phip);
         ss = secondary_scales[sec_scale_index_run[jscale]].Scale(thetap, phip);
+        if (ss <= 0.0) {
+          negativeSecScale++; // record occurance of negative scale
+        }
       }
     }
     // Detector
@@ -1643,6 +1661,9 @@ namespace scala {
         obs.GetS2(thetap, phip);
         int k = sec_scale_index_run[jscale];
         ss = secondary_scales[k].ScaleDeriv(thetap, phip, dgds);
+        if (ss <= 0.0) {
+          negativeSecScale++; // record occurance of negative scale
+        }
       }
     }
 
@@ -1761,7 +1782,29 @@ namespace scala {
           }
         }
       }
+    } // bfactors
+    // Fix up secondary scales if there is a negative scale for any observation
+    if (negativeSecScale > 0) {
+      fixupSecondaryScales();
     }
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::fixupSecondaryScales()
+  // Fix up secondary scales if there is a negative scale for any observation
+  {
+    if (nsecscales == 0) {return;}
+    //std::cout << "ScaleModel::SetParameters negative sec scale\n";
+    // scale down all coefficients
+    const double FACTOR = 0.5;
+    for (int i=0;i<nsecscales;++i) {
+      std::vector<double> pars = secondary_scales[i].Coefficients();
+      for (size_t k=0; k<pars.size(); k++) {
+        pars[k] *= FACTOR;
+      }
+      secondary_scales[i].StoreCoefficients(pars); // store back
+    }
+    negativeSecScaleOccurred = Max(negativeSecScale, negativeSecScaleOccurred);
+    negativeSecScale = 0;  // clear flag
   }
   //--------------------------------------------------------------
   double ScaleModel::TieValues

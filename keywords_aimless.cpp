@@ -1698,7 +1698,7 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
-INITIAL::INITIAL()  : unity(false)
+INITIAL::INITIAL()  : unity(false), minimum_multiplicity(1.05)
 {
   Add_Key("INITIAL");
   //Add to CCP4base;
@@ -1710,6 +1710,8 @@ Token_value INITIAL::parse(std::istringstream& input_stream)
 {
   // Syntax:
   //  INITIAL UNITY  set all initial scales to unity
+  //  INITIAL MEAN   set all initial scales from mean intensities [default]
+  //  INITIAL MINIMUM_MULTIPLICITY read minimum multiplicity
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
@@ -1717,6 +1719,8 @@ Token_value INITIAL::parse(std::istringstream& input_stream)
         unity = true;
       } else if (keyIs("MEAN")) {
         unity = false;
+      } else if (keyIs("MINIMUM_MULTIPLICITY")) {
+        minimum_multiplicity = get1num(input_stream);
       }
     }
   }

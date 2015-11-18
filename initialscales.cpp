@@ -21,13 +21,14 @@ namespace scala {
     npall = avi->rows();  // number of parameters = number of rotation ranges
     np = 0;
     validranges.assign(npall, true);
+    rangecount.assign(npall, 0);
     for (int i=0;i<avi->rows();++i) {  // loop parameters (rotation ranges)
       next = -1;
       bool empty = true;
       while (++next < avi->cols()) { // loop resolution ranges
         if ((*avi)(i,next) > 0.0) {
           empty = false;
-          break;
+          rangecount[i]++;
         }
       }
       if (empty) {
@@ -53,7 +54,7 @@ namespace scala {
         sd = (I>0.0) ? sd1  : 0.0;  // sd = 0 if I = 0
         obs[i] = DPair(I, sd);
         //^
-        //      std::cout <<"ObsArray i, obs " <<i<<" "<<obs[i].first<<" "<<obs[i].second<<"\n";
+        //std::cout <<"ObsArray i, obs " <<i<<" "<<obs[i].first<<" "<<obs[i].second<<"\n";
       }
       return true;
     }
@@ -61,12 +62,14 @@ namespace scala {
     return false;
   }
   // ---------------------------------------------------------
-  void InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
-                     const all_controls& controls,
-                     phaser_io::Output& output)
+  // ---------------------------------------------------------
+  InitialScales::InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
+                               const all_controls& controls,
+                               phaser_io::Output& output)
   // Get initial estimates of primary scales, from making intensity
   // averages equal
   {
+    status = 0;
     output.logTab(0,LOGFILE,
                   "\n========= Initial scaling =========\n\n");
 
@@ -114,6 +117,8 @@ namespace scala {
     clipper::Array2d<double> sumI(nrotranges, nrbins);
     // numbers
     clipper::Array2d<int>      nI(nrotranges, nrbins);
+    std::vector<int> nmultrot(nrotranges, 0);
+    std::vector<int> nreflrot(nrotranges, 0);
 
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
@@ -124,6 +129,7 @@ namespace scala {
     int irot;
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
       int ires = resrange.bin(this_refl.invresolsq());
+      int nobs = 0;
       while ((index = this_refl.next_observation(this_obs)) >= 0) {
         // loop observations
         int irun = this_obs.run();
@@ -139,11 +145,15 @@ namespace scala {
         }
         sumI(irot, ires) += this_obs.I();
         nI(irot, ires)++;
-      }
-    }
+        nobs++;
+      } // observation
+      // count rough multiplicity by rotation range
+      nmultrot[irot] += nobs;
+      nreflrot[irot]++;
+    } // reflection
 
     // Compute average intensities
-    std::vector<int> numobsrotrange(nrotranges, 0); // number of observations for rotrange
+    numobsrotrange.assign(nrotranges, 0); // number of observations for rotrange
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
         if (nI(i,j) > 0) {
@@ -152,6 +162,43 @@ namespace scala {
         }
       }
     }
+
+    // average multiplicity by rotation range
+    std::vector<bool> validranges(nrotranges, false);
+    int nvalidranges = 0;
+    multiplicitybyrotrange.assign(nrotranges, 0.0);
+    int nmult = 0;
+    int nrefl = 0;
+    for (int i=0;i<nrotranges;++i) {
+      if (nreflrot[i] > 0) {
+        multiplicitybyrotrange[i] = double(nmultrot[i])/double(nreflrot[i]);
+        validranges[i] = true;
+        nvalidranges++;
+      }
+      nmult += nmultrot[i];
+      nrefl += nreflrot[i];
+    }
+    averagemultiplicity = 0.0;
+    if (nrefl > 0) {
+      averagemultiplicity = double(nmult)/double(nrefl);
+    }
+
+    const int NPERLINE = 10;
+    for (int irun=0;irun<nruns;++irun) {
+      bool empty = false;
+      int i1 = idxrun[irun];
+      int i2 = nrotranges;
+      if (irun < nruns-1) i2 = idxrun[irun+1];  // not last run
+      output.logTabPrintf(0, LOGFILE,
+         "\nAverage multiplicity by rotation range for run %5d\n", runlist[irun].RunNumber());
+      for (int i=i1;i<i2;++i) {
+        if ((i-i1) > 0 && (i-i1)%NPERLINE == 0) output.logTabPrintf(0,LOGFILE,"\n");
+        output.logTabPrintf(0,LOGFILE," %9.2f", multiplicitybyrotrange[i]);
+      }
+      output.logTabPrintf(0,LOGFILE,"\n");
+    }
+    output.logTabPrintf(0, LOGFILE,
+                        "\nOverall average multiplicity %8.2f\n", averagemultiplicity);
 
     InitialData data(sumI);  // make data accessible to scale refinement
 
@@ -164,13 +211,12 @@ namespace scala {
     Min.run(fh, cPtr, output);
 
     // Print initial scales
-    const int nperline = 10;
 
-    std::vector<double> gscales = fh.getGscales();  // inverse scales (g)
+    gscales = fh.getGscales();  // inverse scales (g)
     ASSERT (gscales.size() == size_t(nrotranges));
     std::vector<double> scales(nrotranges, 0.0);  // scales
 
-    std::vector<bool> validranges = data.validRanges();
+    validranges = data.validRanges();
 
     for (int irun=0;irun<nruns;++irun) {
       output.logTabPrintf(0, LOGFILE,
@@ -182,16 +228,11 @@ namespace scala {
       std::vector<bool> validinrun(i2-i1, true);
       // scales for irun go from i1 to i2-1
       for (int i=i1;i<i2;++i) {
-        if (gscales[i] != 0.0) {
-          scales[i] = 1./gscales[i];
-        } else {
+        if (gscales[i] == 0.0) {
           empty = true;  // empty slot
           validinrun[i] = false;
         }
-        if ((i-i1) > 0 && (i-i1)%nperline == 0) output.logTabPrintf(0,LOGFILE,"\n");
-        output.logTabPrintf(0,LOGFILE," %9.3f", scales[i]);
       }
-      output.logTabPrintf(0,LOGFILE,"\n");
 
       if (empty) {
         // this run is missing at least one scale
@@ -228,7 +269,7 @@ namespace scala {
               g /= floatType(ng);
               for (int j=k;j<k2;j++) {  // to k2-1 or i2-1
                 gscales[j] = g;
-                //^      std::cout <<"fill in " << j <<" with "<<1.0/g<<"\n"; //^
+                //std::cout <<"fill in " << j <<" with "<<1.0/g<<"\n"; //^
               }
             }
             k = k2-1;
@@ -236,9 +277,42 @@ namespace scala {
           k++;
         }
       }
+      for (int i=i1;i<i2;++i) {
+        if ((i-i1) > 0 && (i-i1)%NPERLINE == 0) output.logTabPrintf(0,LOGFILE,"\n");
+        if (gscales[i] != 0.0) {
+          scales[i] = 1./gscales[i];
+        }
+        output.logTabPrintf(0,LOGFILE," %9.3f", scales[i]);
+      }
+      output.logTabPrintf(0,LOGFILE,"\n");
+
     }  // end loop runs
     // Store initial scales
     AllScales.SetInitialScales(gscales, numobsrotrange);
+    status = nrotranges;
   }  // InitialScales
-
+  // ---------------------------------------------------------
+  // return true if there seems to be enough data to refine scales
+  bool InitialScales::enoughData(const double& minimum_multiplicity) const
+  {
+    bool enough = true;
+    if (averagemultiplicity < minimum_multiplicity) {
+      enough = false;
+    }
+    size_t nrotrange = multiplicitybyrotrange.size();
+    if (nrotrange > 0) {
+      int nbad = 0;
+      // count ranges with low multiplicity
+      for (size_t ir=0; ir<nrotrange; ir++) {
+        if ((multiplicitybyrotrange[ir] > 0.9999) &&
+          (multiplicitybyrotrange[ir] < minimum_multiplicity)) {
+          nbad++;
+        }
+      }
+      if (nbad > 0) {
+        enough = false;
+      }
+    }
+    return enough;
+  }
 } // namespace scala

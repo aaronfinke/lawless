@@ -56,6 +56,7 @@ namespace scala {
 
     int i1 = -1;
     int nbins = ResRange.Nbins();
+
     if (nbins <= 1) {
       highres = ResRange.ResHigh();
       status = +1;
@@ -111,8 +112,8 @@ namespace scala {
         // linear interpolate on 1/d^2 between bins i1 and i1+1
         if (status == +1 || i1+1 >= int(score.size())) {
           highres = ResRange.ResHigh();
-        } else {
-          double den = score[i1]-score[i1+1];
+        } else if (i1 >= 0) {
+          double den = score.at(i1)-score.at(i1+1);
           if (score[i1+1] == 0.0) {
             den = score[i1];
           }

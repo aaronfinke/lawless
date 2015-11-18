@@ -81,6 +81,12 @@ namespace scala {
 	      hkl_unmerge_list& hkl_list,
 	      phaser_io::Output& output);
 
+    // call at beginning of each refinement cycle to clear negative sec scale flag
+    void clearNegativeSecScaleFlag() {negativeSecScale = 0;}
+
+    // return > 0 if a negative secondary scale occurred, and clear the flag
+    int NegativeSecScaleOccurred();
+
     void SetConstant(hkl_unmerge_list& hkl_list,
 		     phaser_io::Output& output);  // set SCALE CONSTANT for all runs
 
@@ -119,6 +125,9 @@ namespace scala {
 
     // Normalise scales & B-factors
     void NormaliseParameters();
+
+    // Fix up secondary scales if there is a negative scale for any observation
+    void fixupSecondaryScales();
 
     // Set initial primary scales, eg from InitialScales
     // also store count of number of observations
@@ -255,6 +264,11 @@ namespace scala {
     std::vector<int> idxrun_secondary;
     // for ABSORPTION, pole = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     int pole;
+    // initially = 0 on each cycle (call to clearNegativeSecScaleFlag),
+    // count > 0 if secondary scale for observation is negative
+    mutable int negativeSecScale;  // within each refine cycle
+    // ... or at any time 
+    int negativeSecScaleOccurred;
 
     // Scaling by tile (or other detector scale)
     //   typically only one scale set, unless different runs are from different detectors

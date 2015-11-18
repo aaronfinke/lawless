@@ -73,7 +73,7 @@ namespace scala {
     double E2min = -log(float(Nbintarget)/float(nvrefl));
     // E2min shouldn't be too large
     //    E2min = Min(E2min, 1.5);
-    E2min = Min(E2min, 0.5);
+    E2min = Max(Min(E2min, 0.5),0.0);
     int nreflarge = Nint(float(nvrefl)* exp(-E2min)); // rough number > E2min
     nreflarge = nreflarge;
     // bin at E^2 = 1 (Emidbin) is NintBin/2
@@ -86,7 +86,7 @@ namespace scala {
     //    std::cout << "nvrefl, Nbintarget, nreflarge, nrefbin "
     //        << nvrefl<<" "<< Nbintarget<<" " << nreflarge << " " << nrefbin << " E2min " << E2min <<"\n";
     //    std::cout << "Iav, Jmax " << Iav <<" "<<Jmax <<"\n";
-    //    std::cout << "Frac "<< frac  << "\n";
+    //        std::cout << "Frac "<< frac  << "\n";
     //^-
 
 

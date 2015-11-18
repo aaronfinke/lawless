@@ -1903,6 +1903,8 @@ namespace scala {
     // Limit for monitoring large orientation change, 3 degrees
     double rotlim = clipper::Util::d2rad(3.0);
 
+    std::string orientationwarning = "";
+
     // Loop runs
     for (size_t irun=0;irun<runlist.size();++irun) {
       bool allvalid = true;
@@ -1934,14 +1936,11 @@ namespace scala {
               // change of orientation should change run
               double rot = (clipper::Rotation(batch.Umat()) * U0inv).abs_angle();
               if (rot > rotlim) {
-                ReportErrors::printWarning
-                  ("WARNING: problem in run "+clipper::String(int(irun+1))+
-                   " batch "+clipper::String(batchlist[ib])+
-                   "  has a different orientation that of initial batch "+
-                   clipper::String(batchlist[0])+
-                   "\n Orientation difference = "+
-                   clipper::String(clipper::Util::rad2d(rot))+"\n",
-                   "WarningMessage",false);
+                orientationwarning += StringUtil::itos(int(irun+1),5)+
+                  " "+StringUtil::itos(batchlist[ib],7)+
+                  " "+StringUtil::itos(batchlist[0],7)+
+                  " "+StringUtil::ftos(clipper::Util::rad2d(rot),8,4)+"\n";
+
                 sameOrientation = false;
               }
             }  // end valid orientation
@@ -1965,6 +1964,16 @@ namespace scala {
       }
       runlist[irun].PhiRange().AllowDescending(); // allow negative phi range
     } // end loop runs
+
+    if (!sameOrientation) {
+      orientationwarning =
+        "\nWARNING: some batches have a different orientation from that of initial batch (Batch0)\n\n"+
+        std::string("  Run   Batch  Batch0  Orientation difference\n")+
+        orientationwarning;
+
+      ReportErrors::printWarning(orientationwarning, "WarningMessage",false);
+    }
+
     return sameOrientation;
   }
   //--------------------------------------------------------------

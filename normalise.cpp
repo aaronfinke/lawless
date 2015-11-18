@@ -585,9 +585,10 @@ namespace scala {
         meanisdissqr[i].MnsSqr = sum_sSqr[i]/n_I[i];
         meanisdissqr[i].N = n_I[i];
         //^
-        //^     std::cout << meanisdissqr[i].MnsSqr
-        //^               << " " << meanisdissqr[i].MnI << " " << meanisdissqr[i].SdMnI                   <<" "<<meanisdissqr[i].MnSdI<<" "<<meanisdissqr[i].SdMnSdI
-        //^               <<" "<<meanisdissqr[i].N <<"\n";
+        //      std::cout <<"meanisdissqr "
+        //                << meanisdissqr[i].MnsSqr
+        //                << " " << meanisdissqr[i].MnI << " " << meanisdissqr[i].SdMnI                   <<" "<<meanisdissqr[i].MnSdI<<" "<<meanisdissqr[i].SdMnSdI
+        //                <<" "<<meanisdissqr[i].N <<"\n";
         //^-
       }
     }

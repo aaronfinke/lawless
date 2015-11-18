@@ -64,6 +64,11 @@ namespace scala {
             // Statistics on effect of parameter variance
             Rtype sigI0 = this_obs.sigI(); // sigI before scaling
             Rtype sigI  = this_obs.ksigI(); // sigI after scaling & correction
+            //^^
+            //      if (sigI <= 0.0) {
+            //        std::cout <<"sigI<=0 " << sigI<<" "<<sigI0<<" "
+            //                  <<this_obs.Gscale()<<"\n";
+            //      }
             ASSERT (sigI > 0.0);
 
             Rtype gscale = this_obs.Gscale(); // inverse scale g

@@ -31,6 +31,9 @@ public:
   // return for each rotation range true if there are data, else false
   std::vector<bool> validRanges() const {return validranges;}
 
+  // number of occupied resolution ranges for each rotation range
+  std::vector<int> rangeCount() const {return rangecount;}
+
   // Data are in 2D array AvI(rotation, resolution)
   // For each resolution bin, we want to make all the <Irot> equal over
   //   all rotation bins  ie <I(rot,reso)>/scales(rot)  constant for all "rot"
@@ -45,16 +48,34 @@ private:
   // Data is a 2D array(nrotranges, nresbins)
   const clipper::Array2d<double>*  avi;
   std::vector<bool> validranges;
+  std::vector<int> rangecount; // number of occupied resolution ranges for each rotation range
   mutable int next;
 };
 
 
-  // Get initial estimates of primary scales, from making intensity
-  // averages equal
-  void InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
-  		     const all_controls& controls,
-		     phaser_io::Output& output);
+  class InitialScales {
+  public:
+    InitialScales() : status(-1) {}
+    // Get initial estimates of primary scales, from making intensity
+    // averages equal
+    InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
+		  const all_controls& controls,
+		  phaser_io::Output& output);
 
+    // return true if there seems to be enough data to refine scales
+    bool enoughData(const double& minimum_multiplicity) const;
+
+  private:
+    std::vector<int> numobsrotrange; // number of observations for rotrange
+    std::vector<double> multiplicitybyrotrange;
+    double averagemultiplicity;
+    std::vector<double> gscales;  // inverse scales (g)
+
+    // = -1, never called, = 0 no scales determined, > 0 n scales determined
+    int status;
+
+  };
 }
+
 
 #endif

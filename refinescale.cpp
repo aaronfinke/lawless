@@ -26,6 +26,7 @@ namespace scala {
     scalemodel = &Scalemodel; // pointer to scales object
     npar = scalemodel->Nparameters();
     params = scalemodel->GetParameters();  // initial parameters
+    scalemodel->clearNegativeSecScaleFlag();
     sdmodel = &SDM;
     gradient.newsize(npar);
     gradientOK = false;
@@ -510,6 +511,7 @@ namespace scala {
     }
     //    std::cout <<"\n"; //^
     scalemodel->SetParameters(params, nrefpar);
+    scalemodel->clearNegativeSecScaleFlag();
     gradientOK = false;
   }
   // ---------------------------------------------------------
@@ -528,7 +530,7 @@ namespace scala {
     return "Scale "+itos(i);
   }
   // ---------------------------------------------------------
-  std::vector<bounds>     RefineScale::getLowerBounds()
+  std::vector<bounds>  RefineScale::getLowerBounds()
   {
     std::vector<bounds> Lower(npar);
     double bound;

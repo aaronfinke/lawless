@@ -28,6 +28,8 @@ namespace scala
     std::vector<double> y; 
     std::vector<double> y2;  // second derivatives of interpolating
 			      // function
+    // true if x values are invalid, Interpolate just returns 0.0 always
+    bool null;
   };
 }
 

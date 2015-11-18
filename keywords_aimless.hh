@@ -631,10 +631,13 @@ namespace phaser_io {
 
     bool InitialUnity() const {return unity;}
 
+    double Minimum_multiplicity() const {return minimum_multiplicity;}
+
     void analyse(){}
 
   private:
     bool unity;
+    double minimum_multiplicity;
   };
   //--------------------------------------------------------------
   class XMLOUT : public InputBase, virtual public CCP4base

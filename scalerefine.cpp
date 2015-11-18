@@ -8,9 +8,13 @@
 #include "scalerefine.hh"
 #include "refinescale.hh"
 #include "hessian.hh"
+#include "report_errors.hh"
+#include "string_util.hh"
 
 #include <assert.h>
 #define ASSERT assert
+
+
 
 namespace scala {
 // ---------------------------------------------------------
@@ -37,6 +41,14 @@ namespace scala {
 
     // Calculate variance/covariance matrix and store in AllScales
     calculateParameterVariances(refscl, AllScales);
+
+    // NB this clears the count
+    int negscalecount = AllScales.NegativeSecScaleOccurred();
+    if (negscalecount > 0) {
+      std::string message = StringUtil::itos(negscalecount)+
+        " observations had a negative secondary scale, so parameters were scaled down";
+      ReportErrors::printWarning(message, "NegativeSecScaleOccurred", true);
+    }
 
     if (print) AllScales.PrintScales(output);
 

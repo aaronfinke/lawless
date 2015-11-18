@@ -1,6 +1,11 @@
 //
 //  tie.cpp
 //
+// Types:
+//  1) tie to fixed target (kpidx.size() = 1)
+//  2) tie between two values (kpidx.size() = 2)
+//  3) tie to mean value  (kpidx.size() > 2)
+
 
 #include "tie.hh"
 #include "string_util.hh"
@@ -35,18 +40,19 @@ std::vector<TieGradient> Tie::Gradient(const std::vector<double>& params)
 // Assumes d has been calculated before by call to R()
 {
   std::vector<TieGradient> TG;
-  if (kpidx.size() == 1) {
+  if (kpidx.size() == 1) {  // type 1
     // d is p(i) - target
-    TG.push_back(TieGradient(kpidx[0], weight*d));
-  } else if (kpidx.size() == 2) {
+    TG.push_back(TieGradient(kpidx[0], 2.0*weight*d));
+  } else if (kpidx.size() == 2) { // type 2
     // d is p(i) - p(j)
-    TG.push_back(TieGradient(kpidx[0], +weight*d));
-    TG.push_back(TieGradient(kpidx[1], -weight*d));
-  } else {
+    TG.push_back(TieGradient(kpidx[0], +2.0*weight*d));
+    TG.push_back(TieGradient(kpidx[1], -2.0*weight*d));
+  } else { // type 3
     // d is <p>
+    double fac = (1.0 - 1.0/double(kpidx.size())); // (1 - 1/n)
     for (size_t i=0;i<kpidx.size();++i) {
       TG.push_back(TieGradient(kpidx[i],
-               weight*(params[kpidx[i]] - d)/double(kpidx.size())));
+               2.0*weight*(params[kpidx[i]] - d)*fac));
     }
   }
     return TG;
@@ -56,17 +62,18 @@ std::vector<TieHessian> Tie::Hessian(const std::vector<double>& params)
 // Returns list of contributions to Hessian
 {
   std::vector<TieHessian> TH;
-  if (kpidx.size() == 1) {
-    TH.push_back(TieHessian(kpidx[0], kpidx[0], weight));
-  } else if (kpidx.size() == 2) {
-    TH.push_back(TieHessian(kpidx[0], kpidx[0], weight));
-    TH.push_back(TieHessian(kpidx[1], kpidx[1], weight));
-    TH.push_back(TieHessian(kpidx[0], kpidx[1], -weight));
-  } else {
-    double wn = 1./double(kpidx.size()*kpidx.size());
+  if (kpidx.size() == 1) { // type 1
+    TH.push_back(TieHessian(kpidx[0], kpidx[0], 2.0*weight));
+  } else if (kpidx.size() == 2) { // type 2
+    TH.push_back(TieHessian(kpidx[0], kpidx[0], 2.0*weight));
+    TH.push_back(TieHessian(kpidx[1], kpidx[1], 2.0*weight));
+    TH.push_back(TieHessian(kpidx[0], kpidx[1], -2.0*weight));
+  } else { // type 3
+    double fac = 1.0 - 1./double(kpidx.size());
+    fac *= fac;
     for (size_t i=0;i<kpidx.size();++i) {
       for (size_t j=i;j<kpidx.size();++j) {
-        TH.push_back(TieHessian(kpidx[i], kpidx[j], weight*wn));
+        TH.push_back(TieHessian(kpidx[i], kpidx[j], 2.0*weight*fac));
       }}
   }
   return TH;

@@ -97,6 +97,25 @@ namespace scala {
     scores[1] = TestValue(imid[1], hkl_list, Rfacs[1]);
     PrintR(imid[1], scores[1], Rfacs[1], output);
 
+    // If either of the Summation or Profile scores are negative, choose the other one
+    bool forceone = false;
+    if (scores[0] < 0.0) {
+      // summation negative, use Profile
+      // If IcolFlag = 0, select Iint, < 0 select Ipr
+      SelectI::SetIcolFlag(-1, 0.0);
+      forceone = true;
+    }
+    if (scores[1] < 0.0) {
+      // profile negative, use Summation (even if Summation is negative)
+      // If IcolFlag = 0, select Iint, < 0 select Ipr
+      SelectI::SetIcolFlag(0, 0.0);
+      forceone = true;
+    }
+    if (forceone) {
+      output.logTab(0, LOGFILE, "\n"+SelectI::format());
+      return;
+    }
+
     // Now search for best Combine::Imid value
     // Start at Itop/2
     imid[2] = Itop/2.0;

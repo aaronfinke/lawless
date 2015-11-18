@@ -15,6 +15,7 @@ namespace scala
   void Spline::init(const std::vector<RPair>& xyin)
   {
     n = xyin.size();
+    null = false;
     x.resize(n);
     y.resize(n);
     for (int i=0;i<n;i++) {
@@ -29,7 +30,10 @@ namespace scala
     u[0] = 0.0;
 
     for (int i=1;i<n-1;i++) {
-      ASSERT ((x[i+1]-x[i-1]) != 0.0);
+      if ((x[i+1]-x[i-1]) == 0.0) {
+        null = true;
+        return;
+      }
       double sig = (x[i]-x[i-1])/(x[i+1]-x[i-1]);
       double p = sig*y2[i-1] + 2.0;
       y2[i] = (sig - 1.0)/p;
@@ -47,6 +51,10 @@ namespace scala
   //--------------------------------------------------------------
   float Spline::Interpolate(const float& xx) const
   {
+    if (null) {
+      // fake for null data
+      return 0.0f;
+    }
     int lo = 0;
     int hi = n-1;
     while (hi-lo > 1) {

@@ -413,9 +413,14 @@ total fraction if&nbsp; it is &gt; minimum_fraction [default 0.95] (NB Pointless
   <li>a reflection has a gap in the middle may be accepted if GAP is
 set, maxgap is maximum number of missing slots [not recommended: default 1 if GAP is set]</li>
 </ol>
-<h3><a name="initial"></a>INITIAL UNITY | MEAN</h3>
+<h3><a name="initial"></a>INITIAL UNITY | MEAN |&nbsp; MINIMUM_MULTIPLICITY &lt;minimum_multiplicity&gt;<br>
+</h3>
 Set initial scale factors either based on mean intensities (MEAN, default) or all set to 1.0 (UNITY)<br>
 <br>
+If the multipicity is less than <span style="font-weight: bold;">minimum_multiplicity</span>
+in any rotation range, then scaling will be switched off (ie ONLYMERGE
+and so will SD correction refinement (SDCORRECTION NOREFINE). Default
+value 1.05. Set to a value &lt; 1.0 to ignore this check. <br>
 
 <h3><a name="intensities"></a>INTENSITIES [SUMMATION | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
 &lt;Ipower&gt;] <br>
@@ -1222,6 +1227,7 @@ Five SD values control the strength of the restraints, respectively for r, w, A0
 SD = 0 switches off the restraint<br>
 </div>
 <dl compact="compact">
+
   <ul style="font-weight: bold;">
 
 
@@ -1309,7 +1315,12 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.17 Bug fix to error and warning printing<br>
+  <h2>RELEASE NOTES</h2>0.5.18
+Some changes to improve robustness for low multiplicity, mainly for
+small molecule data. No scaling if multiplicity is too low. Added
+INITIAL MINIMUM_MULTIPLICITY option. Changes to choice of observations
+for scaling and SD optimisation. Trap negative secondary scales. Correct derivatives in TIEs (doesn't make much difference)<br>
+0.5.17 Bug fix to error and warning printing<br>
 0.5.16
 improved the robustness of SDcorrection refinement with a few fulls.
 REJECT NONE option. <br>
@@ -1435,6 +1446,8 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
+
 
 
 

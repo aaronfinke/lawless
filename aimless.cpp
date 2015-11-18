@@ -460,12 +460,12 @@ int main(int argc, char* argv[])
     controls.anomalouscontrol.AnomalousSDcorr = true;
 
     bool lowmultiplicity = false;
+    float multiplicity = float(hkl_list.num_observations())/
+      float(hkl_list.num_reflections_valid());
     if (controls.anomalouscontrol.AnomalousSDcorr) {
       // If multiplicity low, combine I+ & I- for SD correction
       // * tried this but didn't always work on bad data
       // Try again with lower threshold
-      float multiplicity = float(hkl_list.num_observations())/
-        float(hkl_list.num_reflections_valid());
       const float MINMULTFORSDCORR = 1.5;
       // Separate I+ & I- for SD correction, unless multiplicity is low
       if (multiplicity < MINMULTFORSDCORR) {
@@ -481,13 +481,30 @@ int main(int argc, char* argv[])
     }
     output.logFlush();
 
+    bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
+    // minimum multiplicity for scaling
+    double minimum_multiplicity = input.Minimum_multiplicity();
+    if (multiplicity < minimum_multiplicity) {
+      suppressScaling = true;
+    }
+
     // ----- Initial scales
     if (initialscale) {
       timer.Start();
-      InitialScales(hkl_list, AllScales, controls, output);
+      InitialScales initialscales(hkl_list, AllScales, controls, output);
       output.logTab(0,LOGFILE,
                     "\nTime for initial scaling: "+timer.format(true));
       output.logFlush();
+
+      // test for enough data for scaling
+      if (minimum_multiplicity < 1.0) {
+        output.logTab(0,LOGFILE,
+          "\nNo test for minimum multiplicity (INITIAL MINIMUM_MULTIPLICITY)");
+      }
+      if (! initialscales.enoughData(minimum_multiplicity)) {
+        suppressScaling = true;
+      }
+
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data
       if (controls.outlierScale.Reject(ALL).batchrejectfactor > 0.0) {
@@ -500,6 +517,21 @@ int main(int argc, char* argv[])
       }
     }
 
+    if (suppressScaling) {
+      // set onlymerge
+      FC.SetOnlyMerge();
+      output.logTab(0,LOGFILE,
+         "\n**** NB No scaling will be done as there seems to be insufficient data\n");
+      output.logTabPrintf(0,LOGFILE,
+                          "        Minimum multiplicity threshold = %7.2f\n",
+                          minimum_multiplicity);
+      AllScales.SetConstant(hkl_list, output);
+      SD_model.SetRefine(false);  // SDDCORRECTION NOREFINE
+    } else {
+      output.logTabPrintf(0,LOGFILE,
+          "\n All rotation ranges are above the minimum multiplicity threshold = %7.2f\n",
+                          minimum_multiplicity);
+    }
 
     // Set weighting for SD model
     //   (doesn't make a huge difference at least in some tests)
@@ -551,6 +583,7 @@ int main(int argc, char* argv[])
       }
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
+      //AllScales.PrintScales(output); //^^
       applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
       overallmeankI = applyscales.meanI();
 

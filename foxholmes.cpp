@@ -213,6 +213,7 @@ void FoxHolmes::TargetGradientHessian(bool DoGradient,
 // ---------------------------------------------------------
 void FoxHolmes::applyShift(TNT::Vector<floatType>& newg)
 {
+  //std::cout << "Npar " << npar<< "\n";
   for (int i=0;i<npar;i++)  {
     scales[i] = newg[i];
     //std::cout << " " << scales[i];
@@ -240,7 +241,7 @@ std::vector<bounds>     FoxHolmes::getLowerBounds()
 {
   std::vector<bounds > Lower(npar);
   for (int i=0;i<npar;i++) {
-    Lower[i].on(0.0);
+    Lower[i].on(0.01);
   }
   return Lower;
 }
