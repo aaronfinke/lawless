@@ -178,7 +178,14 @@ namespace scala {
   void SummaryStatistics::StoreMnIsigresolimit
   (const ResolutionLimit& OverallResolimitIsig)
   {
-    overallresolimitIsig =OverallResolimitIsig;
+    overallresolimitIsig = OverallResolimitIsig;
+  }
+  // ------------------------------------------------------------
+  // overall limit from Mn(I/sd) for I/sig > 2
+  void SummaryStatistics::StoreMnIsigresolimit2
+  (const ResolutionLimit& OverallResolimitIsig2)
+  {
+    overallresolimitIsig2 = OverallResolimitIsig2;
   }
   // ------------------------------------------------------------
   // anisotropic limits from half-dataset CCs
@@ -320,6 +327,11 @@ namespace scala {
                           overallresolimitIsig.Limit(),
                           overallresolimitIsig.HighResolution(),
                           ResoLimitWarning(overallresolimitIsig).c_str());
+      output.logTabPrintf(1,OUTSTREAM,
+                          "from Mn(I/sd) > %5.2f:                         limit = %5.2fA %s\n",
+                          overallresolimitIsig2.Limit(),
+                          overallresolimitIsig2.HighResolution(),
+                          ResoLimitWarning(overallresolimitIsig2).c_str());
       // Anisotropy analysis
       if (int(anisoresolimitCC.size()) > 0) {
         output.logTab(0,OUTSTREAM,
@@ -435,6 +447,8 @@ namespace scala {
                     MakeXMLresolimit("Overall", "CChalf", overallresolimitCC));
       output.logTab(1,LXML,
                     MakeXMLresolimit("Overall", "I/sd", overallresolimitIsig));
+      output.logTab(1,LXML,
+                    MakeXMLresolimit("Overall", "I/sd gt 2", overallresolimitIsig2));
 
       if (int(anisoresolimitCC.size()) > 0) {
         for (int jax=0;jax<3;++jax) {
@@ -705,6 +719,11 @@ namespace scala {
                           allsummarystatistics[idts].overallresolimitIsig.Limit(),
                           allsummarystatistics[idts].overallresolimitIsig.HighResolution(),
                           ResoLimitWarning(allsummarystatistics[idts].overallresolimitIsig).c_str());
+      output.logTabPrintf(2,OUTSTREAM,
+                          "from Mn(I/sd) > %5.2f:                             limit = %5.2fA %s\n",
+                          allsummarystatistics[idts].overallresolimitIsig2.Limit(),
+                          allsummarystatistics[idts].overallresolimitIsig2.HighResolution(),
+                          ResoLimitWarning(allsummarystatistics[idts].overallresolimitIsig2).c_str());
     }
     output.logTab(0,OUTSTREAM," ");
 

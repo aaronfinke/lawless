@@ -725,7 +725,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                 " Rmeas   :- multiplicity-independent R = Sum(Sqrt(N/(N-1))(|Ihl - < Ih >|))/Sum(< Ih >)\n"+
                 " Rpim    :- Precision-indicating R = Sum(Sqrt(1/(N-1))(|Ihl - < Ih >|))/Sum(< Ih >)\n"+
                 " Nmeas   :- Number of observations used in statistics\n"+
-                " Av_I    :- unmerged Ihl averaged in bin < Ihl >\n"+
+                " AvI     :- unmerged Ihl averaged in bin < Ihl >\n"+
                 " RMSdev  :- rms scatter of observations from mean < Ih >\n"+
                 " I/RMS   :- < Ihl > / rms scatter  = Av_I/RMSdev\n"+
                 " sd      :- average standard deviation derived from experimental SDs, after\n"+
@@ -926,6 +926,9 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
   // Resolution "limit" from Mn(I/sd)
   summarystatistics.StoreMnIsigresolimit
     (ResolutionLimit(mnIsdRes, ResRange, MinimumIoverSigma, ResolutionLimit::NONE));
+  // Resolution "limit" from Mn(I/sd) for I/sig > 2 (special for Frank von Delft)
+  summarystatistics.StoreMnIsigresolimit2
+    (ResolutionLimit(mnIsdRes, ResRange, 2.0, ResolutionLimit::NONE));
 }
 //--------------------------------------------------------------
 void PrintDeviationsByRun(const PxdName& dataset_pxd,

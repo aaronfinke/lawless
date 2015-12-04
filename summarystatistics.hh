@@ -101,6 +101,8 @@ namespace scala {
     // overall limit from Mn(I/sd)
     void StoreMnIsigresolimit(const ResolutionLimit& OverallResoLimitIsig);
     // anisotropic limits from half-dataset CCs
+    // overall limit from Mn(I/sd) for I/sig > 2
+    void StoreMnIsigresolimit2(const ResolutionLimit& OverallResolimitIsig2);
     void StoreHalfdatsetCCAnisoresolimit
       (const std::vector<ResolutionLimit>& AnisoresolimitCC);
     // anisotropic limits from Mn(I/sd)
@@ -155,6 +157,7 @@ namespace scala {
     // Resolution limit estimates
     ResolutionLimit overallresolimitCC;   // overall, from half-dataset CCs
     ResolutionLimit overallresolimitIsig; // overall, from Mn(I/sd)
+    ResolutionLimit overallresolimitIsig2;// overall, from Mn(I/sd) I/sig>2
     ResolutionLimit anomresolimitCC;   // overall, from half-dataset CCs
     // Actual maximum resolution
     double maxinvresolsq;
