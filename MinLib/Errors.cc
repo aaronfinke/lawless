@@ -25,7 +25,7 @@ namespace phaser {
     msg_ =   std::string("Program") + s + " error in source file "
               + sfile + " (line " + buf + ")\n";
     if (msg.size()) msg_ += "*** "+ msg + " ***";
-    if (internal) msg_ += "\nPlease email this log file to cimr-phaser@lists.cam.ac.uk";
+    if (internal) msg_ += "\nPlease email this log file to ccp4@ccp4.ac.uk";
   }
 
   error::~error() throw() {}

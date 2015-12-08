@@ -35,7 +35,7 @@ CCTBX_sources=${CCTBX}/cctbx_sources
 
 # 6.4.0
 ITBX=\
--I${CCP4}/include/cctbx
+-I${CCP4}/include/cctbx -I${CCP4}/include
 
 # 6.3.0
 #ITBX=\

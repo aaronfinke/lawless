@@ -666,6 +666,8 @@ namespace scala {
     //! Mark all batches as accepted
     //*! Data records are not changed, runlist is updated if fromrun true */
     void ResetAllBatchAccept(const bool& fromrun=true);
+    //*! update observation flags to match batch accept/reject list
+    void markObservationsRejectedByBatch();
 
     //! Remove all observation parts belonging to rejected batches: returns number of parts rejected
     int PurgeRejectedBatches();

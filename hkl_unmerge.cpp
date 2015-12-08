@@ -1019,6 +1019,29 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
+  void hkl_unmerge_list::markObservationsRejectedByBatch()
+  // update observation flags to match batch accept/reject list
+  {
+    observation this_obs;
+    ObservationStatus obs_status;
+
+    for (size_t j=0;j<refl_list.size();++j) { // loop reflections
+      for (int iobs=0;iobs<refl_list[j].num_observations();++iobs) { // loop observations
+        this_obs = refl_list[j].get_observation(iobs);
+        obs_status =  this_obs.ObsStatus();
+        int ibatch = this_obs.Batch(); // batch number (central slot)
+        int jbat = batch_lookup.lookup(ibatch);
+        if (batches.at(jbat).Accepted()) {
+          obs_status.UnsetRejectBatch();
+        } else {
+          obs_status.SetRejectBatch();
+        }
+        this_obs.UpdateStatus(obs_status);
+        refl_list[j].replace_observation(this_obs);
+      } // end loop observations
+    } // end loop reflections
+  }
+  //--------------------------------------------------------------
   void hkl_unmerge_list::AppendFileName(const std::string& Name)
   {
     if (filename != "") filename += " + ";
