@@ -267,7 +267,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   Zero[9] = true;
   Zero[10] = true;
   table.StoreColumnFields(collabels, Zero,
-                          "%5d%5d%8.2f%8d%10.2f%10.2f%10d%10.4f%10.4f\n");
+                          "%5d%5d%8.2f%8d%11.4f%11.4f%10d%10.4f%10.4f\n");
 
   int n=1;
   for (size_t i=0;i<batches.size();++i) {  // print even batches that have no reflections
