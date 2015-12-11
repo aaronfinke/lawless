@@ -6,6 +6,7 @@
 #include "hkl_datatypes.hh"
 #include "scaletypes.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -19,8 +20,9 @@ namespace phaser_io {
 //--------------------------------------------------------------
   void ReportSyntaxError(const std::string& keywords, const std::string& message)
   {
-    Message::message(Message_warn("Syntax error, keywords:\n"+keywords+"\n"
-                                  +"Message: "+message+"\n"));
+    ReportErrors::printFatalError
+      ("Syntax error, keywords:\n"+keywords+"\n"
+                               +"Message: "+message+"\n");
     throw SyntaxError(keywords, message);
   }
 //--------------------------------------------------------------

@@ -98,8 +98,14 @@ int main(int argc, char* argv[])
     hklin_filename = CL.getHKLIN1();
     hklref_filename = CL.getHKLREF();
     xyzref_filename = CL.getXYZIN();
-    if (CL.getXMLOUT() != "")
-      {output.setXmlout(CL.getXMLOUT());}
+
+    bool logHeaderdone = false;
+    if (CL.getXMLOUT() != "") {
+      output.setXmlout(CL.getXMLOUT());
+      // Print header and optionly initialise XML output
+      output.logHeader(LOGFILE);
+      logHeaderdone = true;
+    }
 
     // Read input & store unless "-n" or "--no-input" switches given
     phaser_io::InputAll input(CL.noInput(), output);
@@ -127,7 +133,9 @@ int main(int argc, char* argv[])
     if (input.getXMLOUT() != "")
       {output.setXmlout(input.getXMLOUT());}
 
-    output.logHeader(LOGFILE);
+    if (!logHeaderdone) {
+      output.logHeader(LOGFILE);
+    }
     PrintTitle(output);
     if (hklin_filename == "")
       Message::message(Message_fatal("HKLIN filename not given"));

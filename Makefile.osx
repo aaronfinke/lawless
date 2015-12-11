@@ -17,11 +17,11 @@ CFLAGS= ${OPT}
 LFLAGS= ${OPT}
 #LFLAGS= ${OPT} -static
 
-#STATIC=
+STATIC=
 #STATIC= -shared-libgcc -lstdc++-static
 #STATIC= -static-libgcc -lstdc++-static
 
-STATIC=  -static-libgcc  -static-libstdc++
+#STATIC=  -static-libgcc  -static-libstdc++
 #STATIC= -static-libgcc 
 
 # Point to source-build CCP4
