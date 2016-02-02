@@ -63,12 +63,21 @@ private:
 		  phaser_io::Output& output);
 
     // return true if there seems to be enough data to refine scales
-    bool enoughData(const double& minimum_multiplicity) const;
+    // If minimum_overlap <= 0.0, no check is made
+    bool enoughData(const double& minimum_overlap,
+		    const int& maximum_gap) const;
+
+
+    // Report overlap status information to XML
+    void reportOverlapXML(phaser_io::Output& output) const;
 
   private:
     std::vector<int> numobsrotrange; // number of observations for rotrange
-    std::vector<double> multiplicitybyrotrange;
-    double averagemultiplicity;
+    std::vector<double> fractionaloverlapbyrotrange;
+    double averageoverlap;
+    mutable double overlapthreshold;  // minimum allowed fractional overlap
+    double minimumoverlap;            // minimum  fractional overlap
+    mutable int allowedgap;                   // maximum allowed gap
     std::vector<double> gscales;  // inverse scales (g)
 
     // = -1, never called, = 0 no scales determined, > 0 n scales determined

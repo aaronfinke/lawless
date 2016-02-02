@@ -7,6 +7,7 @@
 #include <cctbx/sgtbx/find_affine.h>
 #include <cctbx/sgtbx/rot_mx_info.h>
 #include <cctbx/sgtbx/group_codes.h>
+#include <cctbx/sgtbx/basic.h>
 
 //#include <clipper/clipper.h>
 
@@ -1370,19 +1371,18 @@ namespace CCtbxSym
       GetAlternativeBases(LaueGrp_ref, ExcludeIdentity, AnyCell, BestCell,
                           uccell_ref, uccell_target,
                           diff_tolerance, max_delta, AllowI2);
-    /*    //^
-    std::cout << "\nLauegroup ";
-    show_space_group_type(LaueGrp_ref_type);
-    std::cout << "\nPGCellORIG" << UcellFormat(uccell) << "\n";
-    std::cout << "\nCelltargetORIG" << UcellFormat(uccell_target) << "\n";
-    std::cout << "\nPGCellREF" << UcellFormat(uccell_ref) << "\n";
-    std::cout << "Nop " << CbOp_list.size() << "\n"
-              << "ChBasis original -> reference\n";
-    PrintChBOp(ChBasis);
-    std::cout << "ChBasis original -> constructor\n";
-    PrintChBOp(ChBasis_cell);
+    //^
+    //    std::cout << "\nLauegroup ";
+    //    show_space_group_type(LaueGrp_ref_type);
+    //    std::cout << "\nPGCellORIG" << UcellFormat(uccell) << "\n";
+    //    std::cout << "\nCelltargetORIG" << UcellFormat(uccell_target) << "\n";
+    //    std::cout << "\nPGCellREF" << UcellFormat(uccell_ref) << "\n";
+    //    std::cout << "Nop " << CbOp_list.size() << "\n"
+    //              << "ChBasis original -> reference\n";
+    //    PrintChBOp(ChBasis);
+    //    std::cout << "ChBasis original -> constructor\n";
+    //    PrintChBOp(ChBasis_cell);
     //^-
-    */
 
     double diff0 = -1.0;
     double diff  = -1.0;
@@ -1402,18 +1402,19 @@ namespace CCtbxSym
       diff0 = CBlist[0].CellDiff();
 
       //^
-      //^std::cout << "CBlist size " << CBlist.size() << "\n";
+      //^
+      //      std::cout << "CBlist size " << CBlist.size() << "\n";
 
       for (size_t k=0;k<CBlist.size();k++) {
         // Deviation from target
         diff = CBlist[k].CellDiff();
 
-        /*//^!
-          std::cout << "***ChBop " << k << "\n";
-          PrintChBOp(CBlist[k].Op(0));
-          std::cout << " Cell" << UcellFormat(CBlist[k].Op(0).apply(uccell))
-          << " Diff: " << diff << "\n";
-          //^*/
+        //^!
+        //      std::cout << "***ChBop " << k << "\n";
+        //      PrintChBOp(CBlist[k].Op(0));
+        //      std::cout << " Cell" << UcellFormat(CBlist[k].Op(0).apply(uccell))
+        //                << " Diff: " << diff << "\n";
+        //^
 
           if (diff < diff_tolerance &&
               (k == 0 || (diff-diff0) < diff_max)) {
@@ -1494,10 +1495,10 @@ namespace CCtbxSym
     }
   }
   //--------------------------------------------------------------
-    CrystalSystem PointGroup::crystal_system() const
-    {
-      return LatticeGroup(LaueGrp_ref).crystal_system();
-    }
+  CrystalSystem PointGroup::crystal_system() const
+  {
+    return LatticeGroup(LaueGrp_ref).crystal_system();
+  }
   //--------------------------------------------------------------
   std::vector<std::string>
   PointGroup::SpaceGroupList(const Chirality chiral,
@@ -1810,12 +1811,47 @@ namespace CCtbxSym
     }
   }
   //--------------------------------------------------------------
+  bool PointGroup::sameRotationOps(const sgtbx::space_group& otherSG) const
+  // true if groups have the same operators, in any order
+  {
+    af::shared<sgtbx::rt_mx> symops = RotGrp.all_ops();
+    for (size_t k=0; k<symops.size(); k++) {
+      if (!SymInGroup(otherSG, symops[k])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  //--------------------------------------------------------------
+  bool PointGroup::allowedReindex(const scala::ReindexOp& reindex_op) const
+  // return true if reindex_op is allowed in this point-group, ie it doesn't
+  // change the group
+  {
+    sgtbx::change_of_basis_op cbop = MakeChangeOfBasisOp(reindex_op);
+    sgtbx::space_group newgroup;
+    try {
+      newgroup = RotGrp.change_basis (cbop);
+    }
+    catch (...) {  // intercept any invalid spacegroup change
+      //      std::cout << "Reject " << reindex_op.as_hkl() << "\n";
+      return false;
+    }
+    //^
+    //    std::cout <<"allowedReindex: RotGrp " << RotGrp.type().hall_symbol()
+    //        <<" newgroup "<<newgroup.type().hall_symbol() <<" == "<<
+    //      (newgroup == RotGrp) <<"\n";
+    bool OK = sameRotationOps(newgroup);
+    //    std::cout <<"OK "<<OK<<"\n";
+    return OK;
+  }
+  //--------------------------------------------------------------
   std::vector<scala::ReindexOp>
   AlternativeIndexing(const PointGroup& PG, const PointGroup& TG,
                       const bool& strict,
                       const scala::Scell target_cell,
                       const float& max_delta,
-                      const int& AllowI2)
+                      const int& AllowI2,
+                      const bool& checksymmetry)
   //  PG is reference group, with a unit cell
   //  TG is test group, with a unit cell
   // Return list of possible alternative indexing schemes
@@ -1831,6 +1867,9 @@ namespace CCtbxSym
   //   cell dimension relationships
   //   max_delta is tolerance for cell similarity
   //    to target_cell
+  //
+  // if checksymmetry = true, accept reindex operators only if they preserve
+  //  the point-group symmetry, ie assume that PG is the correct point group
   //
   //  Returns:-
   //   List of reindex operators, including:-
@@ -1848,6 +1887,7 @@ namespace CCtbxSym
     //    std::cout << "\n* * * TG\n";
     //    TG.dump();
     //    std::cout << "\n* * * END\n";
+    //    std::cout << "AllowI2 "<< AllowI2 <<"\n";
     //^-
 
     if (strict) {
@@ -1945,7 +1985,17 @@ namespace CCtbxSym
                 SetStrict(IsInList<scala::ReindexOp>
                           (StrictOps,possible_reindex[i]));
               possible_reindex[i].SetDeviation(cell_diffs[i]);
-              ReindexList.push_back(possible_reindex[i]);
+              // Is this an allowed operator in this pointgroup?
+              bool OK = true;
+              if (checksymmetry) {  // test for compatible symmetry
+                OK = PG.allowedReindex(possible_reindex[i]);
+              }
+              if (OK) {
+                //              std::cout <<"Allowed\n";
+                ReindexList.push_back(possible_reindex[i]);
+                //            } else {
+                //              std::cout << possible_reindex[i].as_hkl() <<" Not allowed\n";
+              }
             }
           }
         }

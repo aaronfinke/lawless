@@ -425,10 +425,10 @@ namespace scala {
     //! add in an observation
     void add_observation_list(const std::vector<observation>& obs_in);
 
-    //! add all partials, no scales, returns smallest sigma found, return = -1 if no valid observations
+    //! add all partials, no scales, returns Max(I) and smallest sigma found, return = -1 if no valid observations
     /*! On exit:
       Nfull, number of fulls; Npart, number of partials; Nscaled, number scaled */
-    Rtype sum_partials(int& Nfull, int& Npart, int& Nscaled);
+    IsigI sum_partials(int& Nfull, int& Npart, int& Nscaled);
 
     // Retrieval
     int num_observations() const; //!< return number of observations
@@ -589,6 +589,8 @@ namespace scala {
     int num_observations_rejected_Gap() const {return partial_flags.NrejGap();}
     //! Minimum sigma(I) of summed partials
     Rtype MinSigma() const {return sigmamin;}
+    //!  Maximum summed intensity
+    Rtype MaxIntensity() const {return maxintensity;}
     //! return unit cell for named dataset: if name is blank return average cell for all datasets
     Scell cell(const PxdName& PXDsetName = PxdName()) const;
     Scell Cell() const {return cell(PxdName());}  //!< returns average cell
@@ -869,6 +871,7 @@ namespace scala {
     std::vector <observation_part *> obs_part_pointer; 
     std::vector <reflection> refl_list;
     Rtype sigmamin;
+    Rtype maxintensity;
     size_t N_part_list;
     int Nref;
     int Nref_valid;

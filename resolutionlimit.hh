@@ -80,6 +80,10 @@ namespace scala {
     //! true if there were enough data for a fit
     bool sufficientData() const {return sufficientdata;}
 
+
+    // last score bin with data
+    int lastFilledBin() const {return lastfilledbin;}
+
     // anomalous == true for assessment of anomalous signal (changes wording)
     std::string format(const bool& anomalous) const;
     // brief version
@@ -98,6 +102,7 @@ namespace scala {
     //          -3 unset at all 
     int status;
     bool sufficientdata;  // true if there were enough data for a fit
+    int lastfilledbin;    // last bin with data
 
     mutable int nrej;
 
@@ -105,6 +110,7 @@ namespace scala {
     // =  TANH, fit radial tanh function (for CC(1/2))
     // =  LINEAR, fit straight-line (for CCanom)
     FitType fittype;
+    bool fitted;   // true if successful fit
 
     RadialTanhFunction radialfunction;
 

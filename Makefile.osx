@@ -1,19 +1,19 @@
 
 DIR = ${PWD}
 
-CC = cc
-#CXX=clang++  # for testing only
-#LXX=clang++
+CC = ccclang
+CXX=clang++
+LXX=clang++
 
-CXX=g++
-LXX=g++
+#CXX=g++
+#LXX=g++
 
 #OPT = -g -Wreturn-type
 #OPT = -g -Wall
 OPT = -O2 -Wreturn-type
 #OPT = -O2 -Wall
 
-CFLAGS= ${OPT}
+CFLAGS= ${OPT} -fno-color-diagnostics
 LFLAGS= ${OPT}
 #LFLAGS= ${OPT} -static
 
@@ -25,8 +25,10 @@ STATIC=
 #STATIC= -static-libgcc 
 
 # Point to source-build CCP4
-CCP4=/usr/local/CCP4versions/Current
+CCP4=/usr/local/CCP4versions/Current7
+#CCP4=/usr/local/CCP4versions/Current
 #CCP4=/usr/local/CCP4versions/ccp4-6.3.0
+
 CLIB=${CCP4}/lib
 CLIBS=${CLIB}/libccp4
 
@@ -83,6 +85,7 @@ ITNT = -I${TNT}
 INCLUDE=-I. ${ILIB} ${ITBX} ${ICLPR} ${ICCP4} ${ITNT}
 
 # Libraries
+#LMIN=${MINLIB}/*.o
 LMIN=${MINLIB}/libbfgs.a
 
 LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4f -lccp4c -lmmdb2 -lm
@@ -244,9 +247,10 @@ ${TREXE}: ${TROBJ}
 	${CXX} $(LFLAGS) -o ${TREXE} ${TROBJ}  ${LDLIBS}
 ## - - -
 #TTOBJ= t.o
-TTOBJ= t.o radialfunction.o
+#TTOBJ= t.o timer.o string_util.o range.o report_errors.o  Output.o  jiffy.o
 #TTOBJ= t.o  eprob.o string_util.o range.o fileread.o Output.o jiffy.o \
 #	tablegraph.o radialfunction.o
+TTOBJ= t.o ${OBJ} ${COBJ}
 
 TTEXE= t
 
@@ -254,7 +258,7 @@ t: ${TTOBJ}
 	${CXX} $(LFLAGS) -o ${TTEXE} ${TTOBJ}   ${LDLIBS}
 
 ## - - -
-TESTOBJ= test.o  ${OBJ} ${COBJ}
+TESTOBJ= test.o  effectiveresolution.o ${OBJ} ${COBJ}
 
 TESTEXE= test
 

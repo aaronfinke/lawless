@@ -680,7 +680,7 @@ namespace scala {
           NumACentric[mres]++;
         }
 
-      };
+      }
       if (allobs.Number() > 1) {
         BiasSums(allobs, AvIsig, biasRes[mres], biasIRes[mres]); // Bias
         BiasSums(allobs, AvIsig, biasInt[mint], biasIInt[mint]); // Bias
@@ -885,6 +885,7 @@ namespace scala {
     double MinimumIoverSigmaBatch = controls.analysis.MinimumBatchIoverSigma();
     for (int ib=0;ib<nbatches;++ib) {  // ... by resolution for each batch
       if (batches[ib].datasetindex() == datasetIndex) {
+        //std::cout <<"Entering Batchlimit " << ib<<"\n";
         ResolutionLimit batchreslimit(mnIsdResBatch[ib], ResRange,
                                       MinimumIoverSigmaBatch,
                                       ResolutionLimit::NONE);

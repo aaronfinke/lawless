@@ -91,7 +91,7 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     // Anisotropy analysis is based on 3 directions, sometimes 2
     // Cases
     //  1) triclinic, monoclinic: directions come from the eigenvectors of
-    //     the orthogonal anisotropic Uorth tensor. For monoclinc, the 2nd one
+    //     the orthogonal anisotropic Uorth tensor. For monoclinic, the 2nd one
     //     is along b* (k)
     //  2) orthorhombic: directions are along a*, b*, c*
     //  3) trigonal, hexagonal, tetragonal, rhombohedral (H setting):
@@ -408,7 +408,7 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
   std::string s;
   const double TOL = 0.0001;
   bool started = false;
-  char chkl[] = {'h','k','l'};
+  std::string chkl[] = {"a*", "b*", "c*"};
   for (int i=0;i<3;++i) {
     std::string sign = "";
     if (std::abs(nc[i]) > TOL) {
@@ -419,8 +419,10 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
           sign = "-";
           c = std::abs(c);
         }
+      } else if (nc[i] > 0.0) {
+        sign = " ";
       }
-      if (sign != "") {s += " "+sign+" ";}
+      s += " "+sign+" ";
       s += StringUtil::Strip(StringUtil::ftos(c,8,2))+" "+chkl[i];
       started = true;
     }}

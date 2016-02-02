@@ -413,14 +413,17 @@ total fraction if&nbsp; it is &gt; minimum_fraction [default 0.95] (NB Pointless
   <li>a reflection has a gap in the middle may be accepted if GAP is
 set, maxgap is maximum number of missing slots [not recommended: default 1 if GAP is set]</li>
 </ol>
-<h3><a name="initial"></a>INITIAL UNITY | MEAN |&nbsp; MINIMUM_MULTIPLICITY &lt;minimum_multiplicity&gt;<br>
+<h3><a name="initial"></a>INITIAL UNITY | MEAN |&nbsp; MINIMUM_OVERLAP &lt;minimum_overlap&gt; | MAXIMUM_GAP &lt;maximum_gap&gt;<br>
 </h3>
 Set initial scale factors either based on mean intensities (MEAN, default) or all set to 1.0 (UNITY)<br>
 <br>
-If the multipicity is less than <span style="font-weight: bold;">minimum_multiplicity</span>
-in any rotation range, then scaling will be switched off (ie ONLYMERGE
+If the fractional overlap between rotation ranges is less than <span style="font-weight: bold;">minimum_overlap</span>
+in too many rotation ranges, then scaling will be switched off (ie ONLYMERGE
 and so will SD correction refinement (SDCORRECTION NOREFINE). Default
-value 1.05. Set to a value &lt; 1.0 to ignore this check. <br>
+value 0.05. Set to a value &lt;= 0.0 to ignore this check.&nbsp; <span style="font-weight: bold;">maximum_gap</span> specifies the maximum number of contiguous rotation ranges which are allowed to fall below the <span style="font-weight: bold;">minimum_overlap </span>criterion, default 2.<br>
+Fractional
+overlap is <span style="font-style: italic;">(Number of observations with matching observations in a
+different rotation range)/(Total number of observations)</span><br>
 
 <h3><a name="intensities"></a>INTENSITIES [SUMMATION | PROFILE | COMBINE [&lt;Imid&gt;] [POWER
 &lt;Ipower&gt;] <br>
@@ -1315,7 +1318,11 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.21 if XMLOUT is assigned on the command line, open it early so that syntax errors get added<br>
+  <h2>RELEASE NOTES</h2>0.5.22, 23
+Improved (ie corrected from version 0.5.18) detection of parts of data
+which do not have any scaling overlaps with other rotation ranges, see
+INITIAL MINIMUM_OVERLAP &amp; MAXIMUM_GAP. Some changes to resolution limit determination<br>
+0.5.21 if XMLOUT is assigned on the command line, open it early so that syntax errors get added<br>
 0.5.19 add resolution limit at I/sd &gt; 2 for Frank von Delft<br>
 0.5.18
 Some changes to improve robustness for low multiplicity, mainly for
@@ -1448,6 +1455,8 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
+
 
 
 

@@ -1846,7 +1846,6 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
       fmt += "%9.3f";
     }  }
   fmt += "\n";
-  fmt1 += "\n";
 
   table.StoreColumnFields(collabels, Zero, "%3d%8.4f%7.2f"+fmt);
 
@@ -1968,7 +1967,8 @@ void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
       s2 += "    0.0  ";
     }
   }
-  output.logTab(0,LOGFILE, s+s2);
+
+  output.logTab(0,LOGFILE, s+s2+"\n");
 
   int lab1 = leader.size(); // 1st character in column to use labels
   leader.assign(lab1,' ');

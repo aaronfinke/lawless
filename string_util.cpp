@@ -296,7 +296,7 @@ std::string StringUtil::MakeXMLwithclass(const std::string& tag, const std::stri
   if (edit) {
     content = XMLstring(data); // edited to remove "<" characters etc
   }
-  return "<"+tag+" class=\""+messageclass+"\">"+content+"</"+tag+">";
+  return "<"+tag+" class=\""+messageclass+"\">\n"+content+"\n</"+tag+">";
 }
 //--------------------------------------------------------------
 // <tag class="warningmessage"><data</tag>

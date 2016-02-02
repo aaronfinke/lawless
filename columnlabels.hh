@@ -52,6 +52,7 @@ namespace MtzIO {
     ClipperLabelList(const std::string& Xname,
 		     const std::string& Dname,
 		     const std::vector<std::string>& Labels);
+    ClipperLabelList(const MtzIO::ColumnData& coldat);
 
     std::string formatlabels() const;
 

@@ -490,11 +490,8 @@ int main(int argc, char* argv[])
     output.logFlush();
 
     bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
-    // minimum multiplicity for scaling
-    double minimum_multiplicity = input.Minimum_multiplicity();
-    if (multiplicity < minimum_multiplicity) {
-      suppressScaling = true;
-    }
+    double minimum_overlap = input.Minimum_overlap();
+    int allowed_gap = input.Maximum_gap();
 
     // ----- Initial scales
     if (initialscale) {
@@ -505,13 +502,15 @@ int main(int argc, char* argv[])
       output.logFlush();
 
       // test for enough data for scaling
-      if (minimum_multiplicity < 1.0) {
+      if (minimum_overlap <= 0.0) {
         output.logTab(0,LOGFILE,
-          "\nNo test for minimum multiplicity (INITIAL MINIMUM_MULTIPLICITY)");
+          "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
       }
-      if (! initialscales.enoughData(minimum_multiplicity)) {
+      if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
         suppressScaling = true;
       }
+
+      initialscales.reportOverlapXML(output);
 
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data
@@ -531,14 +530,19 @@ int main(int argc, char* argv[])
       output.logTab(0,LOGFILE,
          "\n**** NB No scaling will be done as there seems to be insufficient data\n");
       output.logTabPrintf(0,LOGFILE,
-                          "        Minimum multiplicity threshold = %7.2f\n",
-                          minimum_multiplicity);
+                "        Minimum threshold for fractional overlap between rotation ranges= %7.2f\n",
+                          minimum_overlap);
       AllScales.SetConstant(hkl_list, output);
       SD_model.SetRefine(false);  // SDDCORRECTION NOREFINE
     } else {
       output.logTabPrintf(0,LOGFILE,
-          "\n All rotation ranges are above the minimum multiplicity threshold = %7.2f\n",
-                          minimum_multiplicity);
+          "\nSufficient rotation ranges are above the minimum threshold for fractional overlap between rotation ranges = %5.2f\n",
+                          minimum_overlap);
+    }
+
+    if (FC.OnlyMerge()) {
+      output.logTab(0,LXML,
+                    "<OnlyMerge/>");
     }
 
     // Set weighting for SD model

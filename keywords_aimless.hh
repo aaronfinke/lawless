@@ -623,6 +623,8 @@ namespace phaser_io {
     // Syntax:
     //  INITIAL MEAN   set all initial scales from mean intensities [default]
     //  INITIAL UNITY  set all initial scales to unity
+    //  INITIAL MINIMUM_OVERLAP  read minimum overlap fraction
+    //  INITIAL MAXIMUM_GAP  read maximum contiguous "gaps" in rotation ranges
   {
   public:
     INITIAL();
@@ -631,13 +633,16 @@ namespace phaser_io {
 
     bool InitialUnity() const {return unity;}
 
-    double Minimum_multiplicity() const {return minimum_multiplicity;}
+    double Minimum_overlap() const {return minimum_overlap;}
+
+    int Maximum_gap() const {return maximum_gap;}
 
     void analyse(){}
 
   private:
     bool unity;
-    double minimum_multiplicity;
+    double minimum_overlap;
+    int maximum_gap;
   };
   //--------------------------------------------------------------
   class XMLOUT : public InputBase, virtual public CCP4base

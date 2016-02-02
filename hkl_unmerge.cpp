@@ -599,7 +599,7 @@ namespace scala {
     observations = obs_list;
   }
   //--------------------------------------------------------------
-  Rtype reflection::sum_partials(int& Nfull, int& Npart, int& Nscaled)
+  IsigI reflection::sum_partials(int& Nfull, int& Npart, int& Nscaled)
   // add all partials, no scales, returns smallest sigma found
   //  return = -1 if no valid observations
   //
@@ -609,6 +609,7 @@ namespace scala {
   {
     Rtype sdmin0 = +10000000.;
     Rtype sdmin = sdmin0;
+    Rtype maxI = -1000000000.;
     Nfull = 0;
     Npart = 0;
     Nscaled = 0;
@@ -626,10 +627,11 @@ namespace scala {
       } // end if partial
       if (observations[lobs].sigI() > 0.0) {
         sdmin = Min(sdmin, observations[lobs].sigI());
+        maxI = Max(maxI, observations[lobs].I());
       }
     } // end loop observations
     if (sdmin > sdmin0*0.9) sdmin = -1.0;
-    return sdmin;
+    return IsigI(maxI, sdmin);
   }
   //--------------------------------------------------------------
   // Methods to return information
@@ -2616,7 +2618,7 @@ namespace scala {
       ReportErrors::printFatalError("hkl_unmerge_list::sum_partials - not PREPARED");
 
     sigmamin = +1000000.;
-    double sm;
+    IsigI maxIsm;
     Nref_valid = 0;
     Nobs_full = 0;
     Nobs_partial = 0;
@@ -2627,9 +2629,10 @@ namespace scala {
       // Sum partials
       //    reflection.sum_partials returns min sigma found
       //    (excluding zeroes)
-      sm = refl_list[j].sum_partials(Nfull, Npart, Nscaled);
-      if (sm > 0.0) {
-        sigmamin = Min(sigmamin, sm);
+      maxIsm = refl_list[j].sum_partials(Nfull, Npart, Nscaled);
+      if (maxIsm.sigI() > 0.0) {
+        sigmamin = Min(sigmamin, maxIsm.sigI());
+        maxintensity = Max(maxintensity, maxIsm.I());
         Nref_valid++;
         Nobs_full += Nfull;
         Nobs_partial += Npart;

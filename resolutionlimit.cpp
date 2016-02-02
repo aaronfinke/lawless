@@ -41,6 +41,7 @@ namespace scala {
     //! bins are above the limit, then the maximum resolution is used.
 
     fittype = Fittype;
+    fitted = false;
     limit = Limit;
     status = -2;
     nrej = 0;
@@ -56,7 +57,6 @@ namespace scala {
 
     int i1 = -1;
     int nbins = ResRange.Nbins();
-
     if (nbins <= 1) {
       highres = ResRange.ResHigh();
       status = +1;
@@ -76,6 +76,7 @@ namespace scala {
           }
         }
       }
+      lastfilledbin = ibinmax;
 
       if ((nsafe == n) && (ibinmax == nbins-1)) { // all above limit and all present
         highres = ResRange.ResHigh();
@@ -106,14 +107,17 @@ namespace scala {
         //std::cout << " highres " <<highres<<std::endl;
         status = 0;
       }
+      if (reshigh >= 0.0) {
+        fitted = true;
+      }
     }
-    if (status != 0) { // simply interpolate unless fit was successful
+    if (status != 0 && !(status == -1)) { // simply interpolate unless fit was successful
       if (nbins > 1) {
         // linear interpolate on 1/d^2 between bins i1 and i1+1
         if (status == +1 || i1+1 >= int(score.size())) {
           highres = ResRange.ResHigh();
-        } else if (i1 >= 0) {
-          double den = score.at(i1)-score.at(i1+1);
+        } else {
+          double den = score[i1]-score[i1+1];
           if (score[i1+1] == 0.0) {
             den = score[i1];
           }
@@ -127,7 +131,9 @@ namespace scala {
           //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
         }
       }
-      if (status == -2) {status = 0;}
+      if (status == -2) {
+        status = 0;
+      }
     }
     if (status != -1) {
       highres = std::max(highres, ResRange.ResHigh());
@@ -167,6 +173,16 @@ namespace scala {
     // Straight line fit option
     LinearFit linefit;
 
+    // Don't ignore 1st point if small number of ranges,
+    // or first range is not low resolution
+    const int MINSIZE = 5;
+    const double RESOLOW = 10.0;
+    bool ignorefirstpoint = true;
+    if ((score.size() <= MINSIZE) ||
+        (ResRange.middleA(0) < RESOLOW)) {
+      ignorefirstpoint = false;
+    }
+
     std::vector<ResolutionData> data(score.size());
     int ndata = 0; // number of valid data
     int nnegs = 0; // number of negative scores
@@ -174,8 +190,9 @@ namespace scala {
       data[i].s = ResRange.middle(i);
       data[i].v = score[i];
       data[i].w = 1.0;      // weight, <=0 to ignore
-      if (i == 0) {
-        data[i].w = 0.0;      // ignore first point
+      if (i == 0 && ignorefirstpoint) {
+        // ignore first point unless small number of ranges
+        data[i].w = 0.0;
       }
       if (score[i] == 0.0) {
         data[i].w = 0.0;      // weight, <=0 to ignore
@@ -435,11 +452,15 @@ namespace scala {
   // maximum resolution
   {
     int nbins = score.size();
+    if (nbins == 0) {return true;}
+    bool insufficientdata = false;
 
     // list of bin numbers that are not zero
     std::vector<int> filledbins;
     for (int i=0;i<nbins;++i) {
-      if (score[i] != 0.0) {filledbins.push_back(i);}
+      if (score[i] != 0.0) {
+        filledbins.push_back(i);
+      }
     }
 
     //^^
@@ -451,11 +472,15 @@ namespace scala {
 
     //^std::cout <<"ResolutionLimit: nbins " <<nbins <<" nfilled "<<filledbins.size()<<"\n"; //^^
 
+    if (filledbins.size() == 0) {
+      return true; // no data
+    }
+
     const size_t MINNUMBER = 4;
     if (filledbins.size() < MINNUMBER) {
       // too few datapoints
       //      std::cout <<"insufficientdata, Nfilledbins "<<filledbins.size()<<"\n"; //^
-      return true;
+      insufficientdata = true;
     }
 
     // Fraction of bins with data
@@ -464,7 +489,7 @@ namespace scala {
     if (filledfraction < MINFILLEDFRACTION) {
       // too few datapoints
       //      std::cout <<"insufficientdata, filledfraction "<<filledfraction<<"\n"; //^
-      return true;
+      insufficientdata = true;
     }
 
     // Last filled bin should not be too far from end
@@ -475,23 +500,38 @@ namespace scala {
       //^               <<" "<<minlastfraction<<"\n"; //^
       // but allow it if score has already fallen below threshold
       if (score[filledbins.back()] < limit) {
-        return false;
+        insufficientdata = false;
       } else {
-        return true;
+        insufficientdata = true;
       }
     }
 
-    return false;
+    if (insufficientdata) {
+      // not sufficient but have another go
+      // Count number of bins above a good high threshold
+      const double GOODCC = 0.9;
+      int ngood = 0;
+      for (int i=0;i<nbins;++i) {
+        if (score[i] > GOODCC) {ngood++;}
+      }
+      if (ngood >= MINNUMBER) { // accept
+        insufficientdata = false;
+      }
+    }
+    return insufficientdata;
   }
   // ------------------------------------------------------------
   //! return fitted value at s = 1/d^2
   double ResolutionLimit::fitvalue(const double& s) const
   {
-    if (fittype == LINEAR) {
-      return intercept + s * slope;
-    } else {
-      return radialfunction.value(s);
+    if (fitted) {
+      if (fittype == LINEAR) {
+        return intercept + s * slope;
+      } else {
+        return radialfunction.value(s);
+      }
     }
+    return 0.0;
   }
   // ------------------------------------------------------------
 }

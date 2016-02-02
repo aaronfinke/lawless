@@ -179,6 +179,10 @@ namespace CCtbxSym
     // Return cell in standard (reference) frame
     std::vector<double> TransformedCell() const;
 
+    // return true if reindex_op is allowed in this point-group, ie it doesn't
+    // change the group
+    bool allowedReindex(const scala::ReindexOp& reindex_op) const;
+
     void PrintAlternativeCells(phaser_io::Output& output,
 			       const bool& OutputXML,
 			       const float& max_delta,
@@ -213,7 +217,8 @@ namespace CCtbxSym
 			    const bool& strict,
 			    const scala::Scell target_cell,
 			    const float& max_delta,
-			    const int& AllowI2);
+			    const int& AllowI2,
+			    const bool& checksymmetry);
 
     void dump() const;
 
@@ -255,6 +260,9 @@ namespace CCtbxSym
 
     scala::SysAbsScore TestPossible(const cctbx::sgtbx::space_group& sg,
 			     std::vector<scala::Zone>& Zones) const;
+
+  // true if groups have the same operators, in any order
+    bool sameRotationOps(const sgtbx::space_group& otherSG) const;
 
     // There are three relevant basis frames:
     //  1) frame used in constructor, ie frame of symmetry operators
@@ -298,7 +306,7 @@ namespace CCtbxSym
     double delta;
 
     double Cell_Diff;
-  };
+  }; // PointGroup
   //--------------------------------------------------------------
   // Get list of alternative basis sets for Laue group
   // subject to criteria set by flags
@@ -362,6 +370,9 @@ namespace CCtbxSym
   //   find accidental alternatives arising from special
   //   cell dimension relationships
   //   max_delta is angular tolerance for cell similarity
+  //   
+  // if checksymmetry = true, accept reindex operators only if they preserve
+  //  the point-group symmetry, ie assume that PG is the correct point group
   //
   //  Returns:-
   //   List of reindex operators, including:-
@@ -376,7 +387,8 @@ namespace CCtbxSym
 		      const bool& strict,
 		      const scala::Scell target_cell,
 		      const float& max_delta,
-		      const int& AllowI2);
+		      const int& AllowI2,
+		      const bool& checksymmetry);
 
   // Get list of possible change of basis operators, depending
   // on symmetry group

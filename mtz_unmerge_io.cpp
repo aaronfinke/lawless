@@ -70,6 +70,7 @@ namespace MtzIO
     mtzin = NULL;
     nlatticecolumns = 0;
     nlattices = 0;
+    nlatticesall = 0;
   }
   //--------------------------------------------------------------
   /*! The file is opened for reading. This MtzUnmrgFile object will
@@ -129,6 +130,11 @@ namespace MtzIO
     // Set into column_label_list the actual column numbers for columns
     //    requested by program (in column_label_list)
     get_col_lookup(column_label_list);
+
+    if (nlatticecolumns > 0) {
+      // set nlattices and nlatticesall if needed
+      setLatticeCount();
+    }
 
     // Pick up global file parameters
     // get spacegroup by decoding symops
@@ -1141,6 +1147,7 @@ namespace MtzIO
     if (ColumnLabels.size() == 0) {
       ReportErrors::printFatalError("MtzUnrgFile::get_col_lookup - no columns in list");
     }
+
     ColumnLabels.start();  // start loop on column data
     ColumnNumberLabel CNL;
 
@@ -1313,6 +1320,7 @@ namespace MtzIO
   void MtzUnmrgFile::CheckMultipleLattices()
   // Multilattice if LATTNUM column present
   // sets nlatticecolumns extracted from columnlabels
+  // if multilattice scheme 1, set nlattices and nlatticesall
   //
   // If there are multiple lattices, then
   // Scheme 1)    for each lattice
@@ -1332,6 +1340,7 @@ namespace MtzIO
 
     size_t ic=3;
     multilatscheme = 1;   // scheme 1
+    int maxhklnumber = -1; // maximum number n from column Hn (Kn, Ln)
 
     while (ic<columnlabels.size()) { // skip 1st 3 columns
       if (columnlabels[ic] == "LATTNUM") {
@@ -1372,10 +1381,17 @@ namespace MtzIO
           extracolumnlabels.push_back(columnlabels.at(ic+i));
         }
         nlatticecolumns++;
+        maxhklnumber = std::max(maxhklnumber, hkln.second);
         ic += 2; // extra increment over 3 hkl labels
       } // end if Hn column
       ic++;
     } // end loop columns
+
+    if (nlatticecolumns > 0 && multilatscheme == 1) { // scheme 1
+      nlattices = 1;
+      nlatticesall = maxhklnumber;
+    }
+
     //^
     //    std::cout <<"CheckMultipleLattices, nlatticecolumns "
     //                << nlatticecolumns << "\n";;
@@ -1386,8 +1402,21 @@ namespace MtzIO
     //^-
   }
   //--------------------------------------------------------------
+  void MtzUnmrgFile::setLatticeCount()
+  // set nlattices and nlatticesall if needed
+  {
+    if (nlatticecolumns > 0 &&  multilatscheme == 2) {
+      if (column_label_list.lookup_col("LATTNUM") >= 0) {
+        // get range for LATTNUM column
+        Range  colrange = column_label_list.CNL("LATTNUM").valuerange;
+        nlatticesall = Nint(colrange.AbsRange()) + 1;
+        nlattices = nlatticesall;
+      }
+    }
+  }
+  //--------------------------------------------------------------
   // add extra lattice columns to column_label_list if required
-  void  MtzUnmrgFile::add_extra_columns()
+  void MtzUnmrgFile::add_extra_columns()
   {
     if (nlatticecolumns > 0) {
       for (size_t l=0;l<extracolumnlabels.size();++l) {

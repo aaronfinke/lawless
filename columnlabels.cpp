@@ -39,6 +39,14 @@ namespace MtzIO {
     path += "]";
   }
   //--------------------------------------------------------------
+  ClipperLabelList::ClipperLabelList(const MtzIO::ColumnData& coldat)
+    : xname(coldat.xname), dname(coldat.dname)
+  {
+    labels.assign(1, coldat.label);
+    // Make MTZ path string
+    path = "/"+xname+"/"+dname+"/["+labels[0]+"]";
+  }
+  //--------------------------------------------------------------
   std::string ClipperLabelList::formatlabels() const
   {
     std::string s;

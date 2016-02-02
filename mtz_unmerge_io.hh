@@ -159,8 +159,10 @@ namespace MtzIO {
 
       column_labels ColumnLabels()const {return column_label_list;}
 
-      //! return number of lattices
-      int Nlattices() const {return nlattices;}
+      //! return overall number of lattices
+      int NumberofLattices() const {return nlatticesall;}
+      //! return number of "main" lattices (ie identified in a LATTNUM column)
+      int NumberofMainLattices() const {return nlattices;}
       //! return count of entries for each lattice number, including lattice 0
       //    (ie from non-multilattice crystal)
       std::vector<int> NumberinLattice() const {return numberinlattice;}
@@ -201,7 +203,8 @@ namespace MtzIO {
       // number of entries in file for each lattice number,
       // including lattice zero (ie from non-multilattice crystal)
       std::vector<int> numberinlattice;
-      int nlattices;  // number of lattices
+      int nlattices;    // number of lattices actually present in file
+      int nlatticesall; // total number of lattices
       // range of lattice numbers either as main lattice or secondary
       IntRange latticenumberrange;
       // range of lattice numbers as main lattice
@@ -269,6 +272,9 @@ namespace MtzIO {
 
       // add extra lattice columns to column_label_list if required
       void  add_extra_columns();
+
+      // set and nlatticesall if needed
+      void setLatticeCount();
 
   }; //   class MtzUnmrgFile;
 
