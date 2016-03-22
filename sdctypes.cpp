@@ -17,6 +17,7 @@ namespace scala {
   // minimum fraction of input variance for correction
   const double SDcorrection::MINVARINFRAC = 0.1;
   const double SDcorrection::MINSDFAC = 0.2;     // minimum SDfac
+  const double SDcorrection::MAXSDADD = 1.0;     // maximum SDadd
   const int SDcorrection::NPARALL;               // number of parameters = 3
 
   //--------------------------------------------------------------
@@ -149,7 +150,15 @@ namespace scala {
     if (!fixsdb) sdb = params[k++]/(sdfac*sdfac);
     sdadd2 = params[k]/(sdfac*sdfac);
     sdadd = sqrt(std::abs(sdadd2));
-    if (sdadd2 < 0.0) sdadd = -sdadd;
+    if (sdadd > MAXSDADD) {
+      sdadd = MAXSDADD;
+      if (sdadd2 < 0.0) {
+        sdadd2 = -sdadd*sdadd;
+      } else {
+        sdadd2 = sdadd*sdadd;
+      }
+    }
+    if (sdadd2 < 0.0) {sdadd = -sdadd;}
   }
   //--------------------------------------------------------------
   std::vector<double> SDcorrection::GetShifts(const double& scale) const

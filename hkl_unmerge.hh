@@ -269,7 +269,8 @@ namespace scala {
     IsigI I_sigI() const {return IsigI(I_,sigI_);}    //!< return I, sigI
 
     Rtype kI() const {return I_/gscale;}    //!< return scaled I
-    Rtype ksigI() const; //{return sigI_/gscale;} //!< return scaled sigI
+    //! return scaled sigI, including contribution from sd(scale) if relevant
+    Rtype ksigI() const; //{return sigI_/gscale;}
     IsigI kI_sigI() const;   //!< return scaled I, sigI
 
     //! Return "summation" integration IsigI, summed over partials if necessary

@@ -850,6 +850,9 @@ namespace MtzIO
     latticenumberrange.clear();
     mainlatticenumberrange.clear();
 
+    int phierrorcount = 0;
+    const int MAXPRINT = 50;
+
     int nread = 0;
 
     // <<<< Loop all reflection records
@@ -923,7 +926,29 @@ namespace MtzIO
       // phi default = batch number
       if (col_sel.col_Rot < 0) {
         phi = batch;
+      } else {
+        // validate phi
+        int batchserial = batch_lookup.lookup(batch);
+        Batch thisbatch = batches[batch_lookup.lookup(batch)];
+        if (width > 0.00001) {
+          float tolerance = width * 2.0;  // allow some slack in reflection width
+          if (! thisbatch.phiInRange(phi, tolerance)) {
+            // reflection has phi out of range
+            phierrorcount++;
+            if (phierrorcount < MAXPRINT) {
+              std::string message = "Phi out of batch range: batch "+
+                StringUtil::itos(batch,5)+", phi "+StringUtil::ftos(phi,7,2)+
+                ", range "+StringUtil::ftos(thisbatch.Phi1(),7,2)+" to "+
+                StringUtil::ftos(thisbatch.Phi2(),7,2);
+              ReportErrors::printWarning(message, "", false);
+            } else if (phierrorcount == MAXPRINT) {
+              ReportErrors::printWarning("... more suppressed", "", false);
+            }
+            continue; // skip
+          }
+        }
       }
+
       // time defaults = phi (Rot)
       if (col_sel.col_time < 0) {
         time = phi;
@@ -1056,6 +1081,13 @@ namespace MtzIO
                           latnum, lathkl);
       nread++;
     } // end loop read reflections
+
+
+    if (phierrorcount > 0) {
+      std::string message = "\nWARNING: "+StringUtil::itos(phierrorcount,6) +
+        " observations rejected with phi out of batch range";
+      ReportErrors::printWarning(message, "PhiBatchErrors", false);
+    }
 
     // count lattices with non-zero entries
     nlattices = 0;

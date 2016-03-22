@@ -123,7 +123,8 @@ OBJ =   \
 	hkl_merge.o anisotropicmodel.o \
 	referencelist.o referencescalemodel.o refinereferencescale.o \
 	refinetargets.o hessian.o rejectbatches.o runcorrelations.o \
-	radialfunction.o fitresolutiondata.o simpleminimise.o
+	radialfunction.o fitresolutiondata.o simpleminimise.o \
+	comparesds.o
 
 COBJ = \
 	CCP4base.o Errors.o Output.o Preprocessor.o \
@@ -161,7 +162,8 @@ SOURCE = ${EXE}.cpp \
 	hkl_merge.cpp anisotropicmodel.cpp \
 	referencelist.cpp referencescalemodel.cpp refinereferencescale.cpp \
 	refinetargets.cpp hessian.cpp rejectbatches.cpp runcorrelations.cpp \
-	radialfunction.cpp fitresolutiondata.cpp simpleminimise.cpp
+	radialfunction.cpp fitresolutiondata.cpp simpleminimise.cpp \
+	comparesds.cpp
 
 # Common with Pointless
 CSOURCE = \
@@ -203,7 +205,9 @@ HDR = ${EXE}.hh \
 	hkl_merge.hh anisotropicmodel.hh \
 	referencelist.hh referencescalemodel.hh refinereferencescale.hh \
 	refinetargets.hh hessian.hh rejectbatches.hh runcorrelations.hh \
-	radialfunction.hh fitresolutiondata.hh simpleminimise.hh median.hh
+	radialfunction.hh fitresolutiondata.hh simpleminimise.hh median.hh \
+	comparesds.hh
+
 
 # common with Pointless
 CHDR = \
@@ -246,11 +250,11 @@ TROBJ= ${TREXE}.o  ${OBJ} ${COBJ}
 ${TREXE}: ${TROBJ}
 	${CXX} $(LFLAGS) -o ${TREXE} ${TROBJ}  ${LDLIBS}
 ## - - -
-#TTOBJ= t.o
+TTOBJ= t.o
 #TTOBJ= t.o timer.o string_util.o range.o report_errors.o  Output.o  jiffy.o
 #TTOBJ= t.o  eprob.o string_util.o range.o fileread.o Output.o jiffy.o \
 #	tablegraph.o radialfunction.o
-TTOBJ= t.o ${OBJ} ${COBJ}
+#TTOBJ= t.o ${OBJ} ${COBJ}
 
 TTEXE= t
 
@@ -264,6 +268,14 @@ TESTEXE= test
 
 test: ${TESTOBJ}
 	${CXX} $(LFLAGS) -o ${TESTEXE} ${TESTOBJ}  ${LDLIBS}
+
+## - - - effective resolution
+TESTEFFEXE= testeffreso
+TESTEFFOBJ= test.o  effectiveresolution.o ${OBJ} ${COBJ}
+
+
+testeffreso: ${TESTEFFOBJ}
+	${CXX} $(LFLAGS) -o ${TESTEFFEXE} ${TESTEFFOBJ}  ${LDLIBS}
 
 ## - - -
 # testtile

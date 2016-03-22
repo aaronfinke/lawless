@@ -3,6 +3,7 @@
 #include "anisotropy.hh"
 #include "mergedlist.hh"
 #include "string_util.hh"
+#include "report_errors.hh"
 
 using clipper::Message;
 using clipper::Message_fatal;
@@ -108,38 +109,42 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     cubic = false;
     abplane = false;
     rlattice = false;
+    status = false;
 
     // Always work out anisotropy
-    SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
-    // case (1)
-    if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
-      // Low symmetry, get principal axes from anisotropic U tensor
-      lowsymmetry = true;
-    // case (2)
-    } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
-      principalaxes.assign(3, DVect3(0.0,0.0,0.0));
-      for (int i=0;i<3;++i) {
-        principalaxes[i][i] = 1.0;
-      }
-    // case (3)
-    } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
-               || cryssys == HEXAGONAL) {
-      abplane = true;  // analysis against plane perpendicular to c*
-      principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
+    bool OK = SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
+    if (OK) {
+      status = true;
+      // case (1)
+      if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
+        // Low symmetry, get principal axes from anisotropic U tensor
+        lowsymmetry = true;
+        // case (2)
+      } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
+        principalaxes.assign(3, DVect3(0.0,0.0,0.0));
+        for (int i=0;i<3;++i) {
+          principalaxes[i][i] = 1.0;
+        }
+        // case (3)
+      } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
+                 || cryssys == HEXAGONAL) {
+        abplane = true;  // analysis against plane perpendicular to c*
+        principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
 
-      // Is it rhombohedral in R setting?
-      if (cryssys == TRIGONAL && RhombohedralAxes(hkl_list.Cell().UnitCell())) {
-        rlattice = true;
-        DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
-        principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
+        // Is it rhombohedral in R setting?
+        if (cryssys == TRIGONAL && RhombohedralAxes(hkl_list.Cell().UnitCell())) {
+          rlattice = true;
+          DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
+          principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
+        }
+        // case (4)
+      } else if (cryssys == CUBIC) {
+        cubic = true;
+        principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
+      } else { // shouldn't happen
+        Message::message(Message_fatal
+                         ("AnisotropicAnalysis: undefined Bravais lattice\n"));
       }
-      // case (4)
-    } else if (cryssys == CUBIC) {
-      cubic = true;
-      principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
-    } else { // shouldn't happen
-      Message::message(Message_fatal
-                       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
     }
   }
 //--------------------------------------------------------------------------
@@ -166,6 +171,7 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
     cubic = false;
     abplane = false;
     rlattice = false;
+    status = true;
 
     // case (1), (2)  (not for real use)
     if (cryssys == TRICLINIC || cryssys == MONOCLINIC ||
@@ -211,22 +217,28 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
   }
 }
 //--------------------------------------------------------------------------
-  void AnisotropicAnalysis::SetPrincipalDirectionsGeneral
+  bool AnisotropicAnalysis::SetPrincipalDirectionsGeneral
   (const hkl_unmerge_list& hkl_list,
    const int& datasetindex,
    const SDmodel& SDM)
   // set principalaxes from data
   {
+    bool OK = false;
     // merged list for given dataset
     MergedList mergedlist(hkl_list, SDM, "", datasetindex);
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
       mergedlist.ImeanForDataset(datasetindex);
     // Store number of reflections used
     nreflused = isigi.num_obs();
-    // Get anisotropy
-    orthogonalanisotropy.init(isigi);
-    //%/    OrthogonalAnisotropy orthogonalanisotropy(isigi);
-    principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
+    const double MINIOVSIG = 0.5; // exclude very weak data
+    if (mergedlist.meanIovermeansigI() > MINIOVSIG) {
+      // Get anisotropy
+      orthogonalanisotropy.init(isigi);
+      //%/    OrthogonalAnisotropy orthogonalanisotropy(isigi);
+      principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
+      OK = true;
+    }
+    return OK;
   }
 //--------------------------------------------------------------------------
   clipper::Coord_reci_frac AnisotropicAnalysis::NormaliseVector(const clipper::Coord_reci_frac& crdrf) const
@@ -262,7 +274,7 @@ std::pair<int,double> AnisotropicAnalysis::Axis(const Hkl& hkl, const Rtype& inv
   // return nearest principal axis index, if within cone around that axis,
   // -1 if outside
   {
-    if (cubic) {
+    if (cubic || !status) {
       return std::pair<int,double>(0,0.0);   // cubic, isotropic so always return index 0
     }
     double dstar = sqrt(invresolsq);  // 1/d
@@ -320,6 +332,7 @@ std::pair<int,double> AnisotropicAnalysis::Axis(const Hkl& hkl, const Rtype& inv
     // orthogonalised coordinate, Clipper convention
     clipper::Coord_reci_orth horth =  hkl.HKL().coord_reci_orth(ccell);
     DVect3 projections(0.,0.,0.);
+    if (!status) {return projections;}
 
     if (abplane) { // For testing against axis & plane, abplane = true
       projections[2] = horth * principalaxes[2];

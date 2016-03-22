@@ -133,6 +133,7 @@ namespace scala
 
     static const double MINVARINFRAC;  // minimum fraction of input variance for correction
     static const double MINSDFAC;      // minimum SDfac
+    static const double MAXSDADD;      // maximum SDadd
     static const int NPARALL = 3;      // number of parameters = 3
 
     // Set internal vector p (2 or 3) from Sdfac etc

@@ -799,7 +799,7 @@ TIE::TIE()
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
   // Defaults
-  tiesd_surface = 0.001;
+  tiesd_surface = 0.005;
   tiesd_rotation = -1.0;
   tiesd_bfactor = -1.0;
   tiesd_zerob = -1.0;
@@ -1112,7 +1112,7 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
 
   refine = true;
   refine_set = false;
-  allsame = false;
+  allsame = true;
   fixsdb = false;
   sdinput.clear();
   runnumbers.clear();
@@ -1395,7 +1395,7 @@ void SDCORRECTION::analyse()
 {
   if (SDC_NumberInput() > 1 &&  allsame == true) {
     ReportSyntaxError
-      (keywords, "SDCORRECTION:: multiple values givem with SAME flag");
+      (keywords, "SDCORRECTION:: multiple values given with SAME flag");
   }
   if (refine_set) return;  // explicit refine flag set
   if (SDC_NumberInput() != 0) {

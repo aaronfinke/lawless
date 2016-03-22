@@ -82,10 +82,13 @@ namespace scala {
 	      phaser_io::Output& output);
 
     // call at beginning of each refinement cycle to clear negative sec scale flag
-    void clearNegativeSecScaleFlag() {negativeSecScale = 0;}
+    void clearNegativeSecScaleFlag();
 
     // return > 0 if a negative secondary scale occurred, and clear the flag
     int NegativeSecScaleOccurred();
+
+    // return > 0 if a negative secondary scale occurred on last (previous) cycle
+    int NegativeSecScaleLast() {return negativeSecScaleLast;}
 
     void SetConstant(hkl_unmerge_list& hkl_list,
 		     phaser_io::Output& output);  // set SCALE CONSTANT for all runs
@@ -94,6 +97,10 @@ namespace scala {
     // if false, force to be radially symmetric
     // returns true if anything has changed
     bool symmetricTiles(const bool& symmetric);
+
+    // switch secondary scales On (true) or Off (false)
+    // returns true if anything has changed
+    bool switchSecondaryScales(const bool& on);
 
     // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
     void setBatchReject(const std::vector<bool>& usebatch,
@@ -178,9 +185,12 @@ namespace scala {
 		     std::vector<TieHessian>& Htie);
 
     // Print scale layout
-    void PrintLayout(phaser_io::Output& output);
+    void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters
-    void PrintScales(phaser_io::Output& output);
+    void PrintScales(phaser_io::Output& output) const;
+    // Print secondary corrections
+    void PrintSecondaryCorrections(phaser_io::Output& output) const;
+    
 
     //! Write image[s] for each detector scale
     void WriteImage(const std::string imagefilename,
@@ -190,8 +200,8 @@ namespace scala {
     void Check() const {if (nsecscales > 0) secondary_scales[0].Check();}
 
     //! Dump scale model to file
-    void Save(const std::string& dumpfilename,
-	      const std::vector<Run>& runlist) const;
+    //    void Save(const std::string& dumpfilename,
+    //	      const std::vector<Run>& runlist) const;
 
     //! Format scalemodel for save/restore
     // NB ties are not saved
@@ -231,7 +241,8 @@ namespace scala {
     std::string SetupScale(const int& irun,
 			   const ScaleSpecification& scaleSpec,
 			   const Run& run,
-			   const ValidScaleModel&  validscalemodel);
+			   const ValidScaleModel&  validscalemodel,
+			   phaser_io::Output& output);
 
     void CountParameters();
 
@@ -267,6 +278,7 @@ namespace scala {
     // initially = 0 on each cycle (call to clearNegativeSecScaleFlag),
     // count > 0 if secondary scale for observation is negative
     mutable int negativeSecScale;  // within each refine cycle
+    mutable int negativeSecScaleLast;  // on previous (last) cycle
     // ... or at any time 
     int negativeSecScaleOccurred;
 

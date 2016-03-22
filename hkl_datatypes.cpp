@@ -1214,6 +1214,22 @@ namespace scala
     CMtz::MtzPrintBatchHeader(&batchinfo);
   }
   //--------------------------------------------------------------
+  bool Batch::phiInRange(const float& phitest,
+                         const float& tolerance) const
+  // return true if phi is in the phi range
+  // return true also if no valid range
+  {
+    if (valid_phi) {
+      if ((phitest+tolerance >=  batchinfo.phistt) &&
+          (phitest-tolerance <=  batchinfo.phiend)) {
+        return true;
+      }
+    } else {
+      return true;
+    }
+    return false;
+  }
+  //--------------------------------------------------------------
   void Batch::SetCellConstraint(const std::vector<int>& lbcell)
   {
     for (int i=0;i<6;i++) batchinfo.lbcell[i] = lbcell[i];

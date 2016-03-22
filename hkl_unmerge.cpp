@@ -2513,13 +2513,17 @@ namespace scala {
   (const std::vector<Range>& invresrangebydataset,
    const std::vector<Range>& invresrangebyrun)
   // Update dataset and run resolution ranges
+  // Note that run ranges may be unset
   {
     ResoRange overallrange = ResoLimRange;
     for (int id=0;id<ndatasets;++id) { // Resolution range for each dataset
       ResoRange dtsresrange(invresrangebydataset[id]);
       // check all runs for this dataset
       std::vector<int> runindexlist = datasets[id].RunIndexList();
-      ResoRange maxrunresorange = runlist.at(0).GetResoRange();
+      ResoRange maxrunresorange = dtsresrange;
+      if (runlist.at(0).IsResoRange()) { // only if set
+        maxrunresorange = runlist.at(0).GetResoRange();
+      }
       bool runlimits = false;
       for (size_t jrun=0; jrun<runindexlist.size(); jrun++) {
         int irun = runindexlist[jrun];
@@ -2530,6 +2534,9 @@ namespace scala {
           //^^
           //      std::cout <<"\nrun " << irun << " res " << runlist[irun].GetResoRange().format() <<"\n";
           runlimits = true;
+        } else { // unset for this run, use maximum dataset range
+          maxrunresorange =
+            maxrunresorange.MaxRange(dtsresrange);
         }
       }
       //^^

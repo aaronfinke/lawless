@@ -77,6 +77,12 @@ namespace scala
     //! Average I, weight as specified
     IsigI Average();
 
+    //! SD(<I>) from variances
+    double SDvariance() const {return sdI;}
+
+    //! SD(<I>) from sampleSD, if done (else 0.0)
+    double SDsample() const {return sdIs;}
+
     //! Set sample variance, minimum number of values (<0 to switch off)
     static void SetSampleSD (const int& minSample=10);
 
@@ -92,6 +98,10 @@ namespace scala
     //! Get average IsigI for each random part, return false unless both are present
     bool HalfAveragesSigI(IsigI& I1sig, IsigI& I2sig);
 
+    // individual SDs from sample variance, if used,= 0.0 for unused slots
+    std::vector<double> sampleSDI() const {return sdIsample;}
+    bool SampleSDused() const {return sampleSDused;}
+
     //! List of deviations delta (ie delI/sigma(I) ) where delI
     //!  is difference from mean of other observations
     //!   returns deltasize() = NobsRefl, unused slots set = 0.0 ie not closed down
@@ -102,6 +112,10 @@ namespace scala
     //!  is difference from mean of all observations and
     //!  fac = sqrt(n/n-1)
     std::vector<float> Delta2();        // variance-weighted <I>
+
+    //! List of deviations delta3 (ie delI/SDsample(I) ) where delI
+    //!  is difference from mean of all observations
+    std::vector<float> Delta3();
 
     // For each observation, return mean of other observations,
     //   scaled to each observation
@@ -156,11 +170,20 @@ namespace scala
     int npart;                     // number of part lists
     int nobs;     // number of observations in reflection
     int Nused;    // number used (without outliers)
+    // individual SDs from sample variance, if used,= 0.0 for unused slots
+    std::vector<double> sdIsample;
+    bool sampleSDused;  // true if sample SD used for this reflection
+
     // Sums for deviations & outliers
-    std::vector<double> wgI;  // w g I
-    std::vector<double> wg2;  // w g^2
-    double sumwgI;  // Sum(w g I)
-    double sumwg2;  // Sum(w g^2)
+    std::vector<double> wI;  // w I'
+    std::vector<double> wj;  // w
+    double sumwI;  // Sum(w I')
+    double sumwj;  // Sum(w)
+
+    // wv = 1/var(I) if variance weight
+    //    else = w^2 var(I)
+    std::vector<double> wv; 
+    double sumwv;  // Sum(wv)
     // Deviations delI/sigma  from "others"
     std::vector<float> delta;     // for current list
     WeightType::AverageWeightType weighttype;   // type of weighting for average
@@ -171,7 +194,8 @@ namespace scala
     static int minimumsample;
 
     IsigI avIsigI;
-    double sdI;     // SD from weights
+    double sdI;     // SD <I> from weights
+    double sdIs;    // SD <I> from sample (if done)
     // state:
     // =  0  observations stored
     // = +1  average calculated
@@ -180,7 +204,7 @@ namespace scala
     int State; 
     mutable int nextobs;  // index to next observation
 
-    Rtype Weight(const Rtype& sd, const Rtype& g) const;
+    double Weight(const double& sd, const double& g) const;
 
   };
 }

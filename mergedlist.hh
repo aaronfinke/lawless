@@ -97,7 +97,12 @@ namespace scala {
     {return hkl_info_list.num_reflections();}
 
     double meanIntensity() const {return meanintensity;}
-
+    double meanIovermeansigI() const {
+      if (meansigintensity > 0.0) {
+	return meanintensity/meansigintensity;
+      }
+      return 0.0;
+    }
 
   private:
     int ndatasets; // number of datasets
@@ -111,6 +116,7 @@ namespace scala {
     std::string title;
     double maxintensity;
     double meanintensity;
+    double meansigintensity;
     std::vector<std::string> historylines;
 
     char spg_status; // aka spg_confidence in MTZ

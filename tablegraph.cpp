@@ -980,6 +980,21 @@ void TableGraph::AddToLine(const float& v)
   line += sfld;
   kfield++;
 }
+
+//--------------------------------------------------------------
+void TableGraph::patchLine(const std::string& patch, const int& firstchar)
+// replace part of "line" with patch, starting at character firstchar
+{
+  int plen = patch.size(); // length of patch string
+  int llen = line.size();  // length of current line
+  int len = plen;
+  if (firstchar + plen > llen) {
+    len = llen - firstchar;
+  }
+  if (len > 0) {
+    line.replace(firstchar, len, patch, 0, len);
+  }
+}
 //--------------------------------------------------------------
 std::string TableGraph::GetLine()
 // return line assembled in AddToLine calls

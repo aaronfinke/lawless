@@ -40,7 +40,7 @@ void SphericalHarmonic::SetUp(const int& maxOrder)
 int SphericalHarmonic::Nterms() const
 //  Number of Yml terms excluding 00
 {
-  return lmaxeven*(lmaxeven+3)/2+1 + lmaxodd*(lmaxodd+3)/2;
+ return lmaxeven*(lmaxeven+3)/2+1 + lmaxodd*(lmaxodd+3)/2;
 }
 //----------------------------------------------------------------------------
 std::vector<double> SphericalHarmonic::Ylm(const double& theta,
@@ -49,7 +49,7 @@ std::vector<double> SphericalHarmonic::Ylm(const double& theta,
 // Calculate Ylm(theta, phi)
 //
 // On entry:
-//  sintheta, costheta  theta is colatitude, in range 0 -> pi
+//  theta               colatitude, in range 0 -> pi
 //  phi (radians)       longitude, 0 -> 2pi
 //  lmaxEven, lmaxOdd   maximum orders for even & odd terms
 //

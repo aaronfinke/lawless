@@ -377,6 +377,13 @@ namespace scala
     int nobs = Nobservations + other.Nobservations;
     if (set) {
       if (other.set) {
+        // Check that they overlap
+        double lowerHigh = Max(ResHigh(), other.ResHigh());
+        double higherLow = Min(ResLow(), other.ResLow());
+        if (higherLow < lowerHigh) {
+          // no overlap
+          return ResoRange();
+        }
         // Both set
         return ResoRange(Min(ResLow(), other.ResLow()),
                          Max(ResHigh(), other.ResHigh()),

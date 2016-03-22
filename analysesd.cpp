@@ -121,54 +121,54 @@ namespace scala
 
       output.logTab(0,LOGFILE,"\n"+SDM.formatFullPartialInfo());
 
-      if (firstAnalysis <= 0) {
-        // Initial correction from normal probability analysis
-        bool updated = true;
-        while (true) {  // maybe more than one shot at this
-          SDMdataNumbers sdmnum =
-            UpdateSDMfromNPlot(SDM, hkl_list, controls, false, output);
-          //^^
-          //      for (int i=0;i<sdmnum.nfnp.size();++i) {
-          //        std::cout << "Set " << i << " " << sdmnum.nfnp[i].first
-          //                  <<" " << sdmnum.nfnp[i].second <<"\n";
-          //      }
-          //^-
+      // now always do Normal Probability reset      if (firstAnalysis <= 0) {
+      // Initial correction from normal probability analysis, always do this
+      bool updated = true;
+      while (true) {  // maybe more than one shot at this
+        SDMdataNumbers sdmnum =
+          UpdateSDMfromNPlot(SDM, hkl_list, controls, false, output);
+        //^^
+        //      for (int i=0;i<sdmnum.nfnp.size();++i) {
+        //        std::cout << "Set " << i << " " << sdmnum.nfnp[i].first
+        //                  <<" " << sdmnum.nfnp[i].second <<"\n";
+        //      }
+        //^-
 
-          // Are there some "sets" with no data?
-          if (!sdmnum.enoughdata) { // at least one set with insufficient data
-            if (controls.anomalouscontrol.AnomalousSDcorr) {
-              // keeping I+ & I- separate, try combining them
-              controls.anomalouscontrol.AnomalousSDcorr = false;
+        // Are there some "sets" with no data?
+        if (!sdmnum.enoughdata) { // at least one set with insufficient data
+          if (controls.anomalouscontrol.AnomalousSDcorr) {
+            // keeping I+ & I- separate, try combining them
+            controls.anomalouscontrol.AnomalousSDcorr = false;
+            output.logTab(0,LOGFILE,
+                          "Try combining I+ and I-");
+            continue;
+          } else {
+            if (SDM.Nsets()) {
+              // One runs or all runs same, and I+ and I- together, bail out
               output.logTab(0,LOGFILE,
-                            "Try combining I+ and I-");
-              continue;
+                            "\n!!!! Insufficient data to determine SD correction factors, no refinement");
+              SDM.SetRefine(false);
+              updated = false;
+              break;
             } else {
-              if (SDM.Nsets()) {
-                // One runs or all runs same, and I+ and I- together, bail out
-                output.logTab(0,LOGFILE,
-                      "\n!!!! Insufficient data to determine SD correction factors, no refinement");
-                SDM.SetRefine(false);
-                updated = false;
-                break;
-              } else {
-                // try combining runs
-                SDM.SetAllRunsSame(true);
-                output.logTab(0,LOGFILE,
+              // try combining runs
+              SDM.SetAllRunsSame(true);
+              output.logTab(0,LOGFILE,
                             "Try combining runs");
-                continue;
-              }
+              continue;
             }
-          } else { // sufficent data for everything
-            break;
           }
-        } // end infinite while
-        if (updated) {output.logTab(0,LOGFILE,
-                                    "\nSD correction parameters after normal probability correction\n"+SDM.format());
+        } else { // sufficent data for everything
+          break;
         }
-      } else {  // not first
-        output.logTab(0,LOGFILE,
-                      "\nCurrent SD correction parameters\n"+SDM.format());
+      } // end infinite while
+      if (updated) {output.logTab(0,LOGFILE,
+                                  "\nSD correction parameters after normal probability correction\n"+SDM.format());
       }
+      //    } else {  // not first
+      //        output.logTab(0,LOGFILE,
+      //                      "\nCurrent SD correction parameters\n"+SDM.format());
+      //      }
 
       if (SDM.Refine()) { // may have changed!
         if (controls.anomalouscontrol.AnomalousSDcorr) {

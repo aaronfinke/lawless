@@ -38,11 +38,11 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
   const int MINIMUMSAMPLE = 6; // minimum number for sample SD
   SDM.SetSampleSD(input.SampleSD(), MINIMUMSAMPLE);
-  // If SampleSD, switch off refinement unless explicit
-  if(SDM.SampleSD()) {
-    if (!input.SDC_RefineSet()) {
-      SDM.SetRefine(false);
-    }}
+  // If SampleSD, switch off refinement unless explicit  DON'T
+  //  if(SDM.SampleSD()) {
+  //    if (!input.SDC_RefineSet()) {
+  //      SDM.SetRefine(false);
+  //    }}
 
   std::vector<std::pair<SDcorrection,SDcorrection> >
     sdcval = input.SDC_SDcorrections();

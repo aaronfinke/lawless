@@ -127,6 +127,7 @@ private:
     CrystalSystem crysSys() const {return cryssys;}
 
   private:
+    bool status;
     // principal directions for analysis, along a*, b*, c* for higher symmetry
     // along principal components for monoclinic & triclinic
     // Orthogonal space in Clipper convention, unit vectors
@@ -152,7 +153,7 @@ private:
         // Normalise to a maximum value of 1.0
     clipper::Coord_reci_frac NormaliseVector(const clipper::Coord_reci_frac& crdrf) const;
 
-    void SetPrincipalDirectionsGeneral
+    bool SetPrincipalDirectionsGeneral
     (const hkl_unmerge_list& hkl_list,
      const int& datasetindex,
      const SDmodel& SDM);

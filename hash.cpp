@@ -2,9 +2,9 @@
 
 // Has table & prime number things
 
-
 #include "hash.hh"
 #include "util.hh"
+#include "report_errors.hh"
 
 const int hash_table::MinPrime = 1009;
 
@@ -63,17 +63,17 @@ void hash_table::set_size(const int& size)
 void hash_table::add(const int& Nstore, const int& Nfind)
 {
   if (table_size <= 0)
-    {Message::message(Message_fatal( "hash_table::add - table not initialised"));}
+    {ReportErrors::printFatalError( "hash_table::add - table not initialised");}
 
   if (Nstore <= 0)
-    {Message::message(Message_fatal( "hash_table::add - Nstore non-positive"));}
+    {ReportErrors::printFatalError( "hash_table::add - Nstore non-positive");}
 
   int n = Nstore;
   int index;
   while (true)  {
     index = n % table_size;
     if ((n-Nstore) >= 3*table_size)
-      {Message::message(Message_fatal( "hash_table::setup - overflowed hash table"));}
+      {ReportErrors::printFatalError( "hash_table::setup - overflowed hash table");}
     if (Nstore_list[index] < 0) break;
     n += 3;
   }
@@ -133,8 +133,8 @@ void hash_table::Restore(Fileread& FR)
 {
   FR.ReadTag("HashTable"); // fails if tag does not match
   if (FR.GetTag() != "V1") {  // version check
-    clipper::Message::message(Message_fatal
-      ("hash_table::Restore incompatible version in "+FR.Filename()));
+    ReportErrors::printFatalError
+      ("hash_table::Restore incompatible version in "+FR.Filename());
   }
   FR.Skip();
   FR.ReadTag("TableSize"); table_size = FR.Int();
@@ -143,8 +143,8 @@ void hash_table::Restore(Fileread& FR)
     std::string tag = FR.GetTag();
     if (tag == "}") break;  // end of list
     if (tag != "HashIndexStoreFind") {
-      clipper::Message::message(Message_fatal
-        ("hash_table::Restore unrecognised tag "+tag));
+      ReportErrors::printFatalError
+        ("hash_table::Restore unrecognised tag "+tag);
     }
     int i = FR.Int();
     Nstore_list.at(i) = FR.Int();

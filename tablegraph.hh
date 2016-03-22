@@ -441,7 +441,9 @@ public:
   void AddToLine(const float& v);
   //! Add double to next field in line
   void AddToLine(const double& v) {AddToLine(float(v));}
-  //! return line assembled in AddToLine calls (& append to internal array)
+  //! replace part of "line" with patch, starting at character firstchar
+  void patchLine(const std::string& patch, const int& firstchar);
+ //! return line assembled in AddToLine calls (& append to internal array)
   std::string GetLine();
 
 

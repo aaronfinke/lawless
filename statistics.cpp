@@ -24,6 +24,7 @@ using clipper::Message_fatal;
 #include "anisotropy.hh"
 #include "timer.hh"
 #include "radiationdamageanalysis.hh"
+#include "comparesds.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -554,8 +555,10 @@ namespace scala {
     // ----
 
     // Sample SD option
+    CompareSDs comparesds;
     if (SDM.SampleSD()) {
       SelectedObservations::SetSampleSD(SDM.MinimumSample());
+      comparesds.init(ResRange, Irange);
     }
 
     // Half dataset correlations etc, by resolution
@@ -854,6 +857,9 @@ namespace scala {
         sdanalysis.AddSelobsDelta2(allobs, mint);
         allobs.Outliers(rejflags);
         sdanalysiscore.AddSelobsDelta2(allobs, mint);
+        if (SDM.SampleSD()) {
+          comparesds.add(obsplus, mres, mint);
+        }
       } else {
         // Anomalous
         sdanalysis.AddSelobsDelta2(obsplus, mint);
@@ -862,6 +868,10 @@ namespace scala {
         obsminus.Outliers(rejflags);
         sdanalysiscore.AddSelobsDelta2(obsplus, mint);
         sdanalysiscore.AddSelobsDelta2(obsminus, mint);
+        if (SDM.SampleSD()) {
+          comparesds.add(obsplus, mres, mint);
+          comparesds.add(obsminus, mres, mint);
+        }
       }
       cumulativecompleteness.EndReflection();
     }  // end loop reflections
@@ -1028,8 +1038,15 @@ namespace scala {
                                   summaryStatistics, output);
 
 
-    PrintSDanalysis(sdanalysis, sdanalysiscore, rejflags, Irange, runlist,
+    PrintSDanalysis(sdanalysis, sdanalysiscore,
+                    rejflags, Irange, runlist,
                     SDM, datasetIndex, dataset_pxd, true, output);
+
+
+    if (SDM.SampleSD()) {
+      comparesds.printByResolution(output);
+      comparesds.printByIntensity(Irange, output);
+    }
 
     // Correlplot
     std::string s = halfDatasetScores.PlotCorrel();

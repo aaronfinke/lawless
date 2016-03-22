@@ -612,6 +612,11 @@ namespace scala
     float PhiRange() const
     {return Phi2() - Phi1();} //!< return phi range = phi2 - phi1
 
+    // return true if phi is in the phi range
+    // return true also if no valid range
+    bool phiInRange(const float& phitest,
+		    const float& tolerance) const;
+
     // valid_time: > 0 valid time information (time1, time2)
     //             < 0 time inferred from phi
     //              -1 set = phi

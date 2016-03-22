@@ -40,7 +40,7 @@ set(AIMLESS_SOURCES
     anisotropicmodel.cpp histogram.cpp hkl_merge.cpp referencelist.cpp 
     referencescalemodel.cpp refinereferencescale.cpp refinetargets.cpp 
     rejectbatches.cpp fitresolutiondata.cpp hessian.cpp radialfunction.cpp
-    simpleminimise.cpp
+    simpleminimise.cpp comparesds.cpp
 )
 
 # Shared (duplicated) with Pointless

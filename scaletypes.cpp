@@ -1240,7 +1240,7 @@ namespace scala {
     dgdp = sphHarmonic.Ylm(thetap, phip);
     double sc = 1.0;  // constant term
     // omit Y00 = constant
-    for (int i=1;i<ncoeffs;++i) {
+    for (int i=0;i<ncoeffs;++i) {
       sc += sphcoefficients[i] * dgdp[i];
     }
     scale = sc;

@@ -25,6 +25,7 @@ using clipper::Message_warn;
 using phaser_io::itos;
 using phaser_io::ftos;
 using phaser_io::LOGFILE;
+using phaser_io::LXML;
 
 namespace scala {
   //--------------------------------------------------------------
@@ -132,6 +133,7 @@ namespace scala {
     // Always calculate all secondary beams & diffraction vectors
     bool secbeamsOK = hkl_list.CalcSecondaryBeams(pole);
     negativeSecScale = 0;
+    negativeSecScaleLast = 0;
     negativeSecScaleOccurred = 0;
 
     if (nsecscales > 0 && !secbeamsOK) {
@@ -312,7 +314,8 @@ namespace scala {
         int irun = FindRunIndex(runNumber, runlist);
         if (irun >= 0) {
           // Specification for this run
-          std::string s = SetupScale(irun, scaleSpecs[isp], runlist[irun], validscalemodel);
+          std::string s = SetupScale(irun, scaleSpecs[isp], runlist[irun],
+                                     validscalemodel, output);
           if (s != "") {output.logTab(0,LOGFILE,s);}
           runSetup[irun] = true;
         }
@@ -322,7 +325,8 @@ namespace scala {
     for (int irun=0;irun<nruns;irun++) {
       if (!runSetup[irun]) {
         // Specification for this run
-        std::string s = SetupScale(irun, scaleSpecs[0], runlist[irun], validscalemodel);
+        std::string s = SetupScale(irun, scaleSpecs[0], runlist[irun],
+                                   validscalemodel, output);
         if (s != "") {output.logTab(0,LOGFILE,s);}
         runSetup[irun] = true;
       }
@@ -614,6 +618,25 @@ namespace scala {
     return false;
   }
   //--------------------------------------------------------------
+  bool ScaleModel::switchSecondaryScales(const bool& on)
+  // switch secondary scales On (true) or Off (false)
+  {
+    if (on) {
+      nsecscales = std::abs(nsecscales);
+    } else {
+      nsecscales = -std::abs(nsecscales);
+    }
+    // Recalculate number of parameters and indices etc
+    int npar0 = Nparameters();
+    CountParameters();
+    SetupTies();  // reset tie list
+    if (npar0 != Nparameters()) {
+      nfreedom = 0; // can't use variances
+      return true; // Nparameters has changed
+    }
+    return false;
+  }
+  //--------------------------------------------------------------
   void ScaleModel::setBatchReject(const std::vector<bool>& usebatch,
                                   const std::vector<int>& batchnumbers)
   // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
@@ -655,9 +678,10 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::string ScaleModel::SetupScale(const int& irun,
-                              const ScaleSpecification& scaleSpec,
-                              const Run& run,
-                              const ValidScaleModel&  validscalemodel)
+                                     const ScaleSpecification& scaleSpec,
+                                     const Run& run,
+                                     const ValidScaleModel&  validscalemodel,
+                                     phaser_io::Output& output)
   // Setup scales & B-factors for run irun
   // returns any warning messages
   {
@@ -793,7 +817,7 @@ namespace scala {
     return isp0;
   }
   //--------------------------------------------------------------
-  void ScaleModel::PrintLayout(phaser_io::Output& output)
+  void ScaleModel::PrintLayout(phaser_io::Output& output) const
   {
     output.logTab(0,LOGFILE,"\n>>>> Layout of scale factors: <<<<\n");
     for (size_t irun=0;irun<runnumbers.size();++irun) {
@@ -994,7 +1018,7 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
-  void ScaleModel::PrintScales(phaser_io::Output& output)
+  void ScaleModel::PrintScales(phaser_io::Output& output) const
   // Print all scale parameters, with SDs if available
   {
     const int nperline = 10;
@@ -1086,6 +1110,86 @@ namespace scala {
     output.logTabPrintf(0,LOGFILE,"\n\n");
   }
   //--------------------------------------------------------------
+  void ScaleModel::PrintSecondaryCorrections(phaser_io::Output& output) const
+  // Print secondary corrections as 2D array
+  {
+    if (nsecscales > 0) {   // Secondary
+      output.logTab(0,LOGFILE,
+                    "\nSecondary scale corrections");
+      output.logTab(0,LOGFILE,
+                    "\nCalculated for polar angles of theta (colatitude from 0 at N pole) and phi (longitude)\n");
+
+
+
+      double angleinterval = 10.0;
+      int nskip = 2;  // for log file print
+      // Phi values
+      int nphi = Nint(360.0/angleinterval) + 1;
+      std::vector<double> phivalues(nphi);
+      for (size_t k=0; k<phivalues.size(); k++) {
+        phivalues[k] = k * angleinterval;
+      }
+      // Theta values
+      int ntheta = Nint(180.0/angleinterval) + 1;
+      std::vector<double> thetavalues(ntheta);
+      for (size_t k=0; k<thetavalues.size(); k++) {
+        thetavalues[k] = k * angleinterval;
+      }
+
+      std::string line;
+      for (int j=0;j<nsecscales;++j) {
+        output.logTabPrintf(0,LOGFILE,"\nSecondary scale number %3d\n", j+1);
+        line = " Phi ";
+        for (size_t kp=0; kp<phivalues.size(); kp++) {
+          if (kp%nskip == 0) {
+            line += StringUtil::ftos(phivalues[kp], 5, 0);
+          }
+        }
+        output.logTab(0,LOGFILE, line);
+        output.logTab(0,LOGFILE, " Theta");
+
+        output.logTab(0,LXML,"<SecondaryCorrection>");
+        output.logTab(0,LXML,
+                      StringUtil::MakeXMLtag("ScaleNumber", j+1));
+        output.logTab(0,LXML,
+                      StringUtil::MakeXMLtag("PhiValues",
+                      StringUtil::FormatSaveVector(phivalues)));
+
+        for (size_t kt=0; kt<thetavalues.size(); kt++) {
+          line = "";
+          if (kt%nskip == 0) {
+            line = StringUtil::ftos(thetavalues[kt], 5, 0)+" ";
+          }
+          output.logTab(0,LXML,"<secscales>");
+          output.logTab(0,LXML,
+                      StringUtil::MakeXMLtag("Theta", thetavalues[kt]));
+          std::vector<double> corrections(phivalues.size());
+
+          for (size_t kp=0; kp<phivalues.size(); kp++) {
+            corrections[kp] =
+              secondary_scales[j].Scale(clipper::Util::d2rad(thetavalues[kt]),
+                                        clipper::Util::d2rad(phivalues[kp]));
+            if (corrections[kp] != 0.0) {
+              corrections[kp] = 1.0/corrections[kp];
+            }
+
+            if ((kp%nskip == 0) && (kt%nskip == 0)) {
+              line += StringUtil::ftos(corrections[kp],5,2);
+            }
+          }
+          output.logTab(0,LOGFILE, line);
+          output.logTab(0,LXML,
+                        StringUtil::MakeXMLtag("corrections",
+                       StringUtil::FormatSaveVector(corrections)));
+
+          output.logTab(0,LXML,"</secscales>");
+
+        }
+        output.logTab(0,LXML,"</SecondaryCorrection>");
+      }
+    }
+  }
+  //--------------------------------------------------------------
   void ScaleModel::CountParameters()
   // private
   // Set all parameter counts
@@ -1104,7 +1208,11 @@ namespace scala {
     ASSERT (int(relative_bfactors.size()) == nruns);
     idxrun_primary_scales.resize(nruns);
     idxrun_bfactors.resize(nruns);
-    idxrun_secondary.resize(nsecscales);
+    if (nsecscales >= 0) {
+      idxrun_secondary.resize(nsecscales);
+    } else {
+      idxrun_secondary.clear();
+    }
     idxrun_detector.resize(ndetscales);
 
     // Primary
@@ -1464,11 +1572,11 @@ namespace scala {
       varg = VarScale(dghldp);
       obs.SetGscaleVar(g, varg);
     }
-    //    if (g <= 0.0) {
-    //      std::string message = "ScaleObs: non-positive scale "+StringUtil::ftos(g)+
-    //  " "+obs.hkl_original().format();
-    //      ReportErrors::printWarning(message,"NegativeScale",false);
-    //    }
+    if (g <= 0.0) {
+      std::string message = "ScaleObs: non-positive scale "+StringUtil::ftos(g)+
+        " "+obs.hkl_original().format();
+      ReportErrors::printWarning(message,"NegativeScale",false);
+    }
 
     // For multiple lattice observations, get appropriate inverse scale factors
     if (!obs.IsSingleton() && !onlyUseSingletons) {
@@ -1588,7 +1696,9 @@ namespace scala {
         obs.GetS2(thetap, phip);
         ss = secondary_scales[sec_scale_index_run[jscale]].Scale(thetap, phip);
         if (ss <= 0.0) {
+          std::cout <<"neg scale " << ss << " "<<thetap<<" "<<phip<<"\n"; //^^
           negativeSecScale++; // record occurance of negative scale
+          ss = 0.5;
         }
       }
     }
@@ -1600,6 +1710,10 @@ namespace scala {
       }
     }
     g = ps*bs*ss*ds;
+    //^^^
+    if (g < 0.0) {
+      std::cout <<"g negative " << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+    }
     return g;
   }
   //--------------------------------------------------------------
@@ -1638,6 +1752,10 @@ namespace scala {
         ps = primary_scales[jscale].ScaleDeriv(obs.phi(), dgdpm);
       }
     }
+    //^^^
+    if (ps <= 0.0) {
+      std::cout <<"ps <= 0 " << ps <<" "<<obs.phi()<<"\n";
+    } //-^^
 
     // B-factor scale
     std::vector<double> dgdB;  // derivatives for this run only
@@ -1663,6 +1781,7 @@ namespace scala {
         ss = secondary_scales[k].ScaleDeriv(thetap, phip, dgds);
         if (ss <= 0.0) {
           negativeSecScale++; // record occurance of negative scale
+          ss = 0.5;
         }
       }
     }
@@ -1711,6 +1830,10 @@ namespace scala {
       std::copy(dgdd.begin(), dgdd.end(), dghldp.begin()+idxrun_detector[k]);
     }
     double g = ps*bs*ss*ds;
+    //^^^
+    if (g <= 0.0) {
+      std::cout <<"g negative " << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+    }
     obs.SetGscale(g);
     return g;
   }
@@ -1805,6 +1928,14 @@ namespace scala {
     }
     negativeSecScaleOccurred = Max(negativeSecScale, negativeSecScaleOccurred);
     negativeSecScale = 0;  // clear flag
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::clearNegativeSecScaleFlag()
+  // call at beginning of each refinement cycle to clear negative sec scale flag
+  // and store previous value for end
+  {
+    negativeSecScaleLast = negativeSecScale; // record previous value
+    negativeSecScale = 0;
   }
   //--------------------------------------------------------------
   double ScaleModel::TieValues

@@ -90,6 +90,7 @@ int main(int argc, char* argv[])
   std::string xyzref_filename = "";
 
   Timer timer;
+  int errorstatus = 0;
 
   try {
     // Input from command line: optional HKLIN filename
@@ -420,6 +421,7 @@ int main(int argc, char* argv[])
       initialscale = false; // no initial scales
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
+      AllScales.PrintSecondaryCorrections(output);
       applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
       overallmeankI = applyscales.meanI();
 
@@ -577,6 +579,8 @@ int main(int argc, char* argv[])
 
       // For the 1st round, force any tile corrections to be radially symmetric
       bool nparchanged = AllScales.symmetricTiles(true);
+      // and switch off secondary scaling
+      AllScales.switchSecondaryScales(false);
 
       if (controls.refinecontrol.BFGS()) {
         if (nparchanged && AllScales.haveParameterVariances()) {
@@ -629,6 +633,8 @@ int main(int argc, char* argv[])
 
       // For the 2nd round, allow tile corrections to vary azimuthally
       AllScales.symmetricTiles(false);
+      // and switch on secondary scaling
+      AllScales.switchSecondaryScales(true);
 
       hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
       output.logTab(0,LOGFILE,
@@ -703,6 +709,7 @@ int main(int argc, char* argv[])
       output.logTab(0,LOGFILE,
                     "\nTime for main scaling: "+timer.format(true));
 
+      AllScales.PrintSecondaryCorrections(output);
       AllScales.WriteImage("TILEIMAGE", output);
 
       output.logFlush();
@@ -1040,24 +1047,28 @@ int main(int argc, char* argv[])
     }
   }  // end try
 
+
   catch (phaser_io::PreprocessorError& capErr) {
     output.logWarning(LOGFILE, capErr.partialEcho()+"PREPROCESSOR ERROR: " + capErr.Message()
                       + "\n");
+    errorstatus = 1;
   }
   catch (phaser_io::SyntaxError& ccp4Err) {
     output.logWarning(LOGFILE, ccp4Err.Echo()+"\nSYNTAX ERROR: " + ccp4Err.Message()
                       + "\n");
+    errorstatus = 2;
   }
   catch (phaser_io::InputError& inpErr) {
     output.logWarning(LOGFILE, inpErr.Echo()+"\nINPUT ERROR: " + inpErr.Message()
                       + "\n");
+    errorstatus = 3;
   }
 
-  catch (Message_fatal& message)
-    {
-      output.logWarning(LOGFILE, "\nFATAL ERROR message: \n"
-                        + message.text() + "\n");
-    }
+  catch (Message_fatal& message) {
+    output.logWarning(LOGFILE, "\nFATAL ERROR message: \n"
+                      + message.text() + "\n");
+    errorstatus = 4;
+  }
 
   catch (std::bad_alloc const& err) {
     output.logWarning(LOGFILE,
@@ -1065,13 +1076,16 @@ int main(int argc, char* argv[])
                       + std::string(err.what())+"\n"+
                       " You have run out of memory to store the data\n"+
                       "  you may need more memory or a 64-bit machine.\n");
+    errorstatus = 5;
   }
 
   catch (std::exception const& err) {
     output.logWarning(LOGFILE, "\nUNHANDLED EXCEPTION: " + std::string(err.what())+"\n");
+    errorstatus = 6;
   }
   catch (...) {
     output.logWarning(LOGFILE, "\nUNKNOWN EXCEPTION TYPE\n");
+    errorstatus = 7;
   }
 
   if (output.doXmlout()) output.logTab(0, LXML,"</AIMLESS>");
@@ -1086,6 +1100,5 @@ int main(int argc, char* argv[])
   output.logTab(0, LOGFILE,
                 "\nEnd of aimless job, total time: "+overalltime.format(true)+"\n\n");
 
-  return 0;
-
+  return errorstatus;
 }

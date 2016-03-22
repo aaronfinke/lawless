@@ -46,6 +46,7 @@ namespace scala {
 
     maxintensity = -1000.;
     MeanValue meanI;
+    MeanValue meansigI;
     title = Title;
 
     historylines = hkl_list.getHistory();
@@ -142,6 +143,7 @@ namespace scala {
             datasetdata[idts].Imean.data_import(this_refl.hkl().HKL(), data);
             maxintensity = Max(maxintensity, avI.I());
             meanI.Add(avI.I());
+            meansigI.Add(avI.sigI());
             data[2] = 0.0;
             data[3] = 0.0;
             data[4] = 0.0;
@@ -164,12 +166,15 @@ namespace scala {
               data[2] =avI.I();
               data[3] =avI.sigI();
             }
-            datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
+            bool neg = false;
+            if (data[0] < 0.0 || data[2] < 0.0) {neg = true;}
+            if (!neg) {datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);}
           }
         }
       } // end loop datasets
     } // end loop reflections
     meanintensity = meanI.Mean();
+    meansigintensity = meansigI.Mean();
   }
   // ---------------------------------------------------------
   int MergedList::WriteDatasetToMTZ(const std::string& outfilename,

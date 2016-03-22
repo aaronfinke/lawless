@@ -371,7 +371,7 @@ namespace scala {
         rs += ",\n      'M' for multiple lattice overlaps";
       }
       rs += "\n";
-      fprintf(rogues, rs.c_str());
+      fprintf(rogues, "%s", rs.c_str());
       fprintf(rogues,
               "TotFrc = total fraction, fulls (f) or partials (p),");
       fprintf(rogues,
@@ -381,7 +381,7 @@ namespace scala {
       if (multilattice) {
         rs = std::string("Note that multilattice overlapped observations are not used in outlier calculation nor in means,\n")+
           "  and are listed here only under one of their hkl indices\n\n";
-        fprintf(rogues, rs.c_str());
+        fprintf(rogues, "%s", rs.c_str());
       }
       fprintf(rogues,
  "Flagged observations kept are labelled as: B BGratio; P PKratio; N TooNeg; G BGgradient; O Overload; E Edge\n");
