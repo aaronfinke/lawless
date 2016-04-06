@@ -166,9 +166,7 @@ namespace scala {
               data[2] =avI.I();
               data[3] =avI.sigI();
             }
-            bool neg = false;
-            if (data[0] < 0.0 || data[2] < 0.0) {neg = true;}
-            if (!neg) {datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);}
+            datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
           }
         }
       } // end loop datasets

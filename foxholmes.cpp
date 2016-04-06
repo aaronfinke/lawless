@@ -78,7 +78,7 @@ floatType FoxHolmes::targetFn()
 floatType    FoxHolmes::gradientFn(TNT::Vector<floatType>& grad)
 // dR/dp = Sum [ - w (I - g <I>) d(g<I>)/dp
 // d(g<I>)/dp = g d<I>/dp  + <I> dg/dp
-// d<I>/dpi = (Ii- 2g<I>)/g^2    in this case (one observation/paraemeter)
+// d<I>/dpi = (Ii- 2g<I>)/g^2    in this case (one observation/parameter)
 {
   if (!gradientOK) {
     TNT::Fortran_Matrix<floatType> H;

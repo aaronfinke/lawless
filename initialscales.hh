@@ -32,7 +32,7 @@ public:
   std::vector<bool> validRanges() const {return validranges;}
 
   // number of occupied resolution ranges for each rotation range
-  std::vector<int> rangeCount() const {return rangecount;}
+  //  std::vector<int> rangeCount() const {return rangecount;}
 
   // Data are in 2D array AvI(rotation, resolution)
   // For each resolution bin, we want to make all the <Irot> equal over
