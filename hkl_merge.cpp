@@ -313,14 +313,18 @@ namespace scala {
     mfile.read_file(xyzin);
     mfile.import_minimol(mmol);
 
-    std::vector<clipper::Atom> atoms;
+    clipper::Atom_list atomlist = mmol.model().atom_list();
+    std::vector<clipper::Atom> atoms(atomlist.size());
     // Strip zero occupancy atoms
-    for (size_t i=0;i<mmol.model().atom_list().size();++i) {
-      clipper::Atom atom = mmol.model().atom_list()[i];
+    size_t n = 0;
+    clipper::Atom atom;
+    for (size_t i=0;i<atomlist.size();++i) {
+      atom = atomlist[i];
       if (atom.occupancy() > 0.0) {
-        atoms.push_back(atom);
+        atoms[n++] = atom;
       }
     }
+    atoms.resize(n);
 
     // resolution
     clipper::Resolution Reso(resolution);

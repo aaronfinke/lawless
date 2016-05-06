@@ -94,12 +94,22 @@ void PrintFileInfoToXML(const std::string& StreamName,
 void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& output)
 {
   output.logTab(0,LOGFILE,"\nOutlier rejection parameters:");
+
   output.logTab(0,LOGFILE,"In scaling:");
-  output.logTab(0,LOGFILE,controls.outlierScale.Reject(ALL).format());
-  output.logTab(0,LOGFILE,controls.outlierScale.EMaxTest().format());
+  if (controls.outlierScale.GetOutlierPolicy() == OutlierControl::NOREJECT) {
+    output.logTab(0,LOGFILE,"No outlier rejection");
+  } else {
+    output.logTab(0,LOGFILE,controls.outlierScale.Reject(ALL).format());
+    output.logTab(0,LOGFILE,controls.outlierScale.EMaxTest().format());
+  }
+
   output.logTab(0,LOGFILE,"\nIn merging:");
-  output.logTab(0,LOGFILE,controls.outlierMerge.Reject(ALL).format());
-  output.logTab(0,LOGFILE,controls.outlierMerge.EMaxTest().format());
+  if (controls.outlierScale.GetOutlierPolicy() == OutlierControl::NOREJECT) {
+    output.logTab(0,LOGFILE,"No outlier rejection");
+  } else {
+    output.logTab(0,LOGFILE,controls.outlierMerge.Reject(ALL).format());
+    output.logTab(0,LOGFILE,controls.outlierMerge.EMaxTest().format());
+  }
   output.logTab(0,LOGFILE,"\n");
 }
 //--------------------------------------------------------------

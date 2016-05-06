@@ -17,7 +17,7 @@ public:
   EProb();
   EProb(const float& Emax);
 
-  //! initialise from acentric Emax
+  //! initialise from acentric Emax, <= 0.0 to switch off test
   void init(const float& Emax);
 
   //! clear, ie flag as no check

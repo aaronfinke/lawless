@@ -35,10 +35,14 @@ EProb::EProb()
 //! initialise from acentric Emax
 void EProb::init(const float& Emax)
 {
-  emaxacen = Min(Emax, MAXIMUM_EMAX);
-  emaxcentric = CentricEmax(emaxacen); // centric Emax from acentric
-  emaxacen2 = emaxacen*emaxacen;
-  emaxcentric2 = emaxcentric*emaxcentric;
+  if (Emax <= 0.0) {
+    Clear();
+  } else {
+    emaxacen = Min(Emax, MAXIMUM_EMAX);
+    emaxcentric = CentricEmax(emaxacen); // centric Emax from acentric
+    emaxacen2 = emaxacen*emaxacen;
+    emaxcentric2 = emaxcentric*emaxcentric;
+  }
 }
 // ------------------------------------------------------------
 //! clear, ie flag as no check

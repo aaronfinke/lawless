@@ -271,7 +271,7 @@ test: ${TESTOBJ}
 
 ## - - - effective resolution
 TESTEFFEXE= testeffreso
-TESTEFFOBJ= test.o  effectiveresolution.o ${OBJ} ${COBJ}
+TESTEFFOBJ= testeffreso.o  effectiveresolution.o ${OBJ} ${COBJ}
 
 
 testeffreso: ${TESTEFFOBJ}

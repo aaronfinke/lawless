@@ -656,7 +656,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   float sdreja = outliercontrolsmerge.Reject(scala::BOTH).sdrej;
   float sdrej2a = outliercontrolsmerge.Reject(scala::BOTH).sdrej2;
   float emax = -1.0;
-  bool  emaxgiven = false;
+  int  emaxgiven = -1;
   bool combine = false;
   float batchrejectfactor = -1.0;  // no batch rejection
 
@@ -692,7 +692,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
         anom = true;
         first = true;
       } else if (keyIs("EMAX")) {
-        emaxgiven = true;
+        emaxgiven = 0;
       } else if (keyIs("BATCH")) {
         batchreject = true;
       } else if (keyIs("NONE")) {
@@ -710,9 +710,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
         } else {
           sdrej2a = number_value;
         }
-      } else if (emaxgiven) {
+      } else if (emaxgiven >= 0) {
         emax = number_value;
-        emaxgiven = false;
+        emaxgiven = +1;
       } else if (batchreject) {
         batchrejectfactor = number_value;
         batchreject = false;
@@ -740,7 +740,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
                                                       batchrejectfactor), scala::ALL);
     outliercontrolsscale.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
                                                       batchrejectfactor), scala::BOTH);
-    if (emax > 0.0) outliercontrolsscale.SetEmax(emax);
+    if (emaxgiven >= 0) outliercontrolsscale.SetEmax(emax);
     if (none) {
       outliercontrolsscale.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
     }
@@ -751,7 +751,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
                                                       batchrejectfactor), scala::ALL);
     outliercontrolsmerge.SetReject(scala::RejectFlags(sdreja, sdrej2a, rej2policy,
                                                       batchrejectfactor), scala::BOTH);
-    if (emax > 0.0) outliercontrolsmerge.SetEmax(emax);
+    if (emaxgiven >= 0) outliercontrolsmerge.SetEmax(emax);
     if (none) {
       outliercontrolsmerge.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
     }

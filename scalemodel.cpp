@@ -1089,11 +1089,11 @@ namespace scala {
         if (nfreedom <= 0) {
           output.logTab(0,LOGFILE,
                         PrintWrappingLines(secsclpar, "Coefficient", sds, "",
-                                           ndummy, "",7,3));
+                                           ndummy, "",8,4));
         } else {
           output.logTab(0,LOGFILE,
                         PrintWrappingLinesWithSD(secsclpar,
-                                                 "Coefficient(Sd)", sds, 7,3));
+                                                 "Coefficient(Sd)", sds, 8,4));
         }
       }
     } // End Secondary

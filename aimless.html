@@ -494,7 +494,7 @@ flagged "@" in the ROGUES file.</p>
 <p>REJECT BATCH &lt;batchrejectfactor&gt; is intended for batch scaling
 of eg XFEL data. After the initial scales are calculated, very weak
 batches with scale factorsbatchrejectfactor x median scale are rejected</p>
-<p>REJECT NONE skips all outlier checking<br>
+<p>REJECT NONE skips all outlier checking, REJECT EMAX 0.0 switches off Emax testing<br>
 
  </p>
 
@@ -543,7 +543,7 @@ sdrej+-] </dd>
       <dd>in merging, if two observations disagree, reject the larger</dd>
       <dt><a name="reject_smaller"></a>SMALLER</dt>
       <dd>in merging, if two observations disagree, reject the smaller</dd><dt><a name="reject_emax"></a>EMAX</dt>
-      <dd>maximum acceptable value for E = normalised |F| [default = 10.0 for acentrics] <br>
+      <dd>maximum acceptable value for E = normalised |F|, &lt;= 0.0 to switch off test [default = 10.0 for acentrics] <br>
       </dd>
 
     </dl>
@@ -1318,7 +1318,8 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.25 fix bug introduced in 0.5.24 which removed from the merged file I+ &amp; I- if either were negative<br>
+  <h2>RELEASE NOTES</h2>0.5.26 REJECT EMAX 0.0 switches off Emax test. Big speed-up in SF calculation (cf Pointless)<br>
+0.5.25 fix bug introduced in 0.5.24 which removed from the merged file I+ &amp; I- if either were negative<br>
 0.5.24
 fix bug if different resolutions for different runs. Small bug fix in
 secondary beam scaling. Switch off secondary scaling in first pass,
@@ -1462,6 +1463,9 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
+
+
 
 
 

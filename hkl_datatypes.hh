@@ -92,6 +92,8 @@ namespace scala
     bool missingI() const { return (clipper::Util::is_nan(I_)); }
     bool missingsigI() const { return (clipper::Util::is_nan(sigI_)); }
 
+    bool is_null() const { return (clipper::Util::is_null(I_) || clipper::Util::is_null(sigI_)); }
+
 
   private:
     float I_, sigI_;
