@@ -57,8 +57,8 @@ namespace scala
   //            averageWavelength  average wavelength for each dataset
   std::vector<Scell> AverageBatchCell(const std::vector<Batch>& batches,
 				      const int& Ndatasets,
-				      std::vector<float>& averageMosaicity,
-				      std::vector<float>& averageWavelength);
+				      std::vector<double>& averageMosaicity,
+				      std::vector<double>& averageWavelength);
   //--------------------------------------------------------------
   // Average unit cells over all batches for specified dataset
   // On entry:
@@ -72,11 +72,11 @@ namespace scala
   // On entry:
   //  datasets     list of datasets
   // Returns:   average wavelength
-  float AverageDsetWavelength(const std::vector<Dataset>& datasets);
+  double AverageDsetWavelength(const std::vector<Dataset>& datasets);
   //--------------------------------------------------------------
   // Average list of wavelengths
   // if idxexclude >= 0, exclude entry with this index
-  float AverageWavelength(const std::vector<float>& allwavelengths,
+  double AverageWavelength(const std::vector<double>& allwavelengths,
 			  const int& idxexclude=-1);
   //======================================================================
   //======================================================================
@@ -162,10 +162,11 @@ namespace scala
     double Variance() const;
     double SD() const;
 
-
-
     // Variance of distribution
     double SampleVariance() const;
+    // Variance of distribution, omitting one observation (v, weight w)
+    double SampleVarianceOmit1(const double& v,
+			       const double& w) const;
     double SampleSD() const;
 
     int Count() const {return count;}

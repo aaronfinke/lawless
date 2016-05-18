@@ -819,7 +819,7 @@ namespace scala {
     // Average batch cells for each dataset
     // also mosaicity & wavelength, and store in dataset object
     if (nbatches > 0) {
-      std::vector<float> averageMosaicity, averageWavelength;
+      std::vector<double> averageMosaicity, averageWavelength;
       std::vector<Scell> avbcell = AverageBatchCell(batches, ndatasets,
                                      averageMosaicity, averageWavelength);
 
@@ -828,10 +828,10 @@ namespace scala {
           // Average batch cell is invalid, use dataset cell instead
           avbcell[j] = datasets[j].cell();
         }
-        ///      datasets[j].SetCell(avbcell[j]);
-          datasets[j].SetMosaicity(averageMosaicity[j]);
-          float wvl = averageWavelength[j];
-          datasets[j].SetCellWavelength(avbcell[j], wvl);
+        //      datasets[j].SetCell(avbcell[j]);
+        datasets[j].SetMosaicity(averageMosaicity[j]);
+        double wvl = averageWavelength[j];
+        datasets[j].SetCellWavelength(avbcell[j], wvl);
       }
     }
     averagecell = AverageDsetCell(datasets);
@@ -839,14 +839,14 @@ namespace scala {
   //--------------------------------------------------------------
   Scell hkl_unmerge_list::AverageOtherBatchData(const std::vector<Batch>& batches,
                                                 const int& ndatasets,
-                                                std::vector<float>& averageMosaicity,
-                                                std::vector<float>& averageWavelength,
+                                                std::vector<double>& averageMosaicity,
+                                                std::vector<double>& averageWavelength,
                                                 std::vector<Scell>& avbcell) const
   {
     // Average batch cells for each dataset
     //  (like AverageBatchData only for other data)
     // also mosaicity & wavelength
-    // Returns overall average cell
+    // Returns average cell for current datasets
     // Sets averageMosaicity, averageWavelength and avbcell
 
     avbcell = AverageBatchCell(batches, ndatasets,
@@ -1061,12 +1061,11 @@ namespace scala {
 
     // Average cell, mosaicity & wavelength over all batches for each dataset
     // & store in dataset
-    std::vector<float> averageMosaicity;  // size otherDatasets.size()
-    std::vector<float> averageWavelength;
+    std::vector<double> averageMosaicity;  // size otherDatasets.size()
+    std::vector<double> averageWavelength;
     std::vector<Scell> avbcell;
-    Scell otheraveragecell =
-      AverageOtherBatchData(otherBatches, otherDatasets.size(),
-                            averageMosaicity, averageWavelength, avbcell);
+    AverageOtherBatchData(otherBatches, otherDatasets.size(),
+                          averageMosaicity, averageWavelength, avbcell);
 
     std::vector<int> DtsIndex(otherDatasets.size());
     int ndts = datasets.size(); // number of current datasets
@@ -1080,7 +1079,14 @@ namespace scala {
         if (otherDatasets[i] == datasets[j]) {
           DtsIndex[i] = j;  // i'th "Other" dataset has same names as j'th
           // add new cell and wavelength into list (put into 1st Xdataset in Dataset)
-          datasets[j].AddCellWavelength(avbcell[i],
+          Scell newcell = avbcell[i];
+          if (newcell.null()) {
+            newcell = otherDatasets[i].cell();
+            if (newcell.null()) {
+              ReportErrors::printWarning("Adding Null Cell to existing list","");
+            }
+          }
+          datasets[j].AddCellWavelength(newcell,
                                         averageWavelength[i]);
           // Check for similar unit cell & wavelength
           //      if (!datasets[j].cell().equalsTol(otherDatasets[i].cell(), Tolerance)) {

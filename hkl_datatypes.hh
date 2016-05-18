@@ -473,7 +473,7 @@ namespace scala
     //! constructor from names, cell, wavelength, Xdataset ID index
     /*!  setid is an ID number unique in a file */
     Xdataset(const PxdName& pxdname, const Scell& cell,
-	     const float& wavel, const int& setid);
+	     const double& wavel, const int& setid);
   
     //! Add batch number to list for this dataset
     void add_batch(const int& batch_num);
@@ -493,18 +493,17 @@ namespace scala
 
     Scell cell() const {return cell_;} //!< return cell
     Scell& cell() {return cell_;} //!< set cell
-    void SetCellWavelength(const Scell& cell, const float& wavel);
+    void SetCellWavelength(const Scell& cell, const double& wavel);
 
-    float wavelength() const {return wavel_;} //!< return wavelength
-    ///    float& wavelength() {return wavel_;} //!< set wavelength
+    double wavelength() const {return wavel_;} //!< return wavelength
 
-    float Mosaicity() const {return av_mosaic;} //!< return average mosaicity
-    float& Mosaicity() {return av_mosaic;}  //!< set average mosaicity
+    double Mosaicity() const {return av_mosaic;} //!< return average mosaicity
+    double& Mosaicity() {return av_mosaic;}  //!< set average mosaicity
    
     std::string formatPrint(const bool& first=true) const; //!< format
 
     //! add in another cell and wavelength
-    void AddCellWavelength(const Scell& newcell, const float& wavel);
+    void AddCellWavelength(const Scell& newcell, const double& wavel);
 
     //! average multiple cells and wavelengths
     void AverageCellWavelength(); 
@@ -514,7 +513,7 @@ namespace scala
     UnitCellSet AllCells() const {return allcells_;}
 
     // List of wavelengths if multiple runs
-    std::vector<float> AllWavelengths() const {return allwavel_;}
+    std::vector<double> AllWavelengths() const {return allwavel_;}
 
     std::string formatAllCells() const; //!< format cell & wavelength list if more than one
     //! return worst deviation (A), = 0 if only one
@@ -530,8 +529,8 @@ namespace scala
     PxdName pxdname_;
     int setid_;  // unique ID number
     Scell cell_;
-    float wavel_;
-    float av_mosaic;
+    double wavel_;
+    double av_mosaic;
     // List of all batch numbers belonging to this dataset
     std::vector<int> batches;
     // List of runs (indices)
@@ -539,7 +538,7 @@ namespace scala
     // List of unit cells if multiple runs
     UnitCellSet allcells_;
     // List of wavelengths if multiple runs
-    std::vector<float> allwavel_;
+    std::vector<double> allwavel_;
     // resolution range for this dataset
     ResoRange resorange;
   };

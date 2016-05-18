@@ -159,11 +159,11 @@ namespace scala {
     return AllCellSet().AverageCell();
   }
   //--------------------------------------------------------------
-  std::vector<float> Dataset::AllWavelengths() const
+  std::vector<double> Dataset::AllWavelengths() const
   {
-    std::vector<float> allwavelengths;
+    std::vector<double> allwavelengths;
     for (size_t k=0; k<xdatasets.size(); k++) {
-      std::vector<float> wvl = xdatasets[k].AllWavelengths();
+      std::vector<double> wvl = xdatasets[k].AllWavelengths();
       allwavelengths.insert(allwavelengths.end(),
                             wvl.begin(), wvl.end());
     }
@@ -171,7 +171,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! return average (or sole) wavelength
-  float Dataset::wavelength() const
+  double Dataset::wavelength() const
   {
     dieIfEmpty("wavelength");
     if (xdatasets.size() == 1) { //only one
@@ -179,15 +179,15 @@ namespace scala {
     }
     // We have 2 or more,average
     double sumwavelength = 0.0;
-    std::vector<float> allwavelengths = AllWavelengths();
+    std::vector<double> allwavelengths = AllWavelengths();
     for (size_t k=0; k<allwavelengths.size(); k++) {
       sumwavelength += allwavelengths[k];
     }
-    return float(sumwavelength/double(allwavelengths.size()));
+    return double(sumwavelength/double(allwavelengths.size()));
   }
   //--------------------------------------------------------------
   //! return wavelength for named crystal
-  float Dataset::wavelength(const std::string& xname) const
+  double Dataset::wavelength(const std::string& xname) const
   {
     dieIfEmpty("wavelength named");
     int idx = XdatasetIndex(xname);
@@ -214,7 +214,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //!< return average mosaicity
-  float Dataset::Mosaicity() const
+  double Dataset::Mosaicity() const
   {
     dieIfEmpty("Mosaicity");
     if (xdatasets.size() == 1) { //only one
@@ -224,7 +224,7 @@ namespace scala {
     for (size_t k=0; k<xdatasets.size(); k++) {
       summos += xdatasets[k].Mosaicity();
     }
-    return float(summos/double(xdatasets.size()));
+    return double(summos/double(xdatasets.size()));
   }
   //--------------------------------------------------------------
   void Dataset::SetResRange(const ResoRange& resrange) //!< set resolution range
@@ -259,7 +259,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! Set unit cells for all Xdatasets
-  void Dataset::SetCellWavelength(const Scell& cell, const float& wavel)
+  void Dataset::SetCellWavelength(const Scell& cell, const double& wavel)
   ///  void Dataset::SetCell(const Scell& cell)
   {
     dieIfEmpty("SetCell");
@@ -269,7 +269,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! Set mosaicity for all Xdatasets
-  void Dataset::SetMosaicity(const float& mosaicity)
+  void Dataset::SetMosaicity(const double& mosaicity)
   {
     dieIfEmpty("SetMosaicity");
     for (size_t k=0; k<xdatasets.size(); k++) {
@@ -278,7 +278,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //! add in another cell and wavelength, put into 1st Xdataset
-  void Dataset::AddCellWavelength(const Scell& newcell, const float& wavel)
+  void Dataset::AddCellWavelength(const Scell& newcell, const double& wavel)
   {
     dieIfEmpty("AddCellWavelength");
     xdatasets[0].AddCellWavelength(newcell, wavel);
@@ -560,7 +560,7 @@ namespace scala {
     std::vector<Scell> cells = allcells.Cells();  // cells
     // differences from mean of others
     std::vector<double> dv = allcells.Deviations();
-    std::vector<float> allwavelengths = AllWavelengths();
+    std::vector<double> allwavelengths = AllWavelengths();
     ASSERT (allwavelengths.size() == cells.size());
 
     for (int i=0;i<allcells.Number();++i) {

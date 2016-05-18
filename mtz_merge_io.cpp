@@ -340,7 +340,7 @@ namespace MtzIO {
     }
 
     ProcessLabels processlabels(mtzin.column_labels(), column_list);
-    bool IorF = processlabels.IorF();
+    IorF = processlabels.IorF();
     anom =  processlabels.anom();
 
     ClipperLabelList labelthings = processlabels.clipperlabellist();

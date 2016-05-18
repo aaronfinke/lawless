@@ -82,6 +82,8 @@ namespace MtzIO {
     std::string Filename() const {return filenamein;}
     // Returns true if merged, false if unmerged
     bool Merged() const {return merged;}
+    bool Amplitudes() const {return IorF;} // true if amplitude F
+
     // Maximum resolution
     clipper::Resolution MtzResolution() const {return mtzfile_resolution;}
     // Cell
@@ -95,6 +97,7 @@ namespace MtzIO {
     std::string filenamein; // input file name
     bool fileopen;  // open_read has been called
     bool merged;
+    bool IorF; // true if amplitude F
 
     clipper::Resolution mtzfile_resolution;
     clipper::MTZdataset mtzdataset;

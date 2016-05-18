@@ -969,8 +969,8 @@ namespace scala {
     void AverageBatchData();
     Scell AverageOtherBatchData(const std::vector<Batch>& batches,
 				const int& ndatasets,
-				std::vector<float>& averageMosaicity,
-				std::vector<float>& averageWavelength,
+				std::vector<double>& averageMosaicity,
+				std::vector<double>& averageWavelength,
 				std::vector<Scell>& avbcell) const;
     void sort();    // sort part list
 

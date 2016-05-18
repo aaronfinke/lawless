@@ -158,8 +158,8 @@ namespace scala
   //--------------------------------------------------------------
   std::vector<Scell> AverageBatchCell(const std::vector<Batch>& batches,
                                       const int& ndatasets,
-                                      std::vector<float>& averageMosaicity,
-                                      std::vector<float>& averageWavelength)
+                                      std::vector<double>& averageMosaicity,
+                                      std::vector<double>& averageWavelength)
   // Average unit cells over all batches for each dataset
   // On entry:
   //  batches     list of batches
@@ -185,8 +185,8 @@ namespace scala
     for (int j=0;j<ndatasets;j++) {
       if (n[j] > 0) {
         averagecell[j] = UnitCellSet(allcells[j]).AverageCell();
-        averageMosaicity[j] /= float(n[j]);
-        averageWavelength[j]  /= float(n[j]);
+        averageMosaicity[j] /= double(n[j]);
+        averageWavelength[j]  /= double(n[j]);
         //^
         //std::cout << "AverageBatchCell: dataset "<<j<<"  "<<nbatches<<" batches "
         //                <<"\nAverage cell: "<< averagecell[j].format() <<"\n";
@@ -216,7 +216,7 @@ namespace scala
     return cellset.AverageCell();
   }
   //--------------------------------------------------------------
-  float AverageWavelength(const std::vector<float>& allwavelengths,
+  double AverageWavelength(const std::vector<double>& allwavelengths,
                     const int& idxexclude)
   // Average list of wavelengths
   // if idxexclude >= 0, exclude entry with this index
@@ -232,21 +232,21 @@ namespace scala
         sumwavelength += allwavelengths[k];
       }
     }
-    return float(sumwavelength/double(nc));
+    return double(sumwavelength/double(nc));
   }
   //--------------------------------------------------------------
-  float AverageDsetWavelength(const std::vector<Dataset>& datasets)
+  double AverageDsetWavelength(const std::vector<Dataset>& datasets)
   // Average wavelength over all datasets & store average
   // On entry:
   //  datasets     list of datasets
   // Returns:   average wavelength
   {
-    float averagewvl;
+    double averagewvl;
     int ndatasets = datasets.size();
     double Sumwvl = 0.0;
     int n = 0;
     for (int k=0; k<ndatasets; k++) {
-      std::vector<float> allwavelengths = datasets[k].AllWavelengths();
+      std::vector<double> allwavelengths = datasets[k].AllWavelengths();
       for (size_t j=0; j<allwavelengths.size(); j++) {
         Sumwvl += allwavelengths[j];
         n++;
@@ -474,6 +474,39 @@ namespace scala
       var = Max(0.0, sum_sc2 - sum_sc*sum_sc/sum_w) * fac;
     } else if (count == 1) {
       var = 1.0/sum_w;
+    }
+    return var;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::SampleVarianceOmit1(const double& v,
+                                           const double& w) const
+  // Variance of distribution, omitting one observation (v, weight w)
+  /*  from add
+    sum_sc += w * v;
+    sum_sc2 += w * v * v;
+    sum_w += w;
+    sum_w2 += w * w;
+    count++;
+  */
+  {
+    double var = 0.0;
+    double sum_w_less1 = sum_w - w;
+    if (sum_w_less1 <= 0.0) {return var;}
+    if (count > 2) {
+      // fac = Sum(w)/[(Sum(w))^2 - Sum(w^2)] to allow for bias
+      //   equivalent to n/(n-1) correction, see Wikipedia
+      double fac =
+        sum_w_less1/(sum_w_less1*sum_w_less1 - (sum_w2 - w*w));
+      double sum_sc_less1 = sum_sc - w * v;
+      var = Max(0.0,
+                (sum_sc2 - w*v*v) -
+                sum_sc_less1*sum_sc_less1/sum_w_less1) * fac;
+
+      //      std::cout <<"Omit1 "<<v<<" "<<w<<" "<<var<<" "<<sum_sc<<" "<<
+      //        sum_sc_less1<<" "<<sum_sc2-w*v*v<<
+      //        sum_w_less1<<" "<<sum_w2-w*w<<std::endl; //^-
+    } else if (count == 2) {
+      var = 1.0/sum_w_less1;
     }
     return var;
   }

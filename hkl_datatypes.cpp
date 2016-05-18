@@ -832,7 +832,7 @@ namespace scala
   }
   //--------------------------------------------------------------
   Xdataset::Xdataset(const PxdName& pxdname, const Scell& cell,
-                     const float& wavel, const int& setid)
+                     const double& wavel, const int& setid)
     : pxdname_(pxdname), setid_(setid), cell_(cell), wavel_(wavel)
   {
     allcells_.clear();
@@ -856,7 +856,7 @@ namespace scala
     run_index_list.push_back(RunIndex);
   }
   //--------------------------------------------------------------
-  void Xdataset::AddCellWavelength(const Scell& newcell, const float& wavel)
+  void Xdataset::AddCellWavelength(const Scell& newcell, const double& wavel)
   //! add in another cell and wavelength
   {
     allcells_.AddCell(newcell);
@@ -879,7 +879,7 @@ namespace scala
     return s;
   }
   //--------------------------------------------------------------
-  void Xdataset::SetCellWavelength(const Scell& cell, const float& wavel) {
+  void Xdataset::SetCellWavelength(const Scell& cell, const double& wavel) {
     cell_ = cell;
     wavel_ = wavel;
     allcells_.init(std::vector<Scell>(1,cell));

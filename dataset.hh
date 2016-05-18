@@ -88,16 +88,16 @@ namespace scala
     Scell cell() const;
 
     //! return average (or sole) wavelength
-    float wavelength() const;
+    double wavelength() const;
 
     //! return wavelength for named crystal
-    float wavelength(const std::string& xname) const;
+    double wavelength(const std::string& xname) const;
 
     //! return wavelength range
     Range wavelengthRange() const;
 
     //!< return average mosaicity
-    float Mosaicity() const;
+    double Mosaicity() const;
 
     void SetResRange(const ResoRange& resrange); //!< set resolution range
     ResoRange ResRange() const;   //!< return resolution range
@@ -107,13 +107,13 @@ namespace scala
 
     //! Set unit cells for all Xdatasets
     ///    void SetCell(const Scell& cell);
-    void SetCellWavelength(const Scell& cell, const float& wavel);
+    void SetCellWavelength(const Scell& cell, const double& wavel);
 
     //! Set mosaicity for all Xdatasets
-    void SetMosaicity(const float& mosaicity);
+    void SetMosaicity(const double& mosaicity);
 
     //! add in another cell and wavelength, put into 1st Xdataset
-    void AddCellWavelength(const Scell& newcell, const float& wavel);
+    void AddCellWavelength(const Scell& newcell, const double& wavel);
 
     //! store average cell, return as cell() if this is set
     void setAverageCell(const Scell& avcell) {averagecell_ = avcell;}
@@ -160,7 +160,7 @@ namespace scala
     UnitCellSet AllCellSet() const;
     std::vector<Scell> AllCells() const; //!< all cells
 
-    std::vector<float> AllWavelengths() const;
+    std::vector<double> AllWavelengths() const;
 
     //! return number of cells/wavelengths
     int NumberofCells() const;
