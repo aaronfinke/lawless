@@ -309,8 +309,14 @@ namespace scala {
     // atomic model
     // Read file
     clipper::MMDBfile mfile;
+    const int mmdbflags = ::mmdb::MMDBF_IgnoreBlankLines |
+      ::mmdb::MMDBF_IgnoreDuplSeqNum |
+      ::mmdb::MMDBF_IgnoreNonCoorPDBErrors |
+      ::mmdb::MMDBF_IgnoreRemarks;
+    mfile.SetFlag( mmdbflags );
     clipper::MiniMol  mmol;
     mfile.read_file(xyzin);
+    mfile.GenerateNCSMates();
     mfile.import_minimol(mmol);
 
     clipper::Atom_list atomlist = mmol.model().atom_list();
@@ -459,18 +465,28 @@ namespace scala {
     // atomic model
     // Read file
     clipper::MMDBfile mfile;
+    const int mmdbflags = ::mmdb::MMDBF_IgnoreBlankLines |
+      ::mmdb::MMDBF_IgnoreDuplSeqNum |
+      ::mmdb::MMDBF_IgnoreNonCoorPDBErrors |
+      ::mmdb::MMDBF_IgnoreRemarks;
+    mfile.SetFlag( mmdbflags );
     clipper::MiniMol  mmol;
     mfile.read_file(xyzin);
+    mfile.GenerateNCSMates();
     mfile.import_minimol(mmol);
 
-    std::vector<clipper::Atom> atoms;
     // Strip zero occupancy atoms
-    for (size_t i=0;i<mmol.model().atom_list().size();++i) {
-      clipper::Atom atom = mmol.model().atom_list()[i];
+    clipper::Atom_list atomlist = mmol.model().atom_list();
+    std::vector<clipper::Atom> atoms(atomlist.size());
+    size_t n = 0;
+    clipper::Atom atom;
+    for (size_t i=0;i<atomlist.size();++i) {
+      atom = atomlist[i];
       if (atom.occupancy() > 0.0) {
-        atoms.push_back(atom);
+        atoms[n++] = atom;
       }
     }
+    atoms.resize(n);
 
     // calculate structure factors
     clipper::SFcalc_obs_bulk<float> sfc(fc, fobs, atoms);
