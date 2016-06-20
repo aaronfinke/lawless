@@ -653,7 +653,7 @@ namespace MtzIO
     // Average unit cells over all datasets & store average
     int ndatasets = datasets.size();
     Scell averagecell = AverageDsetCell(datasets);
-    float averagewvl = AverageDsetWavelength(datasets);
+    double averagewvl = AverageDsetWavelength(datasets);
 
     Scell accepted_cell = averagecell;
 
@@ -664,7 +664,7 @@ namespace MtzIO
       }
       accepted_cell = cell;
       for (size_t id=0;id<datasets.size();id++) {
-        float wvl = datasets[id].wavelength();
+        double wvl = datasets[id].wavelength();
         if (wvl < 0.001) {
           wvl = averagewvl;
         }
@@ -1248,7 +1248,7 @@ namespace MtzIO
     // If no datasets, create a dummy one
     int Ndatasets = fdatasets.size();
     if (Ndatasets == 0) {
-      float wavelength = 0.0;
+      double wavelength = 0.0;
       int setid = 1;
       //      std::cout << "\n==== WARNING: no datasets in file, creating one ====\n";
       Xdataset xdts(PxdName("UnspecifiedProject",

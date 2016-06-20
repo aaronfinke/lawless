@@ -28,8 +28,12 @@ namespace MtzIO {
   {
     ASSERT (Labels.size() > 0);
     labels = Labels;
+    // if name contains slashes, replace with '*'
+    xname = fudgeName(xname);
+    dname = fudgeName(dname);
+
     // Make MTZ path string
-    path = "/"+Xname+"/"+Dname+"/[";
+    path = "/"+xname+"/"+dname+"/[";
     int n = 0;
     for (size_t k=0; k<Labels.size(); k++) {
       if (Labels[k] != "") {
@@ -42,9 +46,22 @@ namespace MtzIO {
   ClipperLabelList::ClipperLabelList(const MtzIO::ColumnData& coldat)
     : xname(coldat.xname), dname(coldat.dname)
   {
+    // if name contains slashes, replace with '*'
+    xname = fudgeName(xname);
+    dname = fudgeName(dname);
     labels.assign(1, coldat.label);
     // Make MTZ path string
     path = "/"+xname+"/"+dname+"/["+labels[0]+"]";
+  }
+  //--------------------------------------------------------------
+  std::string ClipperLabelList::fudgeName(const std::string& name) const
+  // if name contains slashes, replace with '*'
+  {
+    std::string newname = name;
+    if (name.find("/") != std::string::npos) {
+      newname = "*";
+    }
+    return newname;
   }
   //--------------------------------------------------------------
   std::string ClipperLabelList::formatlabels() const

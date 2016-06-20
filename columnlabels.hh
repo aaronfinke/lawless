@@ -37,7 +37,7 @@ namespace MtzIO {
 
     // true if two objects have the same xname & dname
     bool SameXDname(const ColumnData& other) const;
-
+    
     std::string xname;
     std::string dname;
     std::string label; // label in file
@@ -53,6 +53,9 @@ namespace MtzIO {
 		     const std::string& Dname,
 		     const std::vector<std::string>& Labels);
     ClipperLabelList(const MtzIO::ColumnData& coldat);
+
+    // if name contains slashes, replace with '*'
+    std::string fudgeName(const std::string& name) const;
 
     std::string formatlabels() const;
 

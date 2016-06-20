@@ -302,7 +302,7 @@ namespace scala {
     std::string fmt;
     for (int k=0;k<ncc;++k) {
       Zero.push_back(true);
-      fmt+= "%7.3f"; // excluding 1st 3 columns
+      fmt+= "%8.3f"; // excluding 1st 3 columns
     }
     fmt += "\n";
     // store labels, zero flags and format
