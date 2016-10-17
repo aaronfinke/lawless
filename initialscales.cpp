@@ -68,16 +68,22 @@ namespace scala {
   // ---------------------------------------------------------
   InitialScales::InitialScales(hkl_unmerge_list& hkl_list,
                                ScaleModel& AllScales,
+                               const bool& determineScales,
                                const all_controls& controls,
                                phaser_io::Output& output)
   // Get initial estimates of primary scales, from making intensity
   // averages equal
+  // if !determineScales, just check for sufficient overlaps etc
   {
     status = 0;
     minimumoverlap = +1.00001;
-    output.logTab(0,LOGFILE,
-                  "\n========= Initial scaling =========\n\n");
-
+    if (determineScales) {
+      output.logTab(0,LOGFILE,
+                    "\n========= Initial scaling =========\n\n");
+    } else {
+      output.logTab(0,LOGFILE,
+                    "\n========= Checking for scaling overlaps =========\n\n");
+    }
     std::vector<Run> runlist = hkl_list.RunList();   // runs
     int nruns = runlist.size();
     // true if a run has batch scales
@@ -85,7 +91,7 @@ namespace scala {
     // Number of ranges, for batch scale = Nbatches, else number of scales-1
     std::vector<int> nranges_run(nruns,0);
 
-    int nrotranges = 0; // total number of ranges
+    nrotranges = 0; // total number of ranges
     std::vector<int> idxrun(nruns); // index to 1st rotation range for each run
     // Set up rotation ranges for each run
     for (int irun=0;irun<nruns;++irun) {
@@ -104,8 +110,6 @@ namespace scala {
       //      std::cout << "Phirange run " << irun << " " << runlist[irun].PhiRange().format();
       //^-
     }
-    // Only one range, bail out
-    if (nrotranges <= 1) return;
 
     // Resolution ranges
     ResoRange resrange = hkl_list.ResRange();
@@ -129,6 +133,8 @@ namespace scala {
     //  NotOverlap  number of observations which are singletons or only
     //              overlap within the rotation range
     std::vector<int> notoverlap(nrotranges, 0);
+    // number of reflections with multiple observations only within same rotrange
+    nummultipleobsrotrange.assign(nrotranges, 0);
     // list of rotation range indices for each reflection
     std::vector<int> irotlist; // faster to create once and clear each iteration
 
@@ -191,6 +197,10 @@ namespace scala {
         for (size_t k=0; k<irotlist.size(); k++) {
           notoverlap[irotlist[k]]++;
         }
+        if (nobs > 1) {
+          // number of observations with multiple observations only within same rotrange
+          nummultipleobsrotrange[irotlist[0]] += nobs;
+        }
       }
     } // reflection
 
@@ -229,6 +239,27 @@ namespace scala {
       averageoverlap = double(noverlap)/double(noverlap+nnot);
     }
 
+    if (nrotranges == 1) {
+      // special for one range, no scaling
+      fractionaloverlapbyrotrange[0] =
+         double(nummultipleobsrotrange[0])/double(nummultipleobsrotrange[0]+notoverlap[0]);
+      averageoverlap = fractionaloverlapbyrotrange[0];
+      output.logTab(0, LOGFILE,
+                    std::string("\nOnly one rotation range, initial scales set to 1.0\n")+
+                    "  Fractional overlap = Noverlapped/Ntotal = "+
+                    StringUtil::ftos(averageoverlap,5,2)+
+                    "\n   where Noverlapped is the number of observations"+
+                    " with equivalent observations "+
+                    "("+StringUtil::itos(nummultipleobsrotrange[0])+"),\n"+
+                    "   and Ntotal is the total number of observations\n");
+
+      // Store initial scales
+      std::vector<double> gscales(nrotranges, 1.0);  // scales
+      AllScales.SetInitialScales(gscales, numobsrotrange);
+      status = nrotranges;
+      return;
+    }
+
     output.logTab(0, LOGFILE,
                   std::string("\nThe average fractional overlap = Noverlapped/Ntotal, ")+
                   "where Noverlapped is the number of observations\n"+
@@ -253,6 +284,8 @@ namespace scala {
     output.logTabPrintf(0, LOGFILE,
        "\nOverall fractional overlap between rotation ranges %5.2f, minimum %5.2f\n",
                         averageoverlap, minimumoverlap);
+
+    if (!determineScales) {return;}
 
     InitialData data(sumI);  // make data accessible to scale refinement
 
@@ -365,7 +398,12 @@ namespace scala {
       return enough;
     }
     size_t nrotrange = fractionaloverlapbyrotrange.size();
-    if (nrotrange > 0) {
+    if (nrotrange == 1) {
+      // special for 1 range
+      if (fractionaloverlapbyrotrange[0] < overlapthreshold) {
+        enough = false;
+      }
+    } else if (nrotrange > 1) {
       int ngap = 0;
       bool ingap = false;
       int nbad = 0;

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <climits>
 #include <vector>
+#include <cstdlib>
 
 #include <clipper/clipper.h>
 

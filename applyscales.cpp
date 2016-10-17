@@ -106,7 +106,7 @@ namespace scala {
   //----------------------------------------------------------------
   void ApplyScales::printResolution(phaser_io::Output& output) const
   {
-    if (maxrelsddiff < -999.0) {return;}
+    if ((maxrelsddiff < -999.0) || (maxsdk < -999.0)) {return;}
     std::string s =
       "\nEffect of allowing for parameter variance in estimation of sig(I)\n";
     s +=

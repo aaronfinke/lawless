@@ -333,6 +333,9 @@ namespace scala {
     }
     // Count parameters, set nparameters & idxrun indices
     CountParameters();
+    // initialise variances
+    VC.resize(nparameters,nparameters,0.0);
+    varpar.assign(nparameters, 0.0);
   }
   //--------------------------------------------------------------
   void ScaleModel::processLinks(const LinkSpecs& linkspecs,
@@ -2232,10 +2235,11 @@ namespace scala {
     FR.ReadTag("Nsecscales");
     int nssc = FR.Int();
     if (nssc != nsecscales) {
-        clipper::Message::message(Message_fatal
-          ("RESTORE incompatible secondary scale models"));
+      ReportErrors::printWarning("RESTORE incompatible secondary scale models",
+                                 "RestoreChangeSecScaleModel",false);
     }
-
+    nsecscales = nssc;
+    secondary_scales.resize(nsecscales);
     sec_scale_index_run.clear();
     if (nssc > 0) {
       for (int i = 0;i<nssc;++i) { // loop secondary scales in file

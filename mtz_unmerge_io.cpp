@@ -936,10 +936,12 @@ namespace MtzIO
             // reflection has phi out of range
             phierrorcount++;
             if (phierrorcount < MAXPRINT) {
-              std::string message = "Phi out of batch range: batch "+
+              std::string message = "Phi out of batch range: "+
+                hkl.format()+", batch "+
                 StringUtil::itos(batch,5)+", phi "+StringUtil::ftos(phi,7,2)+
                 ", range "+StringUtil::ftos(thisbatch.Phi1(),7,2)+" to "+
-                StringUtil::ftos(thisbatch.Phi2(),7,2);
+                StringUtil::ftos(thisbatch.Phi2(),7,2)+
+                ", width "+StringUtil::ftos(width,5,2);
               ReportErrors::printWarning(message, "", false);
             } else if (phierrorcount == MAXPRINT) {
               ReportErrors::printWarning("... more suppressed", "", false);

@@ -399,7 +399,13 @@ namespace scala
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   MeanVariance::MeanVariance(const std::vector<double>& list)
-    : sum_sc(0.0), sum_w(0.0), count(0)
+    : sum_sc(0.0), sum_w(0.0), sum_w2(0.0), sum_sc2(0.0), count(0)
+  {
+    for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
+  }
+  //--------------------------------------------------------------
+  MeanVariance::MeanVariance(const std::vector<float>& list)
+    : sum_sc(0.0), sum_w(0.0), sum_w2(0.0), sum_sc2(0.0), count(0)
   {
     for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
   }

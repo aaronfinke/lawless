@@ -496,24 +496,24 @@ int main(int argc, char* argv[])
     int allowed_gap = input.Maximum_gap();
 
     // ----- Initial scales
-    if (initialscale) {
-      timer.Start();
-      InitialScales initialscales(hkl_list, AllScales, controls, output);
+    timer.Start();
+    InitialScales initialscales(hkl_list, AllScales, initialscale, controls, output);
+    output.logTab(0,LOGFILE,
+                  "\nTime for initial scaling: "+timer.format(true));
+    output.logFlush();
+
+    // test for enough data for scaling
+    if (minimum_overlap <= 0.0) {
       output.logTab(0,LOGFILE,
-                    "\nTime for initial scaling: "+timer.format(true));
-      output.logFlush();
+                    "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
+    }
+    if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
+      suppressScaling = true;
+    }
 
-      // test for enough data for scaling
-      if (minimum_overlap <= 0.0) {
-        output.logTab(0,LOGFILE,
-          "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
-      }
-      if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
-        suppressScaling = true;
-      }
+    initialscales.reportOverlapXML(output);
 
-      initialscales.reportOverlapXML(output);
-
+    if (initialscale) {
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data
       if (controls.outlierScale.Reject(ALL).batchrejectfactor > 0.0) {
@@ -773,11 +773,9 @@ int main(int argc, char* argv[])
       AnalyseNormalProbability(SD_model, hkl_list, controls, true, output);
     }
 
-    // if scaling done, dump scale model and SDmodel
-    if (FC.mainScale) {
-      WriteToFile(input.DumpFileName(),
-                  AllScales.FormatSave(hkl_list.RunList())+SD_model.FormatSave());
-    }
+    // Always dump scale model and SDmodel
+    WriteToFile(input.DumpFileName(),
+                AllScales.FormatSave(hkl_list.RunList())+SD_model.FormatSave());
 
     firstSDanalysis = +2;
 

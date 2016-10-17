@@ -753,6 +753,7 @@ namespace scala {
     // Default = 0.0
     smoothB.StoreValue(0.0);
     allbatches = true;    // use all batches by default
+    nobsPar.assign(nbfac, 0);
   }
   //--------------------------------------------------------------
   RelativeBfactor::RelativeBfactor(const std::vector<int>& BatchNumbers)

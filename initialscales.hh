@@ -59,6 +59,7 @@ private:
     // Get initial estimates of primary scales, from making intensity
     // averages equal
     InitialScales(hkl_unmerge_list& hkl_list, ScaleModel& AllScales,
+		  const bool& determineScales,
 		  const all_controls& controls,
 		  phaser_io::Output& output);
 
@@ -72,7 +73,10 @@ private:
     void reportOverlapXML(phaser_io::Output& output) const;
 
   private:
+    int nrotranges; // total number of ranges
     std::vector<int> numobsrotrange; // number of observations for rotrange
+    // number of observations with multiple observations only within same rotrange
+    std::vector<int> nummultipleobsrotrange;
     std::vector<double> fractionaloverlapbyrotrange;
     double averageoverlap;
     mutable double overlapthreshold;  // minimum allowed fractional overlap
