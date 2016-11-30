@@ -255,6 +255,9 @@ namespace scala
     averagewvl = Sumwvl/double(n);
     return averagewvl;
   }
+  // ------------------------------------------------------------
+  bool CompareIFpair(const std::pair<int,float>& p1,const std::pair<int,float>& p2)
+  {return (p1.second < p2.second);}
   //--------------------------------------------------------------
   //--------------------------------------------------------------
   MeanSD::MeanSD(const std::vector<float>& list)

@@ -91,9 +91,6 @@ namespace scala
     discrepant = false;
   }
   // ------------------------------------------------------------
-  bool CompareIFpair(const std::pair<int,float>& p1,const std::pair<int,float>& p2)
-  {return (p1.second < p2.second);}
-  // ------------------------------------------------------------
   void SelectedObservations::SetNpart(const int& Npart)
   // Divide into Npart parts: Npart = 2 or 4
   {

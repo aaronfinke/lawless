@@ -78,6 +78,9 @@ namespace scala
   // if idxexclude >= 0, exclude entry with this index
   double AverageWavelength(const std::vector<double>& allwavelengths,
 			  const int& idxexclude=-1);
+  // ------------------------------------------------------------
+  bool CompareIFpair(const std::pair<int,float>& p1,const std::pair<int,float>& p2);
+  // for sorting
   //======================================================================
   //======================================================================
   class MeanSD

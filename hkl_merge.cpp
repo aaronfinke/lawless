@@ -174,8 +174,11 @@ namespace scala {
 // Copy constructor throws exception
   hkl_merge::hkl_merge(const hkl_merge& List)
   {
-    Message::message(Message_fatal
-                     ("hkl_merge: illegal copy constructor"));
+    if (List.status != MLIST::EMPTY) {
+      Message::message(Message_fatal
+                       ("hkl_merge: illegal copy constructor"));
+    }
+    status = MLIST::EMPTY;
   }
 //--------------------------------------------------------------
   // Copy operator throws exception

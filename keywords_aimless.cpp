@@ -684,9 +684,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
         rej2policy = scala::RejectFlags::REJECT;
       } else if (keyIs("KEEP")) {
         rej2policy = scala::RejectFlags::KEEP;
-      } else if (keyIs("REJECTLARGER")) {
+      } else if (keyIs("LARGER")) {
         rej2policy = scala::RejectFlags::REJECTLARGER;
-      } else if (keyIs("REJECTSMALLER")) {
+      } else if (keyIs("SMALLER")) {
         rej2policy = scala::RejectFlags::REJECTSMALLER;
       } else if (keyIs("ALL")) {
         anom = true;
