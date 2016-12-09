@@ -161,6 +161,15 @@ namespace scala
 
     Normalise(const std::vector<clipper::Array2d<BinSums> >& sums_st);
 
+    //  true if there is a valid normalisation factor at this resolution
+    bool validResolution(const float& sSqr) const;
+
+    // set valid resolution range
+    void setResRangeLimit(const ResoRange& resRangeLimit) {resrangelimit = resRangeLimit;}
+
+    // get valid resolution range
+    ResoRange ResRangeLimit() const {return resrangelimit;}
+
     // set max E^2
     void SetE2max(const float& EEmax) {E2max = EEmax;}
 
@@ -177,7 +186,6 @@ namespace scala
     float CorrAvg(const float& sSqr) const;
 
     std::vector<BfactorModel> BfactorCorr() const {return Bfactors;}
-
 
     // return normalised intensity or I/sigI
     // "time" here is actual time or batch, not relative to start of run:
@@ -233,6 +241,7 @@ namespace scala
     std::vector<RPair> sSqrmnIcorr;
     Spline bincorr;
     float E2max;  // Maximum allowed E**2
+    ResoRange resrangelimit;
 
     std::vector<MeanIsdIsSqr> meanisdissqr; // <I>, <sdI>, <sSqr> in resolution bins
 

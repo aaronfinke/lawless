@@ -808,7 +808,7 @@ namespace scala {
           both = true;
           NumAnom[mres]++;           // number unique
           NumAnomSphere[mres] += multcy;   // number unique in sphere
-          // Multiplicity = Min(n+, n-) + Dn/(Dn+1) where Dn = ||n+ - n-||
+          // Multiplicity = (Min(n+, n-) + Dn/(Dn+1))/NumAnom  where Dn = ||n+ - n-||
           float Dn = std::abs(obsplus.Number() - obsminus.Number());
           SNumAnomPairs[mres] += Min(obsplus.Number(), obsminus.Number()) + Dn/(Dn+1.0f);
         }

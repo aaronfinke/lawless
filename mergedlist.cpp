@@ -19,6 +19,8 @@ namespace scala {
   {
     Imean.init(hkl_info_list, ccell);
     Ipm.init(hkl_info_list, ccell);
+    Npl.init(hkl_info_list, ccell);
+    Nmn.init(hkl_info_list, ccell);
   }
 // ---------------------------------------------------------
   MergedList::MergedList(const hkl_unmerge_list& hkl_list, const SDmodel& SDM,
@@ -88,6 +90,8 @@ namespace scala {
     datasetdata.resize(ndatasets);
     std::string simean = "IMEAN,SIGIMEAN";
     std::string sipm   = "I(+), SIGI(+), I(-), SIGI(-)";
+    std::string snpl   = "N(+)";
+    std::string snmn   = "N(-)";
     int jdts;
 
     for (int idts=0;idts<ndatasets;++idts) {
@@ -103,6 +107,8 @@ namespace scala {
         datasetdata[idts].mtzpath = mtzpath+"["+simean+", "+sipm+"]";;
         datasetdata[idts].mtzpathImean = mtzpath+"["+simean+"]";
         datasetdata[idts].mtzpathIpm = mtzpath+"["+sipm+"]";
+        datasetdata[idts].mtzpathNpl = mtzpath+"["+snpl+"]";
+        datasetdata[idts].mtzpathNmn = mtzpath+"["+snmn+"]";
         datasetdata[idts].cset =
           clipper::MTZdataset(pxdname.dname(), datasets[idts].wavelength());
         datasetdata[idts].cxtl =
@@ -116,6 +122,8 @@ namespace scala {
     SelectedObservations obsminus;   // just I-
 
     clipper::xtype data[10];  // 10 in case
+
+    int nplus, nminus; // N+, N-
 
     hkl_list.rewind();
     while (hkl_list.next_reflection(this_refl) >= 0)  {
@@ -137,6 +145,7 @@ namespace scala {
           if (allobs.Number() > 0) {
             nrefdts[idts]++;
             resmaxdts[idts] = Max(resmaxdts[idts], invrsq);
+
             IsigI avI = allobs.Average();
             data[0] = avI.I();
             data[1] = avI.sigI();
@@ -144,20 +153,22 @@ namespace scala {
             maxintensity = Max(maxintensity, avI.I());
             meanI.Add(avI.I());
             meansigI.Add(avI.sigI());
+
             data[2] = 0.0;
             data[3] = 0.0;
-            data[4] = 0.0;
             if (!Centric) {
               data[0] = 0.0;
               data[1] = 0.0;
               obsplus.init(this_refl, jdts, IPLUS); // I+ data for selected dataset
-              if (obsplus.Number() > 0) {
+              nplus = obsplus.Number();
+              if (nplus > 0) {
                 avI = obsplus.Average();
                 data[0] = avI.I();  // I+
                 data[1] = avI.sigI();
               }
               obsminus.init(this_refl, jdts, IMINUS); // I- data for selected dataset
-              if (obsminus.Number() > 0) {
+              nminus = obsminus.Number();
+              if (nminus > 0) {
                 avI = obsminus.Average();
                 data[2] = avI.I();  // I-
                 data[3] = avI.sigI();
@@ -165,8 +176,19 @@ namespace scala {
             } else { // centric, I+ = I- = <I>
               data[2] =avI.I();
               data[3] =avI.sigI();
+              nplus  = allobs.Number();
+              nminus = allobs.Number();
             }
             datasetdata[idts].Ipm.data_import(this_refl.hkl().HKL(), data);
+
+            // counts for I+, I-
+            data[1] = 0.0;
+            data[2] = 0.0;
+            data[3] = 0.0;
+            data[0] = nplus;
+            datasetdata[idts].Npl.data_import(this_refl.hkl().HKL(), data);
+            data[0] = nminus;
+            datasetdata[idts].Nmn.data_import(this_refl.hkl().HKL(), data);
           }
         }
       } // end loop datasets
@@ -209,6 +231,10 @@ namespace scala {
                            datasetdata[idx].mtzpathImean);
     mtzout.export_hkl_data(datasetdata[idx].Ipm,
                            datasetdata[idx].mtzpathIpm); ///!!
+    mtzout.export_hkl_data(datasetdata[idx].Npl,
+                           datasetdata[idx].mtzpathNpl);
+    mtzout.export_hkl_data(datasetdata[idx].Nmn,
+                           datasetdata[idx].mtzpathNmn);
 
     mtzout.close_write();
     return nrefdts[idx];

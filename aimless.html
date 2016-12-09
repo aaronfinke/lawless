@@ -937,12 +937,17 @@ HKLOUT name with the dataset name appended, as "_dataset"<br>
 <div style="margin-left: 40px;">The output file contains columns </div>
 <dl style="margin-left: 40px;">
 
-    <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)<br></pre>
-    <p>Note that there are no M/ISYM or BATCH columns. I(+) &amp; I(-)
+    <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)  N(+)  N(-)<br></pre>
+    <p>Note that there are no M/ISYM or BATCH columns. <br>
+</p>
+  <p>I(+) &amp; I(-)
 are
 the means of the Bijvoet positive and negative reflections respectively
-and are always present even for the option ANOMALOUS OFF.<br>
+and are always present even for the option ANOMALOUS OFF. N(+) and N(-)
+are the number of observations included in I(+) and I(-) respectively.
+For centric reflections I(+) = I(-), N(+) = N(-) <br>
     </p>
+
 </dl>
 <dl>
 
@@ -1318,7 +1323,8 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.30 make REJECT LARGER | SMALLER work<br>
+  <h2>RELEASE NOTES</h2>0.5.31 restrict Emax test to resolutions with a valid normalisation. Output multiplicity counts N+, N- to merged output file<br>
+0.5.30 make REJECT LARGER | SMALLER work. Correct anomalous multiplicity value in summary<br>
 0.5.29 trap case of insufficient data with one rotation range, make dump/restore work for that case<br>
 0.5.28 small format change in RunPairs to avoid column coalescence<br>
 0.5.27 More accurate averaging of wavelengths<br>
@@ -1469,6 +1475,9 @@ See above for Release Notes. </p>
   <h2>SEE ALSO</h2>
 
 </dl>
+
+
+
 
 
 

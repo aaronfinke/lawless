@@ -292,6 +292,8 @@ public:
 
   void SetEmax(const float& Emax); //!< set Emax (acentric)
   EProb EMaxTest() const {return emaxtest;}
+  // true if there is an Emax test
+  bool isEmaxTest() const {return !emaxtest.Null();}
 
   void SetOutlierPolicy(const OutlierPolicy& Outlierpolicy) {outlierpolicy = Outlierpolicy;}
   OutlierPolicy GetOutlierPolicy() const {return outlierpolicy;}

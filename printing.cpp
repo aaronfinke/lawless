@@ -1310,11 +1310,16 @@ void PrintCompletenessMultiplicity(const PxdName& dataset_pxd,
   output.logTab(0,LOGFILE,
 std::string("\n\nCompleteness and multiplicity, including reflections measured only once\n")+
                 "=======================================================================\n\n\n"+
-                "  %poss is completeness in the shell, C%poss in cumulative to that resolution\n"+
+                " %poss is completeness in the shell, C%poss in cumulative to that resolution\n"+
                 " The anomalous completeness values (AnomCmpl) are the percentage of possible anomalous "+
                 "differences measured\n"+
+                " Multiplicity Mlplct is calculated only for measured reflections\n"+
                 " AnomFrc is the % of measured acentric reflections for which an anomalous "+
-                "difference has been measured\n\n");
+                "difference has been measured\n"+
+                " Anomalous multiplicity AnoMlt is calculated for reflections with both I+ and I- measured,"+
+                " and is defined as:\n"+
+                " Sum{[Min(n+, n-) + Dn/(Dn+1)]}/NanomMeasured, where n+, n- are the number of measurements "+
+                " of I+, I-, Dn = |n+ - n-|\n\n");
 
   // Get number of reflections in each resolution bin in complete sphere
   int nbins = ResRange.Nbins();
@@ -1339,8 +1344,10 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
 
   TableGraphPlot graph("Completeness v Resolution ");
   std::string description = "%poss, completeness in shell; C%poss, cumulative completeness. ";
-  description +=  "\nAnomalous completeness (AnomCmpl) is the percentage of possible anomalous differences measured. ";
-  description +=  "\nAnomFrc is the % of measured acentric reflections for which an anomalous difference has been measured";
+  description +=  "\nMultiplicity for measured reflections only";
+  description +=  "\nAnoCmp, anomalous completeness";
+  description +=  "\nAnoMlt, anomalous multiplicity";
+
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(2,7));
   graph.AddLine(TableGraphPlotline(2,8));
@@ -1455,7 +1462,8 @@ std::string("\n\nCompleteness and multiplicity, including reflections measured o
   summarystatistics.StoreCmplMult(cumposs, poss0, possN,
                                   FractionN(1.0, Nobs, Nref), mult0, multN);
   summarystatistics.StoreAnomCmplMult(anomcmpl, anomcmpl0, anomcmplN,
-                                      FractionN(1.0, SNumanompairs, Nacen), anommult0, anommultN);
+                                      FractionN(1.0, SNumanompairs, Nanom),
+                                      anommult0, anommultN);
 }
 //--------------------------------------------------------------
 void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,

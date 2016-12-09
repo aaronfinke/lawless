@@ -366,6 +366,12 @@ namespace scala {
     return 0.0; // dummy
   }
   //--------------------------------------------------------------
+  //  true if there is a valid normalisation factor at this resolution
+  bool Normalise::validResolution(const float& sSqr) const
+  {
+    return (resrangelimit.tbin(sSqr) >= 0);
+  }
+  //--------------------------------------------------------------
   int normdumpnumber = 0;
   void NormDump(const Normalise& NormRes,
                 const std::vector<int>& Batch0,
@@ -528,8 +534,10 @@ namespace scala {
               sum_sSqr[rbin] += sSqr;
               //^
               //              if (rbin == 0) { /// inner bin only
-              //                ///             fprintf(ndump,"%8.5f %8.1f\n", sSqr, this_obs.ksigI());
-              //                fprintf(ndump,"%10.1f %8.1f %8.5f\n", this_obs.kI(), this_obs.ksigI(), sSqr);
+              //              if (rbin > 4) {
+                //                ///             fprintf(ndump,"%8.5f %8.1f\n", sSqr, this_obs.ksigI());
+              //                fprintf(ndump,"%10.1f %8.1f %8.5f %3d\n",
+              //                        this_obs.kI(), this_obs.ksigI(), sSqr, rbin);
               //              } //^-
               resmnI[rbin].Add(this_obs.kI());
               resmnSdI[rbin].Add(this_obs.ksigI());
@@ -574,7 +582,7 @@ namespace scala {
     // Means in resolution bins
     std::vector<MeanIsdIsSqr> meanisdissqr(Nbin);
     //^
-    //^    std::cout << "MeanIsdIsSqr " << Nbin << "\n";
+    //    std::cout << "MeanIsdIsSqr " << Nbin << "\n";
     //^-
     for (int i=0;i<Nbin;++i) {
       if (n_I[i] > 0) {
@@ -613,6 +621,12 @@ namespace scala {
       if (lowreso < highreso*3.0) lowreso = Min(highreso*3.0, lowreso);
       ResRange.SetRange(lowreso, highreso);
     }
+
+    //^
+    //    std::cout << "Resrange "<<ResRange.format() <<std::endl;
+    //^-
+
+    NormRes.setResRangeLimit(ResRange);
 
     // Check if ice ring averages are out of line
     for (int Iring=0; Iring<Icerings.Nrings(); Iring++) {

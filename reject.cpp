@@ -330,19 +330,24 @@ namespace scala {
    const bool& Centric)
   // Return list of index numbers for each Emax outlier observation, if any
   {
-
+    std::vector<int> idxlist;
     reflection this_ref = selobs.Reflection();
     Rtype invresolsq = this_ref.invresolsq();
-    observation this_obs;
 
-    std::vector<int> idxlist;
-    int i;
-    while ((i = selobs.next_observation(this_obs)) >= 0) {
-      this_obs =this_ref.get_observation(i);
-      float E2 = NormRes.applyAvg(this_obs.kI(), invresolsq);
-      if (eprobtest.TooBig(E2, Centric)) {
-        // reject
-        idxlist.push_back(i);
+    if (NormRes.validResolution(invresolsq)) {
+      // there is a valid normalisation factor for this resolution,
+      //  ie the mean intensity is > 0
+      // Can't normalise 0 -> 1 !
+      observation this_obs;
+
+      int i;
+      while ((i = selobs.next_observation(this_obs)) >= 0) {
+        this_obs =this_ref.get_observation(i);
+        float E2 = NormRes.applyAvg(this_obs.kI(), invresolsq);
+        if (eprobtest.TooBig(E2, Centric)) {
+          // reject
+          idxlist.push_back(i);
+        }
       }
     }
     return idxlist;

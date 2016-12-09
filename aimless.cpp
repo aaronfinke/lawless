@@ -606,12 +606,15 @@ int main(int argc, char* argv[])
       output.logFlush();
 
       // Overall Normalisation
-      double MinIsigRatio = -1.0;  // no resolution cutoff
+      double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
       bool Overall = true;  // no run|time variation, just one curve
       Rings NoRings;        // no omission of ice rings
       // Set up resolution bins for normalisation, allowing for number of observations
       ResoRange ResRangeN(hkl_list.RRange().min(), hkl_list.RRange().max(),
                           hkl_list.num_observations());  // shouldn't be changed in Normalise
+
+      // Clear all outlier & other status flags (except ObsFlags)
+      ClearObsStatus(hkl_list);
       Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
                                        ResRangeN, NoRings, 0);
 
@@ -728,7 +731,7 @@ int main(int argc, char* argv[])
 
 
     // Overall Normalisation
-    double MinIsigRatio = -1.0;  // no resolution cutoff
+    double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
     bool Overall = true;  // no run|time variation, just one curve
     Rings NoRings;        // no omission of ice rings
     // Set up resolution bins for normalisation, allowing for number of observations
@@ -867,6 +870,15 @@ int main(int argc, char* argv[])
                     controls.outlierMerge, RoguesList);
       RoguesList.End();
       std::vector<int> nrejs = CountOutliers(hkl_list);
+
+      if (controls.outlierMerge.isEmaxTest()) {
+        // yes there is an Emax test
+        output.logTab(0,LOGFILE,
+                      "Emax test limited to high resolution "+
+                      StringUtil::ftos(NormRes.ResRangeLimit().ResHigh(),8,3)+" A");
+      } else {
+        output.logTab(0,LOGFILE, "No Emax test");
+      }
       output.logTabPrintf(0,LOGFILE,
                           "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
                           nrejs[0], nrejs[1], nrejs[2]);

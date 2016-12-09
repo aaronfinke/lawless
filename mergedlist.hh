@@ -30,11 +30,15 @@ namespace scala {
 
     clipper::HKL_data<clipper::data32::I_sigI> Imean;   // Imean
     clipper::HKL_data<clipper::data32::J_sigJ_ano> Ipm; // I+, I-
+    clipper::HKL_data<clipper::data32::Flag> Npl; // N+
+    clipper::HKL_data<clipper::data32::Flag> Nmn; // N-
     clipper::MTZdataset cset; 
     clipper::MTZcrystal cxtl; 
     clipper::String mtzpath;
     clipper::String mtzpathImean; // xname/dname/[IMEAN,SIGIMEAN]
     clipper::String mtzpathIpm;  // xname/dname/[I(+), SIGI(+), I(-), SIGI(-)]
+    clipper::String mtzpathNpl;  // xname/dname/[N(+)]
+    clipper::String mtzpathNmn;  // xname/dname/[N(-)]
   };
   //================================================================
   class MergedList {
