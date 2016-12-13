@@ -1161,7 +1161,7 @@ void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
                       Rcum.R(), RcumOv.R(),
                       Rmeas.R(), RmeasOv.R(),
                       Rpim.R(), RpimOv.R(),
-                      Rcum.result().count);
+                      RcumOv.result().count);
   output.logTab(0,LOGFILE,table.RawLabels());
   // Store things in summary object
   summarystatistics.StoreRmergeReso(Rcum, rmergeRes[0], rmergeRes[ResRange.Nbins()-1]);
