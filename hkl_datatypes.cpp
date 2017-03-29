@@ -155,6 +155,12 @@ namespace scala
     return st;
   }
   //--------------------------------------------------------------
+  std::string ReindexOp::as_xyz() const
+  {
+    std::string st =  MVutil::FormatReindex_as_xyz(*this);
+    return st;
+  }
+  //--------------------------------------------------------------
   std::string ReindexOp::as_hkl_XML() const
   {
     std::string st =  MVutil::FormatReindex_as_hkl(*this);
@@ -270,12 +276,32 @@ namespace scala
   }
   //--------------------------------------------------------------
   //! change basis of symmetry operator
-  clipper::Symop ReindexOp::Symop(const clipper::Symop& symop) const
+  clipper::Symop ReindexOp::Symop(const clipper::Symop& symop,
+                                  const bool& keepTranslation) const
   {
     // S' = H^-1 S H
     // t' = H^-1 t
+    // Note that for "standard" symmetry operators, the rotation matrix elements are
+    //  all integers (+-1 or 0), and that this is imposed by clipper::Symop
+    // Thus not all reindex operators are suitable for use
+    // keepTranslation  true to not transform translation component
     clipper::Mat33<double> HR = rot();
-    clipper::RTop<double> Sp(HR.inverse()*symop.rot()*HR, HR.inverse() * symop.trn());
+    clipper::RTop<double> Sp;
+    if (keepTranslation) {
+      Sp = clipper::RTop<double>(HR.inverse()*symop.rot()*HR, symop.trn());
+    } else {
+      // transform translation as well
+      Sp = clipper::RTop<double>(HR.inverse()*symop.rot()*HR, HR.inverse() * symop.trn());
+    }
+    //^
+    //    std::cout <<  "ReindexOp::Symop, HR\n"<<HR.format()<<
+    //      "\nHRinverse\n"<<HR.inverse().format()<<
+    //      "\nsymop.rot\n"<<symop.rot().format()<<
+    //      "\nHRinv.S\n"<<(HR.inverse()*symop.rot()).format()<<"\n"
+    //      "\nHRinv.S.HR\n"<<((HR.inverse()*symop.rot())*HR).format()<<"\n";
+    //    std::cout <<"Sp\n"<<Sp.format()<<"\n";
+    //    std::cout <<"new symop\n"<<clipper::Symop(Sp).format()<<"\n";
+
     return clipper::Symop(Sp);
   }
   //--------------------------------------------------------------

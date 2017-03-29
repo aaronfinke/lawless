@@ -68,7 +68,7 @@ namespace MtzIO {
     mcell = Scell(mtzin.cell());
 
     spacegroup.init(mtzin.spacegroup());
-    spacegroupsymbol = spacegroup.Symbol_hm();
+    spacegroupsymbol = spacegroup.symbol_xHM();
     spg_status = mtzin.spacegroup_confidence();
 
     // Clipper seems to return spacegroup R3 as "R3" even on hexagonal axes

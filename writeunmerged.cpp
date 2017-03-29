@@ -318,7 +318,7 @@ namespace MtzIO
     int nsym = SG.num_symops();
 
     fprintf(scafile, "%5d %s\n", nsym,
-            StringUtil::Strip(SG.Symbol_hm()).c_str());
+            StringUtil::Strip(SG.symbol_xHM()).c_str());
     for (int k=0;k<nsym;++k) {
       clipper::Symop symop = SG.Symop(k);
       for (int i=0;i<3;++i) for(int j=0;j<3;++j) {

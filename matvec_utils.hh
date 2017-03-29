@@ -87,7 +87,12 @@ namespace MVutil {
   std::string FormatSymop_as_hkl(const clipper::Symop& op,
 				 const std::string& brackets = "[]");
   std::string FormatReindex_as_hkl(const clipper::RTop<double>& op,
-  				   const std::string& brackets = "[]");
+                                   const std::string& brackets = "[]");
+  std::string FormatReindex_as_xyz(const clipper::RTop<double>& op,
+                                   const std::string& brackets = "()");
+  std::string FormatReindex_as_string(const clipper::RTop<double>& rtop,
+				      const std::string& brackets,
+				      const bool& asHkl);
   //--------------------------------------------------------------
   template<class T> inline T Modulus( const clipper::Vec3<T>& v)
   { return sqrt(v*v); }

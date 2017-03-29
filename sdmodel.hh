@@ -295,6 +295,9 @@ namespace scala
     void AddToAverages(std::vector<MeanValue>& averagerealparameters,
 		       const std::vector<double>& realparameters) const;
 
+    double ISa(const SDcorrection& sdc) const;
+    // ISa = 1/(Sdfac*SDadd)   =~ (I/sig(I))asymtotic for large I
+    // see K.Diederichs, Acta Cryst. D66,733
 
   };
   //--------------------------------------------------------------

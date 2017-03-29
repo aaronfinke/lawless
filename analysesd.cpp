@@ -279,7 +279,9 @@ namespace scala
           output.logTab(0,LOGFILE,
                         "\nSD correction parameters after optimisation\n"+SDM.format());
 
-          output.logTab(0,LXML,SDM.asXML());
+          if (firstAnalysis != 0) {
+            output.logTab(0,LXML,SDM.asXML());
+          }
 
           if (FixSdB) {
             SDM.SetNoSDb(saveSdBfix);  // restore saved fixSdB flag

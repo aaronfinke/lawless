@@ -12,8 +12,34 @@ using clipper::Message_info;
 
 #include "hkl_datatypes.hh"
 #include "crystaltype.hh"
+#include "Output.hh"
 
 namespace scala {
+  //--------------------------------------------------------------
+  class LatticeCenteringList {
+    // handle lattice centre stuff
+  public:
+    LatticeCenteringList();  // build library list
+
+    // List of lattice types
+    std::vector<char> latticeTypes() const {return latticetypes;}
+
+    // test whether cenops corresponds to a valid lattice centering,
+    // in any order. Returns lattice type, or ' ' if not found
+    char findCenteringOps(std::vector<clipper::Symop> cenops);
+
+    // return centering operators for lattice type, "standard" (clipper) order
+    std::vector<clipper::Symop> standardCenteringOps(const char& lattype) const; 
+    std::string format() const;
+
+  private:
+    int nlattices;
+    std::vector<char> latticetypes;
+    // for each lattice type, list of centering operators
+    //  (including the identity)
+    std::vector<std::vector<clipper::Symop> > latcenops; 
+  };
+
   //--------------------------------------------------------------
   //! Change H to R or vv in space group name
   //! If 1st character of name is H or R, change to :
@@ -34,13 +60,15 @@ namespace scala {
   {
   public:
     // Constructors
-    SpaceGroup() : Nsymp(0) {}
+    SpaceGroup() : Nsymp(0), status(0), statusmessage("") {}
+
     SpaceGroup(std::vector<clipper::Symop>& symops); //!< constructor from symops
     SpaceGroup(const std::string& spgname);          //!< constructor from name
     SpaceGroup(const int& SpgNumber);                //!< constructor from number
     SpaceGroup(const clipper::Spacegroup& ClpSG);    //!< constructor from clipper
 
-    void init(std::vector<clipper::Symop>& symops);//!< initialise from symops 
+    bool init(std::vector<clipper::Symop>& symops,
+	      const bool& softfail=false);//!< initialise from symops 
     void init(const std::string& spgname);	   //!< initialise from name	  
     void init(const int& SpgNumber);		   //!< initialise from number 
     void init(const clipper::Spacegroup& ClpSG);   //!< initialise from clipper
@@ -86,9 +114,9 @@ namespace scala {
     std::string formatISYM_as_hkl() const;
 
     //! Space group name
-    std::string Symbol_hm() const {return spacegroupname;}
+    std::string symbol_xHM() const {return spacegroupname;}
     //! Space group name
-    std::string Symbol_hall() const;
+    std::string symbol_Hall() const;
     //! Space group number
     int Spacegroup_number() const {return spacegroupnumber;}
     //! CCP4 Space group number
@@ -104,10 +132,16 @@ namespace scala {
     friend bool operator != (const SpaceGroup& a,const SpaceGroup& b);
 
     //! Change basis, reindex
-    void ChangeBasis(const scala::ReindexOp& reindex);
-  
-    // true if "C 1" etc
-    static bool isNameCentredTriclinic(const std::string& name);
+    //! Returns: = 0, OK, no lattice change
+    //!          = +1 OK, lattice type changed
+    //!          = -1 not OK, fail
+    int ChangeBasis(const scala::ReindexOp& reindex);
+    int  Status() const {return status;}
+    std::string statusMessage() const {return statusmessage;}
+    ReindexOp reindexUsed() const {return reindexused;}
+
+    // true if "C 1" etc, if so return updated name
+    static bool isNameCentredTriclinic(std::string& name);
 
   private:
     int Nsymp;
@@ -115,6 +149,12 @@ namespace scala {
     std::string spacegroupname;
     int spacegroupnumber;
     int CCP4spacegroupnumber;
+
+    // For changebasis
+    int status;
+    char newlattype;
+    std::string statusmessage;
+    scala::ReindexOp reindexused;
 
     // The following operators are in constructor-order
     // (unlike clipper::Spacegroup which may reorder them
@@ -140,6 +180,13 @@ namespace scala {
     clipper::Symop MakeClippersymop(const CSym::ccp4_symop& S) const;
     // Make symop string from CCP4 space group
     std::string AllSymopsfromCCP4(const CSym::CCP4SPG* ccp4sg) const;
+    // try to build new space group from reindexed operators
+    // alters newsymops, adding lattice centering
+    void newSG(const std::vector<clipper::Symop>& newcensymops,
+	       const int& Nsymp,
+	       std::vector<clipper::Symop>& newsymops);
+
+
   };  // end class SpaceGroup
   //--------------------------------------------------------------
   class SymElement {
@@ -213,7 +260,10 @@ namespace scala {
     //! true if hkl is present in lattice, false if systematically absent from lattice
     bool LatticePresent(const Hkl& hkl) const; 
     //! change basis, reindex
-    void ChangeBasis(const scala::ReindexOp& reindex);
+    //! Returns: = 0, OK, no lattice change
+    //!          = +1 OK, lattice type changed
+    //!          = -1 not OK, fail
+    int ChangeBasis(const scala::ReindexOp& reindex);
 
     // *****
     // ***  Symmetry element stuff
@@ -332,6 +382,58 @@ namespace scala {
     // return true if space group is chiral
     bool ChiralTest();
   }; 
+  //--------------------------------------------------------------
+  //--------------------------------------------------------------
+  class CheckReindexSymmetry {
+    // check that reindexed spacegroup is compatible with original spacegroup
+  public:
+    CheckReindexSymmetry() : status(-101) {}
+    CheckReindexSymmetry(const ReindexOp& reindex,
+			 const bool& sgnamegiven,
+			 const std::string& spaceGroupName,
+			 const std::string& filespacegroupname,
+			 const hkl_symmetry& symmetry);
+
+    bool OK() const {return (status >= 0);}  // false if fatal
+
+    bool sameReferenceGroup() const {return samereferencegroup_;}
+
+    // there might be a possible origin shift
+    bool sameOrigin() const {return sameorigin_;}
+
+
+    hkl_symmetry newSymmetry() const {return newsymmetry_;}
+
+    ReindexOp reindex() const {return reindex_;}
+
+    // Report and maybe exit (if fatal error)
+    void report(const bool& verbose,
+		phaser_io::Output& output) const;
+
+  private:
+    int status;
+    hkl_symmetry newsymmetry_;
+    ReindexOp reindex_;
+    bool sgnamegiven_;
+    bool reindexfrominput_;
+    std::string spacegroupname_;
+    SpaceGroup SG_;
+    bool samereferencegroup_;
+    bool spacegroupchanged_;
+    double det_;
+    bool sameorigin_;
+
+    // if filespacegroupname and spacegroupname_ indicate a transformation
+    // between rhombohedral and hexagonal settings of rhombohedral lattice
+    // reindex operator should already have been determined
+    //
+    // Returns true if so, after processing
+    //         false if not so
+    bool checkRhombohedral(const std::string filespacegroupname);
+
+    // true if 'X' == 'H' or 'R'
+    bool HorR(const char& X) const;
+  };
   //--------------------------------------------------------------
 }
 #endif

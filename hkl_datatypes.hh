@@ -108,21 +108,22 @@ namespace scala
   {
   public:
     ReindexOp() : RTop<double>(RTop<double>::identity()),
-      strict(false), deviation(0.0) {}
+		  strict(false), deviation(0.0), frominput(false) {}
     //! constructor from matrix (and optional vector)
     ReindexOp(const Mat33<double>& Hin,
 	      const Vec3<double>& Vin = Vec3<double>(0.0,0.0,0.0))
       : RTop<double>(Hin, Vin),
-      strict(false), deviation(0.0) {}
+      strict(false), deviation(0.0), frominput(false) {}
     //! constructor from RTop
     ReindexOp(const RTop<double>& RTin)
       : RTop<double>(RTin),
-      strict(false), deviation(0.0) {}
+      strict(false), deviation(0.0), frominput(false) {}
     //! copy constructor
     ReindexOp(const ReindexOp& Rdxin)
-      : RTop<double>(Rdxin)    {
+      : RTop<double>(Rdxin) {
       strict = Rdxin.strict;
       deviation = Rdxin.deviation;
+      frominput = Rdxin.frominput;
     }
 
     //! constructor from string eg "2h+k,k,l"
@@ -136,6 +137,12 @@ namespace scala
     void SetDeviation(const double& Deviation) {deviation = Deviation;}
     //! return stored deviation
     double Deviation() const {return deviation;}
+
+    //! set flag to indicate operator is from user input
+    void setFromInput(const bool& frominputflag=true)
+    {frominput = frominputflag;}
+    //! get frominputflag
+    bool fromInput() const {return frominput;}
     
     //! transpose (of rotation part)
     Mat33<double> transpose() const {return rot().transpose();}
@@ -153,14 +160,20 @@ namespace scala
     //! Returns true if there is a translation component
     bool IsTranslation() const {
       return trn() != clipper::Vec3<double>(0.0,0.0,0.0);}
+    double det() const {
+      return rot().det();}
 
     //! change basis of symmetry operator
-    clipper::Symop Symop(const clipper::Symop& symop) const;
+    //! keepTranslation  true to not transform translation component 
+    clipper::Symop Symop(const clipper::Symop& symop,
+			 const bool& keepTranslation=false) const;
 
     //! format as string [h,k,l]
     std::string as_hkl() const;
     //! format as matrix
     std::string as_matrix() const;
+    //! format as string [x,y,z] in real space
+    std::string as_xyz() const;
     //! format as XML matrix
     std::string as_XML() const;
     //! format XML operator
@@ -187,6 +200,9 @@ namespace scala
   private:
     bool strict;
     double deviation;
+
+    // true if read from user input, false if generated (default)
+    bool frominput;
 
     bool realSpaceOperator(const std::string& Operator) const;
   };

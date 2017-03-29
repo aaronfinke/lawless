@@ -126,28 +126,53 @@ namespace MVutil
   //--------------------------------------------------------------
   std::string FormatReindex_as_hkl(const clipper::RTop<double>& op,
                                    const std::string& brackets)
+  {
+    return FormatReindex_as_string(op, brackets, true);
+  }
+  //--------------------------------------------------------------
+  std::string FormatReindex_as_xyz(const clipper::RTop<double>& op,
+                                   const std::string& brackets)
+  {
+    return FormatReindex_as_string(op, brackets, false);
+  }
+  //--------------------------------------------------------------
+  std::string FormatReindex_as_string(const clipper::RTop<double>& op,
+                                      const std::string& brackets,
+                                      const bool& asHkl)
+  // if asHkl true, use h,k,l for reciprocal space, else
+  //   x,y,z for real space (transpose op first)
   // a reindex operator H post-multiplies a row vector h
   // h'T = hT [H]
   {
     //^    std::cout <<"FormatReindex_as_hkl\n" << op.format() << "\n"; //^
     char chkl[] = {'h','k','l'};
+    char cxyz[] = {'x','y','z'};
+    clipper::Mat33<double> opr = op.rot();
+    if (!asHkl) {
+      // real space
+      opr = opr.transpose();
+    }
     std::string s;
     int width = 7; // fall-back field width
     const double TOL = 0.00001;
     for (int i=0;i<3;++i) { // loop columns
       bool first = true;
       for (int j=0;j<3;++j) { // loop rows
-        double r = op.rot()(j,i);
+        double r = opr(j,i);
         if (std::abs(r) > TOL) { // not zero
           if (std::abs(r+1.0) < TOL) { // -1
             s += "-";
           } else {
             if (!first && r > 0.0) s += "+";
             if (std::abs(r-1.0) > TOL) { // not +1.0
-              s += StringUtil::formatFraction(op.rot()(j,i), width);
+              s += StringUtil::formatFraction(opr(j,i), width);
             }
           }
-          s += chkl[j];
+          if (asHkl) {
+            s += chkl[j];
+          } else {
+            s += cxyz[j];
+          }
           first = false;
         }
       }

@@ -52,6 +52,7 @@ namespace scala {
   // fails if the symmetries do not belong to same lattice group
   bool SpacegroupReindex(const GlobalControls& GC,
 			 const hkl_symmetry& HKLINsymm, const Scell& cell,
-			 ReindexOp& Reindex, phaser_io::Output& output);
+			 ReindexOp& Reindex, const bool& failHere,
+			 phaser_io::Output& output);
 }
 #endif

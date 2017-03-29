@@ -257,7 +257,7 @@ std::string TableGraphPlotline::XMLformat(const int& xcolbreak) const
   if (xcolbreak >= 0) {xc = xcolbreak;}
   std::string sxcol = StringUtil::itos(xc,3);
   std::string sycol = StringUtil::itos(ycol,3);
-  s += "<plotline xcol=\""+sxcol+"\" ycol=\""+sycol+"\"";
+  s += "\n<plotline xcol=\""+sxcol+"\" ycol=\""+sycol+"\"";
   if (rhaxis) {
     s += " rightaxis=\"true\"";
   }

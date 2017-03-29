@@ -456,7 +456,7 @@ namespace MtzIO
             hkl_symmetry(spacegroup_).formatCrysSys();
           ReportErrors::printFatalError(errormsg+"\n**** Incompatible symmetries ****");
         }
-        if (spacegroup_.Symbol_hm() != symmset.symbol_xHM()) {
+        if (spacegroup_.symbol_xHM() != symmset.symbol_xHM()) {
           // Different space group, but same crystal system. What to do?
           //  1) same point group, just change space group to first one, no reindexing here,
           //     but maybe later (makecompatible) if axes are permuted
@@ -472,11 +472,11 @@ namespace MtzIO
           if (sameLatType) {
             // Changing symmetry for this file
             output += "\nChanging spacegroup on input from "+
-              spacegroup_.Symbol_hm()+" to "+symmset.symbol_xHM()+
+              spacegroup_.symbol_xHM()+" to "+symmset.symbol_xHM()+
               +" to match first file\n";
           } else {
             output += "\nWarning: spacegroup on input "+
-              spacegroup_.Symbol_hm()+" is not the same as "
+              spacegroup_.symbol_xHM()+" is not the same as "
               +symmset.symbol_xHM()+" from first file\n";
             symmset = hkl_symmetry(spacegroup_);
           }
@@ -505,7 +505,7 @@ namespace MtzIO
         // Changing symmetry for this file
         output += "\nFor file "+mtzname+
           "\n   change spacegroup on input from "+
-          spacegroup_.Symbol_hm()+" to "+hkl_list.symmetry().symbol_xHM()+
+          spacegroup_.symbol_xHM()+" to "+hkl_list.symmetry().symbol_xHM()+
           +" to match first file\n";
       }
 
@@ -553,7 +553,7 @@ namespace MtzIO
                           "\nTitle: %s\n\n", title.c_str());
       output += FormatOutput::logTabPrintf(0,
                           "   Space group from HKLIN file : %s\n",
-                          spacegroup_.Symbol_hm().c_str());
+                          spacegroup_.symbol_xHM().c_str());
       //      output += "\n"+spacegroup_.formatISYM_as_hkl()+"\n";
       output += FormatOutput::logTabPrintf(0, "   Cell: ");
       for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.2f",

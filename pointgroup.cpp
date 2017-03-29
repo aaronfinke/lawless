@@ -976,7 +976,8 @@ namespace CCtbxSym
     // Construct from pointgroup name
     // Remove any translations, don't add inversion
   {
-    if (scala::SpaceGroup::isNameCentredTriclinic(Name)) {
+    std::string name = Name;
+    if (scala::SpaceGroup::isNameCentredTriclinic(name)) {
       // centred triclinic C 1 etc
       sgtbx::space_group Pgroup;
       char LatticeType = Name[0];

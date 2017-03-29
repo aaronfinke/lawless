@@ -896,9 +896,9 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     std::string label = "Fulls & partials";
     int irun = RunIndex;
     if (usetype[irun] > 0) {
-      label = (usetype[irun] == +1) ? "   OnlyFulls    " : "   FewPartials  ";
+      label = (usetype[irun] == +1) ? "  OnlyFulls   " : " FewPartials  ";
     } else if (usetype[irun] < 0){
-      label = (usetype[irun] == -1) ? "  OnlyPartials  " : "    FewFulls    ";
+      label = (usetype[irun] == -1) ? " OnlyPartials " : "  FewFulls    ";
     }
     return label;
   }
@@ -934,13 +934,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     if (both) {
       ss += FormatOutput::logTab(0,
          std::string(
-           "                                    Fulls                    Partials\n")+
-           "    Run                     SdFac     SdB    SdAdd     SdFac     SdB    SdAdd\n");
+           "                                  Fulls                        Partials\n")+
+           "    Run                    SdFac    SdB   SdAdd  ISa    SdFac    SdB   SdAdd  ISa\n");
     } else {
       label = (fullpart > 0) ? "Fulls" : "Partials";
       ss += FormatOutput::logTab(0,
-         std::string("                                    ")+label+"\n"+
-                     "    Run                      SdFac    SdB    SdAdd\n");
+         std::string("                                  ")+label+"\n"+
+                     "    Run                  SdFac    SdB   SdAdd  ISa\n");
     }
 
     for (int irun=0;irun<nsets;++irun) { // loop runs
@@ -956,36 +956,42 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         double sdap = 0.0;
         double sdbp = 0.0;
         double sdcp = 0.0;
+        SDcorrection sdc1, sdc2;
         if (usetype[irun] >= 0) {
           sdaf = sdc_full_run[irun].SDfac();
           sdbf = sdc_full_run[irun].SDb();
           sdcf = sdc_full_run[irun].SDadd();
+          sdc1  = sdc_full_run[irun];
         }
         if (usetype[irun] <= 0) {
           sdap = sdc_partial_run[irun].SDfac();
           sdbp = sdc_partial_run[irun].SDb();
           sdcp = sdc_partial_run[irun].SDadd();
+          sdc2  = sdc_partial_run[irun];
         }
         label = formatUseFlag(irun);
-        ss += FormatOutput::logTabPrintf(0,"%s  %s %7.2f  %6.2f  %7.4f   %7.2f  %6.2f  %7.4f\n",
+        ss += FormatOutput::logTabPrintf(0,
+                    "%s %s %7.2f %6.2f %7.4f %4.1f  %7.2f %6.2f %7.4f %4.1f\n",
                                          runnum.c_str(), label.c_str(),
-                                         sdaf, sdbf, sdcf,
-                                         sdap, sdbp, sdcp);
+                                         sdaf, sdbf, sdcf, ISa(sdc1),
+                                         sdap, sdbp, sdcp, ISa(sdc2));
       } else if (fullpart > 0) {
         // Fulls
         label = formatUseFlag(irun);
-        ss += FormatOutput::logTabPrintf(0,"%s  %s  %7.2f  %6.2f  %7.4f\n",
+        ss += FormatOutput::logTabPrintf(0,"%s %s %7.2f %6.2f %7.4f %4.1f\n",
                                          runnum.c_str(), label.c_str(),
                                          sdc_full_run[irun].SDfac(),
                                          sdc_full_run[irun].SDb(),
-                                         sdc_full_run[irun].SDadd());
+                                         sdc_full_run[irun].SDadd(),
+                                         ISa(sdc_full_run[irun]));
       } else {
         label = formatUseFlag(irun);
-        ss += FormatOutput::logTabPrintf(0,"%s %s  %7.2f  %6.2f  %7.4f\n",
+        ss += FormatOutput::logTabPrintf(0,"%s %s %7.2f %6.2f %7.4f %4.1f\n",
                                          runnum.c_str(),label.c_str(),
                                          sdc_partial_run[irun].SDfac(),
                                          sdc_partial_run[irun].SDb(),
-                                         sdc_partial_run[irun].SDadd());
+                                         sdc_partial_run[irun].SDadd(),
+                                         ISa(sdc_partial_run[irun]));
       }
     }  // end loop runs
 
@@ -1000,22 +1006,34 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     return ss;
   }
   //-------------------------------------------------------------
+  double SDmodel::ISa(const SDcorrection& sdc) const
+  // ISa = 1/(Sdfac*SDadd)   =~ (I/sig(I))asymtotic for large I
+  // see K.Diederichs, Acta Cryst. D66,733
+  {
+    double ISa = 0.0;
+    double sdfacsdadd = sdc.SDfac()*sdc.SDadd();
+    if (sdfacsdadd > 0.0) {
+      ISa = 1.0/sdfacsdadd;
+    }
+    return ISa;
+  }
+  //-------------------------------------------------------------
   std::string SDmodel::asXML() const
   {
     std::string s = "<SDcorrection>\n";
 
     for (int irun=0;irun<nsets;++irun) { // loop runs
       if (allrunssame) {
-        s += "  <AllRuns/>\n";
+        s += "  <AllRuns>\n";
+      } else {
+        s += "<Run> <number>"+ StringUtil::itos(runnumbers[irun],4)+" </number>\n";
       }
-
-
-
       if (usetype[irun] >= 0) {
         s += "  <Fulls>\n";
         s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_full_run[irun].SDfac(),6,2);
         s += StringUtil::MakeXMLtag("SDb",   sdc_full_run[irun].SDb(),6,2);
         s += StringUtil::MakeXMLtag("SDadd", sdc_full_run[irun].SDadd(),8,4);
+        s += StringUtil::MakeXMLtag("ISa", ISa(sdc_full_run[irun]),5,1);
         s += "\n  </Fulls>\n";
       }
       if (usetype[irun] <= 0) {
@@ -1023,7 +1041,13 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         s += "    "+StringUtil::MakeXMLtag("SDfac", sdc_partial_run[irun].SDfac(),6,2);
         s += StringUtil::MakeXMLtag("SDb",   sdc_partial_run[irun].SDb(),6,2);
         s += StringUtil::MakeXMLtag("SDadd", sdc_partial_run[irun].SDadd(),8,4);
+        s += StringUtil::MakeXMLtag("ISa", ISa(sdc_partial_run[irun]),5,1);
         s += "\n  </Partials>\n";
+      }
+      if (allrunssame) {
+        s += "  </AllRuns>\n";
+      } else {
+        s += "</Run>\n";
       }
     }  // end loop runs
     s += "</SDcorrection>\n";

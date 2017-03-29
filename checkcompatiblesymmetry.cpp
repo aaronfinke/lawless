@@ -34,8 +34,8 @@ namespace scala{
 
       if (!SameLaueGroup) {
         // Special for I2 / C2, allowed
-        std::string nameref  = pattSGref.Symbol_hm();
-        std::string nametest = pattSGtest.Symbol_hm();
+        std::string nameref  = pattSGref.symbol_xHM();
+        std::string nametest = pattSGtest.symbol_xHM();
         if (((nameref == "C 1 2/m 1") && (nametest == "I 1 2/m 1")) |   \
             ((nameref == "I 1 2/m 1") && (nametest == "C 1 2/m 1"))) {
           //OK

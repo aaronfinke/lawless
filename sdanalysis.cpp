@@ -556,6 +556,9 @@ namespace scala
                   "The Mean is expected to increase with Imean since the latter\n"+
                   "is a weighted mean and sd(Ihl) & Ihl are correlated\n"+
                   "\nIf the Sigma increases with Imean, increase the value of SdAdd\n\n");
+      output.logTab(0,LOGFILE,
+          std::string("ISa is the predicted asymptotic value of I/sd(I) for large I, see\n")+
+                    " K.Diederichs, Acta Cryst. D66,733\n\n");
     }
     if (sdanal1.Empty()) {
       // no data

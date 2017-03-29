@@ -48,6 +48,12 @@ namespace scala {
     //    std::cout << "[H]to   " << reindex_to.as_hkl() << "\n";
     //^
 
+    //^^
+    //    std::cout << "from_SG_ref "<<from_SGname<<"\n";
+    //    CCtbxSym::PrintCctbxSymops(from_SG_ref);
+    //    std::cout << "to_SG_ref "<<to_SGname<<"\n";
+    //    CCtbxSym::PrintCctbxSymops(to_SG_ref);
+
     // Reference groups may be the same
     if (from_SG_ref == to_SG_ref) {
       samereferencegroup = true;
@@ -77,22 +83,23 @@ namespace scala {
   //--------------------------------------------------------------
   bool SpacegroupReindex(const GlobalControls& GC,
                          const hkl_symmetry& HKLINsymm, const Scell& cell,
-                         ReindexOp& Reindex, phaser_io::Output& output)
+                         ReindexOp& Reindex, const bool& failHere,
+                         phaser_io::Output& output)
   // If SPACEGROUP is specified but no REINDEX operator, generate appropriate reindexing
   // to convert from input HKLIN file HKLINsymm to desired spacegroup
   // Probably really only useful (or indeed valid) for C2 <-> I2 & H3<->R3, or P222 groups
   //
   // input cell corresponds to HKLINsymm
   //
-  // Returns true if Reindex is set
-  // fails if the symmetries do not belong to same lattice group
+  // Returns false if Reindex is set
+  // if failHere is true, fails if the symmetries do not belong to same lattice group
   {
     if (GC.Spacegroup() == "" ||  GC.Spacegroup() == "HKLIN" || GC.IsReindexSet()) return false;
 
     std::string HKLIN_SGname = HKLINsymm.symbol_xHM();
     hkl_symmetry NewSymm(GC.Spacegroup());
     std::string Input_SGname = NewSymm.symbol_xHM();
-    if (NewSymm.CrysSys() != HKLINsymm.CrysSys()) {
+    if (failHere && (NewSymm.CrysSys() != HKLINsymm.CrysSys())) {
       std::string message =
         "Specified SPACEGROUP "+GC.Spacegroup()+
         " must belong to same crystal system and point group\nas the input space group "
@@ -100,32 +107,51 @@ namespace scala {
         " unless REINDEX is explicitly given";
       ReportErrors::printFatalError(message);
     }
-
     // Get reindex operator if needed
     SpacegroupReindexOp sgreindex(HKLIN_SGname, Input_SGname);
 
     if (sgreindex.sameIntensityGroup()) {
+      Reindex = sgreindex.Reindex();
+      if (Reindex.IsIdentity()) {
+        output.logTab(0,LOGFILE,
+                      "\nNo reindexing needed to convert from space group "
+                      +HKLIN_SGname+" to "+Input_SGname);
+      } else {
+        output.logTab(0,LOGFILE,
+                      "\nReindexing data with operator "+Reindex.as_hkl()+
+                      " from space group "+HKLIN_SGname+" to "+Input_SGname);
+      }
+      /*
       // same intensity group, no reindexing needed
       output.logTab(0,LOGFILE,
                     "\nNo reindexing needed to convert from space group "
                     +HKLIN_SGname+" to "+Input_SGname);
       return false;
+      */
     } else if (sgreindex.sameReferenceGroup()) {
       Reindex = sgreindex.Reindex();
       // eg C2 <-> I2, H3 <-> R3
       int AllowI2 =  GC.AllowI2();
       if (NewSymm.lattice_type() != 'I') {
         AllowI2 = 0;  // don't allow I lattice if we've asked for C2
+      } else if (NewSymm.lattice_type() == 'I') {
+        AllowI2 = -1;  // force I lattice if we've asked for I2
       }
 
       if (NewSymm.lattice_type() != 'R') {  // Don't reduce to reference group for R lattice
-        // Get reindex operator from required group Input_SGname to "reference" seting
+        // Get reindex operator from required group Input_SGname to "reference" setting
         CCtbxSym::PointGroup PG(Input_SGname);
         Scell scell = cell.change_basis(Reindex);
         PG.SetCell(scell.UnitCell(), ReindexOp(), AllowI2);
         ReindexOp newreindex = PG.RefSGreindex(); // reindex cell -> best
-        //std::cout << "Reindex " << Reindex.as_hkl() <<"\n"; //^
-        //std::cout << "newreindex " << newreindex.as_hkl() <<"\n"; //^
+
+        //      std::cout << "\nSG: " << HKLIN_SGname<<", "<< Input_SGname<<"\n";
+        //      std::cout <<"Cell: "<<cell.format()<<"\n";
+        //      std::cout <<"SCell: "<<scell.format()<<"\n";
+        //      std::cout <<"RefCell: "<< Scell(PG.TransformedCell()).format()<<"\n";
+        //        std::cout << "Reindex " << Reindex.as_hkl() <<"\n"; //^
+        //        std::cout << "newreindex " << newreindex.as_hkl() <<"\n"; //^
+
         Reindex = Reindex * newreindex;
       }
 
@@ -135,11 +161,13 @@ namespace scala {
 
       return true;
     } else {
-      std::string message =
-        "Specified SPACEGROUP "+GC.Spacegroup()+
-        " must have the same 'reference' space group as the input file symmetry "+HKLIN_SGname+
-        " unless REINDEX is explicitly given";
-      ReportErrors::printFatalError(message);
+      if (failHere) {
+        std::string message =
+          "Specified SPACEGROUP "+GC.Spacegroup()+
+          " must have the same 'reference' space group as the input file symmetry "+HKLIN_SGname+
+          " unless REINDEX is explicitly given";
+        ReportErrors::printFatalError(message);
+      }
     }
     return false;
   }

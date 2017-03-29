@@ -9,8 +9,8 @@ LXX=clang++
 #LXX=g++
 
 #OPT = -g -Wreturn-type
-#OPT = -g -Wall
 OPT = -O2 -Wreturn-type
+#OPT = -g -Wall
 #OPT = -O2 -Wall
 
 CFLAGS= ${OPT} -fno-color-diagnostics

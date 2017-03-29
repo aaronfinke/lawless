@@ -230,7 +230,11 @@ double DM_1minusmCu::dprob(const double& am) const
   {
     double pp = GaussProb(val, posmean, sd);
     double pm = IntgrtProb(DModel).Prob(val, sd);
-    return pp/(pp+pm);
+    double prob = 0.0;
+    if ((pp+pm) > 0.0) {
+      prob = pp/(pp+pm);
+    }
+    return prob;
   }
 //--------------------------------------------------------------
   double ProbUnbiassed(const double& val, const double& sd,
@@ -238,6 +242,10 @@ double DM_1minusmCu::dprob(const double& am) const
   {
     double pp = GaussProb(val, posmean, sd);
     double pm = GaussProb(val, negmean, sd);
-    return pp/(pp+pm);
+    double prob = 0.0;
+    if ((pp+pm) > 0.0) {
+      prob = pp/(pp+pm);
+    }
+    return prob;
   }
 }
