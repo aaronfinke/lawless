@@ -93,6 +93,8 @@ namespace scala
 
     void Restore(Fileread& FR);
 
+    // get "coordinate", ie either (var, Iav^2) or (var, Iav, Iav^2)
+    std::vector<double> coordinate(const double& variance, const double& Iav) const;
 
     // - - Restraints
     //! clear all restraints

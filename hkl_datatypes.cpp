@@ -518,7 +518,7 @@ namespace scala
   {
     std::string s;
     for (int i = 0; i < 6; ++i)
-      s += FormatOutput::logTabPrintf(0, "%7.2f ", cell_[i]);
+      s += FormatOutput::logTabPrintf(0, "%8.2f", cell_[i]);
     if (newline) s += "\n";
     return s;
   }

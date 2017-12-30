@@ -73,7 +73,7 @@ namespace scala {
         // Choose base dataset as the one with the shortest wavelength
         // unless specified
         if (basedataset < 0) {
-          float wvl = 10000.;
+          double wvl = 10000.;
           for (int id=0;id<ndatasets;id++) {
             if (wavelengths[id] < wvl) {
               wvl = wavelengths[id];
@@ -97,9 +97,9 @@ namespace scala {
       }
     }  // end ncorrel > 0
 
-    float danom;
-    std::vector<float> danomdts(ndatasets); // DelAnom for each dataset
-    std::vector<float> Imeandts(ndatasets); // <I> for each dataset, for dispersive values
+    double danom;
+    std::vector<double> danomdts(ndatasets); // DelAnom for each dataset
+    std::vector<double> Imeandts(ndatasets); // <I> for each dataset, for dispersive values
     SelectedObservations obsall, obsplus, obsminus;
     int nacc = 0;
 
@@ -129,7 +129,7 @@ namespace scala {
                 IsigI Iminus = obsminus.Average();
                 if (obsminus.Number() <= 1) {correlAnom = false;}
                 // DelAnom
-                float sig = Iplus.sigI()*Iplus.sigI() +
+                double sig = Iplus.sigI()*Iplus.sigI() +
                   Iminus.sigI()*Iminus.sigI();
                 if (sig > 0.0) {
                   // Store delAnom, & count reflections used for
@@ -152,7 +152,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   // Store slopes of normal probability anomplot for each dataset into Anomdistribution
-  void AllAnomDistributions::SetSlope(const std::vector<float>& slope)
+  void AllAnomDistributions::SetSlope(const std::vector<double>& slope)
   {
     ASSERT (slope.size() == anomdistributions.size());
     for (size_t id=0;id<slope.size();++id) {
@@ -226,7 +226,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AllAnomDistributions::AddCorrelations
-  (const std::vector<float>& danomdts, const std::vector<float>& Imeandts,
+  (const std::vector<double>& danomdts, const std::vector<double>& Imeandts,
    const int& mres)
   // Add in to correlation sums, resolution bin mres
   {
@@ -244,7 +244,7 @@ namespace scala {
       k = 0;
       for (int j=0;j<ndatasets-1;++j) {
         if (j != basedataset) {
-          float dj = Imeandts[j] - Imeandts[basedataset];
+          double dj = Imeandts[j] - Imeandts[basedataset];
           for (int i=j+1;i<ndatasets;++i) {
             if (i != basedataset) {
               if (dj!=0.0 && (Imeandts[i] - Imeandts[basedataset])!=0.0) {
@@ -483,7 +483,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void AnomDistribution::Add(const int& mres,
-                             const float& delAnom, const bool& correlAnom,
+                             const double& delAnom, const bool& correlAnom,
                              SelectedObservations& obsplus,
                              SelectedObservations& obsminus)
   // Store delAnom, & count reflections used for
@@ -499,24 +499,56 @@ namespace scala {
     }
   }
   // ------------------------------------------------------------
-  std::string AnomDistribution::formatStatus(const anomalousStatus& anomalousstatus)
+  std::string AnomDistribution::formatStatus(const AnomalousStatus::anomalousStatus& anomalousstatus,
+                                             const ResolutionLimit& anomresolimitCC)
   // static
+  // (1) anomalousstatus indicates:-
+  //   (a) explicit user input of anomalous ON or OFF, ANOMALOUS_ON_*  or ANOMALOUS_OFF_*,
+  //       or if not specified just  ANOMALOUS_*
+  //   (f) whether an initial estimate (from QQ-plot or CCanom) suggests an anomalous signal
+  //       _* == _FOUND or _ABSENT
+  //
+  // (2) anomresolimitCC is the resolution limit for a "good" anomalous signal
+  //
+  // These two flags may be inconsistent
   {
+    bool reslimitvalid = anomresolimitCC.valid(); // false if unset
+    bool found = AnomalousStatus::isFound(anomalousstatus);       // true if FOUND
+    bool consistent = true;
+
     std::string s;
-    if (anomalousstatus == AnomDistribution::ANOMALOUS_ON_FOUND) {
+    if (anomalousstatus == AnomalousStatus::ANOMALOUS_ON_FOUND) {
       s = "Anomalous flag switched ON in input, strong anomalous signal found";
-    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_ON_ABSENT) {
-      s = "Anomalous flag switched ON in input but the anomalous signal is weak";
-    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_OFF_FOUND) {
+    } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_OFF_FOUND) {
       s = std::string("WARNING WARNING\n")+
- "Anomalous flag swiched OFF in input but there appears to be a significant anomalous signal";
-    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_OFF_ABSENT) {
-      s = "Anomalous flag switched OFF in input, anomalous signal is weak";
-    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_FOUND) {
+        "Anomalous flag switched OFF in input but there appears to be a significant anomalous signal";
+    } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_FOUND) {
       s = "There appears to be a significant anomalous signal so anomalous flag was switched ON";
-    } else if (anomalousstatus == AnomDistribution::ANOMALOUS_ABSENT) {
+    } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_ON_ABSENT) {
+      s = "Anomalous flag switched ON in input but the anomalous signal is weak";
+    } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_OFF_ABSENT) {
+      s = "Anomalous flag switched OFF in input, anomalous signal is weak";
+    } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_ABSENT) {
       s = "The anomalous signal appears to be weak so anomalous flag was left OFF";
     }
+
+    std::string s2 = "";
+    if (reslimitvalid) {
+      // check for consistency between alternative metrics
+      if (found && (anomresolimitCC.Status() < 0)) {
+        consistent = false;
+        s2 = ", but no anomalous resolution limit could be determined";
+      } else if (!found && (anomresolimitCC.Status() >= 0)) {
+        consistent = false;
+        s2 = ", but a resolution limit could still be determined:\n"+
+          anomresolimitCC.formatbrief(true);
+      }
+      if (found and consistent) {
+        s2 = "\n" + anomresolimitCC.formatbrief(true);
+      }
+    }
+    s += s2;
+
     return s;
   }
   // ------------------------------------------------------------

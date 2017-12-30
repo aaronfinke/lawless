@@ -143,7 +143,7 @@ namespace MtzIO {
               "   Space group from HKLIN file : %s\n",
                    mtzin.spacegroup().symbol_hm().c_str());
       output += FormatOutput::logTabPrintf(0, "   Cell: ");
-      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.2f",
+      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%8.2f",
                                  mcell[i]);
       output += FormatOutput::logTab(0,"\n");
       output += FormatOutput::logTabPrintf(0,

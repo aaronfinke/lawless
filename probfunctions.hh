@@ -211,7 +211,7 @@ namespace scala {
   double ProbBiassed(const double& val, const double& sd,
 		   const double& posmean, const MeanModelBase& DModel);
 //--------------------------------------------------------------
-// Unbiassed normal probability
+// Unbiased normal probability
 // if A, p(A|val,sd) ~ N(posmean,sd)
 // if !A, p(!A|val,sd) ~ N(negmean,sd)
 // Returns p(A) normalised

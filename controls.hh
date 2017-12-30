@@ -186,20 +186,23 @@ class AnalysisControls
 //  - resolution binning
 //  - intensity binning
 //  - anisotropy analysis
+//  - batch binning
 {
 public:
-  AnalysisControls() : nresobins(10), nibins(10) {}
+  AnalysisControls() : nresobins(10), nibins(10), batchgroupwidth(-1.0) {}
   AnalysisControls(const int& Nresobins, const int& Nibins, const double& Coneangle,
 		   const double& MinimumHalfdatasetCC,
 		   const double& MinimumHalfdatasetAnomCC,
 		   const double& MinimumIoverSigma, const double& MinimumBatchIoverSigma,
-		   const int& Nbatchsmooth,
+		   const double& Smoothstatisticsrange, const double& Batchgroupwidth,
 		   const bool& Detectoranalysis)
     : nresobins(Nresobins), nibins(Nibins), coneangledegrees(Coneangle),
       minimumhalfdatasetcc(MinimumHalfdatasetCC),
       minimumhalfdatasetanomcc(MinimumHalfdatasetAnomCC),
       minimumioversigma(MinimumIoverSigma),
-      minimumbatchioversigma(MinimumBatchIoverSigma), nbatchsmooth(Nbatchsmooth),
+      minimumbatchioversigma(MinimumBatchIoverSigma), 
+      smoothstatisticsrange(Smoothstatisticsrange),
+      batchgroupwidth(Batchgroupwidth),
       detectoranalysis(Detectoranalysis)
 {}
 
@@ -210,8 +213,9 @@ public:
   double MinimumHalfdatasetAnomCC() const {return minimumhalfdatasetanomcc;}
   double MinimumIoverSigma() const {return minimumioversigma;}
   double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
-  int NbatchSmooth() const {return nbatchsmooth;}
-  void SetNbatchSmooth(const int& Nbatchsmooth) {nbatchsmooth = Nbatchsmooth;}
+  double SmoothStatisticsRange() const {return smoothstatisticsrange;}
+  double Batchgroupwidth() const {return batchgroupwidth;}
+  void  SetBatchgroupwidth(const double& Batchgroupwidth) {batchgroupwidth = Batchgroupwidth;}
   bool DetectorAnalysis() const {return detectoranalysis;}
 
 private:
@@ -222,7 +226,13 @@ private:
   double minimumhalfdatasetanomcc;
   double minimumioversigma;
   double minimumbatchioversigma;
-  int nbatchsmooth; // number of batches over which to smooth statistics
+
+  // phi range over which to smooth statistics
+  double smoothstatisticsrange;
+
+  // for analysis, batches may be grouped by batchgroupwidth degrees,
+  // <= 0.0 to use actual batch number
+  double batchgroupwidth;
   bool detectoranalysis;
 };
 //------------------------------------------------------------
@@ -241,6 +251,9 @@ public:
   std::string format() const;
 
   std::string formatReject2Policy() const;
+
+  std::string formatXML(const std::string& tag,
+			const std::string& attribute="") const;
 
   float sdrej;        // SD multiplier for outlier rejection
   float sdrej2;       //  special for two observations
@@ -297,6 +310,8 @@ public:
 
   void SetOutlierPolicy(const OutlierPolicy& Outlierpolicy) {outlierpolicy = Outlierpolicy;}
   OutlierPolicy GetOutlierPolicy() const {return outlierpolicy;}
+
+  std::string formatXML() const;  // format for XML
 
 private:
   bool combine;                // true for outlier checks between datasets

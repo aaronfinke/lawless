@@ -43,7 +43,8 @@ RejectBatches::RejectBatches(hkl_unmerge_list& hkl_list,
   std::vector<float> scale0batch;
   std::vector<float> bfacbatch;
   std::vector<Batch> batches = hkl_list.Batches();
-  BatchScales0(batches, -1, AllScales,
+  // use dummy Batchgroup with no grouping
+  BatchScales0(batches, Batchgroup(), -1, AllScales,
                scale0batch, bfacbatch);
   std::vector<float> scale0batch_sort = scale0batch;
   float medianscale = Median<float>(scale0batch_sort).median();

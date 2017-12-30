@@ -36,7 +36,8 @@ namespace MtzIO
         }
         trn[k] = mtzsym.sym[i][k][3];
       }
-      symops.push_back(clipper::Symop(RTop<>(rot,trn)));
+      clipper::RTop<double> S(rot,trn);
+      symops.push_back(clipper::Symop(S));
     }
     return symops;
   }

@@ -12,9 +12,10 @@
 #include "scala_util.hh"
 #include "radialfunction.hh"
 #include "fitresolutiondata.hh"
-
+#include "anomalousstatus.hh"
 
 namespace scala {
+  class AnomDistribution;
   //---------------------------------------------------------------
   class ResolutionLimit {
     //! A high resolution limit is determined from a score list for

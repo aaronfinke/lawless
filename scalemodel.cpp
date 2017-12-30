@@ -43,6 +43,7 @@ namespace scala {
   // initialise from input commands and reflection list
   // Scale specification(s) from input
   {
+    status = 0;
     // Setup scale model
     pole = 0;
     std::vector<scala::ScaleSpecification> scaleSpecs =
@@ -54,6 +55,8 @@ namespace scala {
       autoTiles(scaleSpecs, hkl_list, output);
     }
     setup(scaleSpecs, linkspecs, hkl_list, output);
+    if (status < 0) {return;}
+    status = +1;
 
     std::vector<Run> runlist = hkl_list.RunList();
     // run number for each lattice number-1 (lattices are numbered from 1)
@@ -139,8 +142,8 @@ namespace scala {
     if (nsecscales > 0 && !secbeamsOK) {
       // if we have secondary scales we must have secondary beams calculated
       //  but we shouldn't get here anyway!
-      ReportErrors::printFatalError
-        ("ScaleModel: can't use Secondary Scale unless we have valid orientation information");
+      Message::message(Message_fatal
+         ("ScaleModel: can't use Secondary Scale unless we have valid orientation information"));
     }
   }
   //--------------------------------------------------------------
@@ -211,9 +214,9 @@ namespace scala {
       int isp = scaleSpecIndex(irun, scaleSpecs, runlist);
       if (isp < 0) {
         // shouldn't happen
-        ReportErrors::printFatalError
-          ("ScaleModel: no scale specification for run "+
-           clipper::String(irun));
+        Message::message(Message_fatal
+                         ("ScaleModel: no scale specification for run "+
+                          clipper::String(irun)));
       }
 
       // Secondary checks
@@ -242,8 +245,8 @@ namespace scala {
             if (pole != 0) {OK = false;}
           }
           if (!OK) {
-            ReportErrors::printFatalError
-              ("You cannot mix SECONDARY and ABSORPTION");
+            Message::message(Message_fatal
+                             ("You cannot mix SECONDARY and ABSORPTION"));
           }
           // check each run beyond 1st for same dataset
           runXname[irun] = runlist[irun].PXDname().xname();
@@ -317,6 +320,7 @@ namespace scala {
           std::string s = SetupScale(irun, scaleSpecs[isp], runlist[irun],
                                      validscalemodel, output);
           if (s != "") {output.logTab(0,LOGFILE,s);}
+          if (status < 0) {return;}
           runSetup[irun] = true;
         }
       }
@@ -328,6 +332,7 @@ namespace scala {
         std::string s = SetupScale(irun, scaleSpecs[0], runlist[irun],
                                    validscalemodel, output);
         if (s != "") {output.logTab(0,LOGFILE,s);}
+        if (status < 0) {return;}
         runSetup[irun] = true;
       }
     }
@@ -424,9 +429,9 @@ namespace scala {
     for (int i=0;i<=maxsclidx;++i) {
       if (sclidx[i] < 0) {
         // this scale i has not been allocated to a run
-        ReportErrors::printFatalError
-          ("ScaleModel: secondary scale number "+
-           clipper::String(i)+" is not allocated to a run");
+        Message::message(Message_fatal
+                         ("ScaleModel: secondary scale number "+
+                          clipper::String(i)+" is not allocated to a run"));
       }
     }
     return maxsclidx+1;
@@ -512,8 +517,8 @@ namespace scala {
         " This may be switched off using the command SCALES NOTILE\n");
         } else if (scaleSpecs[isp].detectorscaletype == DetectorScale::AUTOMATIC) {
           // Undefined detector type
-          ReportErrors::printFatalError
-            ("\nERROR in ScaleModel: undefined detector type for TILE");
+          Message::message(Message_fatal
+                           ("\nERROR in ScaleModel: undefined detector type for TILE"));
         }
       } // end if !TILE
 
@@ -645,8 +650,8 @@ namespace scala {
   // Set reject list for batches, relevant for BATCH scale mode only (fail if not)
   {
     if (!isAllBatch()) {
-      ReportErrors::printFatalError
-        ("Cannot use REJECT BATCH unless BATCH scaling is used");
+      Message::message(Message_fatal
+       ("Cannot use REJECT BATCH unless BATCH scaling is used"));
     }
     ASSERT (usebatch.size() == batchnumbers.size());
     for (int irun=0;irun<nruns;irun++) {
@@ -697,15 +702,17 @@ namespace scala {
         scaleSpec.bspacing > 0.0) {
       if (!batchscale) { // smooth mode
         if (!validscalemodel.ValidPrimary(irun)) {
-          ReportErrors::printFatalError
-            ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
-             " has insuffient information for smooth scaling\n");
+          s = "\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
+            " has insuffient information for smooth scaling\n";
+          ReportErrors::printWarning(s, "ScaleModelError");
+          status = -1;
+          return s;
         }
       } else if (batchscale) {
         if (!validscalemodel.ValidBatch(irun)) {
-          ReportErrors::printFatalError
-            ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
-             " has no useful batch information for BATCH scaling\n");
+          Message::message(Message_fatal
+                           ("\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
+                            " has no useful batch information for BATCH scaling\n"));
         }
       }
     } // end check
@@ -1330,9 +1337,9 @@ namespace scala {
   // get type for a parameter
   {
     if (Ipar < 0 || Ipar >= nparameters) {
-      ReportErrors::printFatalError
-        ("GetParameterType: parameter number out of range"+
-         clipper::String(Ipar));
+      clipper::Message::message(Message_fatal
+                                ("GetParameterType: parameter number out of range"+
+                                 clipper::String(Ipar)));
     }
     // Order of parameters:
     //   1. all primary scale parameters (nprimaryscale)
@@ -1521,6 +1528,7 @@ namespace scala {
   // Return true if model is refinable, ie not just one scale and one B-factor
   bool ScaleModel::IsRefinable() const
   {
+    if (status < 0) {return false;}  // insufficient information
     return (nprimaryscale > 1) || (nbfactors > 1) ||
       (nsecondaryscale > 0) || (ntilescale > 0);
   }
@@ -1857,7 +1865,8 @@ namespace scala {
       double scnorm = primary_scales[scalenormrun].Scales()[scalenormbatch];
       if (scnorm <= 0.0) {
         std::vector<double> pscales = primary_scales[scalenormrun].Scales();
-        ReportErrors::printFatalError("Normalisation scale < 0");
+        clipper::Message::message(Message_fatal
+                                  ("Normalisation scale < 0"));
       }
       for (int irun=0;irun<nruns;irun++) {
         // Scales for this run
@@ -2183,15 +2192,15 @@ namespace scala {
 
     FR.ReadTag("ScaleModel"); // Note ReadTag fails if tag is wrong
     if (FR.GetTag() != "V1.1") {  // version check
-      ReportErrors::printFatalError
-        ("RESTORE incompatible version in "+restorefilename);
+      clipper::Message::message(Message_fatal
+                ("RESTORE incompatible version in "+restorefilename));
     }
     FR.Skip(); // skip "{"
 
     RunsFromSavefile savefileruns(FR, runlist);
     if (savefileruns.NumberRunsFound() < int(runlist.size())) {
-      ReportErrors::printFatalError
-        ("RESTORE not all runs found in save file");
+      clipper::Message::message(Message_fatal
+                        ("RESTORE not all runs found in save file"));
     }
 
     int svnruns = savefileruns.NumberRunsInSaveFile();
@@ -2216,8 +2225,8 @@ namespace scala {
     FR.ReadTag("Nbfactors");
     int nbf = FR.Int();
     if (nbf != svnruns) {
-      ReportErrors::printFatalError
-        ("RESTORE number of B-factors != number of runs");
+      clipper::Message::message(Message_fatal
+                                ("RESTORE number of B-factors != number of runs"));
     }
     jpr = 0;
     for (int ipr = 0;ipr<svnruns;++ipr) { // loop B-factors in file
@@ -2254,16 +2263,16 @@ namespace scala {
         }
       }
       if (int(sec_scale_index_run.size()) != nruns) {
-        ReportErrors::printFatalError
-          ("RESTORE number of Sec_scale_index_runs != number of runs");
+        clipper::Message::message(Message_fatal
+                                  ("RESTORE number of Sec_scale_index_runs != number of runs"));
       }
     }
 
     FR.ReadTag("Ndetscales");
     int ndsc = FR.Int();
     if (ndsc != ndetscales) {
-      ReportErrors::printFatalError
-        ("RESTORE incompatible detector models");
+        clipper::Message::message(Message_fatal
+          ("RESTORE incompatible detector models"));
     }
     if (ndetscales > 0) {
       for (int i=0;i<ndetscales;++i) {
@@ -2297,9 +2306,9 @@ namespace scala {
     if (FR.GetTag() != "Variances") { // variances present
       FR.ReadTag("Nparameters"); int npar = FR.Int();
       if (npar != nparameters) {
-        ReportErrors::printFatalError
+        clipper::Message::message(Message_fatal
           ("RESTORE Variances: wrong number of parameters "+
-           clipper::String(npar)+", "+clipper::String(nparameters));
+           clipper::String(npar)+", "+clipper::String(nparameters)));
       }
       FR.ReadTag("nfreedom"); nfreedom = FR.Int();
       FR.ReadTag("wD2"); wd2 = FR.Double();

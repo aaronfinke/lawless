@@ -39,6 +39,10 @@ namespace scala
     //! return MeanSD(delta) for each intensity bin
     std::vector<MeanSD> MeanDelta() const;
 
+    //! return MeanSD(delta^2) for each intensity bin
+    std::vector<MeanSD> MeanChiSq() const
+    {return mndeltaSq;}
+
     // return d(sigma(delta[inb]))/dp[k] for intensity bins inb
     // outer vector length nparams (k), inner length numintbins (inb)
     std::vector<std::vector<double> > dSigmaDeltaDp() const;
@@ -52,6 +56,7 @@ namespace scala
   private:
     int numintbins; // number of intensity bins
     std::vector<MeanSD> mndelta; // by intensitybin
+    std::vector<MeanSD> mndeltaSq; // by intensitybin , Mean(chi^2)
     int nparams;    // number of (local) parameters for partial derivative components, 0 none
 
     // in the following, outer vector length nparams, inner length numintbins
@@ -91,7 +96,7 @@ namespace scala
     //! return true if allsame run
     bool AllSameRun() const {return allsamerun;}
 
-    //! set maximum allowed delta, just to eliminate idiocies
+    //! set maximum allowed delta, just to eliminate idiocies (not used)
     void SetDeltaLimit(const float& deltaLimit) {deltalimit = deltaLimit;}
 
     //! add in delta, for intensity bin intBin, run irun, full == false for partial
@@ -134,6 +139,15 @@ namespace scala
 		  const int& irun, const int& fullpart) const;
     // Return vector for all intensity bins
     std::vector<MeanSD> GetMeanSD(const int& irun, const bool& full) const;
+
+    // Return one element
+    MeanSD GetMeanChiSq(const int& intBin,
+		  const int& irun, const bool& full) const;
+    // Return one element
+    MeanSD GetMeanChiSq(const int& intBin,
+		  const int& irun, const int& fullpart) const;
+    // Return vector for all intensity bins
+    std::vector<MeanSD> GetMeanChiSq(const int& irun, const bool& full) const;
 
     //! return number of observations in each intensity bin, over all runs and full/partials
     std::vector<int> NumberinIntbins() const;
@@ -183,6 +197,9 @@ namespace scala
     //! corresponding numbers
     std::vector<std::vector<int> > NumberInDerivatives() const;
 
+    //! parameter group number for run and full/partial
+    int ParameterGroup(const int& irun, const bool& full) const;
+
   private:
     std::string pxdname;
     int numintensitybins;
@@ -213,9 +230,6 @@ namespace scala
     // index into global parameter list for 1st parameter of each parameter group
     std::vector<int> idxparametergroup;
 
-    //! parameter group number for run and full/partial
-    int ParameterGroup(const int& irun, const bool& full) const;
-
     float deltalimit;  // maximum allowed delta, just to eliminate idiocies
 
     FILE* dumpfile; 
@@ -237,6 +251,7 @@ namespace scala
 			    const int& fullpartial,
 			    const bool& outer,
 			    const std::vector<std::vector<MeanSD> >& msdanal,
+                            const std::vector<std::vector<MeanSD> >& mnchisq,
 			    phaser_io::Output& output);
   // ------------------------------------------------------------
 }

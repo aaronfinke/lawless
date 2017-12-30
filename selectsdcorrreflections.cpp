@@ -37,7 +37,7 @@ namespace scala {
   {
     hkl_list.ResetReflAccept();  // set to accept everything
     // Overall Normalisation
-    double MinIsigRatio = -1.0;  // no resolution cutoff
+    double MinIsigRatio = 0.6;  // resolution cutoff
     bool Overall = true;
     Rings NoRings;
     ResoRange ResRangeN = hkl_list.ResLimRange();

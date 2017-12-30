@@ -35,7 +35,6 @@ typedef std::pair<float,float> RPair;
 typedef std::pair<double,double> DPair;
 
 
-
 namespace scala
 {
   //--------------------------------------------------------------
@@ -56,6 +55,8 @@ namespace scala
     double slope(const float& b=0.0) const;
     // Return number of points
     int Number() const {return np;}
+    // return value of x for given y
+    double xvalueaty(const float& y) const;
 
     //  sd(slope), sd(intercept)
     RPair uncertainties() const;
@@ -250,7 +251,7 @@ namespace scala
     friend Rfactor& operator+ (const Rfactor& a, const Rfactor& b);
 
     // Scale numerator
-    void scale(const double& scale) {sum_df *= scale;}
+    void scale(const double& scale);
 
   private:
     double sum_df, sum_f;

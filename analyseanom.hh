@@ -27,7 +27,7 @@ namespace scala
 
 
     // Returns mid-slopes of DelAnom normal probability plot for each dataset
-    std::vector<float> Slopes() const {return slopes;}
+    std::vector<double> Slopes() const {return slopes;}
 
     // for each dataset for each resolution bin
     std::vector<std::vector<MeanSD> > RmsDelAnom() const {return rmsdelanom;}
@@ -35,7 +35,7 @@ namespace scala
 
   private:
     int ndatasets;
-    std::vector<float> slopes;      // for each dataset
+    std::vector<double> slopes;      // for each dataset
     int nresbin;                    // number of resolution bins
     std::vector<std::vector<MeanSD> > rmsdelanom; // for each dataset for each resolution bin
 

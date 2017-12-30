@@ -3,6 +3,8 @@
 #ifndef WEIGHTTYPE_HEADER
 #define WEIGHTTYPE_HEADER
 
+#include <string>
+
 namespace scala{
 
   class WeightType {
@@ -13,6 +15,9 @@ namespace scala{
     //   SQRTSCALE   weight = sqrt(g)  g = 1/scale
     //   SCALE       weight = g        g = 1/scale
     enum AverageWeightType {UNIT, VARIANCE, SQRTSCALE, SCALE};
+
+    static std::string formatWeightType (const AverageWeightType& weighttype);
+
   };
 }
 

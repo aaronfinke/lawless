@@ -35,8 +35,8 @@ namespace scala {
   std::pair<int,int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
 					      const SDmodel& SDM,
 					      const ScaleModel& AllScales,
-					      float& IovSDmin,
-					      const float& E2min, const float& E2max);
+					      double& IovSDmin,
+					      const double& E2min, const double& E2max);
 }
 
 #endif

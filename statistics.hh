@@ -16,6 +16,7 @@
 #include "anomdistribution.hh"
 #include "summarystatistics.hh"
 #include "referencelist.hh"
+#include "batchgroup.hh"
  
 namespace scala {
   //
@@ -48,6 +49,7 @@ namespace scala {
   //
   // On entry:
   //  batches        list of all batches (including those not in this dataset)
+  //  batchgroup     batch grouping
   //  datasetIndex   dataset index number to select dataset
   //  AllScales      scales
   //
@@ -55,6 +57,7 @@ namespace scala {
   //  scale0batch    primary scales at theta=0 for centre of each batch
   //  bfacbatch      Bfactor for each batch
   void BatchScales0(const std::vector<Batch>& batches,
+		    const Batchgroup& batchgroup,
 		    const int& datasetIndex, const ScaleModel& AllScales,
 		    std::vector<float>& scale0batch,
 		    std::vector<float>& bfacbatch);

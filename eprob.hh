@@ -31,6 +31,8 @@ public:
 
   std::string format() const;
 
+  std::string formatXML() const;
+
 private:
   float emaxacen;  // acentric
   float emaxcentric;

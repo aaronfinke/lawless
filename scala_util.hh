@@ -1,3 +1,4 @@
+
 #ifndef SCALA_UTIL
 #define SCALA_UTIL
 
@@ -23,10 +24,10 @@ namespace scala
   //--------------------------------------------------------------
   // Return formatted unit cell
   std::string FormatCell(const std::vector<double>& cell,
-			 const int w=7, const int p=2);
+			 const int w=8, const int p=2);
   //--------------------------------------------------------------
   // Return formatted unit cell
-  std::string FormatCell(const Scell& cell, const int w=7, const int p=2);
+  std::string FormatCell(const Scell& cell, const int w=8, const int p=2);
   //--------------------------------------------------------------
   RPair MnSd(const std::vector<double>& val);
   // Return mean & SD of vector elements
@@ -126,6 +127,7 @@ namespace scala
   
     void Add(const float& v, const float& w = 1.0f);
     void Add(const double& v, const double& w = 1.0);
+    void Subtract(const double& v, const double& w = 1.0);
     void clear() {sum_sc=0.0; sum_w=0.0; count=0;}
 
     double Mean() const;
@@ -152,25 +154,29 @@ namespace scala
   
     void Add(const float& v, const float& w = 1.0f);
     void Add(const double& v, const double& w = 1.0);
+    void Subtract(const double& v, const double& w = 1.0);
     void clear();
 
     double Mean() const;
 
     // variance of mean from the weights ie 1/Sum(weights)
-    double VarianceFromWeights() const;
+    double VarianceofMeanFromWeights() const;
     // SD of mean from the weights ie sqrt(1/Sum(weights))
-    double SDfromWeights() const;
+    double SDofMeanfromWeights() const;
 
     // Variance of mean
-    double Variance() const;
-    double SD() const;
+    double VarianceofMean() const;
+    double SDofMean() const;
+    // Variance of mean, omitting one observation (v, weight w)
+    double VarianceofMeanOmit1(const double& v,
+			 const double& w) const;
 
     // Variance of distribution
     double SampleVariance() const;
-    // Variance of distribution, omitting one observation (v, weight w)
+    double SampleSD() const;
+    // Variance of mean, omitting one observation (v, weight w)
     double SampleVarianceOmit1(const double& v,
 			       const double& w) const;
-    double SampleSD() const;
 
     int Count() const {return count;}
 
@@ -178,6 +184,8 @@ namespace scala
 
     MeanVariance& operator+=(const MeanVariance& other);
     friend MeanVariance& operator+ (const MeanVariance& a, const MeanVariance& b);
+    MeanVariance& operator-=(const MeanVariance& other);
+    friend MeanVariance& operator- (const MeanVariance& a, const MeanVariance& b);
 
   private:
     double sum_sc, sum_w, sum_w2;

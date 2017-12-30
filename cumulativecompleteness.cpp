@@ -1,5 +1,7 @@
 // cumulativecompleteness.cpp
 //
+//  batches are actually batch groups
+
 
 #include "cumulativecompleteness.hh"
 #include "numbercomplete.hh"
@@ -31,9 +33,13 @@ namespace scala {
   (const int& batchn, const int& jbatch, const AnomalousClass& Anomclass)
   // Record an observation in the current reflection
   //  batchn  batch number
-  //  jbatch  batch serial number
+  //  jbatch  batch group number
   //  Anomclass ALL, IPLUS, IMINUS
   {
+    if (jbatch > nbatches) {
+      std::cout <<"CumulativeCompleteness::AddObservationBatch "<<
+        jbatch<<" "<<nbatches<<"\n";
+    }
     ASSERT (jbatch <= nbatches);
     maxBatSer = Max(maxBatSer, jbatch);
     if (Anomclass == ALL) {
@@ -133,7 +139,7 @@ namespace scala {
                                                                const ResoRange& ResRange,
                                                                const hkl_symmetry& symmetry,
                                                                const Scell& cell)
-  // return cumulative multiplicity for each batch serial
+  // return cumulative multiplicity for each batch group
   {
     if (nref_sphere <= 0) CalcSphere(ResRange, symmetry, cell);
     std::vector<float> multiplicity(nbatches, 0.0);

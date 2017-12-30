@@ -18,15 +18,17 @@ namespace scala {
   //--------------------------------------------------------------
   RadiationDamageAnalysis::RadiationDamageAnalysis
   (const hkl_unmerge_list& hkl_list,
-   const int& jrun, const int& nbatchgroup)
+   const int& jrun,
+   const Batchgroup& batchgroup)
   {
-    init(hkl_list, jrun, nbatchgroup);
+    init(hkl_list, jrun, batchgroup);
   }
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::init(const hkl_unmerge_list& hkl_list,
-                                     const int& jrun, const int& nbatchgroup)
+                                     const int& jrun,
+                                     const Batchgroup& batchgroup)
   // jrun is run serial number
-  // nbatchgroup is number of batches to group together, usually 1
+  // nbatchgroup is number of batches to group together, sometimes 1
   {
     ASSERT (hkl_list.num_runs() == 1); // the present code assumes a single run
     irun = jrun;
@@ -40,21 +42,9 @@ namespace scala {
     int nbatches = batchnumberlist.back() - batchnumberlist[0];
     if (nbatches <= 0) return;  // nothing to do
 
-    batch0 = batchnumberlist[0];   // 1st batch
-
-    phibinsize = 1.0; // 1 degree bins
-    batchgroup = nbatchgroup;
-    // reset batchgroup to something sensible (~1 degree) if not set
-    if (batchgroup <= 0) {
-      double delphi = thisrun.PhiRange().AbsRange()/double(nbatches);
-      if (delphi > 0.0001) {
-        batchgroup = Max(1, Nint(phibinsize/delphi));
-      } else {
-        batchgroup = 1;
-      }
-    }
-
-    ntimebin = (nbatches+batchgroup-1)/batchgroup;
+    pbatchgroup = &batchgroup;
+    ntimebin = pbatchgroup->numberofgroups();
+    if (ntimebin <= 0) {return;}
     int datasetIndex = thisrun.DatasetIndex();
 
     // resolution ranges
@@ -78,7 +68,7 @@ namespace scala {
       if (rbin >= 0) { // test that reflection is in range
         observations.clear();
         while (this_refl.next_observation(this_obs) >= 0) {
-          observations.push_back(this_obs);
+          observations.push_back(this_obs); // list of accepted observations
         }
         if (observations.size() > 1) {
           // we have a list of observations, now do a double loop over
@@ -88,8 +78,8 @@ namespace scala {
             float Ij = std::abs(observations[j].kI());
             for (size_t i=j+1; i<observations.size(); i++) {
               int batchi = batchIndex(observations[i].Batch());
-              int bintime = Min(Max(batchi, batchj)/batchgroup, ntimebin-1);
-              ASSERT ((bintime >= 0) && (bintime < ntimebin));
+              int bintime = Min(Max(batchi, batchj), ntimebin-1);
+              //              ASSERT ((bintime >= 0) && (bintime < ntimebin));
               //              if (!((bintime >= 0) && (bintime < ntimebin))){
               //                std::cout <<batchi<<" "<<batchj<<" "<<bintime<<
               //                  " "<<bintime<<"\n";
@@ -113,15 +103,15 @@ namespace scala {
   }
   //--------------------------------------------------------------
   int RadiationDamageAnalysis::batchIndex(const int& batchnum) const
-  // get index of this batch in the run, including rejected batches
+  // get group index of this batch in the run, including rejected batches
   {
-    return batchnum - batch0;
+    return pbatchgroup->batchgroup(batchnum);
   }
   //--------------------------------------------------------------
   void RadiationDamageAnalysis::plot
   (const std::vector<float>& batchcompleteness,
-   const int& maxbatchserial,  // maximum batch serial number
    phaser_io::Output& output) const
+  // batchcompleteness  for each batch group
   {
     std::string s =
       std::string("\nCumulative radiation damage analysis\n")+
@@ -145,8 +135,8 @@ namespace scala {
     s =
       std::string("\n")+
       "Batches are binned in groups of "+
-      StringUtil::Strip(StringUtil::itos(batchgroup, 4))+
-      ", ~= "+StringUtil::Strip(StringUtil::ftos(phibinsize, 7, 1))+
+      StringUtil::Strip(StringUtil::itos(pbatchgroup->numberInGroup(), 4))+
+      ", ~= "+StringUtil::Strip(StringUtil::ftos(pbatchgroup->groupWidth(), 7, 1))+
       " degrees";
     output.logTab(0,LOGFILE, s);
 
@@ -179,7 +169,7 @@ namespace scala {
     tgpl.SetRHaxis();
     graph.AddLine(tgpl);  // %completeness
     graph.SetYaxis("", true);  // Y from zero
-    graph.SetRightYaxis("", true, Range(0.0, 2.0));  // Y from zero
+    graph.SetRightYaxis("", true, Range(0.0, 1.05));  // Y from zero
     table.AddGraph(graph);
 
     graph.init("Rcp v. batch, in shells");
@@ -202,12 +192,13 @@ namespace scala {
     }
     table.StoreColumnFields(collabels, Zero, fmt);
 
+    std::vector<Batch> batches = pbatchgroup->batches();
+
     int n=1;
     std::vector<double> vals;
-    for (int bintime=0;bintime<ntimebin;++bintime) { // loop time|dose bins
+    for (int bintime=0;bintime<ntimebin;++bintime) { // loop time|dose bins == batchgroup
       // batch serial number in run, for completeness
-      int jbatch = bintime * batchgroup;
-      if (jbatch > maxbatchserial) {break;}
+      int jbatch = pbatchgroup->batchserial(bintime);
       vals.clear();
       Rfactor rall;  // all resolution bins
       for (int rbin=0;rbin<nresbin;++rbin) { // for each resolution bin
@@ -216,9 +207,8 @@ namespace scala {
       }
       vals.push_back(rall.R());
 
-      int batch = bintime*batchgroup + batch0;
-
-      table.Line(vals, nc0, n, batch, batchcompleteness[jbatch]);
+      int batch = batches[jbatch].num();
+      table.Line(vals, nc0, n, batch, batchcompleteness.at(bintime));
       n++;
     }
     table.CloseTable();

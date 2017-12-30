@@ -17,6 +17,7 @@ namespace scala
     numintbins = Numintbins;
     nparams = Nparam;
     mndelta.assign(numintbins, MeanSD());
+    mndeltaSq.assign(numintbins, MeanSD());
     if (nparams > 0) {
       sumddeltadp.resize(nparams);
       sumddelta2dp.resize(nparams);
@@ -34,6 +35,7 @@ namespace scala
   void SDparameterGroup::AddDelta(const int& mint, const float& delta)
   {
     mndelta[mint].Add(delta);
+    mndeltaSq[mint].Add(delta*delta);
   }
   //---------------------------------------------------------------
   // Add in derivative for intensity bin and full/partial
@@ -306,6 +308,7 @@ namespace scala
   //   where <Ih> is the average over all observations of reflection h,
   //   including Ihl itself
   //   cf AddSelobsDelta which uses delta1 definition
+  // Also mean(chi^2)
   {
     if (selobs.Number() > 1) {
       std::vector<float> delta2 = selobs.Delta2();
@@ -323,7 +326,8 @@ namespace scala
           AddDelta(delta2[i],
                    mint, selobs.Run(i), selobs.Full(i));
           //^
-          //      if (mint == numintensitybins-1) {
+          // //      if (mint == numintensitybins-1) {
+          //      if (mint == 0) {
           //        std::cout <<"AddSelobsDelta2 " << selobs.hkl().format()
           //                  <<" " << mint << " " << delta2[i]
           //                  <<" "<<selobs.Reflection().get_observation(i).I()
@@ -331,11 +335,12 @@ namespace scala
           //                  <<"\n";
           //      } //^-
           //^ dumping
+          //          if (dumpfile != NULL && mint == 0) {
           if (dumpfile != NULL) {
             observation obs = selobs.Reflection().get_observation(i);
             Rtype s2 = selobs.Reflection().invresolsq();
             fprintf(dumpfile,
-                 "%5d%5d%5d%6d%8.4f%8.0f%8.0f%8.4f%8.0f%8.0f%3d%9.3f%9.3f\n",
+                 "%5d%5d%5d%6d%8.4f%8.0f%8.1f%8.4f%8.0f%8.1f%3d%9.3f%9.3f\n",
                     obs.hkl_original().h(),
                     obs.hkl_original().k(),
                     obs.hkl_original().l(),
@@ -354,7 +359,7 @@ namespace scala
   {
     dumpfile = OpenFile(dumpfilename, true);
     fprintf(dumpfile,
-            " h    k    l batch   s          I     sigI  gscale    avI   sigavI mi    del2     del1\n");
+     "#   h    k    l batch   s          I     sigI  gscale    avI   sigavI mi    del2     del1\n");
   }
   // ------------------------------------------------------------
   void SDanalysis::AddDerivatives(SelectedObservations& selobs,
@@ -457,6 +462,44 @@ namespace scala
     return std::vector<MeanSD>();  // no information
   }
   //---------------------------------------------------------------
+  // Return one element
+  MeanSD SDanalysis::GetMeanChiSq(const int& mint,
+                                  const int& irun, const bool& full) const
+  {
+    int jpc = ParameterGroup(irun, full);
+    if (jpc >= 0) {
+      //      std::cout << "SDanalysis::GetMeanChiSq: "<<
+      //        sdparametergroup[jpc].MeanChiSq()[mint].format()<<"\n"; //^^
+      return sdparametergroup[jpc].MeanChiSq()[mint];
+    }
+    return MeanSD();  // no information
+  }
+  //---------------------------------------------------------------
+  // Return one element
+  MeanSD SDanalysis::GetMeanChiSq(const int& mint,
+                               const int& irun, const int& fullpart) const
+  {
+    return GetMeanChiSq(mint, irun, (fullpart == 0));
+  }
+  //---------------------------------------------------------------
+  // Return vector for all intensity bins
+  std::vector<MeanSD> SDanalysis::GetMeanChiSq(const int& irun,
+                                               const bool& full) const
+  {
+    int jpc = ParameterGroup(irun, full);
+    if (jpc >= 0) {
+      //^^
+      //      std::vector<MeanSD> mcq = sdparametergroup[jpc].MeanChiSq();
+      //      for (size_t k=0; k<mcq.size(); k++) {
+      //        std::cout << "SDanalysis::GetMeanChiSq: "<< k<<" "<<
+      //          mcq[k].format()<<"\n"; //^^
+      //      }
+
+      return sdparametergroup[jpc].MeanChiSq();
+    }
+    return std::vector<MeanSD>();  // no information
+  }
+  //---------------------------------------------------------------
   std::vector<int> SDanalysis::NumberinIntbins() const
   //! return number of observations in each intensity bin, over all runs and full/partials
   {
@@ -544,6 +587,7 @@ namespace scala
   //   sdanal2 if both are present this is for the "core" data, else null
   // fullprint == false for brief printing
   {
+
     if (fullprint) {
       output.logTab(0,LOGFILE,
                   std::string("\nAnalysis of standard deviations\n")+
@@ -635,21 +679,26 @@ namespace scala
         }
 
         std::vector<std::vector<MeanSD> > msddata;
+        std::vector<std::vector<MeanSD> > mnchisq;
         if (fulls) {    // fulls for 1st object
           msddata.push_back(sdanal1.GetMeanSD(irun, true));
+          mnchisq.push_back(sdanal1.GetMeanChiSq(irun, true));
           whichones[0] = true;
         }
         if (partials) { // partials for 1st object
           msddata.push_back(sdanal1.GetMeanSD(irun, false));
+          mnchisq.push_back(sdanal1.GetMeanChiSq(irun, true));
           whichones[1] = true;
         }
         if (secondsdanal) {
           if (fulls2) { // fulls for 2nd object
             msddata.push_back(sdanal2.GetMeanSD(irun, true));
+            mnchisq.push_back(sdanal2.GetMeanChiSq(irun, true));
             whichones[2] = true;
           }
           if (partials2) { // partials for 2nd object
             msddata.push_back(sdanal2.GetMeanSD(irun, false));
+            mnchisq.push_back(sdanal2.GetMeanChiSq(irun, true));
             whichones[3] = true;
           }
         }
@@ -658,7 +707,7 @@ namespace scala
           dataset_pxd.dname();
 
         PrintSDanalysisTable(rejflags, Irange, ttitle, fullpartial, secondsdanal,
-                             msddata, output);
+                             msddata, mnchisq, output);
       }
     }  // end loop runs
 
@@ -670,8 +719,10 @@ namespace scala
     if (kr > 1 && fullprint) {
       // > 1 run in this dataset, print totals over all relevant runs
       std::vector<std::vector<MeanSD> > msddata(nsd);
+      std::vector<std::vector<MeanSD> > mnchisq(nsd);
       for (int i=0;i<nsd;++i) {
         msddata[i].assign(Irange.NumberBins(),MeanSD());
+        mnchisq[i].assign(Irange.NumberBins(),MeanSD());
       }
 
       int kf1 = -1; // indices into msddata array for fulls 1
@@ -699,16 +750,20 @@ namespace scala
             (allsamerun && ir==0)) {
           if (sdanal1.FullsUsed(irun)) {        // fulls for 1st object
             AddMsdData(msddata.at(kf1), sdanal1.GetMeanSD(irun, true));
+            AddMsdData(mnchisq.at(kf1), sdanal1.GetMeanChiSq(irun, true));
           }
           if (sdanal1.PartialsUsed(irun)) { // partials for 1st object
             AddMsdData(msddata.at(kp1), sdanal1.GetMeanSD(irun, false));
+            AddMsdData(mnchisq.at(kp1), sdanal1.GetMeanChiSq(irun, true));
           }
           if (secondsdanal) {
             if (sdanal2.FullsUsed(irun)) {      // fulls for 2nd object
               AddMsdData(msddata.at(kf2), sdanal2.GetMeanSD(irun, true));
+              AddMsdData(mnchisq.at(kf1), sdanal2.GetMeanChiSq(irun, true));
             }
             if (sdanal2.PartialsUsed(irun)) { // partials for 2nd object
               AddMsdData(msddata.at(kp2), sdanal2.GetMeanSD(irun, false));
+              AddMsdData(mnchisq.at(kp2), sdanal2.GetMeanChiSq(irun, true));
             }
           }
         }
@@ -716,8 +771,10 @@ namespace scala
       std::string ttitle = " All runs, standard deviation v. Intensity, "+
         dataset_pxd.dname();
 
-      PrintSDanalysisTable(rejflags, Irange, ttitle, fullpartialall, secondsdanal,
-                           msddata, output);
+      PrintSDanalysisTable(rejflags, Irange, ttitle,
+                           fullpartialall, secondsdanal,
+                           msddata, mnchisq, output);
+
     }  // multiple runs
   }
   //---------------------------------------------------------------
@@ -727,6 +784,7 @@ namespace scala
                             const int& fullpartial,
                             const bool& outer,
                             const std::vector<std::vector<MeanSD> >& msdanal,
+                            const std::vector<std::vector<MeanSD> >& mnchisq,
                             phaser_io::Output& output)
   // Print table for one run
   //  Irange       intensity binning
@@ -734,6 +792,7 @@ namespace scala
   //  fullpartial  +1 fulls, -1 partials, 0 both
   //  outer        true if "outer" data present
   //  msdanal    vector for each intensity for each full/partial/core/outer
+  //  mnchisq    vector for each intensity for each full/partial/core/outer
   {
     const int MINNUMBER = 8; // minimum number to print statistic
     // number of analysis sets outer/core full/partial (1,2, or 4)
@@ -745,9 +804,9 @@ namespace scala
     if (outer) {nanalsets *= 2;}
     ASSERT (nanalsets == int(msdanal.size()));
 
-    int c[] =  {5,8,11,14}; // possible y column numbers for graphs
-    int c1[] =  {8,14};      // possible y column numbers for graphs
-    int cc[] =  {11,14};    // possible y column numbers for graphs
+    int c[] =  {5,9,12,15}; // possible y column numbers for graphs
+    int c1[] =  {9,15};      // possible y column numbers for graphs
+    int cc[] =  {12,15};    // possible y column numbers for graphs
 
     int xcolnum = 2;  // column for x axis
 
@@ -756,25 +815,26 @@ namespace scala
     table.StoreID("Graph-SDanalysis");
 
     std::vector<int> cln(c,c+nanalsets);
-    std::string graphtitle = " Sigma(scatter/SD)";
+    std::string graphtitle = " Sigma(scatter/SD), Mn(Chi^2)";
     std::string corelimit;
 
     if (outer) {
       corelimit = clipper::String(rejflags.sdrej, 3, 2) + " sd";
       graphtitle += ", within "+corelimit;
       if (both) {
-        cln.assign(cc,cc+nanalsets/2); // {11,14}
+        cln.assign(cc,cc+nanalsets/2); // {12,15}
       } else {
-        cln.assign(c1,c1+nanalsets/2); // {8,14}
+        cln.assign(c1,c1+nanalsets/2); // {9,15}
       }
     }
     TableGraphPlot graph(graphtitle);
-    std::string description = "Sigma(scatter)/SD should be close to 1.0 in all intensity bins. ";
+    std::string description = "Sigma(scatter)/SD and Mn(Chi^2) should be close to 1.0 in all intensity bins. ";
     description += "If not, then the SD correction has not worked well";
     graph.SetDescription(description);
 
     for (size_t i=0;i<cln.size();++i) {
       graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
+      graph.AddLine(TableGraphPlotline(xcolnum, cln[i]+1)); // chisq
     }
     graph.SetYaxis("", true); // y from 0
     table.AddGraph(graph);
@@ -787,6 +847,7 @@ namespace scala
       graph.SetDescription(description);
       for (size_t i=0;i<cln.size();++i) {
         graph.AddLine(TableGraphPlotline(xcolnum, cln[i]));
+        graph.AddLine(TableGraphPlotline(xcolnum, cln[i]+1));
       }
       graph.SetYaxis("", true); // y from 0
       table.AddGraph(graph);
@@ -825,24 +886,25 @@ namespace scala
           fpcl += ", all";
         }
       }
-      collabels.push_back("N"+ctyp);      // 3, 6,  9, 12
-      collabels.push_back("Mn"+ctyp);     // 4, 7, 10, 13
-      collabels.push_back("Sd"+ctyp);    // 5, 8, 11, 14
-      fpclabel += StringUtil::CentreString(fpcl, 21); // centre in 21char field
+      collabels.push_back("N"+ctyp);      // 3,  7, 10, 14
+      collabels.push_back("Mn"+ctyp);     // 4,  8, 11, 15
+      collabels.push_back("Sd"+ctyp);     // 5,  9, 12, 16
+      collabels.push_back("ChiSq"+ctyp);  // 6, 10, 13, 17
+      fpclabel += StringUtil::CentreString(fpcl, 29); // centre in char field
     }
     int nc = collabels.size(); // number of columns
 
     // flags for possible null entries
-    bool z[] = {false, false, false, false, true, false, false, true,
-                false, false, true, false, false, true};
+    bool z[] = {false, false, false, false, true, true, false, false, true,
+                false, false, true, true, false, false, true, true};
     std::vector<bool> Zero(z, z+nc);
     // format omitting 1st 2
     std::string fmt =
-      "%9d%6.2f%6.2f%9d%6.2f%6.2f%9d%6.2f%6.2f%9d%6.2f%6.2f\n";
+     "%9d%6.2f%6.2f%8.2f%9d%6.2f%6.2f%8.2f%9d%6.2f%6.2f%8.2f%9d%6.2f%6.2f%8.2f\n";
     if (nanalsets == 1) {
-      fmt = "%9d%6.2f%6.2f\n";
+      fmt = "%9d%6.2f%6.2f%8.2f\n";
     } else if (nanalsets == 2) {
-      fmt = "%9d%6.2f%6.2f%9d%6.2f%6.2f\n";
+      fmt = "%9d%6.2f%6.2f%8.2f%9d%6.2f%6.2f%8.2f\n";
     }
 
     // Extra table heading
@@ -851,32 +913,36 @@ namespace scala
     table.StoreColumnFields(collabels, Zero,"%4d%8.0f"+fmt);
 
     std::vector<MeanSD> mnsdoverall(nanalsets);  // overall values
+    std::vector<MeanSD> mnchisqoverall(nanalsets);  // overall values
 
     for (int mint=0;mint<Irange.NumberBins();++mint) {
       // each set has a count, mean & SD
       std::vector<int> mcount(nanalsets);
       std::vector<double> mmean(nanalsets);
       std::vector<double> msd(nanalsets);
+      std::vector<double> mchisq(nanalsets);
       for (int i=0;i<nanalsets;++i) {
         mcount[i] = msdanal[i][mint].Count();
         mmean[i] = msdanal[i][mint].Mean();
         msd[i] = msdanal[i][mint].SD();
+        mchisq[i] = mnchisq[i][mint].Mean();
         if (mcount[i]  < MINNUMBER) msd[i] = 0.0;
         mnsdoverall[i] += msdanal[i][mint];
+        mnchisqoverall[i] += mnchisq[i][mint];
       }
       if (nanalsets == 1) {
         table.Line(nc, mint+1, Irange.mean(mint),
-                                 mcount[0], mmean[0], msd[0]);
+                   mcount[0], mmean[0], msd[0], mchisq[0]);
       } else if (nanalsets == 2) {
         table.Line(nc, mint+1, Irange.mean(mint),
-                   mcount[0], mmean[0], msd[0],
-                   mcount[1], mmean[1], msd[1]);
+                   mcount[0], mmean[0], msd[0], mchisq[0],
+                   mcount[1], mmean[1], msd[1], mchisq[1]);
       } else if (nanalsets == 4) {
         table.Line(nc, mint+1, Irange.mean(mint),
-                   mcount[0], mmean[0], msd[0],
-                   mcount[1], mmean[1], msd[1],
-                   mcount[2], mmean[2], msd[2],
-                   mcount[3], mmean[3], msd[3]);
+                   mcount[0], mmean[0], msd[0], mchisq[0],
+                   mcount[1], mmean[1], msd[1], mchisq[1],
+                   mcount[2], mmean[2], msd[2], mchisq[2],
+                   mcount[3], mmean[3], msd[3], mchisq[3]);
       }
     } // end loop intensity bins
 
@@ -889,29 +955,36 @@ namespace scala
       output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                           mnsdoverall[0].Count(),
                           mnsdoverall[0].Mean(),
-                          mnsdoverall[0].SD());
+                          mnsdoverall[0].SD(),
+                          mnchisqoverall[0].Mean());
     } else if (nanalsets == 2) {
       output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                           mnsdoverall[0].Count(),
                           mnsdoverall[0].Mean(),
                           mnsdoverall[0].SD(),
+                          mnchisqoverall[0].Mean(),
                           mnsdoverall[1].Count(),
                           mnsdoverall[1].Mean(),
-                          mnsdoverall[1].SD());
+                          mnsdoverall[1].SD(),
+                          mnchisqoverall[1].Mean());
     } else if (nanalsets == 4) {
       output.logTabPrintf(0,LOGFILE,fmt.c_str(),
                           mnsdoverall[0].Count(),
                           mnsdoverall[0].Mean(),
                           mnsdoverall[0].SD(),
+                          mnchisqoverall[0].Mean(),
                           mnsdoverall[1].Count(),
                           mnsdoverall[1].Mean(),
                           mnsdoverall[1].SD(),
+                          mnchisqoverall[1].Mean(),
                           mnsdoverall[2].Count(),
                           mnsdoverall[2].Mean(),
                           mnsdoverall[2].SD(),
+                          mnchisqoverall[2].Mean(),
                           mnsdoverall[3].Count(),
                           mnsdoverall[3].Mean(),
-                          mnsdoverall[3].SD());
+                          mnsdoverall[3].SD(),
+                          mnchisqoverall[3].Mean());
     }
   }
   //---------------------------------------------------------------

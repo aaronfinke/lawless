@@ -405,6 +405,8 @@ namespace phaser_io {
     //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
     //        SCALE     w = g = 1/scale
     //        SAMPLESD use sample SD in final averaging
+    //        
+    // NB LINEAR and GAUSSIAN options don't work - do not use
   {
   public:
     SDCORRECTION();
@@ -412,8 +414,9 @@ namespace phaser_io {
     Token_value parse(std::istringstream&);
     void analyse();
 
-    //! return true if parameters should be refined
-    bool SDC_Refine() const {return refine;}
+    //! return != 0 if parameters should be refined
+    // refine = +1 refine (non-linear), 0 no refine, -1 linear fit
+    int SDC_Refine() const {return refine;}
     //! return true if SDC REFINE is explicitly set
     bool SDC_RefineSet() const {return refine_set;}
     //! return true if the same values should be used for all runs
@@ -445,7 +448,8 @@ namespace phaser_io {
     bool SampleSD() const {return sampleSD;}
 
   private:
-    bool refine;  // true to refine
+    // refine = +1 refine (non-linear), 0 no refine, -1 linear fit
+    int refine;
     bool refine_set; // true if explicit refine flag set
     bool allsame; // true for all runs the same
     bool fixsdb;  // true for fixed SdB = 0.0
@@ -577,6 +581,7 @@ namespace phaser_io {
     //    ISIGMINIMUM <MinimumIoverSigma>
     //    BATCHISIGMINIMUM <MinimumBatchIoverSigma>
     //    SMOOTHSTATISTICS <SmoothStatisticsRange>
+    //    GROUPBATCH  <BatchGroupRange>
     //
     // Cone angle is the half-angle (degrees) for cones around each reciprocal axis
     // MinimumHalfdatasetCC  minimum CC for resolution warning
@@ -585,6 +590,7 @@ namespace phaser_io {
     // MinimumBatchIoverSigma     minimum <I/sd(I)> for resolution warning by batch, from unmerged I
     // SmoothStatisticsRange angle in degrees over which (roghly) to smooth
     //            batch statistics, <0 to default to automatic setting,
+    // BatchGroupRange        phi range for grouping batches in analysis
     //
     //   ANALYSIS [NO]DETECTOR
     //     Analyse (or not) scales on the detector, images written to DETECTORIMAGE
@@ -601,7 +607,7 @@ namespace phaser_io {
     double MinimumIoverSigma() const {return minimumioversigma;}
     double MinimumBatchIoverSigma() const {return minimumbatchioversigma;}
     double SmoothStatisticsRange() const {return smoothstatisticsrange;}
-
+    double BatchGroupRange() const {return batchgrouprange;}
     bool DetectorAnalysis() const {return detector;}  // detector analysis flag
 
     void analyse(){}
@@ -613,6 +619,7 @@ namespace phaser_io {
     double minimumioversigma;
     double minimumbatchioversigma;
     double smoothstatisticsrange;
+    double batchgrouprange;
     // Detector analysis things
     bool detector;
   };

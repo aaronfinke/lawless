@@ -54,6 +54,7 @@ namespace scala
   // ------------------------------------------------------------
   SDMdataNumbers UpdateSDMfromNPlot(SDmodel& SDM, const hkl_unmerge_list& hkl_list,
 				    const all_controls& controls, const bool& fixup,
+				    const bool& update,
 				    phaser_io::Output& output);
   // ------------------------------------------------------------
   int AccumulateNormProb(const SDmodel& SDM, const hkl_unmerge_list& hkl_list,

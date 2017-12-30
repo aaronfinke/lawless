@@ -573,7 +573,7 @@ namespace scala {
     s += std::string(7,' ')+"RMS deviation: ";
     dv = allcells.RmsD();
     for (int i=0;i<6;++i) {
-      s += StringUtil::ftos(dv[i], 7,2)+" ";
+      s += StringUtil::ftos(dv[i], 8,2);
     }
     return s;
   }

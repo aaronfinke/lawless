@@ -76,6 +76,13 @@ namespace scala {
     rpimOv = Store3val<Rfactor>(overall, inner, outer);
   }
   // ------------------------------------------------------------
+  // store filtered <Chi^2>, overall, inner shell, outer shell
+  void SummaryStatistics::StoreMnChisqc(const float& overall,
+                                        const float& inner,
+                                        const float& outer)  {
+    MnChisq = Store3val<float>(overall, inner, outer);
+  }
+  // ------------------------------------------------------------
   // store Rpim, overall, inner shell, outer shell, v. overall mean I+-
   // Numbers
   void SummaryStatistics::StoreNumbers(const int& overallNobs,
@@ -209,6 +216,15 @@ namespace scala {
     anisoaxislabels = Anisoaxislabels;
   }
   // ------------------------------------------------------------
+//@//  void SummaryStatistics::StoreHalfdatasetThings
+//@//  (const std::vector<correl_coeff>& scchalf, const correl_coeff& cchalf,
+//@//   const std::vector<correl_coeff>& sccanom, const correl_coeff& ccanom,
+//@//   const std::vector<Rfactor>& srsplit, const Rfactor& rsplit)
+//@//  {
+//@//    ASSERT (scchalf.size() == sccanom.size() == srsplit.size());
+//@//
+//@//  }
+  // ------------------------------------------------------------
   std::string ResoLimitWarning(const ResolutionLimit& reslimit)
   {
     if (!reslimit.sufficientData()) {
@@ -225,6 +241,7 @@ namespace scala {
   // ------------------------------------------------------------
   void SummaryStatistics::PrintSummaryTable(const bool& Result,
                                             const bool& xmlonly,
+                                    const AnomalousStatus::anomalousStatus& Anomstatus,
                                             phaser_io::Output& output)
   // print the final summary table as RESULT if Result == true
   // Only write XML if Result, write only XML if xmlonly
@@ -292,6 +309,9 @@ namespace scala {
                           "Multiplicity                          %10.1f%10.1f%10.1f\n",
                           multiplicity[0], multiplicity[1], multiplicity[2]);
       output.logTabPrintf(0,OUTSTREAM,
+                          "Mean(Chi^2)                           %10.2f%10.2f%10.2f\n",
+                          MnChisq[0], MnChisq[1], MnChisq[2]);
+      output.logTabPrintf(0,OUTSTREAM,
                           "\nAnomalous completeness                %10.1f%10.1f%10.1f\n",
                           anomcomplete[0], anomcomplete[1], anomcomplete[2]);
       output.logTabPrintf(0,OUTSTREAM,
@@ -305,12 +325,14 @@ namespace scala {
                           anomNPslope);
 
       if (anomresolimitCC.valid()) {
-        if (anomresolimitCC.Status() >= 0) {
-          output.logTabPrintf(0,OUTSTREAM,
-                              "\nEstimate of maximum resolution for significant anomalous signal = %5.2fA, from CCanom > %5.2f\n",
-                              anomresolimitCC.HighResolution(), anomresolimitCC.Limit());
-        } else {
-          output.logTab(0,OUTSTREAM,"\nNo significant anomalous signal\n");
+        output.logTab(0,OUTSTREAM,
+                      "\n"+AnomDistribution::formatStatus(Anomstatus,
+                                                     anomresolimitCC));
+        if (Result) { // also to XML
+          output.logTab(0,LXML,
+                        StringUtil::MakeXMLtag("AnomalousStatus",
+                       AnomDistribution::formatStatus(Anomstatus,
+                                                                              anomresolimitCC)));
         }
       }
 
@@ -428,6 +450,9 @@ namespace scala {
                     MakeXMLtag3("Multiplicity",8,1,
                                 multiplicity[0], multiplicity[1], multiplicity[2]));
       output.logTab(1,LXML,
+                    MakeXMLtag3("MeanChiSq",6,2,
+                                MnChisq[0], MnChisq[1], MnChisq[2]));
+      output.logTab(1,LXML,
                     MakeXMLtag3("AnomalousCompleteness",6,1,
                                 anomcomplete[0], anomcomplete[1], anomcomplete[2]));
       output.logTab(1,LXML,
@@ -497,14 +522,7 @@ namespace scala {
     phaser_io::outStream OUTSTREAM = LOGFILE;
     if (Result) {OUTSTREAM = RESULT;}
     if (idts >= 0 && idts < int(allsummarystatistics.size())) {
-      allsummarystatistics[idts].PrintSummaryTable(Result, false, output);
-      output.logTab(0,OUTSTREAM,
-                    AnomDistribution::formatStatus(anomstatus));
-      if (Result) { // also to XML
-        output.logTab(0,LXML,
-                      StringUtil::MakeXMLtag("AnomalousStatus",
-                     AnomDistribution::formatStatus(anomstatus)));
-      }
+      allsummarystatistics[idts].PrintSummaryTable(Result, false, anomstatus, output);
     }
   }
   // ------------------------------------------------------------
@@ -517,7 +535,7 @@ namespace scala {
     int ndts = allsummarystatistics.size(); // number of datasets
     if (ndts == 0) {return;}
     if (ndts == 1) {
-      allsummarystatistics[0].PrintSummaryTable(Result, false, output);
+      allsummarystatistics[0].PrintSummaryTable(Result, false, anomstatus, output);
       return;
     }
 
@@ -794,7 +812,7 @@ namespace scala {
       output.logTab(0,LXML,"<Result>");
       for (int idts=0;idts<ndts;++idts) {
         // write XML only
-        allsummarystatistics[idts].PrintSummaryTable(Result, true, output);
+        allsummarystatistics[idts].PrintSummaryTable(Result, true, anomstatus, output);
       }
       output.logTab(0,LXML,"</Result>");
     }

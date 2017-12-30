@@ -1141,6 +1141,8 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
 //        SCALE     w = g = 1/scale
 //        SQRTSCALE w = 1/sqrt(g) = sqrt(scale)
 //        SAMPLESD use sample SD in final averaging
+//
+// NB LINEAR and GAUSSIAN options don't work - do not use
 {
   int expectingNumber = -1; // = 0 not expecting number, +1 expecting number
                            // = -1 maybe expecting number
@@ -1176,10 +1178,13 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         found = true;
       }
       if (keyIs("REFINE")) {
-        refine = true;
+        refine = +1;  // default refine
         refine_set = true;
       } else if (keyIs("NOREFINE")) {
-        refine = false;
+        refine = 0;
+        refine_set = true;
+      } else if (keyIs("LINEAR")) {
+        refine = -1;
         refine_set = true;
       } else if (keyIs("INDIVIDUAL")) {
         allsame = false;
@@ -1399,7 +1404,7 @@ void SDCORRECTION::analyse()
   }
   if (refine_set) return;  // explicit refine flag set
   if (SDC_NumberInput() != 0) {
-    refine = false;
+    refine = 0;
   }
 }
 //--------------------------------------------------------------
@@ -1661,6 +1666,7 @@ ANALYSIS::ANALYSIS()  : coneangledegrees(20.0),
                         minimumioversigma(1.5),
                         minimumbatchioversigma(1.0),
                         smoothstatisticsrange(-1.0),
+                        batchgrouprange(1.0),
                         detector(false)
 {
   Add_Key("ANALYSIS");
@@ -1678,13 +1684,15 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
   //    ISIGMINIMUM <MinimumIoverSigma>
   //    BATCHISIGMINIMUM <MinimumBatchIoverSigma>
   //    SMOOTHSTATISTICS <SmoothStatisticsRange>
+  //    GROUPBATCH  <BatchGroupRange>
   //
   // Cone angle is the half-angle (degrees) for cones around each reciprocal axis
   // MinimumHalfdatasetCC  minimum CC for resolution warning
   // MinimumIoverSigma          minimum <<I>/sd(<I>)> for resolution warning
   // MinimumBatchIoverSigma     minimum <I/sd(I)> for resolution warning by batch, from unmerged I
-  // SmoothStatisticsRange angle in degrees over which (roghly) to smooth
+  // SmoothStatisticsRange angle in degrees over which (roughly) to smooth
   //            batch statistics, <0 to default to automatic setting
+  // BatchGroupRange        phi range for grouping batches in analysis, < 0 individual
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
@@ -1693,8 +1701,13 @@ Token_value ANALYSIS::parse(std::istringstream& input_stream)
       else if (keyIs("CCANOMMINIMUM")) {minimumhalfdatasetanomcc = get1num(input_stream);}
       else if (keyIs("ISIGMINIMUM")) {minimumioversigma = get1num(input_stream);}
       else if (keyIs("BATCHISIGMINIMUM")) {minimumbatchioversigma = get1num(input_stream);}
+      else if (keyIs("SMOOTHSTATISTICS")) {smoothstatisticsrange = get1num(input_stream);}
+      else if (keyIs("GROUPBATCH")) {batchgrouprange = get1num(input_stream);}
       else if (keyIs("DETECTOR")) {detector = true;}
       else if (keyIs("NODETECTOR")) {detector = false;}
+      else {
+          ReportSyntaxError(keywords,"unrecognised keyword");
+      }
     }
   }
   return skip_line(input_stream);

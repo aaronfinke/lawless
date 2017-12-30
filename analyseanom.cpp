@@ -43,7 +43,7 @@ namespace scala
                                          normalprobanal);
     nrej = nrej;
     // Magic factor to multiply slope by to inflate SD correction
-    const float FACTOR = 3.7;
+    const double FACTOR = 3.7;
 
     output.logTab(0,LOGFILE,"\n\nNormal probability analysis of anomalous differences");
     output.logTab(0,LOGFILE,    "====================================================\n");
@@ -59,7 +59,7 @@ namespace scala
     }
     // loop datasets
     for (int id=0;id<ndatasets;id++) {
-      //      float slope = normalprobanal[id].Slope();  // central slope
+      //      double slope = normalprobanal[id].Slope();  // central slope
       if (hkl_list.dataset(id).accepted()) {
         output.logTabPrintf(1,LOGFILE,"%7.2f %7.2f %10d          %7.2f %7.2f %10d ",
                             normalprobanal[id].Slope(0.0,true),
@@ -149,9 +149,9 @@ namespace scala
             if (Selobs.Number() > 0) {
               IsigI Iminus = Selobs.Average();
               // DelAnom
-              float sig = Iplus.sigI()*Iplus.sigI() + Iminus.sigI()*Iminus.sigI();
+              double sig = Iplus.sigI()*Iplus.sigI() + Iminus.sigI()*Iminus.sigI();
               if (sig > 0.0) {
-                float danom = Iplus.I() - Iminus.I();
+                double danom = Iplus.I() - Iminus.I();
                 normalprobanal[id].AddDelta(danom/sqrt(sig));
                 rmsdelanom[id][mres].Add(danom);
               }

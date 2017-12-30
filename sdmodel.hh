@@ -37,9 +37,10 @@ namespace scala
     void init();
 
     //! Set flag to refine or not
-    void SetRefine(const bool& refineFlag) {refine = refineFlag;}
+    // +1 refine, 0 no refine, -1 linear fit
+    void SetRefine(const int& refineFlag) {refine = refineFlag;}
     //! return flag to refine or not
-    bool Refine() const {return refine;}
+    int Refine() const {return refine;}
 
     void SetDamp(const double& Damp) {damp = Damp;} //!< set damp factor
     double Damp() const {return damp;} //!< return damp factor
@@ -118,6 +119,8 @@ namespace scala
     {return sdc_full_run.at(RunIndex).Nparams();}
     int NparamsPartial(const int& RunIndex) const //!< Number of parameters for fulls
     {return sdc_partial_run.at(RunIndex).Nparams();}
+
+    int NparamsPerGroup() const {return nparamspergroup;}
 
     //! use partial correction for fulls 
     // if few == true, there are few fulls, if false none
@@ -210,6 +213,18 @@ namespace scala
     (std::vector <std::vector<double> >& dr2dp,
      std::vector <clipper::Array2d<double> >& H) const;
 
+    //! return the "coordinate" of the iobs'th entry in selobs
+    // Also return parameter group index idxgroup
+    //   Iav = average I
+    std::vector<double> coordinate(const SelectedObservations& selobs,
+				   const int& iobs, const double& Iav,
+				   int& idxgroup) const;
+
+    //! return the corrected SD (from parameters) for the iobs'th entry in selobs
+    //   Iav = average I
+    double sdCorrected(const SelectedObservations& selobs,
+		       const int& iobs, const double& Iav) const;
+
     // = = =  
 
     //! return use flag (only||few + fulls||partials)
@@ -264,6 +279,9 @@ namespace scala
     std::vector<int> runnumbers;  // actual run numbers
     std::vector<int> idxfullparam;       // index to first parameter for each run, fulls
     std::vector<int> idxpartialparam;    // index to first parameter for each run, partials
+    // index to parameter group for each run, for fulls, partials
+    std::vector<std::pair<int,int> > idxparamgroups;
+    int nparamspergroup; // number of paramters in each group
 
     // = 0 normal, both fulls & partials; < 0 treat full as partial; > 0 treat partial as full
     //   = +1 only fulls    = +2 few partials
@@ -272,7 +290,8 @@ namespace scala
 
     bool nosdb;  // if true fix SDb = 0
     bool allrunssame;  // if true use same parameters for all runs
-    bool refine; // if true refine parameters
+    // refine = +1 refine (non-linear), 0 no refine, -1 linear fit
+    int refine;
     int nsets;   // number of unique runs, = number of runs or 1 if allrunssame
     bool sampleSD;  // true if sample SD is to be used in the final averaging
     int minimumsample;  // ... with more than this number of observations
@@ -299,6 +318,12 @@ namespace scala
     // ISa = 1/(Sdfac*SDadd)   =~ (I/sig(I))asymtotic for large I
     // see K.Diederichs, Acta Cryst. D66,733
 
+    //! return a reference to the relevant SDC model (run, full/partial
+    // Also return parameter group index idxgroup
+    const SDcorrection& SDCmodel(const SelectedObservations& selobs,
+				 const int& iobs,
+				 int& idxgroup) const;
+
   };
   //--------------------------------------------------------------
   //! Create SDmodel for each run from input or defaults
@@ -308,5 +333,25 @@ namespace scala
   void SetSdmFullPartialFlags(const Run::FullsAndPartials& FandP,
 			      SDmodel& SDM, const int& irun);
 }
-
+// ---------------------------------------------------------
+class TargetResiduals {
+public:
+  TargetResiduals() : R1(0.0), R1lsq(0.0), R2(0.0), quadratic(true),
+		      converged(false) {}
+  void Add(const double& r1, const double& r2)
+  {R1 += r1;R2 += r2;}
+  void AddLsq(const double& r1lsq)
+  {R1lsq += r1lsq;}
+  
+  double R()      // == R1 + R2
+  {return R1 + R2;}
+  
+  bool quadratic; // true if LSQ
+  bool converged;
+  std::vector<bool> updated;   // true if updated, for each class
+  //! Just some residuals
+  double R1;     // optimised residual, LSQ or ln cosh
+  double R1lsq;  // LSQ residual, may be equal to R1
+  double R2;     // restraints
+};
 #endif

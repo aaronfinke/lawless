@@ -21,8 +21,8 @@ namespace scala {
   std::pair<int,int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
                                const SDmodel& SDM,
                                const ScaleModel& AllScales,
-                               float& IovSDmin,
-                               const float& E2min, const float& E2max)
+                               double& IovSDmin,
+                               const double& E2min, const double& E2max)
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
   //   SDM         sd correction model
@@ -45,7 +45,7 @@ namespace scala {
     if (E2min > 0.0) {
       // Selection by |E^2| minimum
       // Overall Normalisation
-      double MinIsigRatio = -1.0;  // no resolution cutoff
+      double MinIsigRatio = 0.6;  // resolution cutoff
       bool Overall = true;
       Rings NoRings;
       ResoRange ResRangeN = hkl_list.ResLimRange();
@@ -77,17 +77,17 @@ namespace scala {
       } // end loop runs
 
       const int NIOVSBINS = 13;  // bins on I/sig(I)
-      //std::vector<float> IovSbins(NIOVSBINS);
+      //std::vector<double> IovSbins(NIOVSBINS);
       // lower bin limits
-      float ibins[] = {0.0, 0.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 17.0,  20.0, 25.0};
-      std::vector<float> IovSbins(ibins, ibins+NIOVSBINS);
+      double ibins[] = {0.0, 0.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 17.0,  20.0, 25.0};
+      std::vector<double> IovSbins(ibins, ibins+NIOVSBINS);
 
       nrotranges = Max(1,nrotranges);
       nI.resize(nrotranges, NIOVSBINS);
       for (int i=0;i<nrotranges;++i) {
         for (int j=0;j<NIOVSBINS;++j) {nI(i,j) = 0;}}
 
-      float IovSDmax = -100000.;
+      double IovSDmax = -100000.;
       observation this_obs;
       hkl_list.rewind();
       int index;
@@ -98,7 +98,7 @@ namespace scala {
           int irun = this_obs.run();
           Rtype phi = this_obs.phi();
           int irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
-          float IovS = this_obs.I()/this_obs.sigI();
+          double IovS = this_obs.I()/this_obs.sigI();
           IovSDmax = Max(IovSDmax, IovS);
           int isbin = -1;
           for (int i=NIOVSBINS-1;i>=0;--i) {
@@ -114,8 +114,8 @@ namespace scala {
       // Target number of observations in each rotation bin
       const int NOBSINBIN_SIGM = 600;   // for I/sigI cutoff
       const int NOBSINBIN_SKIP = 200;   // for skipping a fraction of reflections
-      const float MINIOVSDMIN = 3.0;    // minimum value for I/sd for making nskip > 1
-      const float STARTIOVSDMIN = 100000.0;
+      const double MINIOVSDMIN = 3.0;    // minimum value for I/sd for making nskip > 1
+      const double STARTIOVSDMIN = 100000.0;
       IovSDmin = STARTIOVSDMIN;
       int nmin = 0;
       int nmin2 = 0;
@@ -134,7 +134,7 @@ namespace scala {
             break;
           }
         }
-        float cutoffr = 0.0;
+        double cutoffr = 0.0;
         if (isbin > 0) {
           cutoffr = IovSbins[isbin];
           IovSDmin = Min(IovSDmin, cutoffr);
@@ -151,7 +151,7 @@ namespace scala {
       nskip = 1;
       if (IovSDmin > STARTIOVSDMIN - 1.0) {  // minimum I/sd is too small
         // Set to default
-        const float IOVSDMINDEFAULT = 2.0;
+        const double IOVSDMINDEFAULT = 2.0;
         IovSDmin = Min(IOVSDMINDEFAULT, 0.1*IovSDmax);
       } else {
         // if we still have many reflections above IovSDmin, then just use every
@@ -189,7 +189,7 @@ namespace scala {
         }
       }
       if (E2min > 0.0) {
-        float E2 = NormRes.applyAvg(AvIsig.I(), temp_refl.invresolsq());
+        double E2 = NormRes.applyAvg(AvIsig.I(), temp_refl.invresolsq());
         if (E2 < E2min || E2 > E2max) {
           raccept = +1; //reject
         }

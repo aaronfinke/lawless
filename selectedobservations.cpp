@@ -63,7 +63,7 @@ namespace scala
     use.assign(nobs, false);
     outliers.assign(nobs, false);
     wI.resize(nobs);
-    wj.resize(nobs);
+    wj.assign(nobs, 0.0);
     wv.resize(nobs);
     delta.assign(nobs,0.0);
     part.assign(nobs,0);
@@ -86,6 +86,7 @@ namespace scala
     npart = -1;
     State = 0;
     weighttype = weightType;
+    samplemean();  // calculate weights and mv
     Average();  // calculate average
     nextobs = -1;
     discrepant = false;
@@ -97,6 +98,7 @@ namespace scala
     ASSERT (Npart == 2 || Npart == 4);
     if (Npart != npart) {  // only do this if changed
       npart = Npart;
+      part.assign(nobs,0);
       std::vector<std::pair<int,float> > idxrandom;
       for (int index=0;index<nobs;++index) {
         part[index] = 0;
@@ -193,6 +195,7 @@ namespace scala
   void SelectedObservations::SetWeight(const WeightType::AverageWeightType& weightType)
   {
     weighttype = weightType;
+    State = 0;
     Average();  // recalculate average with new weights
   }
   // ------------------------------------------------------------
@@ -238,12 +241,11 @@ namespace scala
     sumwI = 0.0;
     sumwj = 0.0;
     sumwv = 0.0;  // sum(1/v) or sum(w^2 v)
-
-    double w;
-    double g;
+    sdIsample.assign(nobs, 0.0);
 
     Nused = 0;
-    MeanVariance mv;
+
+    double w;
     IsigI Is;
     Rtype sd;
     double Vs; // sample variance
@@ -253,15 +255,13 @@ namespace scala
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
         Nused++;
-        g = this_ref->get_observation(i).Gscale();
         // scaled I', sigI'
         Is = this_ref->get_observation(i).kI_sigI();
         sd = Is.sigI();
         ASSERT (sd > 0.0);
-        w = Weight(sd, g);   // weight according to weighttype
+        w = wj[i];
         wI[i] = w * Is.I(); // w I'
         sumwI += wI[i];
-        wj[i] = w;
         sumwj += wj[i];
         if (weighttype == WeightType::VARIANCE) {
           wv[i] = w;  // 1/sd^2
@@ -269,9 +269,6 @@ namespace scala
           wv[i] = w * w * sd *sd;
         }
         sumwv += wv[i];  // sum for var(Imean)
-        if (sampleSD) {
-          mv.Add(double(Is.I()), w);
-        }
       }
     }
     if (Nused > 0) {
@@ -279,16 +276,16 @@ namespace scala
       if (weighttype == WeightType::VARIANCE) {
         sdI = sqrt(1.0/sumwv);
       } else {
-        sdI = sqrt(sumwv/(sumwj*sumwj));
+        sdI = sqrt(sumwv)/sumwj;
       }
       if (sampleSD && (Nused > minimumsample)) {
         Vs = mv.SampleVariance();
         sdIs = sqrt(Vs/double(Nused)); //  SD(<I>)
         sampleSDused = true;
         //^
-        //std::cout << "Vs, SDmn, wSD, mnI, N, sumwj, sumwv " <<Vs<<" "<<sdI<<
-        //        " "<<sqrt(1.0/sumwj)<<
-        //        " "<<sumwI/sumwj<<" "<< Nused<<" "<<sumwj<<" "<<sumwv<<"\n";
+        //        std::cout << "Vs, SDmn, wSD, mnI, N, sumwj, sumwv " <<Vs<<" "<<sdI<<
+        //          " "<<sqrt(1.0/sumwj)<<
+        //          " "<<sumwI/sumwj<<" "<< Nused<<" "<<sumwj<<" "<<sumwv<<"\n";
         //      if (sdI > 10000.) {
         //        std::cout <<"Large SDs, sampleSD " << mv.SampleSD() <<"\n";
         //        for (int i=0;i<nobs;i++)  {
@@ -309,27 +306,69 @@ namespace scala
 
       if (sampleSDused && (sumwj > 0.0)) {
         // individual SDs from sample sdI
-        sdIsample.assign(nobs, 0.0);
         double fac = Vs * sumwj / double(Nused);
+        double totui = 0.0; //^ sanity check
+        double totv = 0.0;
         for (int i=0;i<nobs;i++)  {
           if (use[i] && wj[i] > 0.0) {
             // Note wj[i] = w, sumwj = Sum(wj)
             // var(I[i]) = var(<I>)/u[i] where Sum(u[i]) = 1,
             // var(<I>) = Vs/N  Vs = sample variance
-            // u[i] = wj[j]/sumwj
+            // u[i] = wj[i]/sumwj
             // ie var(I[i]) = Vs sumwj / N wj[i]
             // fac = Vs sumwj / N
-            //    sd(I[i]) = sqrt(fac * wj[i])
+            //    sd(I[i]) = sqrt(fac / wj[i])
             sdIsample[i] = sqrt(fac/wj[i]);
+            totv += fac/wj[i];
+            totui += wj[i]/sumwj;
           }
         }
+        //      std::cout << "Sanity checks "
+        //                <<sdIs<<" "<<Vs/double(Nused)<<" "<< totv/double(Nused) <<" "<<totui<<"\n";
       }
     } else {
       avIsigI = IsigI(0.0,0.0);
       State = -1;
     }
-
     return avIsigI;
+  }
+  // ------------------------------------------------------------
+  void SelectedObservations::samplemean()
+  // sets mv, and wj
+  {
+    mv.clear();
+    double w;
+    double g;
+    IsigI Is;
+    Rtype sd;
+    for (int i=0;i<nobs;i++)  {
+      if (use[i]) {
+        g = this_ref->get_observation(i).Gscale();
+        // scaled I', sigI'
+        Is = this_ref->get_observation(i).kI_sigI();
+        sd = Is.sigI();
+        ASSERT (sd > 0.0);
+        w = Weight(sd, g);   // weight according to weighttype
+        wj[i] = w;
+        // scaled I', sigI'
+        Is = this_ref->get_observation(i).kI_sigI();
+        // always add into sums for sampleSD
+        mv.Add(double(Is.I()), w);
+      }
+    }
+  }
+  // ------------------------------------------------------------
+  //! Var(<I>) from sample variance, unconditional from Average()
+  //  just samplevariance/N
+  double SelectedObservations::Variance() const
+  {
+    return mv.VarianceofMean();
+  }
+  // ------------------------------------------------------------
+  //! Sample variance, unconditional from Average()
+  double SelectedObservations::sampleVariance() const
+  {
+    return mv.SampleVariance();
   }
   // ------------------------------------------------------------
   IsigI SelectedObservations::AveragePart(const int& WhichPart)
@@ -350,21 +389,19 @@ namespace scala
     double g;
 
     int Nu = 0;
-    MeanVariance mv;
+    MeanVariance mvp;
 
     for (int i=0;i<nobs;i++)  {
       if (use[i]) {
         if (WhichPart < 0 || part[i] == WhichPart) {
           Nu++;
-          g = this_ref->get_observation(i).Gscale();
           // scaled I', sigI'
           Is = this_ref->get_observation(i).kI_sigI();
           sd = Is.sigI();
           ASSERT (sd > 0.0);
-          w = Weight(sd, g);   // weight according to weighttype
+          w = wj[i];
           wI[i] = w * Is.I(); // w I'
           sumwI += wI[i];
-          wj[i] = w;
           sumwj += wj[i];
           if (weighttype == WeightType::VARIANCE) {
             wv[i] = w;  // 1/sd^2
@@ -373,7 +410,7 @@ namespace scala
           }
           sumwv += wv[i];  // sum for var(Imean)
           if (sampleSD) {
-            mv.Add(wI[i], w);
+            mvp.Add(wI[i], w);
           }
         }
       }
@@ -384,10 +421,10 @@ namespace scala
       if (weighttype == WeightType::VARIANCE) {
         sdI = sqrt(1.0/sumwv);
       } else {
-        sdI = sqrt(sumwv/(sumwj*sumwj));
+        sdI = sqrt(sumwv)/sumwj;
       }
       if (sampleSD && (Nused > minimumsample)) {
-        sdIs = mv.SD(); // sample SD
+        sdIs = mvp.SDofMean(); // SD of mean from sample variance
         avIsigIpart = IsigI(sumwI/sumwj, sdIs);
       } else {
         avIsigIpart = IsigI(sumwI/sumwj, sdI);
@@ -404,40 +441,82 @@ namespace scala
   //   Rejected observations are left with their original delta,
   //     accepted ones are reevaluated after rejection
   //   delta.size() = total number of observations in reflection
+  //  If (fromSample && sampleSDused), then use sample variance, else
+  //   use individual variance
   //
-  std::vector<float> SelectedObservations::Deviations()
+  std::vector<float> SelectedObservations::Deviations(const bool& fromSample)
   {
-    if (Nused <= 0) return delta;
+    if (Nused <= 0) {return delta;}
     if (State == 0) Average();
+    if (State >= 2) {return delta;}  // already calculated
     if (Nused > 1) {
       // we need at least 2 observations
       float Iothers;
       float varothers;
+      float vv;
+      // true iff both sampleSDused && fromSample true
+      bool usesamplesd = (sampleSDused && fromSample);
+      //      bool DEBUG = true;
+      bool DEBUG = false;
+      //^^
+      //      for (size_t k=0; k<outliers.size(); k++) {
+      //        if (outliers[k]) {DEBUG = true;}
+      //      }
+      //      std::cout <<"Dev "<<this_ref->hkl().format()
+      //                <<" "<<sampleSDused<<" "<<fromSample<<" "
+      //                <<usesamplesd <<std::endl;
 
-      std::vector<IsigI> mnothers = MeanIothers(); // mean of other observations
+      if (DEBUG) {
+        std::cout << "SelectedObservations::Deviations() "<<this_ref->hkl().format()
+                  <<" "<<avIsigI.I()<<" "<<sdI<<" "<<sdIs<<"\n";
+      }
+      //^
+      double sum = 0.0;
+      int n = 0;
+      //^-
+      std::vector<IvarI> mnothers = MeanIothers(); // mean of other observations
+
+      delta.assign(nobs, 0.0);
+
 
       for (int i=0;i<nobs;i++) {
         if (use[i]) {
           // <I>(others)  ie excluding this observation
           //  and its variance (scaled to this observation)
-          varothers = mnothers[i].sigI() * mnothers[i].sigI();
+          varothers = mnothers[i].varI();
           Iothers = mnothers[i].I();
-          float vv = this_ref->get_observation(i).sigI()*
-            this_ref->get_observation(i).sigI() +
-            varothers;
-          if (!(vv > 0.0)) {
-            std::cout << "Aaargh " << vv << " "
-                      << this_ref->get_observation(i).sigI()
-                      << " " << varothers << "\n";
+          if (usesamplesd) {
+            vv = varothers * (sumwj - wj[i]) / (float(Nused-1) * wj[i]);
+          } else {
+            vv = this_ref->get_observation(i).ksigI()*
+              this_ref->get_observation(i).ksigI();
+            //?//vv += varothers;
           }
+          //^
+          //      if (vv <= 0.0) {
+          //        std::cout << "varothers " << varothers<<" "<<vv <<std::endl;
+          //      }
           ASSERT (vv > 0.0);
-          delta[i] = (this_ref->get_observation(i).I() - Iothers)/
-            sqrt(this_ref->get_observation(i).sigI()*
-                 this_ref->get_observation(i).sigI() +
-                 varothers);
+          delta[i] = (this_ref->get_observation(i).kI() - Iothers)/sqrt(vv);
+          if (DEBUG) {
+            std::string s = "  ";
+            if (std::abs(delta[i]) > 3.0) {s = " *";}
+            printf("kI, ksigI, Ioth, varOth, varI, delI, sd, delta %8.1f %8.1f %8.1f %8.1f %8.1f %8.3f %8.3f %8.4f %s\n"
+                   , this_ref->get_observation(i).kI()
+                   , this_ref->get_observation(i).ksigI()
+                   , Iothers ,varothers,vv-varothers,
+                   (this_ref->get_observation(i).kI() - Iothers), sqrt(vv),
+                   delta[i], s.c_str());
+            sum += delta[i]*delta[i];
+            n++;
+          }
         }
       }
+      if (DEBUG) {
+        std::cout <<"MeanD^2 " << sum/double(n) <<"\n";
+      }
     }
+
     State = +2;
     return delta;
   }
@@ -445,14 +524,13 @@ namespace scala
   // For each observation, return mean of other observations, scaled to each observation
   //   returns mnothers(NobsRefl), unused slots set = 0.0 ie not closed down
   //
-  std::vector<IsigI> SelectedObservations::MeanIothers()
+  std::vector<IvarI> SelectedObservations::MeanIothers()
   {
-    std::vector<IsigI> mnothers(nobs, IsigI(0.0,0.0));
+    std::vector<IvarI> mnothers(nobs, IvarI(0.0,0.0));
     if (Nused <= 0) return mnothers;
     if (State == 0) Average();
     if (Nused > 1) {
       // we need at least 2 observations
-      float g;
       double wjothers, wvothers;
 
       for (int i=0;i<nobs;i++) {
@@ -462,12 +540,16 @@ namespace scala
           const double MINW = 1.0e-30;
           wjothers = Max(sumwj - wj[i], MINW); // trap very small wj for rounding errors
           wvothers = Max(sumwv - wv[i], MINW); // trap very small wv for rounding errors
-          g = this_ref->get_observation(i).Gscale();
-          mnothers[i].I() = g * (sumwI - wI[i])/wjothers;
-          if (weighttype == WeightType::VARIANCE) {
-            mnothers[i].sigI() = g  / sqrt(wvothers);
+          mnothers[i].I() = (sumwI - wI[i])/wjothers;
+          if (sampleSDused) {
+            mnothers[i].varI() =
+              mv.VarianceofMeanOmit1(this_ref->get_observation(i).kI(), wj[i]);
           } else {
-            mnothers[i].sigI() = g * sqrt(wvothers)/wjothers;
+            if (weighttype == WeightType::VARIANCE) {
+              mnothers[i].varI() = 1.0  / wvothers;
+            } else {
+              mnothers[i].varI() = wvothers/(wjothers*wjothers);
+            }
           }
         }
       }
@@ -476,21 +558,31 @@ namespace scala
     return mnothers;
   }
   // ------------------------------------------------------------
-  std::vector<float> SelectedObservations::Delta2()
+  std::vector<float> SelectedObservations::Delta2(const bool& fromSample)
   // List of deviations delta2 (ie delI/sigma(I) ) where delI
   //  is difference from mean of all observations
   //   returns delta2(NobsRefl), unused slots set = 0.0 ie not closed down
   //   delta2.size() = total number of observations in reflection
+  //  If (fromSample && sampleSDused), then use sample variance, else
+  //   use individual variance
+  //
   {
     std::vector<float> delta2(nobs,0.0);
     if (Nused <= 0) return delta2;
     if (State == 0) Average();
     if (Nused > 1) {
+      // true iff both sampleSDused && fromSample true
+      bool usesamplesd = (sampleSDused && fromSample);
+      float sigmai;
       float fac = sqrt(float(Nused)/(Nused-1));
       for (int i=0;i<nobs;i++) {
         if (use[i]) {
           float delI = (this_ref->get_observation(i).kI() - avIsigI.I());
-          float sigmai = this_ref->get_observation(i).ksigI();
+          if (usesamplesd) {
+            sigmai = sdIsample[i];
+          } else {
+            sigmai = this_ref->get_observation(i).ksigI();
+          }
           //^^
           //      observation obs = this_ref->get_observation(i);
           //      std::cout << fac<<" "<<delI<<" "<<sigmai
@@ -498,6 +590,10 @@ namespace scala
           //                <<" "<<obs.hkl_original().format()
           //                <<" fac, delI, sigmaI, g, sigI, ksigI\n"; //^^
           delta2[i] = fac * delI/sigmai;
+          //      std::cout <<"Delta2, fac, delI, sigmai, I, avI "<<
+          //        delta2[i]<<" "<<fac<<" "<<delI<<" "<<sigmai<<
+          //        " "<<this_ref->get_observation(i).kI()<<" "<<
+          //        " "<<avIsigI.I()<<"\n";
         }
       }
     }
@@ -546,7 +642,7 @@ namespace scala
   // ------------------------------------------------------------
   // List of sigma(I) (scaled)
   //   returns sigmaI(nobs), unused slots set = 0.0 ie not closed down
-  std::vector<float> SelectedObservations::sigmaI()
+  std::vector<float> SelectedObservations::sigmaI() const
   {
     std::vector<float> sigmai = std::vector<float>(nobs,0.0);
     if (Nused <= 0) return sigmai;
@@ -556,6 +652,20 @@ namespace scala
       }
     }
     return sigmai;
+  }
+  // ------------------------------------------------------------
+  // List of I, sigma(I) (scaled)
+  //   returns I,sigI(nobs), unused slots set = 0.0 ie not closed down
+  std::vector<IsigI> SelectedObservations::IsigIlist() const
+  {
+    std::vector<IsigI> isigi(nobs);
+    if (Nused <= 0) return isigi;
+    for (int i=0;i<nobs;i++) {
+      if (use[i]) {
+        isigi[i] = this_ref->get_observation(i).kI_sigI();
+      }
+    }
+    return isigi;
   }
   // ------------------------------------------------------------
   int SelectedObservations::Outliers(const RejectFlags& rejflags)
@@ -726,15 +836,19 @@ namespace scala
           Nused--;
           State = 0;
           //^+
-          if (DEBUG) std::cout << "Reject " << delta[lworst]
-                               << "  hkl " << this_ref->hkl().format() << "\n";
+          if (DEBUG) {
+            std::cout << "Reject " << delta[lworst]
+                      << "  hkl " << this_ref->hkl().format() << "\n";
+          }
         } else {
           break;}  // no rejection
       } else {break;}   // no rejection
     }
-    //recalculate deviations if required
+    // recalculate deviations and sample mean if required
     if (State < +2) {
-      Deviations();}
+      samplemean();
+      Deviations();
+    }
     State = +3;
     return Nrej;
   }
@@ -776,20 +890,60 @@ namespace scala
     return idxlist;
   }
   // ------------------------------------------------------------
-  //! return formatted version of weight
-  std::string SelectedObservations::formatWeightType
-    (const WeightType::AverageWeightType& weighttype )
-  // Weight type for averaging
-  //   UNIT        unit weights
-  //   VARIANCE    weight = 1/variance
-  //   SQRTSCALE   weight = 1/sqrt(g)  g = 1/scale
+  double SelectedObservations::chiSq(const bool& fromSample)
+  // Mean Chi^2, goodness of fit, Mean((I-<I>)/sigma)
+  //  if (fromSample && sampleSDused), then use sample variance
+  //  if (fromSample && !sampleSDused), return 0.0
+  // else  use individual variance
   {
-    if (weighttype == WeightType::UNIT) {return "unit weights";}
-    if (weighttype == WeightType::VARIANCE) {return "variance weights";}
-    if (weighttype == WeightType::SQRTSCALE) {return "SquareRoot(scale) weights";}
-    if (weighttype == WeightType::SCALE) {return "scale weights";}
-    return "";
+    MeanValue chisq;
+    std::vector<float> delta;
+    State = 0; // force recalculation
+    if (!fromSample) {
+      //      State = std::min(State, +1);  // force recalculation
+      delta = Delta2(fromSample);
+    } else {
+      if (sampleSDused) {
+        delta = Delta2(fromSample);
+      } else {
+        return 0.0;
+      }
+    }
+    if (delta.size() == 0.0) {return 0.0;}
+    double sum = 0.0;
+    int n = 0;
+    for (size_t k=0; k<delta.size(); k++) {
+      if (delta[k] != 0.0) {
+        //^
+        //        std::string s = " * ";
+        //        if (fromSample) {s = " $ ";}
+        //      std::cout << "delta " <<s<< delta[k]<<" "
+        //                <<delta[k]*delta[k] <<std::endl; //^^
+        sum += delta[k]*delta[k];
+        n++;
+        //^-
+        chisq.Add(delta[k]*delta[k], 1.0f);
+      }
+    }
+    //    std::cout << "Mean I, Mean D^2 " << avIsigI.I()<<" "
+    //        << sum/double(n) << std::endl;
+    return chisq.Mean();
   }
   // ------------------------------------------------------------
-
+  std::vector<Iwgrp> SelectedObservations::iwgroup() const
+  {
+    std::vector<Iwgrp> iwb(Nused);
+    size_t k = 0;
+    for (int i=0;i<nobs;i++) {
+      if (use[i]) {
+        iwb[k++] = Iwgrp(this_ref->get_observation(i).kI_sigI().I(),
+                         wj[i], this_ref->get_observation(i).Batch());
+        //      std::cout << "iwgroup I, s "<<
+        //        this_ref->get_observation(i).kI_sigI().I() <<" "<<
+        //        this_ref->get_observation(i).kI_sigI().sigI() <<"\n";
+      }
+    }
+    iwb.resize(k);
+    return iwb;
+  }
 }

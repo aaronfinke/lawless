@@ -17,6 +17,7 @@
 #include "scala_util.hh"
 #include "string_util.hh"
 #include "report_errors.hh"
+//#include "file_util.hh"     // debug
 
 namespace scala {
   //--------------------------------------------------------------
@@ -601,6 +602,14 @@ namespace scala {
       }
     }
     NormRes.StoreMeanIsdIsSqr(meanisdissqr);
+
+    //^^
+    //    std::cout << "SetNormalise I/sigI\n";
+    //    for (int i=0;i<Nbin;i++) {
+    //      if (n_I[i] > 0) {
+    //  std::cout <<i<<" "<< sum_I[i]/sum_sigI[i] <<"\n";
+    //      }
+    //    } //^-
 
     // Reset high resolution cutoff to cut out weak high resolution bins
     // unless MinIsigRatio < 0

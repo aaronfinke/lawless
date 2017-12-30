@@ -185,14 +185,16 @@ namespace scala {
     csymops = symops;
     clipper::String symopString;
     for (size_t i=0;i<csymops.size();++i) {
+      //      std::cout <<"Symop "<<i<<" "<<csymops[i].format()<<std::endl;
       symopString += csymops[i].format() + ";";
     }
     // Symop string ("x,y,z; ...")
-    //    std::cout <<"\nclipper::Spacegroup constructed from operators: "<< symopString<<"\n";
+    //    std::cout <<"\nclipper::Spacegroup constructed from operators: "
+    //        << symopString<<std::endl;
 
     clipper::Spgr_descr spdescr(symopString, clipper::Spacegroup::Spgr_descr::Symops);
     //    std::cout << spdescr.spacegroup_number() <<"  ; "
-    //        << spdescr.symbol_xhm() << "\n";
+    //        << spdescr.symbol_xhm() << std::endl;
     if (spdescr.spacegroup_number() <= 0) {
       if (softfail) {
         return false;

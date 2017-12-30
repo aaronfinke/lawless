@@ -96,8 +96,9 @@ namespace scala {
             if (meanIrun[i].Count() > 0) {
               double w = 1.0;
               if (VARIANCEWEIGHT) {
-                double mv = normscale*normscale*(meanIrun[i].VarianceFromWeights() +
-                                                 meanIrun[j].VarianceFromWeights());
+                double mv =
+                  normscale*normscale*(meanIrun[i].VarianceofMeanFromWeights() +
+                                                 meanIrun[j].VarianceofMeanFromWeights());
                 if (mv <= 0.0) {
                   w = 0.0;
                 } else {

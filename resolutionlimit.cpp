@@ -102,37 +102,55 @@ namespace scala {
       //  (flagged in status)
       reshigh = fit(score, ResRange);
       //std::cout << "status "<<status<<" highres " <<highres<<" reshigh "<<reshigh<<std::endl;
-      if (status == -2 && reshigh > 0.0) {
-        highres = 1.0/sqrt(reshigh);
-        //std::cout << " highres " <<highres<<std::endl;
-        status = 0;
-      }
-      if (reshigh >= 0.0) {
+      //  Status usually = -2
+      //   = +1 all above threshold, and fitted (highres = max res)
+      //   = -1 all below threshold, or fit failed (reshigh <= 0.0)
+      if (status == -2) {
+        if (reshigh > 0.0) {
+          highres = 1.0/sqrt(reshigh);
+          //std::cout << " highres " <<highres<<std::endl;
+          status = 0;
+        } else {
+          // negative highres, fall back to LINEAR
+          fittype = LINEAR;
+          highres = 0.0;
+          status = -1;
+        }
+        fitted = true;
+      } else if (status == -1) {
+        highres = 0.0;
+        fitted = true;
+      } else if (status >= 0) {
         fitted = true;
       }
     }
-    if (status != 0 && !(status == -1)) { // simply interpolate unless fit was successful
+    if (status != 0 && status != -1) { // simply interpolate unless fit was successful
       if (nbins > 1) {
-        // linear interpolate on 1/d^2 between bins i1 and i1+1
-        if (status == +1 || i1+1 >= int(score.size())) {
-          highres = ResRange.ResHigh();
+        if (fitted && (fittype == LINEAR)) {
+          // we have a fall-back linear fit,
+          //  find the point at which this falls below limit
         } else {
-          double den = score[i1]-score[i1+1];
-          if (score[i1+1] == 0.0) {
-            den = score[i1];
+          // linear interpolate on 1/d^2 between bins i1 and i1+1
+          if (status == +1 || i1+1 >= int(score.size())) {
+            highres = ResRange.ResHigh();
+          } else {
+            double den = score[i1]-score[i1+1];
+            if (score[i1+1] == 0.0) {
+              den = score[i1];
+            }
+            double f = 1.0;
+            if (den > 0.0) { // trap for divide by 0
+              f = (score[i1]-limit)/den;
+            }
+            highres = ResRange.middle(i1) +
+              f * (ResRange.middle(i1+1) - ResRange.middle(i1));
+            if (highres > 0.0) highres = 1.0/sqrt(highres);
+            //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
           }
-          double f = 1.0;
-          if (den > 0.0) { // trap for divide by 0
-            f = (score[i1]-limit)/den;
-          }
-          highres = ResRange.middle(i1) +
-            f * (ResRange.middle(i1+1) - ResRange.middle(i1));
-          if (highres > 0.0) highres = 1.0/sqrt(highres);
-          //std::cout << "RL interpolate " <<i1<<" "<<highres <<" "<<reshigh<<" Status " << status<<std::endl;
         }
-      }
-      if (status == -2) {
-        status = 0;
+        if (status == -2) {
+          status = 0;
+        }
       }
     }
     if (status != -1) {
@@ -168,7 +186,11 @@ namespace scala {
   // ------------------------------------------------------------
   double ResolutionLimit::fit(const std::vector<double>& score,
                             const ResoRange& ResRange)
-  // return reshigh (1/d^2), <= 0 if no valid fit
+  // return reshigh (1/d^2)
+  //   if no valid fit,
+  //     reshigh (1/d^2) <= 0
+  //     also status = -1, fittype = LINEAR
+  // otherwise status is unchanged
   {
     // Straight line fit option
     LinearFit linefit;
@@ -283,6 +305,21 @@ namespace scala {
 
     //    std::cout << "ResolutionLimit::fit ResHigh "<<reshigh
     //        <<"\n"<< radialfunction.format() << "\n\n"; //^
+    if (reshigh < 0.0) {
+      // negative highres, fall back to LINEAR
+      fittype = LINEAR;
+      if (slope >= 0.0) {
+        // no answer if slope not negative
+        reshigh = 0.0;
+        status = -1;
+      } else {
+        reshigh = linefit.xvalueaty(limit);  // may still be negative
+        if (reshigh <= 0.0) {
+          reshigh = 0.0;
+          status = -1;
+        }
+      }
+    }
     return reshigh;
   }
   // ------------------------------------------------------------
@@ -347,6 +384,8 @@ namespace scala {
     if (sufficientdata) {  // sufficent data to determine limit
       if (fittype == NONE) { // no function fit
         s += "Resolution limit determined from the point at which the score drops below threshold\n";
+      } else if (fittype == LINEAR) {
+        s += "Resolution limit determined from a linear fit\n";
       } else {
         s += "Resolution limit determined from a curve fit to the function "+
           radialfunction.formatfunction();
@@ -360,9 +399,13 @@ namespace scala {
     }
 
     if (status == -1) {
-      s += "All scores are below the threshold";
+      if (fitted) {
+        s += "All scores are below the threshold";
+      } else {
+        s += "Fitted scores are below the threshold";
+      }
       if (anomalous) {
-        s += ", ie there is no significant anomalous signal\n";
+        s += ", ie there is no apparent anomalous signal from CCanom\n";
       } else {
         s += ", ie the data are very poor even at the lowest resolution\n";
       }

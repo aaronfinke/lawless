@@ -68,7 +68,7 @@ namespace scala {
     // String representation
     static std::string ScaleParameterTypeString(const ScaleParameterType& type);
 
-    ScaleModel(){}
+    ScaleModel():status(0){}
     // Construct from input commands and reflection list
     //  All secondary beam direction in hkl_list will be calculated if needed
     ScaleModel(const phaser_io::InputAll& input,
@@ -251,6 +251,12 @@ namespace scala {
     int scaleSpecIndex(const int& irun,
 		       const std::vector<ScaleSpecification>& scaleSpecs,
 		       const std::vector<Run>& runList) const;
+
+    // Status:
+    //  = 0  unset
+    //  > 0  set and OK
+    //  < 0  insufficient information (ie not IsRefinable)
+    int status;
 
     // Run information
     std::vector<int> runnumbers;

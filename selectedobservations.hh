@@ -13,15 +13,42 @@
 namespace scala
 {
   //  class reflection;
+  //--------------------------------------------------------------
+  class IvarI {
+    // Just a pair, I, var(I), to save some sqrt & square
+  public:
+    IvarI() {clipper::Util::set_null(I_); clipper::Util::set_null(varI_); }
+    IvarI(const float& I, const float& varI) {I_=I; varI_=varI;}
 
+    // Accessors
+    const float&    I() const {return  I_;}
+    const float& varI() const {return varI_;}
+    // write access
+    float&    I() {return    I_;}
+    float& varI() {return varI_;}
+
+  private:
+    float I_, varI_;
+  };
+  // ------------------------------------------------------------
+  class Iwgrp {
+    // just for CumulativeCChalf
+  public:
+    Iwgrp(){}
+    Iwgrp(const double& II, const double& ww, const int& ibatch)
+      : I(II), w(ww), batch(ibatch) {}
+
+    double I; // intensity
+    double w; // weight
+    int batch;
+  };
+  //--------------------------------------------------------------
   class SelectedObservations
   //! Observations selected from a reflection for:-
   //!   (a) a dataset or all datasets
   //!   (b) all I+ & I- (ALL); just I+ (IPLUS); or just I- (IMINUS)
   {
   public:
-
-
     SelectedObservations(){}
     
     //! constructor for selecting datasets & anomalous class
@@ -45,6 +72,9 @@ namespace scala
 	      const int& datasetIndex,
 	      const AnomalousClass& Anomclass,
 	      const WeightType::AverageWeightType& weightType);
+
+    //! Reset State to force recalculation of average etc
+    void reset() {State = 0;}
 
     //! Divide into Npart parts
     void SetNpart(const int& Npart);
@@ -71,6 +101,9 @@ namespace scala
     //! Set SqrtScale weights
     void SetSqrtScaleWeights() {SetWeight(WeightType::SQRTSCALE);}
 
+    //! Set Scale weights
+    void SetScaleWeights() {SetWeight(WeightType::SCALE);}
+
     //! Set unitweights
     void SetUnitWeights() {SetWeight(WeightType::UNIT);}
 
@@ -82,6 +115,12 @@ namespace scala
 
     //! SD(<I>) from sampleSD, if done (else 0.0)
     double SDsample() const {return sdIs;}
+
+    //! Var(<I>) from sample variance, unconditional from Average()
+    double Variance() const;
+
+    //! Sample variance, unconditional from Average()
+    double sampleVariance() const;
 
     //! Set sample variance, minimum number of values (<0 to switch off)
     static void SetSampleSD (const int& minSample=10);
@@ -105,23 +144,36 @@ namespace scala
     //! List of deviations delta (ie delI/sigma(I) ) where delI
     //!  is difference from mean of other observations
     //!   returns deltasize() = NobsRefl, unused slots set = 0.0 ie not closed down
-    std::vector<float> Deviations();    
+    //  If (fromSample && sampleSDused), then use sample variance, else
+    //   use individual variance
+    std::vector<float> Deviations(const bool& fromSample=false);    
     //! Deviations including rejected outliers
     std::vector<float> DeltaAll() const {return delta;}
     //! List of deviations delta2 (ie fac * delI/sigma(I) ) where delI
     //!  is difference from mean of all observations and
     //!  fac = sqrt(n/n-1)
-    std::vector<float> Delta2();        // variance-weighted <I>
+    //  If (fromSample && sampleSDused), then use sample variance, else
+    //   use individual variance
+    std::vector<float> Delta2(const bool& fromSample=false);
 
     //! List of deviations delta3 (ie delI/SDsample(I) ) where delI
     //!  is difference from mean of all observations
     std::vector<float> Delta3();
 
+    // Mean Chi^2, goodness of fit, Mean((I-Iothers)/sigma)
+    //  if (fromSample && sampleSDused), then use sample variance
+    //  if (fromSample && !sampleSDused), return 0.0
+    // else  use individual variance
+    double chiSq(const bool& fromSample);
+
+    //! weights for each observation, = 0.0 if not used
+    std::vector<double> weights() const {return  wj;}
+
     // For each observation, return mean of other observations,
     //   scaled to each observation
     //   returns mnothers(NobsRefl), unused slots set = 0.0 ie not closed down
     // 
-    std::vector<IsigI> MeanIothers();
+    std::vector<IvarI> MeanIothers();
 
     //! List of delI (scaled)
     //!  returns delI(Nobs), unused slots set = 0.0 ie not closed down
@@ -129,7 +181,14 @@ namespace scala
 
     //! List of sigma(I)
     //!   returns sigmaI(Nobs), unused slots set = 0.0 ie not closed down
-    std::vector<float> sigmaI();
+    std::vector<float> sigmaI() const;
+
+    // List of I, sigma(I) (scaled)
+    //   returns I,sigI(nobs), unused slots set = 0.0 ie not closed down
+    std::vector<IsigI> IsigIlist() const;
+
+    // List of (I, weight, batch)
+    std::vector<Iwgrp> iwgroup() const;
 
     //! Run number for kobs'th observation
     //! note that kobs is the index into the whole list, including unused ones
@@ -157,10 +216,6 @@ namespace scala
   //           = REJECTLARGER     reject larger
   //           = REJECTSMALLER    reject smaller
 
-    //! return formatted version of weight
-    static std::string formatWeightType
-      (const WeightType::AverageWeightType& weighttype );
-
   private:
     const reflection* this_ref;
     std::vector<bool> use;         // use flags, initially all true
@@ -187,6 +242,7 @@ namespace scala
     // Deviations delI/sigma  from "others"
     std::vector<float> delta;     // for current list
     WeightType::AverageWeightType weighttype;   // type of weighting for average
+    MeanVariance mv;  // for sample variance
 
     // true to calculate sample SD in avIsigI from values instead of error propagation,
     // provided that the number is > minimumsample
@@ -205,6 +261,9 @@ namespace scala
     mutable int nextobs;  // index to next observation
 
     double Weight(const double& sd, const double& g) const;
+
+    void samplemean();
+
 
   };
 }

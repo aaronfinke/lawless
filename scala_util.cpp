@@ -271,24 +271,6 @@ namespace scala
     for (size_t i=0;i<list.size();i++)  {Add(list[i]);}
   }
   //--------------------------------------------------------------
-  void MeanSD::initExclude(const std::vector<float>& list,
-                           const int& idxexclude)
-  // if idxexclude >= 0, exclude entry with this index
-  {
-    for (size_t i=0;i<list.size();i++)  {
-      if (idxexclude < 0 || int(i) != idxexclude) Add(list[i]);
-    }
-  }
-  //--------------------------------------------------------------
-  void MeanSD::initExclude(const std::vector<double>& list,
-                           const int& idxexclude)
-  // if idxexclude >= 0, exclude entry with this index
-  {
-    for (size_t i=0;i<list.size();i++)  {
-      if (idxexclude < 0 || int(i) != idxexclude) Add(list[i]);
-    }
-  }
-  //--------------------------------------------------------------
   void MeanSD::Add(const float& v)
   {
     sum_sc += v;
@@ -323,7 +305,11 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanSD::format() const
   {
-    return "Mean "+clipper::String(Mean())+"  sd "+clipper::String(SD());
+    std::string s = "MeanSD: sumsc, count "+clipper::String(sum_sc)+
+      +" "+clipper::String(count)+", "+
+      "Mean "+clipper::String(Mean())+"  sd "+clipper::String(SD());
+    return s;
+    //    return "Mean "+clipper::String(Mean())+"  sd "+clipper::String(SD());
   }
   //--------------------------------------------------------------
   MeanSD& MeanSD::operator +=(const MeanSD& other)
@@ -374,6 +360,13 @@ namespace scala
     count++;
   }
   //--------------------------------------------------------------
+  void MeanValue::Subtract(const double& v, const double& w)
+  {
+    sum_sc -= w * v;
+    sum_w -= w;
+    count--;
+  }
+  //--------------------------------------------------------------
   double MeanValue::Mean() const
   {
     return (sum_w > 0) ? sum_sc/sum_w : 0.0;
@@ -381,7 +374,11 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanValue::format() const
   {
-    return "Mean "+clipper::String(Mean());
+    std::string s = "MeanValue: sumsc, sumw "+clipper::String(sum_sc)+
+      +" "+clipper::String(sum_w)+", "
+      "Mean "+clipper::String(Mean());
+    return s;
+    //^^    return "Mean "+clipper::String(Mean());
   }
   //--------------------------------------------------------------
   MeanValue& MeanValue::operator +=(const MeanValue& other)
@@ -434,12 +431,21 @@ namespace scala
     count++;
   }
   //--------------------------------------------------------------
+  void MeanVariance::Subtract(const double& v, const double& w)
+  {
+    sum_sc -= w * v;
+    sum_sc2 -= w * v * v;
+    sum_w -= w;
+    sum_w2 -= w * w;
+    count--;
+  }
+  //--------------------------------------------------------------
   double MeanVariance::Mean() const
   {
     return (sum_w > 0) ? sum_sc/sum_w : 0.0;
   }
   //--------------------------------------------------------------
-  double MeanVariance::VarianceFromWeights() const
+  double MeanVariance::VarianceofMeanFromWeights() const
   // variance of mean from the weights ie 1/Sum(weights)
   {
     double var = 0.0;
@@ -449,14 +455,14 @@ namespace scala
     return var;
   }
   //--------------------------------------------------------------
-  double MeanVariance::SDfromWeights() const
+  double MeanVariance::SDofMeanfromWeights() const
   // SD of mean from the weights ie sqrt(1/Sum(weights))
   {
-    return sqrt(VarianceFromWeights());
+    return sqrt(VarianceofMeanFromWeights());
   }
   //--------------------------------------------------------------
-  double MeanVariance::Variance() const
-  // variance of mean
+  double MeanVariance::VarianceofMean() const
+  // variance of sample
   {
     double var = 0.0;
     if (count > 1) {
@@ -467,29 +473,37 @@ namespace scala
   return var;
   }
   //--------------------------------------------------------------
-  double MeanVariance::SD() const
+  double MeanVariance::SDofMean() const
+  // SD of mean
   {
-    return sqrt(Variance());
+    return sqrt(VarianceofMean());
   }
   //--------------------------------------------------------------
   double MeanVariance::SampleVariance() const
-  // Variance of distribution
+  // Variance of sample from the distribution,= 0.0 if < 2 values
   {
     double var = 0.0;
     if (count > 1) {
       // fac = Sum(w)/[(Sum(w))^2 - Sum(w^2)] to allow for bias
-      //   equivalent to n/(n-1) correction, see Wikipedia
-      double fac = sum_w/(sum_w*sum_w - sum_w2);
+      //     = 1/(sum_w-(sumw^2/sum_w))
+      //   equivalent to n/(n-1) correction
+      //     for unit weights, fac = 1/(n-1)
+      //     see Wikipedia Weighted Mean,  1/(V1 - V2/V1)
+      double fac = 1.0/(sum_w - sum_w2/sum_w);
       var = Max(0.0, sum_sc2 - sum_sc*sum_sc/sum_w) * fac;
-    } else if (count == 1) {
-      var = 1.0/sum_w;
+      //^
+      //      std::cout <<"SampleVariance "<<count<<" "<<1.0/(count-1.0)<<" "
+      //                <<var<<" "<<fac<<" "<<sum_sc2*fac<<" "<<
+      //        sum_sc/sum_w <<" "<<(sum_sc/sum_w)*(sum_sc/sum_w)
+      //                <<" "<<sum_sc2/(count-1.0) - (sum_sc/sum_w)*(sum_sc/sum_w)
+      //        <<"\n";
     }
     return var;
   }
   //--------------------------------------------------------------
   double MeanVariance::SampleVarianceOmit1(const double& v,
-                                           const double& w) const
-  // Variance of distribution, omitting one observation (v, weight w)
+                                     const double& w) const
+  // Variance of mean, omitting one observation (v, weight w)
   /*  from add
     sum_sc += w * v;
     sum_sc2 += w * v * v;
@@ -503,19 +517,32 @@ namespace scala
     if (sum_w_less1 <= 0.0) {return var;}
     if (count > 2) {
       // fac = Sum(w)/[(Sum(w))^2 - Sum(w^2)] to allow for bias
-      //   equivalent to n/(n-1) correction, see Wikipedia
+      //     = 1/(sum_w-(sumw^2/sum(w)))
+      //   equivalent to n/(n-1) correction
+      //     see Wikipedia Weighted Mean,  1/(V1 - V2/V1)
       double fac =
-        sum_w_less1/(sum_w_less1*sum_w_less1 - (sum_w2 - w*w));
+        1.0/(sum_w_less1 - (sum_w2 - w*w)/sum_w_less1);
       double sum_sc_less1 = sum_sc - w * v;
       var = Max(0.0,
                 (sum_sc2 - w*v*v) -
                 sum_sc_less1*sum_sc_less1/sum_w_less1) * fac;
-
       //      std::cout <<"Omit1 "<<v<<" "<<w<<" "<<var<<" "<<sum_sc<<" "<<
       //        sum_sc_less1<<" "<<sum_sc2-w*v*v<<
       //        sum_w_less1<<" "<<sum_w2-w*w<<std::endl; //^-
     } else if (count == 2) {
       var = 1.0/sum_w_less1;
+    }
+    return var;
+  }
+  //--------------------------------------------------------------
+  double MeanVariance::VarianceofMeanOmit1(const double& v,
+                                     const double& w) const
+  {
+    double var = 0.0;
+    if (count > 2) {
+      // Variance of mean is just 1/N sampleVariance
+      //  assuming the weights are proportional to the true variances
+      var = SampleVarianceOmit1(v,w)/double(count-1);
     }
     return var;
   }
@@ -527,13 +554,18 @@ namespace scala
   //--------------------------------------------------------------
   std::string MeanVariance::format() const
   {
-    return "Mean "+clipper::String(Mean());
+    std::string s = "Mean "+clipper::String(Mean()) +
+      ", SD "+ clipper::String(SampleSD())+
+      ", SD(weights) " + clipper::String(sqrt(count)*SDofMeanfromWeights());
+    return s;
   }
   //--------------------------------------------------------------
   MeanVariance& MeanVariance::operator +=(const MeanVariance& other)
   {
     sum_sc += other.sum_sc;
     sum_w += other.sum_w;
+    sum_w2 += other.sum_w2;
+    sum_sc2 += other.sum_sc2;
     count += other.count;
 
     return *this;
@@ -544,6 +576,24 @@ namespace scala
   {
     MeanVariance c = a;
     return c += b;
+  }
+  //--------------------------------------------------------------
+  MeanVariance& MeanVariance::operator -=(const MeanVariance& other)
+  {
+    sum_sc -= other.sum_sc;
+    sum_w -= other.sum_w;
+    sum_w2 -= other.sum_w2;
+    sum_sc2 -= other.sum_sc2;
+    count -= other.count;
+
+    return *this;
+  }
+  //--------------------------------------------------------------
+  MeanVariance& operator -
+  (const MeanVariance& a, const MeanVariance& b)
+  {
+    MeanVariance c = a;
+    return c -= b;
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------

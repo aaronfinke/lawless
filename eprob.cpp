@@ -122,3 +122,16 @@ std::string EProb::format() const
   }
 }
 // ------------------------------------------------------------
+std::string EProb::formatXML() const
+{
+  std::string s = "\n<EmaxTest>";
+  if (emaxacen > 0.0) {
+    s += StringUtil::MakeXMLtag("EmaxAcentric", StringUtil::ftos(emaxacen,7,2));
+    s += StringUtil::MakeXMLtag("EmaxCentric", StringUtil::ftos(emaxcentric,7,2));
+  } else {
+    s += StringUtil::MakeXMLtag("EmaxAcentric", -1.0);
+  }
+  s += "\n</EmaxTest>\n";
+  return s;
+}
+// ------------------------------------------------------------

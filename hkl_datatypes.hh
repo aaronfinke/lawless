@@ -301,7 +301,7 @@ namespace scala
     Scell change_basis(const ReindexOp& reindex_op) const;
 
     //! format cell
-    std::string format(const int w=7, const int p=2) const;
+    std::string format(const int w=8, const int p=2) const;
     //! return XML representation
     std::string xml(const std::string& tag = "") const;
     //! return clipper::Cell

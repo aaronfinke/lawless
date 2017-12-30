@@ -2637,6 +2637,7 @@ namespace scala {
     Nobs_partial = 0;
     Nobs_scaled = 0;
     int Nfull, Npart, Nscaled;
+    maxintensity = -10000.;
 
     for (size_t j = 0; j < refl_list.size(); j++) {  // loop all reflections
       // Sum partials

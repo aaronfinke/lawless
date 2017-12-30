@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
                                          input.getSclMinLim(),
                                          input.getCheck(),
                                          input.getMaxGap());
-    int NbatchsmoothDefault = -1;
+
     controls.analysis = AnalysisControls(input.getResoBins(),
                                          input.getIntBins(),
                                          input.ConeAngle(),
@@ -221,7 +221,8 @@ int main(int argc, char* argv[])
                                          input.MinimumHalfdatasetAnomCC(),
                                          input.MinimumIoverSigma(),
                                          input.MinimumBatchIoverSigma(),
-                                         NbatchsmoothDefault,
+                                         input.SmoothStatisticsRange(),
+                                         input.BatchGroupRange(),
                                          input.DetectorAnalysis());
 
     // OutlierControl from input or defaults
@@ -370,6 +371,9 @@ int main(int argc, char* argv[])
     // Set up SD correction model for all runs, fulls & partials for each run
     // from input or by default
     SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList());
+    if (SD_model.SampleSD()) {
+      SelectedObservations::SetSampleSD(SD_model.MinimumSample());
+    }
     FC.sdoptimise = true;  // normally optimise SD correction unless onlymerge && restore
 
     // Print outlier information
@@ -392,11 +396,11 @@ int main(int argc, char* argv[])
       // maximum number of processors to use
       const int MAXUSEDPROCS = 8;
       // number of observations/processor: what is the "best" value?
-      const float NUMOBSPERPROC = 200000;
+      const double NUMOBSPERPROC = 200000;
       // Number to use
-      int nproc = Max(1,Nint(float(Nobs)/NUMOBSPERPROC));
+      int nproc = Max(1,Nint(double(Nobs)/NUMOBSPERPROC));
       nproc = Min(MAXUSEDPROCS, nproc);
-      controls.refinecontrol.SetNprocs(float(nproc));
+      controls.refinecontrol.SetNprocs(double(nproc));
       output.logTab(0,LOGFILE,
                     std::string("Number of processors determined automatically\n")+
                     "  from number of observations "+
@@ -438,6 +442,17 @@ int main(int argc, char* argv[])
           // no sdoptimisation if restore and onlymerge and SDCORR REFINE not set
           FC.sdoptimise = false;
         }
+        // ----- Optimise Combine settings
+        if (optimiseCombine) {
+          OptimiseCombine OptCombine(hkl_list, output);
+          if (OptCombine.IsOptimised()) {
+            output.logTab(0,LOGFILE,
+                          "\nTime for optimisation of intensity type selection: "+
+                          timer.format(true));
+            // Revaluate summed partials for scaling
+            hkl_list.sum_partials(true);
+          }
+        }
       }
     } else {
       if (FC.OnlyMerge()) {
@@ -446,12 +461,23 @@ int main(int argc, char* argv[])
       } else {
         // Set up scale model, from input commands & reflection list
         AllScales.init(input, hkl_list, output);
-        AllScales.PrintLayout(output);
         // If no refinable parameters, set OnlyMerge
         if (!AllScales.IsRefinable()) {
           FC.SetOnlyMerge();
-          output.logTab(0,LOGFILE,
-                        "No refinable parameters");
+          AllScales.SetConstant(hkl_list, output);
+          // turn off sd optimisation unless explicit
+          if (!input.SDC_RefineSet()) {
+            FC.sdoptimise = false;
+          }
+          std::string s =
+            "No scaling done, insufficient information in file";
+          output.logTab(0,LOGFILE, s);
+          output.logTab(0,LXML,
+                        StringUtil::MakeXMLwithclass("ScaleModelFail",
+                                                     s, false,
+                                                     "warningmessage"));
+        } else {
+          AllScales.PrintLayout(output);
         }
       }
     }
@@ -465,31 +491,48 @@ int main(int argc, char* argv[])
       firstSDanalysis = -1;
     }
 
-    // By default do SD correction optimisation only within I+/I- sets
-    // in case there is anomalous, unless multiplicity is low
-    controls.anomalouscontrol.AnomalousSDcorr = true;
-
+    // If space group is non-chiral, turn off anomalous, unless explicit
+    bool chiralsg = hkl_list.symmetry().IsChiral();
     bool lowmultiplicity = false;
-    float multiplicity = float(hkl_list.num_observations())/
-      float(hkl_list.num_reflections_valid());
-    if (controls.anomalouscontrol.AnomalousSDcorr) {
-      // If multiplicity low, combine I+ & I- for SD correction
-      // * tried this but didn't always work on bad data
-      // Try again with lower threshold
-      const float MINMULTFORSDCORR = 1.5;
-      // Separate I+ & I- for SD correction, unless multiplicity is low
-      if (multiplicity < MINMULTFORSDCORR) {
-        output.logTab(0,LOGFILE,
-                      std::string("WARNING: multiplicity low, ")+
-                      StringUtil::Strip(StringUtil::ftos(multiplicity,8,1))+
-                      " (below threshold "+
-                      StringUtil::Strip(StringUtil::ftos(MINMULTFORSDCORR,8,1))+
-                      "), so combine I+ and I- for SD correction\n");
+    if (!chiralsg) {
+      if (controls.anomalouscontrol.FlagInput &&
+          controls.anomalouscontrol.Anomalous) {
+        // Explicit anomalous ON for non-chiral space group, print warning
+        ReportErrors::printWarning
+          ("Explicit anomalous ON for non-chiral space group",
+           "NonChiralSpacegroupWarning");
+      } else {
+        // switch off Anomalous
+        controls.anomalouscontrol.Anomalous = false;
         controls.anomalouscontrol.AnomalousSDcorr = false;
-        lowmultiplicity = true;
       }
+    } else {
+      // By default do SD correction optimisation only within I+/I- sets
+      // in case there is anomalous, unless multiplicity is low
+      controls.anomalouscontrol.AnomalousSDcorr = true;
+
+      lowmultiplicity = false;
+      double multiplicity = double(hkl_list.num_observations())/
+        double(hkl_list.num_reflections_valid());
+      if (controls.anomalouscontrol.AnomalousSDcorr) {
+        // If multiplicity low, combine I+ & I- for SD correction
+        // * tried this but didn't always work on bad data
+        // Try again with lower threshold
+        const double MINMULTFORSDCORR = 1.5;
+        // Separate I+ & I- for SD correction, unless multiplicity is low
+        if (multiplicity < MINMULTFORSDCORR) {
+          output.logTab(0,LOGFILE,
+                        std::string("WARNING: multiplicity low, ")+
+                        StringUtil::Strip(StringUtil::ftos(multiplicity,8,1))+
+                        " (below threshold "+
+                        StringUtil::Strip(StringUtil::ftos(MINMULTFORSDCORR,8,1))+
+                        "), so combine I+ and I- for SD correction\n");
+          controls.anomalouscontrol.AnomalousSDcorr = false;
+          lowmultiplicity = true;
+        }
+      }
+      output.logFlush();
     }
-    output.logFlush();
 
     bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
     double minimum_overlap = input.Minimum_overlap();
@@ -535,11 +578,13 @@ int main(int argc, char* argv[])
                 "        Minimum threshold for fractional overlap between rotation ranges= %7.2f\n",
                           minimum_overlap);
       AllScales.SetConstant(hkl_list, output);
-      SD_model.SetRefine(false);  // SDDCORRECTION NOREFINE
+      SD_model.SetRefine(0);  // SDDCORRECTION NOREFINE
     } else {
-      output.logTabPrintf(0,LOGFILE,
-          "\nSufficient rotation ranges are above the minimum threshold for fractional overlap between rotation ranges = %5.2f\n",
-                          minimum_overlap);
+      if (!FC.restore || !FC.OnlyMerge()) {
+        output.logTabPrintf(0,LOGFILE,
+                            "\nSufficient rotation ranges are above the minimum threshold for fractional overlap between rotation ranges = %5.2f\n",
+                            minimum_overlap);
+      }
     }
 
     if (FC.OnlyMerge()) {
@@ -559,9 +604,9 @@ int main(int argc, char* argv[])
     WriteRogues DummyRogues;
     if (FC.roughScale) {
       timer.Start();
-      float IovSDmin = controls.refinecontrol.IovSDmin();
-      float E2min = -1.0;   // no |E^2| selection here
-      float E2max = -1.0;
+      double IovSDmin = controls.refinecontrol.IovSDmin();
+      double E2min = -1.0;   // no |E^2| selection here
+      double E2max = -1.0;
       std::pair<int,int> selrej =
         SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
@@ -687,9 +732,9 @@ int main(int argc, char* argv[])
     // ----- Main scaling
     if (FC.mainScale) {
       timer.Start();
-      float IovSDmin = 0.0;
-      float E2min = controls.refinecontrol.E2min();
-      float E2max = controls.refinecontrol.E2max();
+      double IovSDmin = 0.0;
+      double E2min = controls.refinecontrol.E2min();
+      double E2max = controls.refinecontrol.E2max();
       std::pair<int,int> selrej =
         SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
@@ -792,11 +837,11 @@ int main(int argc, char* argv[])
     ResoRange resrangeanom = ResRange;
     // For statistics, reset range to go from same "infinite" resolution,
     //  to the maximum resolution over all datasets
-    float lowres = 10000.;
+    double lowres = 10000.;
     resrangeanom.SetRange(lowres, ResRange.ResHigh());
     resrangeanom.SetNbins(nresbin);
     AnalyseAnom analysanom(hkl_list, SD_model, controls, resrangeanom, true, output);
-    std::vector<float> anomProbSlopes = analysanom.Slopes();
+    std::vector<double> anomProbSlopes = analysanom.Slopes();
     output.logFlush();
 
     // Analyse distribution anomalous differences to get estimate of
@@ -814,19 +859,19 @@ int main(int argc, char* argv[])
     bool anomfound =
       allAnomDistributions.IsAnomalous(controls); // true if anomalous
     // Should we change the options?
-    if (input.AnomalousFlagInput()) {
+    if (controls.anomalouscontrol.FlagInput || !chiralsg) {
       // explicit anomalous on or off from input
       if (controls.anomalouscontrol.Anomalous) { // On
         if (anomfound) {
-          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_FOUND);
+          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_FOUND);
         } else {
-          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ON_ABSENT);
+          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_ABSENT);
         }
       } else { // Off
         if (anomfound) {
-          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_FOUND);
+          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_FOUND);
         } else {
-          allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_OFF_ABSENT);
+          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_ABSENT);
         }
       }
     } else { // No explicit flag given, set appropriately
@@ -834,11 +879,11 @@ int main(int argc, char* argv[])
         controls.anomalouscontrol.Anomalous = true;
         controls.anomalouscontrol.AnomalousSDcorr = true;
         if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
-        allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_FOUND);
+        allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_FOUND);
       } else {
         controls.anomalouscontrol.Anomalous = false;
         controls.anomalouscontrol.AnomalousSDcorr = false;
-        allsummarystatistics.SetAnomStatus(AnomDistribution::ANOMALOUS_ABSENT);
+        allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ABSENT);
       }
     }
     output.logTab(0,LOGFILE,"\n"+
@@ -853,7 +898,7 @@ int main(int argc, char* argv[])
     // Check for outliers & reject them
     // Start rogues output, ROGUES file & ROGUEPLOT
     //  for plotting ice rings, use shortest wavelength all datasets
-    float wavelength = 100000000.;
+    double wavelength = 100000000.;
     for (int i=0;i<hkl_list.num_datasets();++i) {
       wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
@@ -862,6 +907,12 @@ int main(int argc, char* argv[])
       // doRoguePlot true as long as we have geometric data for all batches
       // to calculate detector position
       bool doRoguePlot = hkl_list.validOrientation();  // false if no orientation
+      if (doRoguePlot && FC.OnlyMerge()) {
+        // we need secondary beam directions
+        int pole = 0;  // whatever
+        hkl_list.CalcSecondaryBeams(pole);
+      }
+
       WriteRogues RoguesList(true, doRoguePlot, multilattice,
                              runTitle, hkl_list.Srange().max(), wavelength,
                              controls.outlierMerge);
@@ -891,6 +942,8 @@ int main(int argc, char* argv[])
     } else {
       output.logTab(0,LOGFILE,"\nNo outlier rejection in merging");
     }
+
+    output.logTab(0,LXML, controls.outlierMerge.formatXML());
 
     // for each dataset
     std::vector<Analyseoverlaps>  analyseoverlaps(hkl_list.num_datasets());
@@ -947,28 +1000,8 @@ int main(int argc, char* argv[])
         ASSERT (refOK); // checked earlier
     }
 
-    // Smoothing of batch statistics
-    double smoothwidth = input.SmoothStatisticsRange(); // angular range, -1 if unset
-    if (smoothwidth <= 0.0) {
-      // Set from scale rotation range if known
-      double spacing = AllScales.primary_scale(0).Spacing();
-      if (spacing > 0.0) {
-        smoothwidth = spacing;  // = spacing
-      }
-    }
     // get maximum batch width
     std::vector<Batch> batches = hkl_list.Batches();
-    float width = 0.0;
-    for (size_t ib=0;ib<batches.size();++ib) {
-      width = Max(width, batches[ib].PhiRange());
-    }
-
-    int nbatchsmooth = 5;
-    if (width > 0.0 && smoothwidth > 0.0) {
-      nbatchsmooth = (Nint(smoothwidth/width)/2)*2 + 1; // force to be odd
-    }
-    controls.analysis.SetNbatchSmooth(nbatchsmooth);
-
 
     // Gather & print all statistics for each dataset ------------------------------------
     for (int idts=0;idts<hkl_list.num_datasets();++idts) {
@@ -980,7 +1013,7 @@ int main(int argc, char* argv[])
         ResoRange resrangedataset = hkl_list.dataset(idts).ResRange();
 
         // For statistics, reset range to go from same "infinite" resolution
-        float lowres = 10000.;
+        double lowres = 10000.;
         resrangedataset.SetRange(lowres, resrangedataset.ResHigh());
         // Use same resolution bin width for all datasets
         resrangedataset.SetWidth(resrangewidth);
@@ -990,11 +1023,12 @@ int main(int argc, char* argv[])
         }
 
         AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
-        float aslope = anomProbSlopes.at(idts);
+        double aslope = anomProbSlopes.at(idts);
         SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
                                                controls, idts, resrangedataset,
                                                NormRes, anomds, aslope,
-                                               hklreflist, output);
+                                               hklreflist,
+                                               output);
 
         allsummarystatistics.AddSummaryStatistics(sumstat);
 

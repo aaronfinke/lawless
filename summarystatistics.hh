@@ -13,6 +13,7 @@
 #include "Output.hh"
 #include "resolutionlimit.hh"
 #include "anomdistribution.hh"
+//@//#include "deposit.hh"
 
 namespace scala {
   class SummaryStatistics
@@ -47,6 +48,9 @@ namespace scala {
     // store Rpim, overall, inner shell, outer shell, v. overall mean I+-
     void StoreRpimResoOv(const Rfactor& overall, const Rfactor& inner,
 			 const Rfactor& outer);
+    // store filtered <Chi^2>, overall, inner shell, outer shell
+    void StoreMnChisqc(const float& overall, const float& inner,
+		       const float& outer);
     // Rmerge in top intensity bin
     void StoreRtopI(const Rfactor& R) {RmergeTopI = R;}
 
@@ -118,10 +122,16 @@ namespace scala {
 
     void StoreNlattices(const int& Nlattices) {nlattices = Nlattices;}
 
+    //@//    void StoreHalfdatasetThings
+    //@//    (const std::vector<correl_coeff>& scchalf, const correl_coeff& cchalf,
+    //@//     const std::vector<correl_coeff>& sccanom, const correl_coeff& ccanom,
+    //@//     const std::vector<Rfactor>& srsplit, const Rfactor& rsplit);
+
     // print the final summary table as RESULT if Result true
     // Only write XML if Result, write only XML if xmlonly
     void PrintSummaryTable(const bool& Result,
 			   const bool& xmlonly,
+			   const AnomalousStatus::anomalousStatus& Anomstatus,
 			   phaser_io::Output& output);
 
     Scell averagecell() const {return averageCell;}
@@ -140,6 +150,7 @@ namespace scala {
     std::vector<int> Nobs;          // Total number of observations
     std::vector<int> Nuniq;         // Number of unique reflections
     std::vector<float> MnIsd;       // Mn(I/sd)
+    std::vector<float> MnChisq;     // Mn(Chi^2), filtered
     std::vector<float> Icorrelation;// <I> correlation in halfdatasets
     std::vector<float> complete;        // completeness
     std::vector<float> multiplicity;    // multiplicity
@@ -168,6 +179,8 @@ namespace scala {
     std::vector<std::string> anisoaxislabels;
     double anisodeltaB;  // difference between best & worst anisotropic B (for amplitudes)
     int nlattices;  // = 1 if single lattice
+
+    //@//    deposit::Deposit deposit;  // things for PDB deposition
   };  //   class SummaryStatistics
   // ------------------------------------------------------------
   template<class T> std::vector<T> Store3val(const T& overall, const T& inner, const T& outer)
@@ -192,9 +205,9 @@ namespace scala {
     {return allsummarystatistics.at(i);}
 
     //! store anomalous status
-    void SetAnomStatus(const AnomDistribution::anomalousStatus& Anomstatus) {anomstatus = Anomstatus;}
+    void SetAnomStatus(const AnomalousStatus::anomalousStatus& Anomstatus) {anomstatus = Anomstatus;}
     //! return anomalous status
-    AnomDistribution::anomalousStatus AnomStatus() const {return anomstatus;}
+    AnomalousStatus::anomalousStatus AnomStatus() const {return anomstatus;}
 
 
     //! print the final summary table for all datasets as RESULT if Result true
@@ -206,7 +219,7 @@ namespace scala {
 
   private:
     std::vector<SummaryStatistics> allsummarystatistics;
-    AnomDistribution::anomalousStatus anomstatus;         // anomalous status
+    AnomalousStatus::anomalousStatus anomstatus;         // anomalous status
   };  // class AllSummaryStatistics 
   // ------------------------------------------------------------  
   // Utility functions

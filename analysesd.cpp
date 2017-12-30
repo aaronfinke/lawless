@@ -15,6 +15,7 @@
 #include "timer.hh"
 #include "reject.hh"
 #include "observationstatuscontrol.hh"
+#include "linearsdcorrection.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -84,7 +85,8 @@ namespace scala
   //     = +1    same, after first analysis
   //     = -1 only one analysis expected ie first & last
   {
-    const bool REFINESD = true; // true to refine, false use Simplex
+    // +1 refine, 0 no refine, -1 linear fit
+    int REFINESD = SDM.Refine();
 
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();
@@ -109,7 +111,7 @@ namespace scala
     }
 
 
-    if (SDM.Refine()) {
+    if (SDM.Refine() != 0) {
       Timer timer;
       int npass = 1; // normally one pass through refinement at each stage
       if (firstAnalysis < 0) { // two passes if following restore; sdcorrection refine
@@ -124,9 +126,15 @@ namespace scala
       // now always do Normal Probability reset      if (firstAnalysis <= 0) {
       // Initial correction from normal probability analysis, always do this
       bool updated = true;
+      bool update = true;
+      if (REFINESD < 0) {
+        update = false;  // no NP update for Linear
+        updated = false;
+      }
+
       while (true) {  // maybe more than one shot at this
         SDMdataNumbers sdmnum =
-          UpdateSDMfromNPlot(SDM, hkl_list, controls, false, output);
+          UpdateSDMfromNPlot(SDM, hkl_list, controls, false, update, output);
         //^^
         //      for (int i=0;i<sdmnum.nfnp.size();++i) {
         //        std::cout << "Set " << i << " " << sdmnum.nfnp[i].first
@@ -147,7 +155,8 @@ namespace scala
               // One runs or all runs same, and I+ and I- together, bail out
               output.logTab(0,LOGFILE,
                             "\n!!!! Insufficient data to determine SD correction factors, no refinement");
-              SDM.SetRefine(false);
+              // +1 refine, 0 no refine, -1 linear fit
+              SDM.SetRefine(0);
               updated = false;
               break;
             } else {
@@ -162,15 +171,16 @@ namespace scala
           break;
         }
       } // end infinite while
-      if (updated) {output.logTab(0,LOGFILE,
-                                  "\nSD correction parameters after normal probability correction\n"+SDM.format());
+      if (updated) {
+        output.logTab(0,LOGFILE,
+                      "\nSD correction parameters after normal probability correction\n"+SDM.format());
       }
       //    } else {  // not first
       //        output.logTab(0,LOGFILE,
       //                      "\nCurrent SD correction parameters\n"+SDM.format());
       //      }
 
-      if (SDM.Refine()) { // may have changed!
+      if (SDM.Refine() != 0) { // may have changed!
         if (controls.anomalouscontrol.AnomalousSDcorr) {
           output.logTab(0,LOGFILE,
                         "\nI+ and I- will be kept separate in SD optimisation");
@@ -178,7 +188,6 @@ namespace scala
           output.logTab(0,LOGFILE,
                         "\nSeparation of anomalous I+ and I- suppressed in SD optimisation due to low multiplicity");
         }
-
 
         // Save SDM ties to restore later
         SDties savedties = SDM.Ties();
@@ -228,6 +237,11 @@ namespace scala
 
           OutlierControl outliercontrol(0);
           outliercontrol.Combine() = false; // don't check between datasets
+          // No Emax test if switched off globally
+          if (controls.outlierMerge.EMaxTest().Null()) {
+            outliercontrol.SetEmax(0.0);
+          }
+
           //      float sdrej = 30.0;
           float sdrej = 10.0;
           float sdrej2 = sdrej;
@@ -264,7 +278,7 @@ namespace scala
           }
 
           // Optimise SD model
-          if (REFINESD) {
+          if (REFINESD > 0) {
             SDanalysis sdanal =
               RefineSDcorrectionFactors(SDM, hkl_list, controls, Irange,
                                         tolerance, rtolerance, max_cycles, output);
@@ -272,10 +286,17 @@ namespace scala
             //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), Irange, hkl_list.RunList(),
             //                 SDM, -1, PxdName(), false, output);
             //^-
-          } else {
-            OptimiseSDcorr(SDM, hkl_list, controls, Irange,
-                           tolerance, max_cycles, output);
+            //          } else if (REFINESD == 0) {
+            //      // Simplex optimisation, don't use this
+            //            OptimiseSDcorr(SDM, hkl_list, controls, Irange,
+            //                           tolerance, max_cycles, output);
+          } else if (REFINESD < 0) {
+            // REFINESD < 0, linear
+            // DO NOT USE, doesn't work (yet)
+            LinearSDcorrection linearsdcorrection(SDM, hkl_list, controls, Irange,
+                                                  tolerance, rtolerance, max_cycles, output);
           }
+
           output.logTab(0,LOGFILE,
                         "\nSD correction parameters after optimisation\n"+SDM.format());
 
@@ -457,10 +478,12 @@ namespace scala
   //--------------------------------------------------------------
   SDMdataNumbers  UpdateSDMfromNPlot(SDmodel& SDM, const hkl_unmerge_list& hkl_list,
                                      const all_controls& controls, const bool& fixup,
+                                     const bool& update,
                                      phaser_io::Output& output)
   // if fixup is true, then we are doing a final fix of the full||partial
   // values which were not optimised due to too few data, but still check
   // that there are enough data to do this
+  // If update == false, don't update SDM
   // Returns for each set count of number of fulls & number of partials used
   {
     // for identifying the dataset for each observation
@@ -535,44 +558,48 @@ namespace scala
         // initial values
         copyflag = true;
       }
-      if (SDM.AllRunsSame()) {
-        output.logTab(0,LOGFILE,"\nFor all runs, ");
-      } else {
-        output.logTabPrintf(0,LOGFILE,
-                            "\nFor run %d, ", Runs[iset].RunNumber());
-      }
 
-      SDM.UpdateFactor(iset, copyflag, slopef, slopep);
-      if (nf > 0 && np > 0) {
-        // both fulls and partials
-        output.logTabPrintf(0,LOGFILE,
-                            "slopes (full, partial) of central part of normal probability plot = %6.2f, %6.2f\n",
-                            slopef, slopep);
-        if (SDM.UseFlag(iset) == 0) {
-          output.logTab(0,LOGFILE,
-                        "  Correction applied to parameters for fulls and partials");
-        } else if (SDM.UseFlag(iset) > 0) {
-          output.logTab(0,LOGFILE,
-                        "  Correction from fulls applied to parameters for fulls and partials");
+      // Updating
+      if (update) {
+        if (SDM.AllRunsSame()) {
+          output.logTab(0,LOGFILE,"\nFor all runs, ");
         } else {
-          output.logTab(0,LOGFILE,
-                        "  Correction from partials applied to parameters for fulls and partials");
+          output.logTabPrintf(0,LOGFILE,
+                              "\nFor run %d, ", Runs[iset].RunNumber());
         }
-      } else if (nf > 0) {
-        // only fulls
-        output.logTabPrintf(0,LOGFILE,
-                            "slope of central part of normal probability plot = %6.2f\n",
-                            slopef);
-        output.logTab(0,LOGFILE,
-                      "  Correction applied to parameters for fulls");
-      } else if (np > 0) {
-        // only partials
-        output.logTabPrintf(0,LOGFILE,
-                            "slope of central part of normal probability plot = %6.2f\n",
-                            slopep);
-        output.logTab(0,LOGFILE,
-                      "  Correction applied to parameters for partials");
-      }
+
+        SDM.UpdateFactor(iset, copyflag, slopef, slopep);
+        if (nf > 0 && np > 0) {
+          // both fulls and partials
+          output.logTabPrintf(0,LOGFILE,
+                              "slopes (full, partial) of central part of normal probability plot = %6.2f, %6.2f\n",
+                              slopef, slopep);
+          if (SDM.UseFlag(iset) == 0) {
+            output.logTab(0,LOGFILE,
+                          "  Correction applied to parameters for fulls and partials");
+          } else if (SDM.UseFlag(iset) > 0) {
+            output.logTab(0,LOGFILE,
+                          "  Correction from fulls applied to parameters for fulls and partials");
+          } else {
+            output.logTab(0,LOGFILE,
+                          "  Correction from partials applied to parameters for fulls and partials");
+          }
+        } else if (nf > 0) {
+          // only fulls
+          output.logTabPrintf(0,LOGFILE,
+                              "slope of central part of normal probability plot = %6.2f\n",
+                              slopef);
+          output.logTab(0,LOGFILE,
+                        "  Correction applied to parameters for fulls");
+        } else if (np > 0) {
+          // only partials
+          output.logTabPrintf(0,LOGFILE,
+                              "slope of central part of normal probability plot = %6.2f\n",
+                              slopep);
+          output.logTab(0,LOGFILE,
+                        "  Correction applied to parameters for partials");
+        }
+      }  // update
       for (int ip=2*iset;ip<=2*iset+1;ip++) {
         normalprobanal[ip].Clear();  // reset normal probability plot
       }

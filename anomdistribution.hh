@@ -13,23 +13,22 @@
 #include "scala_util.hh"
 #include "halfdataset.hh"
 #include "analyseanom.hh"
+#include "resolutionlimit.hh"
+
+// anomalousStatus: Status of anomalous data:
+//   ON    specified on input as ON
+//   OFF   specified on input as OFF
+//   else  unspecified
+//   FOUND  significant anomalous present
+//   ABSENT significant anomalous below thresholds
+#include  "anomalousstatus.hh"
 
 namespace scala {
-
   class AnomDistribution {
     // Distribution of anomalous differences to get estimate
     // of maximum likely values etc
     // for each dataset
   public:
-    // Status of anomalous data:
-    //   ON    specified on input as ON
-    //   OFF   specified on input as OFF
-    //   else  unspecified
-    //   FOUND  significant anomalous present
-    //   ABSENT significant anomalous below thresholds
-    enum anomalousStatus {ANOMALOUS_ON_FOUND, ANOMALOUS_ON_ABSENT,
-			  ANOMALOUS_OFF_FOUND, ANOMALOUS_OFF_ABSENT,
-			  ANOMALOUS_FOUND, ANOMALOUS_ABSENT};
 
     AnomDistribution() : npslope(0.0) {}
 
@@ -41,7 +40,7 @@ namespace scala {
     // half-dataset correlations (ie with n+ & n- > 1, correlAnom true)
     //  for resolution range mres
     void Add(const int& mres,
-	     const float& delAnom, const bool& correlAnom,
+	     const double& delAnom, const bool& correlAnom,
 	     SelectedObservations& obsplus,
 	     SelectedObservations& obsminus);
 
@@ -55,12 +54,13 @@ namespace scala {
     HalfDataset Halfdataset() const {return halfdataset;}
 
     // Store slope of normal probability anomplot
-    void SetSlope(const float& slope) {npslope = slope;}
+    void SetSlope(const double& slope) {npslope = slope;}
 
     // Return slope of normal probability anomplot
-    float Slope() const {return npslope;}
+    double Slope() const {return npslope;}
 
-    static std::string formatStatus(const anomalousStatus& anomalousstatus);
+    static std::string formatStatus(const AnomalousStatus::anomalousStatus& anomalousstatus,
+				    const ResolutionLimit& anomresolimitCC=ResolutionLimit());
 
   private:
     int nresbin;
@@ -69,7 +69,7 @@ namespace scala {
     std::vector<int> nDelAnom;
 
     HalfDataset halfdataset;
-    float npslope;  // slope of normal probability anomplot
+    double npslope;  // slope of normal probability anomplot
   };
   // ------------------------------------------------------------
   class AllAnomDistributions
@@ -88,19 +88,19 @@ namespace scala {
     // half-dataset correlations (ie with n+ & n- > 1, correlAnom true)
     //  for dataset idts & resolution range mres
     ///    void Add(const int& idts, const int& mres,
-    ///	     const float& delAnom, const bool& correlAnom)
+    ///	     const double& delAnom, const bool& correlAnom)
     ///    {anomdistributions.at(idts).Add(mres, delAnom, correlAnom);}
 
     //! Add in to correlation sums, resolution bin mres
-    void AddCorrelations(const std::vector<float>& danomdts,
-			 const std::vector<float>& Imeandts,
+    void AddCorrelations(const std::vector<double>& danomdts,
+			 const std::vector<double>& Imeandts,
 			 const int& mres);
     
     AnomDistribution Anomdistribution(const int& idts) const
     {return anomdistributions.at(idts);}
 
     // Store slopes of normal probability anomplot for each dataset into Anomdistribution
-    void SetSlope(const std::vector<float>& slope);
+    void SetSlope(const std::vector<double>& slope);
 
     // return true if it appears that any dataset has significant anomalous 
     bool IsAnomalous(const all_controls& controls) const;
@@ -111,7 +111,7 @@ namespace scala {
   private:
     int ndatasets;
     std::vector<PxdName> pxdnames;  // datasets
-    std::vector<float> wavelengths; // for each dataset
+    std::vector<double> wavelengths; // for each dataset
     std::vector<std::string> dnames; // dataset names
     std::vector<AnomDistribution> anomdistributions; // for each dataset
     int basedataset;  // base dataset index

@@ -203,6 +203,17 @@ namespace scala
       formatReject2Policy()+"\n";
   }
   //------------------------------------------------------------
+  std::string RejectFlags::formatXML(const std::string& tag,
+                                     const std::string& attribute) const
+  {
+    std::string s = "<"+tag+" "+attribute+">";
+    s += StringUtil::MakeXMLtag("SDrej",  clipper::String(sdrej,3,3));
+    s += StringUtil::MakeXMLtag("SDrej2", clipper::String(sdrej2,3,3));
+    s += StringUtil::MakeXMLtag("Reject2policy", formatReject2Policy())+"\n";
+    s += "</"+tag+">";
+    return s;
+  }
+  //------------------------------------------------------------
   OutlierControl::OutlierControl()
   // Set defaults
   {
@@ -282,6 +293,25 @@ namespace scala
   {
     emaxtest.init(Emax);
   }
+  //------------------------------------------------------------
+  std::string OutlierControl::formatXML() const  // format for XML
+  {
+    std::string s = "\n<OutlierControl>\n";
+    s += reject.formatXML("Main")+"\n";
+    if (anomreject) {
+      for (size_t k=0; k<rejectanom.size(); k++) {
+        std::string tag = "Anom";
+        std::string attribute =
+          "dataset=\""+StringUtil::Strip(StringUtil::itos(k+1,3))+"\"";
+        s += rejectanom[k].formatXML(tag, attribute);
+      }
+    }
+    s += emaxtest.formatXML();
+    s += StringUtil::MakeXMLtag("OutlierWeightType", WeightType::formatWeightType(weighttype));
+    s += "\n</OutlierControl>\n";
+    return s;
+  }
+  //------------------------------------------------------------
   //------------------------------------------------------------
   RefineControl::RefineControl() {
     bfgs = true;

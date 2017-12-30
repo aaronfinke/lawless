@@ -18,19 +18,19 @@ LFLAGS= ${OPT}
 #LFLAGS= ${OPT} -static
 
 STATIC=
-#STATIC= -shared-libgcc -lstdc++-static
+#STATIC= -shared-libgcc
 #STATIC= -static-libgcc -lstdc++-static
 
 #STATIC=  -static-libgcc  -static-libstdc++
 #STATIC= -static-libgcc 
 
 # Point to source-build CCP4
-CCP4=/usr/local/CCP4versions/Current7
+CCP4S=/usr/local/CCP4versions/Current7
 #CCP4=/usr/local/CCP4versions/Current
 #CCP4=/usr/local/CCP4versions/ccp4-6.3.0
 
-CLIB=${CCP4}/lib
-CLIBS=${CLIB}/libccp4
+CLIB=${CCP4S}/lib
+CLIBS=${CCP4S}/lib/libccp4
 
 CCFLAGS = -I${CLIBS}
 
@@ -53,24 +53,24 @@ ICCP4=-I${CLIBS}
 #ICLPR=-I${CLPR}
 #ICLPR=-I${CLPR}/clipper/ccp4
 
-ICLPR=-I${CCP4}/include  -I${CCP4}/../checkout/clipper/clipper/core
+ICLPR=-I${CCP4S}/include  -I${CCP4S}/../checkout/clipper/clipper/core
 
 
 #*# version before 6.1.24
 #*#ITBX=\
 #*#-I${CCTBX_sources}/boost \
-#*#-I${CCP4}/include \
+#*#-I${CCP4S}/include \
 #*#-I${CCTBX_sources}/cctbx/include
 #*#-I${CCTBX_sources}/scitbx/include
 
 # 6.4.0
 ITBX=\
--I${CCP4}/include/cctbx
+-I${CCP4S}/include/cctbx
 
 # 6.3.0
 #ITBX=\
 #-I${CCTBX_sources}/boost \
-#-I${CCP4}/include \
+#-I${CCP4S}/include \
 #-I${CCTBX_sources}/cctbx_project
 
 MINLIB = ./MinLib
@@ -124,7 +124,7 @@ OBJ =   \
 	referencelist.o referencescalemodel.o refinereferencescale.o \
 	refinetargets.o hessian.o rejectbatches.o runcorrelations.o \
 	radialfunction.o fitresolutiondata.o simpleminimise.o \
-	comparesds.o
+	comparesds.o linearsdcorrection.o batchgroup.o
 
 COBJ = \
 	CCP4base.o Errors.o Output.o Preprocessor.o \
@@ -139,7 +139,7 @@ COBJ = \
 	openinputfile.o pointgroup.o probfunctions.o range.o \
 	rotation.o runthings.o scala_util.o score_datatypes.o \
 	spacegroupreindex.o spline.o string_util.o timer.o \
-	zone.o tablegraph.o report_errors.o
+	zone.o tablegraph.o report_errors.o weighttype.o
 
 SOURCE = ${EXE}.cpp \
 	InputAll_aimless.cpp analyseanom.cpp analysesd.cpp \
@@ -163,7 +163,7 @@ SOURCE = ${EXE}.cpp \
 	referencelist.cpp referencescalemodel.cpp refinereferencescale.cpp \
 	refinetargets.cpp hessian.cpp rejectbatches.cpp runcorrelations.cpp \
 	radialfunction.cpp fitresolutiondata.cpp simpleminimise.cpp \
-	comparesds.cpp
+	comparesds.cpp linearsdcorrection.cpp batchgroup.cpp weighttype.cpp
 
 # Common with Pointless
 CSOURCE = \
@@ -206,7 +206,7 @@ HDR = ${EXE}.hh \
 	referencelist.hh referencescalemodel.hh refinereferencescale.hh \
 	refinetargets.hh hessian.hh rejectbatches.hh runcorrelations.hh \
 	radialfunction.hh fitresolutiondata.hh simpleminimise.hh median.hh \
-	comparesds.hh
+	comparesds.hh linearsdcorrection.hh batchgroup.hh anomalousstatus.hh
 
 
 # common with Pointless
@@ -243,18 +243,18 @@ lib: ${OBJ} ${COBJ}
 	ar -r libaimless.a ${OBJ} ${COBJ}
 
 ## - - -
-TREXE= test-reference
+TREXE= test-sdfit
 # might as well chuck everything in!
 TROBJ= ${TREXE}.o  ${OBJ} ${COBJ} 
 
 ${TREXE}: ${TROBJ}
 	${CXX} $(LFLAGS) -o ${TREXE} ${TROBJ}  ${LDLIBS}
 ## - - -
-TTOBJ= t.o
+#TTOBJ= t.o 
 #TTOBJ= t.o timer.o string_util.o range.o report_errors.o  Output.o  jiffy.o
 #TTOBJ= t.o  eprob.o string_util.o range.o fileread.o Output.o jiffy.o \
 #	tablegraph.o radialfunction.o
-#TTOBJ= t.o ${OBJ} ${COBJ}
+TTOBJ= t.o ${OBJ} ${COBJ}
 
 TTEXE= t
 
@@ -262,7 +262,8 @@ t: ${TTOBJ}
 	${CXX} $(LFLAGS) -o ${TTEXE} ${TTOBJ}   ${LDLIBS}
 
 ## - - -
-TESTOBJ= test.o  effectiveresolution.o ${OBJ} ${COBJ}
+TESTOBJ= test.o ${OBJ} ${COBJ}
+#TESTOBJ= test.o  effectiveresolution.o ${OBJ} ${COBJ}
 
 TESTEXE= test
 
@@ -300,18 +301,20 @@ ${BEXE}: ${BOBJ}
 	${CXX} $(LFLAGS) -o ${BEXE} ${BOBJ}  ${LDLIBS}
 
 ## - - -
-UOBJ= simulate.o hkl_datatypes.o  hkl_unmerge.o \
-	scala_util.o Output.o matvec_utils.o jiffy.o range.o \
-	hkl_symmetry.o rotation.o hash.o crystaltype.o runthings.o \
-	observationflags.o icering.o writeunmerged.o cellgroup.o \
-	mtz_utils.o string_util.o  score_datatypes.o spacegroupreindex.o \
-	probfunctions.o  cctbx_utils.o pointgroup.o zone.o latsym.o \
-	getsubgroups.o samplegaussian.o eprob.o file_util.o \
-	sdmodel.o sdctypes.o selectedobservations.o normalise.o \
-	keywords_aimless.o CCP4base.o Errors.o  Preprocessor.o controls.o \
-	linearlsq.o spline.o mtz_merge_io.o \
-	globalcontrols_aimless.o \
-	columnlabels.o 
+UOBJ= simulate.o ${OBJ} ${COBJ}
+
+#hkl_datatypes.o  hkl_unmerge.o \
+#	scala_util.o Output.o matvec_utils.o jiffy.o range.o \
+#	hkl_symmetry.o rotation.o hash.o crystaltype.o runthings.o \
+#	observationflags.o icering.o writeunmerged.o cellgroup.o \
+#	mtz_utils.o string_util.o  score_datatypes.o spacegroupreindex.o \
+#	probfunctions.o  cctbx_utils.o pointgroup.o zone.o latsym.o \
+#	getsubgroups.o samplegaussian.o eprob.o file_util.o \
+#	sdmodel.o sdctypes.o selectedobservations.o normalise.o \
+#	keywords_aimless.o CCP4base.o Errors.o  Preprocessor.o controls.o \
+#	linearlsq.o spline.o mtz_merge_io.o \
+#	globalcontrols_aimless.o \
+#	columnlabels.o report_errors.o dataset.o
 
 UEXE= simulate
 

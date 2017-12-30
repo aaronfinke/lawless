@@ -92,6 +92,7 @@ namespace MtzIO
     } else{
       filename_in_ = filename_in;
     }
+
     // open file
     mtzin = CMtz::MtzGet( filename_in_.c_str(), 0 );
     if ( mtzin == NULL) {
@@ -101,6 +102,7 @@ namespace MtzIO
     // get the list of datasets (fdatasets) from the file
     // (returns 0 if no datasets in file & one was created)
     int Ndatasets_file = read_datasets();
+
     if (Ndatasets_file <= 0) {
       {Message::message(
                         Message_info( "MtzUnmrgFile: Warning, no datasets in file" ) );}
@@ -150,6 +152,9 @@ namespace MtzIO
     if (no_symm) {
       mtzsym = mtzin->mtzsymm;  // Store MTZ symmetry
       std::vector<clipper::Symop> ops = ClipperSymopsFromMtzSYMGRP(mtzsym);
+      //      for (size_t i=0;i<ops.size();++i) {
+      //        std::cout <<"MSymop "<<i<<" "<<ops[i].format()<<std::endl;
+      //      }
       spacegroup_.init(ops);
     }
 
@@ -177,6 +182,7 @@ namespace MtzIO
     IrefCnt = 0;
 
     mode = READ;
+
     return true;
   }
   //--------------------------------------------------------------
@@ -417,10 +423,10 @@ namespace MtzIO
       output += FormatOutput::logTab(0,
         "**** WARNING: input CELL is significantly different from cell from HKLIN file");
       output += FormatOutput::logTabPrintf(1,"Average HKLIN cell: ");
-      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%6.1f",averagecell[i]);
+      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.1f",averagecell[i]);
       output += FormatOutput::logTab(0,"\n");
       output += FormatOutput::logTabPrintf(1,"Input cell:         ");
-      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%6.1f",cell[i]);
+      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.1f",cell[i]);
       output += FormatOutput::logTab(0,"\n\n");
       accepted_cell = cell;
     }
@@ -556,7 +562,7 @@ namespace MtzIO
                           spacegroup_.symbol_xHM().c_str());
       //      output += "\n"+spacegroup_.formatISYM_as_hkl()+"\n";
       output += FormatOutput::logTabPrintf(0, "   Cell: ");
-      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.2f",
+      for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%8.2f",
                                                    accepted_cell[i]);
       output += FormatOutput::logTab(0,"\n");
       output += FormatOutput::logTabPrintf(0,

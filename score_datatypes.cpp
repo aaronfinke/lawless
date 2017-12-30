@@ -85,6 +85,17 @@ namespace scala
     return RPair(sdslope, sdintercept);
   }
   //--------------------------------------------------------------
+  double LinearFit::xvalueaty(const float& y) const
+  // return value of x for given y
+  {
+    double slope = result().first;
+    double intercept = result().second;
+    if (slope != 0.0) {
+      return (y - intercept)/slope;
+    }
+    return 0.0;
+  }
+  //--------------------------------------------------------------
   bool operator < (const IKode& a,const IKode& b)
   // for sort on resolutiom
   {return a.sSqr < b.sSqr;}
@@ -303,6 +314,12 @@ namespace scala
   {
     MSdiff c = a;
     return c += b;
+  }
+  //--------------------------------------------------------------
+  // Scale numerator
+  void Rfactor::scale(const double& scale)
+  {
+    sum_df *= scale;
   }
   //--------------------------------------------------------------
   Rfactor& Rfactor::operator +=(const Rfactor& other)

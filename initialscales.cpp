@@ -111,6 +111,7 @@ namespace scala {
       //^-
     }
 
+
     // Resolution ranges
     ResoRange resrange = hkl_list.ResRange();
     if (controls.analysis.NresoBins() > 0) {

@@ -586,7 +586,9 @@ the title is copied from hklin to hklout</p>
 <h3> </h3>
 <h3><a name="analysis"></a>ANALYSIS [CONE &lt;angle&gt;] [CCMINIMUM
 &lt;MinimumHalfdatasetCC&gt;] [CCANOMMINIMUM
-&lt;MinimumHalfdatasetAnomCC&gt;] [ISIGMINIMUM &lt;MinimumIoverSigma&gt;] [BATCHISIGMINIMUM &lt;MinimumBatchIoverSigma&gt;]<br>
+&lt;MinimumHalfdatasetAnomCC&gt;] [ISIGMINIMUM
+&lt;MinimumIoverSigma&gt;] [BATCHISIGMINIMUM
+&lt;MinimumBatchIoverSigma&gt;] [GROUPBATCH &lt;BatchGroupRange&gt;]<br>
 </h3>
 
 <p>Specify analysis parameters: <br>
@@ -622,8 +624,10 @@ as I/sd is before averaging]</li>
   <li>MinimumHalfdatasetAnomCC&nbsp;&nbsp; minimum half-dataset CCanom [default 0.15]</li>
 
 
-</ul>
-<h3><a name="onlymerge"></a>ONLYMERGE </h3>
+</ul>BatchGroupRange: in the analyses against Batch, the batches
+(images) are grouped to reduce the number of ranges, with a group size
+of&nbsp; BatchGroupRange degrees [default 1.0 degrees]<br>
+ <h3><a name="onlymerge"></a>ONLYMERGE </h3>
 
 
 <p>Only do the merge step, no initial analysis, no scaling. If RESTORE
@@ -937,17 +941,12 @@ HKLOUT name with the dataset name appended, as "_dataset"<br>
 <div style="margin-left: 40px;">The output file contains columns </div>
 <dl style="margin-left: 40px;">
 
-    <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)  N(+)  N(-)<br></pre>
-    <p>Note that there are no M/ISYM or BATCH columns. <br>
-</p>
-  <p>I(+) &amp; I(-)
+    <pre>H K L  IMEAN SIGIMEAN  I(+) SIGI(+)  I(-) SIGI(-)<br></pre>
+    <p>Note that there are no M/ISYM or BATCH columns. I(+) &amp; I(-)
 are
 the means of the Bijvoet positive and negative reflections respectively
-and are always present even for the option ANOMALOUS OFF. N(+) and N(-)
-are the number of observations included in I(+) and I(-) respectively.
-For centric reflections I(+) = I(-), N(+) = N(-) <br>
+and are always present even for the option ANOMALOUS OFF.<br>
     </p>
-
 </dl>
 <dl>
 
@@ -1236,6 +1235,7 @@ SD = 0 switches off the restraint<br>
 </div>
 <dl compact="compact">
 
+
   <ul style="font-weight: bold;">
 
 
@@ -1323,9 +1323,16 @@ the others, and this one is rejected </li>
   </dl>
   <sup>
   <hr></sup><a name="release_notes"> </a>
-  <h2>RELEASE NOTES</h2>0.5.32 some improved error reporting to XML. Added calculation of ISa, asymptotic I/sigI<br>
-0.5.31 restrict Emax test to resolutions with a valid normalisation. Output multiplicity counts N+, N- to merged output file<br>
-0.5.30 make REJECT LARGER | SMALLER work. Correct anomalous multiplicity value in summary<br>
+  <h2>RELEASE NOTES</h2>
+<dl compact="compact">&nbsp;0.6.1 Group batches for analysis, see
+ANALYSIS GROUPBATCH. Improve SDCORRECTION SAMPLE, sample
+variances: compare individual propagated SDs with sample SDs. Limit
+Emax test to "reliable" resolution range (not very weak high resolution
+ranges, needs further improvement). Many variables converted from float
+to double. Chi^2 statistic against intensity, resolution and batch.
+Cumulative CC(1/2) vs. batch. Do the analysis even if scaling can't be
+done due to insufficient information in input reflection file (usually
+data that is already scaled eg in XSCALE)<br>
 0.5.29 trap case of insufficient data with one rotation range, make dump/restore work for that case<br>
 0.5.28 small format change in RunPairs to avoid column coalescence<br>
 0.5.27 More accurate averaging of wavelengths<br>
@@ -1519,8 +1526,7 @@ See above for Release Notes. </p>
 
 
 
-
-
+</dl>
 
 
 </body></html>

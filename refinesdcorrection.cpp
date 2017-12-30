@@ -2,7 +2,7 @@
 //
 // residual Sum(j) [ wj^2 (1 - sigma(delta(j)))^2 ] [QUADRATIC]
 // or       Sum(j) [ ln cosh (wj (1 - sigma(delta(j)))) ] [LNCOSH]
-// delta(hl) = (Ihl - <Ih>!l)/[sqrt(nh/nh-1) * sigma'(hl)]
+// delta(hl) = (Ihl - <Ih>)/[sqrt(nh/nh-1) * sigma'(hl)]
 // sigma'(hl) = SdFac *sqrt[sigma(hl)^2 + SdB <Ih> + (SdAdd * <Ih>)^2]
 //            = p * sigma(hl)^2  + q * <Ih> + r * <Ih>^2
 // p = SdFac^2 ; q = SdFac^2 SdB; r = SdFac^2 SdAdd^2
@@ -21,6 +21,7 @@
 
 #include "refinesdcorrection.hh"
 #include "string_util.hh"
+//#include "timer.hh"
 
 namespace scala {
   // ---------------------------------------------------------
@@ -64,6 +65,8 @@ namespace scala {
 
     std::string sparsedatamessage = "";
 
+    //    Timer timer;
+
     bool saveSdBfix = SDM.NoSDb(); // SdB fix value, true if fixed
     bool exit = true;  // to exit from macrocycles
     while (true) { // Macrocycles
@@ -77,7 +80,9 @@ namespace scala {
       for (int cyc=0;cyc<Max(1,max_cycles);++cyc) { // loop cycles
         // Accumulate all sums from data
         bool anomalous = controls.anomalouscontrol.AnomalousSDcorr;
+        // timer.Start();
         sdanal = SumsforSDcorrection(SDM, hkl_list, anomalous, irange);
+        //      output.logTab(0,LOGFILE,"Time for sums: "+timer.format(true));
         //^
         //    PrintSDanalysis(sdanal, SDanalysis(), RejectFlags(), irange, hkl_list.RunList(),
         //                  SDM, -1, PxdName(), false, output);

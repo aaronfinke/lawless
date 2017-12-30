@@ -360,14 +360,22 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
     int nparams = 0;
     idxfullparam.assign(Nruns(), 0);
     idxpartialparam.assign(Nruns(), 0);
+    idxparamgroups.assign(Nruns(), std::pair<int,int>(-1,-1));
+    std::vector<int> nparamsinallgroups;
+    int jpargroup = 0;
+
     for (int irun=0;irun<nsets;++irun) {
       if (usetype[irun] >= 0) { // use parameters for fulls
         idxfullparam[irun] = nparams; // index to first parameter in run
         nparams += sdc_full_run[irun].Nparams();
+        nparamsinallgroups.push_back(sdc_full_run[irun].Nparams());
+        idxparamgroups[irun].first = jpargroup++;
       }
       if (usetype[irun] <= 0) { // use parameters for partials
         idxpartialparam[irun] = nparams; // index to first parameter in run
         nparams += sdc_partial_run[irun].Nparams();
+        nparamsinallgroups.push_back(sdc_partial_run[irun].Nparams());
+        idxparamgroups[irun].second = jpargroup++;
       }
     }
     if (nsets < Nruns()) {
@@ -375,12 +383,20 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       for (int irun=nsets;irun<Nruns();++irun) {
         if (usetype[irun] >= 0) { // use parameters for fulls
           idxfullparam[irun] = idxfullparam[0]; // index to first parameter in run
+          idxparamgroups[irun].first = idxparamgroups[0].first;
         }
         if (usetype[irun] <= 0) { // use parameters for partials
           idxpartialparam[irun] = idxpartialparam[0]; // index to first parameter in run
+          idxparamgroups[irun].second = idxparamgroups[0].second;
         }
       }
     }
+    // Check all groups have the same number of parameters
+    ASSERT (nparamsinallgroups.size() > 0);
+    for (size_t k=1; k<nparamsinallgroups.size(); k++) {
+      ASSERT (nparamsinallgroups[k] == nparamsinallgroups[0]);
+    }
+    nparamspergroup = nparamsinallgroups[0];
   }
 //-------------------------------------------------------------
   //! use partial correction for fulls
@@ -659,7 +675,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         k++;
       }
       sdc_full_run[irun].SetParameters(pars); // set values for fulls anyway
-      if (usetype[irun] != 0) { // no actual values for fulls or partialsa
+      if (usetype[irun] != 0) { // no actual values for fulls or partials
         // pick up same parameters for partials
         k = k1;
       }
@@ -853,6 +869,58 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
       }
     }
     ASSERT (int(dr2dp.size()) == Ngroups());
+  }
+  //-------------------------------------------------------------
+  //! return the "coordinate" of the iobs'th entry in selobs
+  // Also return parameter group index idxgroup
+  //   Iav = average I
+  std::vector<double> SDmodel::coordinate(const SelectedObservations& selobs,
+                                          const int& iobs, const double& Iav,
+                                          int& idxgroup) const
+  {
+    double variance = selobs.sigmaI()[iobs]*selobs.sigmaI()[iobs];
+    // Get relevant SDCmodel
+    return SDCmodel(selobs, iobs, idxgroup).coordinate(variance, Iav);
+  }
+  //-------------------------------------------------------------
+  //! return the corrected SD (from parameters) for the iobs'th entry in selobs
+  //   Iav = average I
+  double SDmodel::sdCorrected(const SelectedObservations& selobs,
+                              const int& iobs, const double& Iav) const
+  {
+    double sigma = selobs.sigmaI()[iobs];
+    // Get relevant SDCmodel
+    int idxgroup;
+    return SDCmodel(selobs, iobs, idxgroup).SigmaPrime(sigma, 1.0, Iav);
+  }
+  //-------------------------------------------------------------
+  //! return a reference to the relevant SDC model (run, full/partial
+  // Also return parameter group index idxgroup
+  const SDcorrection& SDmodel::SDCmodel(const SelectedObservations& selobs,
+                                        const int& iobs,
+                                        int& idxgroup) const
+  {
+    int irun = selobs.Run(iobs);
+    if (selobs.Full(iobs)) {
+      // Full
+      if (usetype[irun] >= 0) { // values for fulls
+        idxgroup = idxparamgroups[irun].first;
+        return sdc_full_run[irun];
+      } else if (usetype[irun] < 0) { // full as partial
+        idxgroup = idxparamgroups[irun].second;
+        return sdc_partial_run[irun];
+      }
+    } else {
+      // Partial
+      if (usetype[irun] > 0) { // partial as full
+        idxgroup = idxparamgroups[irun].first;
+        return sdc_full_run[irun];
+      } else if (usetype[irun] <= 0) { // partial
+        idxgroup = idxparamgroups[irun].second;
+        return sdc_partial_run[irun];
+      }
+    }
+    ASSERT (false);  // crash
   }
   //-------------------------------------------------------------
   //-------------------------------------------------------------
@@ -1050,6 +1118,12 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
         s += "</Run>\n";
       }
     }  // end loop runs
+    // Sample SD
+    if (sampleSD) {
+      s += "<SampleSD> ";
+      s += StringUtil::MakeXMLtag("MinimumSample", minimumsample);
+      s += " </SampleSD>\n";
+    }
     s += "</SDcorrection>\n";
 
     return s;
@@ -1058,7 +1132,7 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
   //! return formatted weight information
   std::string SDmodel::formatWeightType() const
   {
-    return SelectedObservations::formatWeightType(weighttype);
+    return WeightType::formatWeightType(weighttype);
   }
 //-------------------------------------------------------------
   std::string SDmodel::FormatSave() const

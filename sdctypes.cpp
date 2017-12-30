@@ -187,7 +187,7 @@ namespace scala {
   //   ds'^2/dp2 = Ih
   //   ds'^2/dp3 = Ih^2
   //   ds'/dp = ds'/d(s'^2) * ds(s'^2)/dp
-  //   ds'/d(s'^2) = 1/2s'
+  //   ds'/d(s'^2) = 1/(2s')
   //
   // Uses vector p = (p1,[p2,]p3) not sdfac etc
   {
@@ -505,6 +505,21 @@ namespace scala {
     sdadd2 = sdadd*sdadd;
     if (sdadd < 0.0) sdadd2 = -sdadd2; // store SdAdd^2, negated if necessary
     ResetRange();
+  }
+  //--------------------------------------------------------------
+  std::vector<double> SDcorrection::coordinate(const double& variance,
+                                               const double& Iav) const
+  // get "coordinate", ie either (var, Iav^2) or (var, Iav, Iav^2)
+  {
+    std::vector<double> xv(Nparams());
+    xv[0] = variance;
+    if (fixsdb) {
+      xv[1] = Iav*Iav;
+    } else {
+      xv[1] = Iav;
+      xv[2] = Iav*Iav;
+    }
+    return xv;
   }
   //--------------------------------------------------------------
 }

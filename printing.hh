@@ -8,10 +8,13 @@
 #include "aimless.hh"
 #include "scalemodel.hh"
 #include "score_datatypes.hh"
+#include "resolutionlimit.hh"
 #include "halfdataset.hh"
 #include "intensitybin.hh"
 #include "summarystatistics.hh"
 #include "anisotropy.hh"
+#include "batchgroup.hh"
+
 
 using namespace scala;
 
@@ -34,6 +37,7 @@ public:
   FitBfactorLines (){}
 
   FitBfactorLines(const std::vector<Batch>& batches,
+		  const Batchgroup& batchgroup,
 		  const std::vector<Run>& RunList,
 		  const int& datasetIndex,
 		  const std::vector<float>& bfacbatch,
@@ -51,23 +55,10 @@ private:
   std::vector<float> scales;        // for each run
 };
 //--------------------------------------------------------------
-class Xbreaks {
-public:
-  Xbreaks(){}
-  Xbreaks(const std::vector<Batch>& batches,
-          const int& datasetIndex);
-  // datasetIndex = -1 for all datasets
-
-  std::vector<Range> get_breaks() const {return breaks;}
-  IntRange get_batchnumberrange() const {return validbatchnumbers;}
-
-private:
-  std::vector<Range> breaks;
-  IntRange validbatchnumbers;  // 1st and last actual accepted batch numbers, for x-axis range
-};
-//--------------------------------------------------------------
 void PrintScalesByBatch(const PxdName& dataset_pxd,
-			const std::vector<Batch>& batches, const std::vector<Run>& RunList,
+			const std::vector<Batch>& batches,
+			const Batchgroup& batchgroup,
+			const std::vector<Run>& RunList,
 			const int& datasetIndex,
 			const std::vector<float>& scale0batch,
 			const std::vector<float>& bfacbatch,
@@ -77,6 +68,7 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
 //--------------------------------------------------------------
 void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 			    const std::vector<Batch>& batches,
+			    const Batchgroup& batchgroup,
 			    const int& datasetIndex,
 			    const std::vector<MeanSD>& imeanbatch,
 			    const std::vector<MeanSD>& rmsDbatch,
@@ -88,13 +80,17 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
 			    const std::vector<float>& batchmultiplicity,
 			    const std::vector<double>& maxresbatch,
 			    const std::vector<double>& maxresbatchsmoothed,
+			    const std::vector<MeanSD>&  meanChiSqBatch,
+			    const std::vector<MeanSD>&  meanChiSqBatch2,
 			    const double& MinimumIoverSigma,
 			    const int& nbatchsmooth,
 			    const ResoRange& ResRange,
+			    const RejectFlags& rejflags,
 			    phaser_io::Output& output);
 //--------------------------------------------------------------
 void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
 				       const std::vector<Batch>& batches,
+				       const Batchgroup& batchgroup,
 				       const int& datasetIndex,
 				       const int& nbatchsmooth,
 				       const std::vector<Rfactor> rreferencebatch,
@@ -118,8 +114,11 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 const std::vector<MeanSD>&  mnIsdRes,
 				 const std::vector<MeanSD>&  biasRes,
 				 const std::vector<MeanSD>&  biasIRes,
+				 const std::vector<MeanSD>&  meanChiSqRes,
+				 const std::vector<MeanSD>&  meanChiSqRes2,
 				 const double& MinimumIoverSigma,
 				 SummaryStatistics& summarystatistics,
+				 const RejectFlags& rejflags,
 				 phaser_io::Output& output);
 //--------------------------------------------------------------
 void PrintDeviationsByRun(const PxdName& dataset_pxd,

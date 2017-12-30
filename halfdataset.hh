@@ -10,6 +10,8 @@
 #include "plotfiles.hh"
 ///#include "anomdistribution.hh"
 #include "resolutionlimit.hh"
+#include "batchgroup.hh"
+#include "Output.hh"
 
 namespace scala {
 
@@ -41,22 +43,27 @@ namespace scala {
     void AddAnom(const int& mres,
 		 SelectedObservations& obsplus, SelectedObservations& obsminus);
 
-    // Divide into Npart parts
-    void SetNpart(const int& Npart);
-
     int NresBin() const {return nresbin;}
 
     correl_coeff CCanom(const int& mres) const {return ccanomreso.at(mres);}
     correl_coeff CCanom() const;  // overall
+    std::vector<correl_coeff> allCCanom() const {return ccanomreso;}
 
     correl_coeff CCanomCen(const int& mres) const {return ccanomresoCen.at(mres);}
     correl_coeff CCanomCen() const;  // overall
 
     correl_coeff CC_Imean(const int& mres) const {return ccIreso.at(mres);}
     correl_coeff CC_Imean() const;  // overall
+    std::vector<correl_coeff> allCC_Imean() const {return ccIreso;}
+
+    // CC(1/2) from variances
+    double CC_half(const int& mres) const;
+    double CC_half() const;  // overall average
+    std::vector<double> allCC_half() const;
 
     Rfactor rsplit(const int& mres) const;
     Rfactor rsplit() const; // overall
+    std::vector<Rfactor> allrsplit() const;
 
 
     double RMScorrelRatio(const int& mres) const;
@@ -106,6 +113,9 @@ namespace scala {
     std::vector<correl_coeff> ccanomresoCen;
     // MeanI correlations by resolution
     std::vector<correl_coeff> ccIreso;
+    std::vector<MeanVariance> meanIreso; // for Var(<I>) by resolution
+    std::vector<MeanValue> meanVarianceImeanreso; // <var(Isample)>
+
     // Rsplit by resolution
     std::vector<Rfactor> rsplitreso;
     // RMS DelAnom for each resolution bin
@@ -137,7 +147,46 @@ namespace scala {
     ResolutionLimit anomresolimit;
 
   };
+  // ------------------------------------------------------------
+  class CumulativeCChalf {
+  public:
+    CumulativeCChalf (){}
+    CumulativeCChalf(const ResoRange& ResRange,
+		     const int& nCumulativeResoBins,
+		     const Batchgroup& batchgroup);
 
+    void addreflection(const int& mres,
+		       const SelectedObservations& selobs);
+
+    // calculate results
+    std::vector<std::vector<MeanValue> > getcumulativeCC();
+
+    // print them
+    void printcumulativeCC(const int& datasetIndex,
+			   const std::vector<Run>& RunList,
+			   phaser_io::Output& output);
+
+  private:
+    ResoRange resrange;  // local copy
+    ResoRange resrangecoarse;  // coarse ranges
+    int ncumulativeresobins;
+    const Batchgroup* pbatchgroup;
+    // <var(Iav)> for each resolution range for each batch
+    // for Var(<I>) by resolution
+    std::vector<std::vector<MeanVariance> > meanI;
+    // <var(Isample)> for each resolution range for each batch
+    std::vector<std::vector<MeanValue> > meanVarianceImean;
+    // for Delta(CC(1/2))
+    // <var(Iav)> for each resolution range for each batch
+    // for Var(<I>) by resolution
+    std::vector<std::vector<MeanVariance> > meanIdelta;
+    // <var(Isample)> for each resolution range for each batch
+    std::vector<std::vector<MeanValue> > meanVarianceImeandelta;
+
+    std::vector<std::vector<MeanValue> > cumulativeCC;
+
+  };
+  // ------------------------------------------------------------
 }
 
 #endif
