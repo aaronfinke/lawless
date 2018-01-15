@@ -106,7 +106,7 @@ namespace scala {
       } else {
         // not valid Phi ranges, but still group batches
         const int DEFAULT_NINGRP = 5;
-        numberinGroup = std::min(DEFAULT_NINGRP, nbatches/10);
+        numberinGroup = std::max(1, std::min(DEFAULT_NINGRP, nbatches/10));
       }
       //      std::cout <<"batchgroup, width, maxphi, numberingroup "<<
       //        batchgroupwidth<<" "<<phirangemax<<" "<<numberinGroup<<std::endl; //^
@@ -236,8 +236,13 @@ namespace scala {
   //   returns number of groups
   {
     int nb = batchnumberlist.size();
-    int ngroups = nb/numberinGroup;
-    int lastgroupsize = nb%numberinGroup;  // number in last group if > 0
+    int ngroups = 1;
+    int lastgroupsize = 1;
+    if (numberinGroup > 0) {
+      ngroups = nb/numberinGroup;
+      lastgroupsize = nb%numberinGroup;  // number in last group if > 0
+    }
+
     if (lastgroupsize > 0) {ngroups++;}
     // If last group is "too small", put into previous group
     const float MINSIZE = 0.25;  // allowed fraction of group size
