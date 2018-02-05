@@ -18,7 +18,7 @@
 Scaling options</a><br>
 <a href="#control_of_flow">Control of flow through the program</a><br>
 <a href="#Appendix1">Partially recorded reflections</a><br>
-<a href="#Scaling">Scaling algorithm<br></a><a href="#data_from_denzo">Data from Denzo</a><br>
+<a href="#scaling_algorithm">Scaling algorithm<br></a><a href="#data_from_denzo">Data from Denzo</a><br>
 <a href="#datasets">Datasets</a><a href="#data_harvesting"></a><br>
 </p>
 
@@ -45,7 +45,7 @@ scales</li>
   </li>
 
   <li>if both summation and profile-fitted intensity estimates are
-present (from Mosflm), then the cross-over point is determined between
+present (eg from Mosflm), then the cross-over point is determined between
 using profile-fitted for weak data and summation for strong data.<br>
 </li>
   <li>first analysis pass to refine the "corrections" to the standard
@@ -97,8 +97,7 @@ data were collected. It is not possible to lay down definitive rules,
 but some of the following hints may help. For most purposes, my normal
 recommendation is the default<br>
 </p>
-<pre>  scales rotation spacing 5 secondary  bfactor on brotation spacing 20 <br></pre>
-Other hints:-
+<pre>  scales rotation spacing 5 secondary  bfactor on brotation spacing 20 <br></pre>Other hints:-
 <ol>
   <li>Only use the
 SCALE BATCH option if every image is different from every other one, <em>i.e.</em>
@@ -160,12 +159,37 @@ FRACTIONCALC, provided that the fraction is greater than
 accurate, which is not usually the case.<br>
 </p>
 <h2><a name="scaling_algorithm"></a>Scaling algorithm</h2>
-<a href="#Scaling"> See appendix 2</a><br><br><h2><a name="data_from_denzo"></a>Data from Denzo</h2>
+
+The normal scaling method improves the internal consistency of the dataset by minimising <br>
+<pre>Sum( whl * ( Ihl - ghl * Ih )**2 ) </pre>
+<a href="#Scaling">See appendix 2</a> for more details<br>
+<br>
+<h3><a name="scaletoreference"></a>Scaling to reference</h3>
+THIS OPTION HAS NOT BEEN EXTENSIVELY TESTED<br>
+
+<br>
+An alternative method scales to an external previously-determined reference dataset, minimising<br>
+<pre>Sum( whl * ( Ihl - ghl * Ihref )**2 )</pre>
+where Ihref is the reference intensity and the weight whl = 1/(var(Ihl) + var(Ihref))<br>
+<br>
+This option might be useful for example in scaling long-wavelength data
+with high absorption to a short-wavelength set from a similar crystal. It is specified with the command <a href="#refine">REFINE</a> REFERENCE.
+Reference intensities are taken from an MTZ file of merged intensities
+specified as <a href="#hklref">HKLREF</a> (command or command line).
+If intensities are not available, amplitudes F are accepted, and will
+be squared to intensities, but note that Fs which come from the French
+&amp; Wilson "truncate" procedure are seriously biased for small
+intensities, so Fs are deprecated. A coordinate reference XYZIN is not
+accepted, as that does not seem to work well (in some limited tests).<br>
+By default, the first intensity column (or amplitude column) in the
+file is used, or the column may be explicitly set using the <a href="#labref">LABREF</a> command. Note that provided the columns are contiguous, only the first of the set need be specified or chosen automatically<br>
+eg LABREF &nbsp; I=I(+) will pick up I(+), SIGI(+), I(-), SIGI(-)<br><h2><a name="data_from_denzo"></a>Data from Denzo</h2>
 Data integrated with Denzo may be scaled and merged with Aimless as
 an alternative to Scalepack, or unmerged output from scalepack may be
 used. Both have some limitations. <a href="#Appendix3"> See appendix 3</a>
 for more details.&nbsp;
-<p><a name="datasets"></a>Datasets</p>
+<h4><a name="datasets"></a>Datasets</h4>
+
 
 TBD<h2><a name="keywords"></a>KEYWORDED INPUT - DESCRIPTION</h2>
 <p>In the definitions below "[]" encloses optional items,
@@ -651,13 +675,23 @@ SCALES, which may be assigned on the command line.<br>
 (see DUMP).&nbsp;<br>
  </p>
 
-<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt; [&lt;E2max&gt;]] <br>
+<h3><a name="refine"></a>REFINE&nbsp; [CYCLES &lt;Ncycle&gt;] [BFGS | FH | REFERENCE] [SELECT &lt;IovSDmin&gt; &lt;E2min&gt; [&lt;E2max&gt;]] <br>
 </h3>
 <h3>[PARALLEL [AUTO] | &lt;Nprocessors&gt; | &lt;Fractionprocessors&gt;]<br>
 </h3>
 
 <h3><span style="color: rgb(255, 102, 0);"></span><span style="font-weight: normal;">Define number of refinement cycles Ncycle and method for scale refinement.</span></h3>&nbsp;&nbsp;&nbsp; BFGS use BFGS optimisation (usual method)<br>
 &nbsp;&nbsp;&nbsp; FH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; use Fox-Holmes least-squares algorithm (not recommended)<br>
+&nbsp;&nbsp;&nbsp; REFERENCE&nbsp; <a href="#scaletoreference">scale</a> to an external reference
+dataset, specified as a merged MTZ file with the <a href="#hklref">HKLREF</a> command. This
+should contain intensities (either IMEAN or I+/I-), or amplitudes F
+which will be squared to intensities: intensities are strongly
+preferred, as squared Fs which have been "truncated" are significantly
+biased. The <a href="#labref">LABREF</a> command may be used to specify the column label,
+otherwise the first intensity (or F) will be used. If I+ and I- are
+given, Imean for scale refinement is calculated as the unweighted mean.
+sigma(I) (if present) is assumed to be in the column following the
+intensity.<br>
 <br>
 SELECT&nbsp; define selection limits for the two rounds of scaling. If unset, suitable values will be chosen automatically<br>
 <ul>
@@ -874,28 +908,35 @@ Filename for the output file, as an alternative to specifying it on the command 
 Filename for the XML output file, as an alternative to specifying it on the command line.<br>
 
 <h3><a name="hklref"></a>HKLREF &lt;reference file name&gt;</h3>
-Filename for a reference reflection file, as an alternative to
+Filename for a reference reflection MTZ file, as an alternative to
 specifying it on the command line. This file is used to provide a
-"best" estimate of intensity, and the observed data is analysed for its
+"best" estimate of intensity, possibly for the option to refine against a reference set (see <a href="#scaletoreference">above</a>). This reference set is also used to compare to the scaled observed data, analysing it for its
 agreement as a function of batch, as R-factors and correlation
 coefficients, so that particularly bad regions of data may be detected.
-This reference data could for example be calculated from the best
-current model, eg the FC_ALL_LS column from Refmac. Column labels may
-be specified with the <a href="#labref">LABREF</a>
-command. Amplitudes are squared to intensities, and intensities are
+ Column labels may
+be specified with the <a href="aimless.html#labref">LABREF</a>
+command.<br>
+For refinement against reference data, this file should be merged
+measured intensities from a reference crystal, or possibly amplitudes
+(deprecated due to bias from the "truncate" procedure).<br>
+For analysis, this reference data could also for example be calculated from the best
+current model, eg the FC_ALL_LS column from Refmac. Amplitudes are squared to intensities, and intensities are
 scaled to the merged observations with a scale and a anisotropic
 temperature factor. This is an alternative to giving a coordinate file <a href="#xyzin">XYZIN</a> from which structure factors will be calculated.<span style="font-weight: bold;"><br>
 </span>
-<h3><a name="labref"></a>LABREF [F | I =]&lt;columnlabel&gt;]</h3>
-For an HKLREF file, this defines the column label for intensity or
+<h3><a name="labref"></a>LABREF [F | I =]&lt;columnlabel&gt;]</h3>For
+an HKLREF file, this defines the column label for intensity or
 amplitude (which will be squared to an intensity). If this command is
 omitted, the first intensity column (or if no intensities, the first
 amplitude) will be used. The next column is assumed to contain the
-corresponding sigma.<br>
+corresponding sigma. Note that provided the columns are contiguous,
+only the first of the set need be specified or chosen automatically<br>
+
+eg LABREF &nbsp; I=I(+) will pick up I(+), SIGI(+), I(-), SIGI(-)<br>
 
 <h3><a name="xyzin"></a>XYZIN &lt;reference coordinate file name&gt;</h3>
 The
-filename for a reference coordinate set. Structure factors will be
+filename for a reference coordinate set, for analysis, but not for <a href="#scaletoreference">refinement</a>. Structure factors will be
 calculated to use as a reference, in the same way as <a href="#hklref">HKLREF</a>. This provides a current "best" estimate of intensity, and the
 observed data is analysed for its agreement as a function of batch, as
 R-factors and correlation coefficients, so that particularly bad
@@ -1147,11 +1188,19 @@ the inverse scale factor ghl to put each observation on a common scale
 (as Ihl/ghl). This is done by minimizing</p>
   <pre> <br>        Sum( whl * ( Ihl - ghl * Ih )**2 )   <a href="#ref6">Ref Hamilton, Rollett &amp; Sparks</a><br><br></pre>
   <p>where Ih is the current best estimate of the "true" intensity </p>
-  <pre>        Ih = Sum ( whl * ghl * Ihl ) / Sum ( whl * ghl**2)<br><br></pre>
+  <pre>        Ih = Sum ( whl * ghl * Ihl ) / Sum ( whl * ghl**2)<br></pre></dl>
+<p>An <a href="#scaletoreference">alternative</a> method scales to an external previously-determined reference dataset, minimising</p>
+<dl compact="compact">
+  <pre>Sum( whl * ( Ihl - ghl * Ihref )**2 )<br></pre>
+</dl>
+<p>where Ihref is the reference intensity and the weight whl = 1/(var(Ihl) + var(Ihref))</p>
+<dl compact="compact">
   <p>Each observation is assigned to a "run", which corresponds
 to a set of scale factors. A run would typically consist of a
 continuous
 rotation of a crystal about a single axis. </p>
+
+
   <p>The inverse scale factor ghl is derived as follows: </p>
   <pre>        ghl = Thl * Chl * Shl<br><br></pre>
   <p>where Thl is an optional relative B-factor contribution, Chl is
@@ -1202,7 +1251,9 @@ antisymmetric</li>
     <li>Restraining all terms to zero (with the TIE SURFACE) reduces
 the
 anisotropic correction. This should always be done</li><br>
-</ul></dl>
+</ul>
+</dl>
+
 <p style="font-weight: bold;"><a name="appendix2_tiles"></a>(d) Detector <span style="font-weight: bold;">correction (TILES)</span></p>
 <span style="font-weight: normal;">A correction for tiled CCD detectors
 has been implemented to attempt to correct for the underestimation of
@@ -1324,7 +1375,8 @@ the others, and this one is rejected </li>
   <sup>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
-<dl compact="compact">0.6.2 Bug fix for only one batch (eg from merged data<br>
+<dl compact="compact">0.7.0 REFINE REFERENCE option, for scaling to external reference intensities<br>
+0.6.2 Bug fix for only one batch (eg from merged data)<br>
 0.6.1 Group batches for analysis, see
 ANALYSIS GROUPBATCH. Improve SDCORRECTION SAMPLE, sample
 variances: compare individual propagated SDs with sample SDs. Limit
@@ -1528,6 +1580,8 @@ See above for Release Notes. </p>
 
 
 </dl>
+
+
 
 
 

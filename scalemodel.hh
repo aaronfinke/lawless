@@ -127,8 +127,10 @@ namespace scala {
     void clearCounts();
 
     // Set all parameters from vector and count of number of contributions
-    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs);
-    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs);
+    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs,
+		       const bool& donormalise=true);
+    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs,
+		       const bool& donormalise=true);
 
     // Normalise scales & B-factors
     void NormaliseParameters();

@@ -124,7 +124,8 @@ OBJ =   \
 	referencelist.o referencescalemodel.o refinereferencescale.o \
 	refinetargets.o hessian.o rejectbatches.o runcorrelations.o \
 	radialfunction.o fitresolutiondata.o simpleminimise.o \
-	comparesds.o linearsdcorrection.o batchgroup.o
+	comparesds.o linearsdcorrection.o batchgroup.o \
+	refinescaleref.o
 
 COBJ = \
 	CCP4base.o Errors.o Output.o Preprocessor.o \
@@ -163,7 +164,8 @@ SOURCE = ${EXE}.cpp \
 	referencelist.cpp referencescalemodel.cpp refinereferencescale.cpp \
 	refinetargets.cpp hessian.cpp rejectbatches.cpp runcorrelations.cpp \
 	radialfunction.cpp fitresolutiondata.cpp simpleminimise.cpp \
-	comparesds.cpp linearsdcorrection.cpp batchgroup.cpp weighttype.cpp
+	comparesds.cpp linearsdcorrection.cpp batchgroup.cpp weighttype.cpp \
+	refinescaleref.cpp
 
 # Common with Pointless
 CSOURCE = \
@@ -206,8 +208,8 @@ HDR = ${EXE}.hh \
 	referencelist.hh referencescalemodel.hh refinereferencescale.hh \
 	refinetargets.hh hessian.hh rejectbatches.hh runcorrelations.hh \
 	radialfunction.hh fitresolutiondata.hh simpleminimise.hh median.hh \
-	comparesds.hh linearsdcorrection.hh batchgroup.hh anomalousstatus.hh
-
+	comparesds.hh linearsdcorrection.hh batchgroup.hh anomalousstatus.hh \
+	refinescaleref.hh
 
 # common with Pointless
 CHDR = \

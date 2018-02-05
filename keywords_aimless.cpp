@@ -920,13 +920,14 @@ REFINE::REFINE() : CCP4base(), InputBase()
 }
 //--------------------------------------------------------------
 Token_value REFINE::parse(std::istringstream& input_stream)
-// Syntax: REFINE BFGS|FH CYCLE [Ncyc1>] <Ncycles> CONVERGE <convergeLimit>
+// Syntax: REFINE BFGS|REFERENCE|FH CYCLE [Ncyc1>] <Ncycles> CONVERGE <convergeLimit>
 //            SELECT <IovSDmin> <E2min> [<E2max>]
 //            PARALLEL [AUTO] | <nproc> | <fproc>
 //    CYCLE
 //         Ncyc1   number of cycles in 1st stage [default 2]
 //         Ncycles number of cycles in main scaling [default 10]
 //    BFGS use BFGS minimiser
+//    REFERENCE scale to reference dataset
 //    FH   use Fox_Holmes least-squares
 //    CONVERGE set convergence limit, multiplier of SD (for FH only)
 // Selection criteria for scaling reflections:
@@ -956,10 +957,13 @@ Token_value REFINE::parse(std::istringstream& input_stream)
           (keywords, "syntax error expecting a number");
       }
       if (keyIs("BFGS")) {
-        refinecontrol.BFGS() = true;
+        refinecontrol.setMethodBFGS();
         expectingNumber = 0;
       } else if (keyIs("FH")) {
-        refinecontrol.BFGS() = false;
+        refinecontrol.setMethodFH();
+        expectingNumber = 0;
+      } else if (keyIs("REFERENCE")) {
+        refinecontrol.setMethodReference();
         expectingNumber = 0;
       } else if (keyIs("CYCLES")) {
         if (nn < 0) {

@@ -42,6 +42,7 @@ set(AIMLESS_SOURCES
     rejectbatches.cpp fitresolutiondata.cpp hessian.cpp radialfunction.cpp
     simpleminimise.cpp comparesds.cpp
     batchgroup.cpp linearsdcorrection.cpp weighttype.cpp 
+    refinescaleref.cpp
 )
 
 # Shared (duplicated) with Pointless

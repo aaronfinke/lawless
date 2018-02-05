@@ -35,11 +35,17 @@ namespace scala {
   // Initialise just the header information from the MTZ file
   // Do not create clipper objects yet (done in "read" method)
   {
+    mtzread = 0;
     // MTZ file, file closed again after reading header
     bool fileopen = mtzfilein.open_read(hklinname);
     if (!fileopen) {
+      // not a merged file?
+      if (!mtzfilein.Merged()) {
+        Message::message(Message_fatal
+                         ("hkl_merge: input file must be merged"));
+      }
       Message::message(Message_fatal
-                       ("hkl_merge: open_read - not valid MTZ file"));
+                       ("hkl_merge: open_read - missing or invalid MTZ file"));
     }
 
     // Retrieve information
@@ -96,6 +102,7 @@ namespace scala {
     status = MLIST::DATA;
     hkl_index = IsigData.first();
     at_start = true;
+    mtzread = +1;
   }
   //--------------------------------------------------------------
   IsigI hkl_merge::Isig(const Hkl& h) const
@@ -171,7 +178,20 @@ namespace scala {
     return hkl_index.invresolsq();
   }
   //--------------------------------------------------------------
-// Copy constructor throws exception
+  // true if generated from MTZ file, else from coordinates
+  bool hkl_merge::fromReflectionData() const
+  {return (mtzread > 0);}
+  //--------------------------------------------------------------
+  // true if from amplitudes F^2, else from intensities
+  bool hkl_merge::Amplitudes() const
+  {
+    if (mtzread > 0) {
+      return mtzfilein.Amplitudes();
+    }
+    return false;
+  }
+  //--------------------------------------------------------------
+  // Copy constructor throws exception
   hkl_merge::hkl_merge(const hkl_merge& List)
   {
     if (List.status != MLIST::EMPTY) {
@@ -288,6 +308,7 @@ namespace scala {
     status = MLIST::DATA;
     hkl_index = IsigData.first();
     at_start = true;
+    mtzread = -1;
   }
   //--------------------------------------------------------------
   void hkl_merge::SFcalc(const std::string& xyzin,
@@ -449,7 +470,7 @@ namespace scala {
     status = MLIST::DATA;
     hkl_index = IsigData.first();
     at_start = true;
-
+    mtzread = -1;
   }
   //--------------------------------------------------------------
   void hkl_merge::SFcalcBulk(const std::string& xyzin,

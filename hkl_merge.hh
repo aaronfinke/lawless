@@ -49,7 +49,7 @@ namespace scala{
   // This class must not be copied
   {
   public:
-    hkl_merge() : status(MLIST::EMPTY) {}
+    hkl_merge() : status(MLIST::EMPTY), mtzread(0) {}
     //Construct from mtz file: just header stuff
     hkl_merge(const std::string& hklinname,
 	      const bool& verbose,
@@ -60,7 +60,7 @@ namespace scala{
     // Copy operator throws exception
     hkl_merge& operator= (const hkl_merge& List);
 
-    // Initialise
+    // Initialise from MTZ file
     void init(const std::string& hklinname,
 	      const bool& verbose,
 	      phaser_io::Output& output);
@@ -102,6 +102,13 @@ namespace scala{
     int num_obs() const;
 
     Scell Cell() const {return fcell;}
+    // column labels used
+    std::vector<std::string> columnLabels() const
+    {return mtzfilein.columnLabelsUsed();}
+    // true if generated from MTZ file, else from coordinates
+    bool fromReflectionData() const;
+    // true if from amplitudes F^2, else from intensities
+    bool Amplitudes() const;
 
     // Return list of alternative indexing schemes
     //  max_delta tolerance on cell
@@ -133,6 +140,7 @@ namespace scala{
     mutable clipper::HKL_info::HKL_reference_index hkl_index;
     mutable bool at_start;
 
+    int mtzread;  // +1 if mtzfile was read, -1 coordinates, 0 nothing
     MtzIO::MtzMrgFile mtzfilein;
     Scell fcell;
     hkl_symmetry fsymmetry;

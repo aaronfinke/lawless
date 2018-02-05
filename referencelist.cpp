@@ -5,7 +5,9 @@
 #include "columnlabels.hh"
 #include "refinetargets.hh"
 #include "refinereferencescale.hh"
+#include "string_util.hh"
 #include "timer.hh"
+#include "report_errors.hh"
 
 using phaser_io::LOGFILE;
 
@@ -70,6 +72,65 @@ namespace scala {
   {
     double scale = referencescalemodel.scale(h);
     return hklmergelist.Isig(h).scaleIs(scale);
+  }
+  //------------------------------------------------------
+  // Return unscaled I sigI for given hkl
+  IsigI ReferenceList::Isig0(const Hkl& h) const
+  {
+    return hklmergelist.Isig(h);
+  }
+  //------------------------------------------------------
+  // column labels used
+  std::vector<std::string> ReferenceList::columnLabels() const
+  {
+    return hklmergelist.columnLabels();
+  }
+  //------------------------------------------------------
+  void ReferenceList::recordScaleReference(phaser_io::Output& output) const
+  {
+    std::string s = "Scaling against reference file: "+hklrefname;
+    std::string s1,slabels,source;
+    bool Fs = false;
+    if (inputtype == "HKLREF") {
+      ASSERT  (hklmergelist.fromReflectionData());
+      if (hklmergelist.Amplitudes()) {
+        s1 += "  amplitudes F squared to intensities";
+        source = "squared F";
+        Fs = true;
+      } else {
+        s1 += "  intensities";
+        source = "intensities";
+      }
+      std::vector<std::string> columnlabels = columnLabels();
+      if (columnlabels.size() > 0) {
+        s1 += ", columns: ";
+        for (size_t k=0; k<columnlabels.size(); k++) {
+          slabels += " " + columnlabels[k];
+        }
+      }
+    } else if (inputtype == "XYZIN") {
+      s1 += "  calculated Fc^2 from coordinates";
+      source = "coordinates";
+    }
+    output.logTab(0,LOGFILE, s);
+    output.logTab(0,LOGFILE, s1+slabels);
+
+    // XML
+    output.logTab(0,LXML,"<ScalingType>");
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("SourceType", source));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("Filename", hklrefname));
+    if (slabels != "") {
+      output.logTab(0,LXML,
+                    StringUtil::MakeXMLtag("ColumnLabels", slabels));
+    }
+    if (Fs) {
+      ReportErrors::printWarning(
+           "It is better to use intensities than squared Fs",
+           "ReferenceWarning");
+    }
+    output.logTab(0,LXML,"</ScalingType>");
   }
   //------------------------------------------------------
   bool ReferenceList::checkCompatible(const hkl_unmerge_list& hkl_list,
