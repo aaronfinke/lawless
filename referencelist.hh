@@ -78,23 +78,14 @@ namespace scala {
     int num_obs() const {return hklmergelist.num_obs();}
     Scell Cell() const {return hklmergelist.Cell();}
 
-    // column labels used
-    std::vector<std::string> columnLabels() const;
-
     double resHigh() const {return resolimit;}
 
     // Return scaled I sigI for given hkl
     IsigI Isig(const Hkl& h) const;
 
-    // Return unscaled I sigI for given hkl
-    IsigI Isig0(const Hkl& h) const;
-
     //! format reason for any error
     std::string formatError() const
     {return referencescalemodel.formatError();}
-
-    void recordScaleReference(phaser_io::Output& output) const;
-
 
   private:
     std::string hklrefname;

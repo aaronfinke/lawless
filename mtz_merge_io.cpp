@@ -39,7 +39,6 @@ namespace MtzIO {
   // Open file for reading
   // returns false if fails
   {
-    merged = true;
     if (fileopen)
       ReportErrors::printFatalError("MtzMrgFile: open_read - File already open");
     if ( filename_in == "")
@@ -345,7 +344,6 @@ namespace MtzIO {
     anom =  processlabels.anom();
 
     ClipperLabelList labelthings = processlabels.clipperlabellist();
-    columnlabelsused = labelthings.labels;
 
     bool NoSigI = labelthings.nosig;  // true if there is no sigI column
 
@@ -390,7 +388,7 @@ namespace MtzIO {
       clipper::data32::I_sigI Isig;
       clipper::data32::I_sigI_ano IsigAnom;
       double F;
-      const double iscale = 0.5;  // scale down F^2, by iscale^2
+      const double iscale = 0.1;  // scale down F^2, by iscale^2
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
         Isig.set_null();

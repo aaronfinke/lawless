@@ -126,8 +126,8 @@ int main(int argc, char* argv[])
       xyzref_filename = input.getXYZIN();
     }
     if (hklref_filename != "" && xyzref_filename != "") {
-      ReportErrors::printFatalError
-        ("Cannot have both HKLREF and XYZIN filenames given");
+      Message::message(Message_fatal
+       ("Cannot have both HKLREF and XYZIN filenames given"));
     }
 
     // XMLOUT command
@@ -139,7 +139,8 @@ int main(int argc, char* argv[])
     }
     PrintTitle(output);
     if (hklin_filename == "")
-      ReportErrors::printFatalError("HKLIN filename not given");
+      Message::message(Message_fatal("HKLIN filename not given"));
+
 
    // TITLE command, defaults to title from HKLIN file (see below)
     std::string runTitle = input.Title();
@@ -282,12 +283,10 @@ int main(int argc, char* argv[])
     int Npart = hkl_list.sum_partials();
     int Nobs = hkl_list.num_observations();
     Nobs = Nobs;
-    std::vector<std::string> dummycolumnlabels;  // dummy for unmerged file
     PrintUnmergedHeaderStuff(hkl_list, output, verbose);
     PrintFileInfoToXML("HKLIN",hklin_filename,
                        hkl_list.cell(),
                        hkl_list.symmetry().symbol_xHM(),
-                       dummycolumnlabels,
                        output);
 
     bool multilattice = hkl_list.MultiLattice();
@@ -302,37 +301,21 @@ int main(int argc, char* argv[])
 
     // Read optional reference file for statistics, check for compatibility
     ReferenceList hklreflist;
-    bool refOK;
     double toleranceratio = 1.0;
     // use SF calculation with bulk solvent, do it later so that
     //  it can be scaled
     bool SF_BULK_SOLVENT = true;
     bool referencedata = (hklref_filename != "" || xyzref_filename != "");
+    // true to read reference list here, else later
     bool readRefFirst = referencedata;
-    if (referencedata) {
-      // reference data given
-      // true to read reference list here, else later
-      readRefFirst = true;
-      // read/generate reference first if HKLREF
-      if (xyzref_filename != "" && SF_BULK_SOLVENT) {
-        if (controls.refinecontrol.Reference()) {
-          // refining against Fcalc^2 doesn't work well
-          ReportErrors::printFatalError
-            ("Cannot refine against coordinate reference XYZIN");
-        } else {
-          readRefFirst = false;
-        }
-      }
+    if (xyzref_filename != "" && SF_BULK_SOLVENT) {
+      readRefFirst = false;
     }
 
     if (readRefFirst) {  // reference from HKLREF or XYZIN with no bulk solvent
       bool verbose = true;
       if (hklref_filename != "") {
-        std::string refmessage = "\nReference file for analysis (HKLREF)";
-        if (controls.refinecontrol.Reference()) {
-          refmessage = "\nReference file for scaling and analysis (HKLREF)";
-        }
-        output.logTab(0,LOGFILE, refmessage);
+        output.logTab(0,LOGFILE, "\nReference file for analysis (HKLREF)");
         hklreflist.init(hklref_filename,
                         input.getLABREF_I(), input.getLABREF_sigI(),
                         hkl_list.ResRange().ResHigh(), verbose,
@@ -340,7 +323,6 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("HKLREF",hklref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
-                           hklreflist.columnLabels(),
                            output);
       } else {
         // xyzref (XYZIN) coordinates given
@@ -350,10 +332,10 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("XYZIN",xyzref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
-                           dummycolumnlabels,
                            output);
       }
-      refOK = hklreflist.checkCompatible(hkl_list, toleranceratio);
+      bool refOK =
+        hklreflist.checkCompatible(hkl_list, toleranceratio);
       if (!refOK) {
         std::string s = "HKLREF file is incompatible with HKLIN file\n";
         s += hklreflist.formatError();
@@ -441,6 +423,16 @@ int main(int argc, char* argv[])
       AllScales.Restore(input.RestoreFileName(),
                         hkl_list.RunList());
       initialscale = false; // no initial scales
+      if (!AllScales.IsRefinable()) {
+        FC.SetOnlyMerge();
+        AllScales.SetConstant(hkl_list, output);
+        std::string s = "No scaling done, "+AllScales.whyNotRefineable();
+        output.logTab(0,LOGFILE, s);
+        output.logTab(0,LXML,
+                      StringUtil::MakeXMLwithclass("ScaleModelFail",
+                                                   s, false,
+                                                   "warningmessage"));
+      }
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
       AllScales.PrintSecondaryCorrections(output);
@@ -487,8 +479,7 @@ int main(int argc, char* argv[])
           if (!input.SDC_RefineSet()) {
             FC.sdoptimise = false;
           }
-          std::string s =
-            "No scaling done, insufficient information in file";
+          std::string s = "No scaling done, "+AllScales.whyNotRefineable();
           output.logTab(0,LOGFILE, s);
           output.logTab(0,LXML,
                         StringUtil::MakeXMLwithclass("ScaleModelFail",
@@ -550,28 +541,6 @@ int main(int argc, char* argv[])
         }
       }
       output.logFlush();
-    }
-
-    // Check valid reference scaling
-    bool scaletoreference = false;
-    if (!FC.OnlyMerge()) {  // no check if only merge
-      if (controls.refinecontrol.Reference()) {
-        // Must have an appropriate reference set
-        if (hklreflist.num_obs() <= 0) {
-          // No reference set read, why not?
-          std::string refmessage = "Cannot refine against reference data:";
-          if (!referencedata) {
-            refmessage += " no reference file assigned";
-          } else if (!readRefFirst && xyzref_filename != "") {
-            refmessage += " coordinates XYZIN not allowed as reference";
-          }
-          ReportErrors::printFatalError(refmessage);
-        }
-        FC.initialScale = false; //  no initial scale for now
-        initialscale = false; // no initial scales
-        scaletoreference = true;
-        hklreflist.recordScaleReference(output); // write info to log and XML
-      }
     }
 
     bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
@@ -639,7 +608,6 @@ int main(int argc, char* argv[])
     //    SD_model.SetSqrtScaleWeights();
     //    SD_model.SetUnitWeights();
 
-
     bool anomOn = false;  // no anomalous for scaling
     // ----- first rough scaling
     WriteRogues DummyRogues;
@@ -668,13 +636,12 @@ int main(int argc, char* argv[])
       // and switch off secondary scaling
       AllScales.switchSecondaryScales(false);
 
-      if (controls.refinecontrol.BFGS() ||
-          controls.refinecontrol.Reference()) {
+      if (controls.refinecontrol.BFGS()) {
         if (nparchanged && AllScales.haveParameterVariances()) {
           // don't use incorrect parameter variances (from restore) if number has changed
           AllScales.ignoreParameterVariances();
         }
-        ScaleRefine(hkl_list, hklreflist, AllScales, SD_model, controls,
+        ScaleRefine(hkl_list, AllScales, SD_model, controls,
                     controls.refinecontrol.Ncyc1(), false, output);
         if (nparchanged) {
           // don't use incorrect parameter variances if number has changed
@@ -684,7 +651,6 @@ int main(int argc, char* argv[])
         ScaleRefineFH(hkl_list, AllScales, controls,
                       controls.refinecontrol.Ncycles(), output);
       }
-
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
       //AllScales.PrintScales(output); //^^
@@ -787,10 +753,8 @@ int main(int argc, char* argv[])
                           hkl_list.num_reflections()-selrej.first,
                           hkl_list.num_reflections(), E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
-      if (controls.refinecontrol.BFGS() ||
-          controls.refinecontrol.Reference()) {
-        ScaleRefine(hkl_list, hklreflist,
-                    AllScales, SD_model, controls, Ncyc, true, output);
+      if (controls.refinecontrol.BFGS()) {
+        ScaleRefine(hkl_list, AllScales, SD_model, controls, Ncyc, true, output);
       } else {
         ScaleRefineFH(hkl_list, AllScales, controls, Ncyc, output);
       }
@@ -1023,6 +987,7 @@ int main(int argc, char* argv[])
 
     // Scale optional reference file for statistics to observed data
     if (referencedata) {
+      bool refOK;
       int datasetindex = -2;  // combine all datasets together
       if (xyzref_filename != "" && SF_BULK_SOLVENT) {
         // calculate SF from atoms with bulk solvent
@@ -1035,7 +1000,6 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("XYZIN",xyzref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
-                           dummycolumnlabels,
                            output);
       }
       // (re)scale to observed, wherever the F list has come from

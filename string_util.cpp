@@ -356,10 +356,21 @@ std::string StringUtil::etos(const float f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }
 //--------------------------------------------------------------
 std::string StringUtil::ftos(const double f, const int w, const int d)
-{ std::ostringstream s; s.width(w); s.setf(std::ios::fixed); s.precision(d);s << f; return s.str(); }
+{ double ff = f;
+  if (std::abs(ff) < std::numeric_limits<double>::min()) {
+    ff = 0.0;
+  }
+  std::ostringstream s; s.width(w); s.setf(std::ios::fixed); s.precision(d);
+  s << ff; return s.str();
+}
 //--------------------------------------------------------------
 std::string StringUtil::ftos(const double f)
-{ std::ostringstream s; s << f; return s.str(); }
+{ double ff = f;
+  if (std::abs(ff) < std::numeric_limits<double>::min()) {
+    ff = 0.0;
+  }
+  std::ostringstream s; s << ff; return s.str();
+}
 //--------------------------------------------------------------
 std::string StringUtil::etos(const double f, const int w, const int d)
 { std::ostringstream s; s.width(w); s.precision(d);s << f; return s.str(); }

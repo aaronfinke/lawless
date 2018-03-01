@@ -314,7 +314,7 @@ namespace scala
   //------------------------------------------------------------
   //------------------------------------------------------------
   RefineControl::RefineControl() {
-    method = +1;  // BFGS
+    bfgs = true;
     ncyc1 = 2;
     ncycles = 10;
     converge = 0.3;

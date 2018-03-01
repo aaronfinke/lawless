@@ -75,7 +75,6 @@ void PrintFileInfoToXML(const std::string& StreamName,
                         const std::string& FileName,
                         const Scell& cell,
                         const std::string& SpaceGroupName,
-                        const std::vector<std::string>& columnlabels,
                         phaser_io::Output& output)
 {
   if (output.doXmlout())
@@ -86,16 +85,7 @@ void PrintFileInfoToXML(const std::string& StreamName,
       output.logTab(0, LXML,
                      cell.xml());
       output.logTab(0, LXML,
-                    StringUtil::MakeXMLtag("SpacegroupName", SpaceGroupName));
-      if (columnlabels.size() > 0) {
-        std::string s;
-        for (size_t k=0; k<columnlabels.size(); k++) {
-          s += " " + columnlabels[k];
-        }
-        output.logTab(0, LXML,
-                      StringUtil::MakeXMLtag("ColumnLabelsUsed", s));
-      }
-
+                     "<SpacegroupName> "+SpaceGroupName+"</SpacegroupName>");
       output.logTab(0, LXML,
                      "</ReflectionFile>");
     }
@@ -609,11 +599,11 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
                                        const Batchgroup& batchgroup,
                                        const int& datasetIndex,
                                        const int& nbatchsmooth,
-                                       const std::vector<Rfactor>& rreferencebatch,
-                                       const std::vector<MeanValue>& ccreferencebatch,
-                                       const std::vector<int>& numberinCC,
-                                       const std::vector<Rfactor>& rreferencebatchsmoothed,
-                                       const std::vector<MeanValue>&
+                                       const std::vector<Rfactor> rreferencebatch,
+                                       const std::vector<MeanValue> ccreferencebatch,
+                                       const std::vector<int> numberinCC,
+                                       const std::vector<Rfactor> rreferencebatchsmoothed,
+                                       const std::vector<MeanValue>
                                            ccreferencebatchsmoothed,
                                        const std::vector<MeanValue>& meanIrefbatch,
                                        const std::vector<MeanValue>& meanIobsbatch,
@@ -663,9 +653,6 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
     graph.AddLine(ccline2); // CC unsmoothed
   } else {
     graph.AddLine(TableGraphPlotline(1,3,"blue","",symbolsize)); // unsmoothed
-    TableGraphPlotline ccline2(1,5,"green","",symbolsize,false); // CC unsmoothed
-    ccline2.SetRHaxis();
-    graph.AddLine(ccline2); // CC unsmoothed
   }
   graph.SetYaxis("", true);  // Y from zero
   graph.SetRightYaxis("", true,Range(0.0,1.0));

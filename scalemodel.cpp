@@ -1374,19 +1374,16 @@ namespace scala {
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<float>& params,
-                                 const std::vector<int>& Nobs,
-                                 const bool& donormalise)
+                                 const std::vector<int>& Nobs)
   {
     std::vector<double> pars(params.size());
     for (size_t i=0;i<params.size();++i) {pars[i] = params[i];}
-    SetParameters(pars, Nobs, donormalise);
+    SetParameters(pars, Nobs);
   }
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<double>& params,
-                                 const std::vector<int>& Nobs,
-                                 const bool& donormalise)
-  // optional normalisation
+                                 const std::vector<int>& Nobs)
   {
     ASSERT (int(params.size()) == nparameters);
     std::vector<double>::const_iterator pos1 = params.begin();  // start of range
@@ -1431,7 +1428,7 @@ namespace scala {
       detector_scales[i].StoreNobservations(std::vector<int>(posn1, posn2));
       posn1 = posn2;
     }
-    if (donormalise) {NormaliseParameters();}
+    NormaliseParameters();
   }
   //--------------------------------------------------------------
   //
@@ -1534,6 +1531,20 @@ namespace scala {
     if (status < 0) {return false;}  // insufficient information
     return (nprimaryscale > 1) || (nbfactors > 1) ||
       (nsecondaryscale > 0) || (ntilescale > 0);
+  }
+  //--------------------------------------------------------------
+  // return reason for being not refinable:
+  //   insufficient information or only one parameter, or blank if it is
+    std::string ScaleModel::whyNotRefineable() const
+  {
+    if (IsRefinable()) {return "";}
+    if (status < 0) {
+      return "insufficent information in file";
+    }  // insufficient information
+    if (nparameters <= 1) {
+      return "only one parameter";
+    }
+    return "";
   }
   //--------------------------------------------------------------
   // Number of normalisation parameters: usually 2 (k,B);
@@ -2177,7 +2188,7 @@ namespace scala {
     ds += "Variances{\n";
     ds += "Nparameters "+clipper::String(nparameters)+"\n";
     ds += "nfreedom "+clipper::String(nfreedom)+"\n";
-    ds += "wD2 "+clipper::String(wd2)+"\n";
+    ds += "wD2 "+StringUtil::ftos(wd2)+"\n";
     ds += "ParameterVariance\n"+StringUtil::FormatSaveVector(varpar)+"\n";
     ds += "VarianceCovariance {\n";
     ds += StringUtil::FormatSaveArray(VC)+"\n";

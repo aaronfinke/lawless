@@ -127,10 +127,8 @@ namespace scala {
     void clearCounts();
 
     // Set all parameters from vector and count of number of contributions
-    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs,
-		       const bool& donormalise=true);
-    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs,
-		       const bool& donormalise=true);
+    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs);
+    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs);
 
     // Normalise scales & B-factors
     void NormaliseParameters();
@@ -145,6 +143,9 @@ namespace scala {
 
     // Return true if model is refinable, ie not just one scale and one B-factor
     bool IsRefinable() const;
+    // return reason for being not refinable:
+    //   insufficient information or only one parameter, or blank if it is
+    std::string whyNotRefineable() const;
     // Total number of parameters
     int Nparameters() const {return nparameters;}
     //  Number of primary scale parameters
