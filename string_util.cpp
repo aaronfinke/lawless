@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <cstdio>
+#include <limits>
 
 #include "string_util.hh"
 #define ASSERT assert
