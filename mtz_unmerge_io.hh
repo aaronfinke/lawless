@@ -174,6 +174,8 @@ namespace MtzIO {
       //! range of lattice numbers as main lattice
       IntRange MainLatticeNumberRange() const {return mainlatticenumberrange;}
 
+      std::string formatBatchRanges() const;
+
     private:
       enum MTZmode { NONE, READ, WRITE, APPEND };
       //! mtz object

@@ -1374,16 +1374,19 @@ namespace scala {
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<float>& params,
-                                 const std::vector<int>& Nobs)
+                                 const std::vector<int>& Nobs,
+                                 const bool& donormalise)
   {
     std::vector<double> pars(params.size());
     for (size_t i=0;i<params.size();++i) {pars[i] = params[i];}
-    SetParameters(pars, Nobs);
+    SetParameters(pars, Nobs, donormalise);
   }
   //--------------------------------------------------------------
   // Set all parameters from vector
   void ScaleModel::SetParameters(const std::vector<double>& params,
-                                 const std::vector<int>& Nobs)
+                                 const std::vector<int>& Nobs,
+                                 const bool& donormalise)
+  // optional normalisation
   {
     ASSERT (int(params.size()) == nparameters);
     std::vector<double>::const_iterator pos1 = params.begin();  // start of range
@@ -1428,7 +1431,7 @@ namespace scala {
       detector_scales[i].StoreNobservations(std::vector<int>(posn1, posn2));
       posn1 = posn2;
     }
-    NormaliseParameters();
+    if (donormalise) {NormaliseParameters();}
   }
   //--------------------------------------------------------------
   //
@@ -2362,6 +2365,32 @@ namespace scala {
       output.logTab(0,LOGFILE,
                     "\nDetector scale image (x1000) written to file "+name);
     }
+  }
+  //--------------------------------------------------------------
+  // Get secondary factor for ksecscale'th secscale, theta, phi (radians)
+  double ScaleModel::secscale(const size_t& ksecscale,
+                              const double& theta, const double& phi) const
+  {
+    return secondary_scales[ksecscale].Scale(theta, phi);
+  }
+  //--------------------------------------------------------------
+  std::vector<std::string> ScaleModel::secondaryscaletypes() const
+  // for each secondary scale (if any),
+  //  return "SECONDARY" or "ABSORPTION"+pole
+  {
+    std::vector<std::string> sectypes;
+    if (nsecscales == 0) {return sectypes;}
+
+    for (size_t k=0; k<secondary_scales.size(); k++) {
+      if (secondary_scales[k].Type() == SecondaryScale::NONE) {
+        sectypes.push_back("");
+      } else if (secondary_scales[k].Type() == SecondaryScale::SECONDARY) {
+        sectypes.push_back("SECONDARY");
+      } else if (secondary_scales[k].Type() == SecondaryScale::ABSORPTION) {
+        sectypes.push_back("ABSORPTION " + secondary_scales[k].formatPole());
+      }
+    }
+    return sectypes;
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------

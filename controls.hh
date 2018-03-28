@@ -332,8 +332,13 @@ private:
   public:
     RefineControl(); // set defaults
 
-    bool& BFGS() {return bfgs;} // set
-    bool BFGS() const {return bfgs;} // get
+    // method = +1 BFGS, = 0 scale to reference, = -1 Fox-Holmes
+    void setMethodBFGS() {method = +1;}
+    void setMethodReference() {method = 0;}
+    void setMethodFH() {method = -1;}
+    bool BFGS() const {return (method>0);} // get
+    bool Reference() const {return (method==0);} // get
+    bool FH() const {return (method<0);} // get
 
     int& Ncyc1() {return ncyc1;}
     int Ncyc1() const {return ncyc1;}
@@ -362,7 +367,8 @@ private:
     std::string format() const;
 
   private:
-    bool bfgs;           // or Fox-Holmes if false
+    // method = +1 BFGS, = 0 scale to reference, = -1 Fox-Holmes
+    int method;
     int  ncyc1;          // number of 1st stage cycles
     int  ncycles;        // number of main stage cycles
     float converge;      // convergence limit (multiplier of sd)

@@ -891,6 +891,16 @@ namespace MtzIO
         continue;
       }
 
+      if (batch_lookup.lookup(batch) < 0) {
+        // An observation has a batch number which is not in the batch
+        // header list - not allowed!
+        std::string errormessage =
+          "Observation with unrecognized batch number (no batch header): "+
+          StringUtil::itos(batch)+", hkl"+hkl.format();
+        errormessage += "\nBatch headers in file:\n"+formatBatchRanges();
+        ReportErrors::printFatalError(errormessage);
+      }
+
       // >>> Rejection tests
       // Rejected batch (or dataset)
       if (!batches[batch_lookup.lookup(batch)].Accepted()) {
@@ -1482,6 +1492,45 @@ namespace MtzIO
     }
     if (count == 1) return lat;
     return -1;
+  }
+  //--------------------------------------------------------------
+  std::string MtzUnmrgFile::formatBatchRanges() const
+  {
+    std::vector<int> batchnums(batches.size());
+    for (int i = 0; i < batches.size(); i++)  {
+      batchnums[i] = batches[i].num();
+    }
+
+    std::vector<scala::IntRange> ranges;
+    int i1 = -1;
+    int i2;
+    for (size_t ib=0;ib<batchnums.size();++ib) { // loop batches
+      if (i1 < 0) { // first
+        i1 = batchnums[ib];
+        i2 = i1;
+      } else { // not first
+        if ((batchnums[ib] - i2) == +1) {
+          // contiguous batch numbers
+          i2 = batchnums[ib];
+        } else {
+          // break in batch number series, batches i1 to i2
+          ranges.push_back(IntRange(i1,i2));
+          i1 = batchnums[ib];
+          i2 = i1;
+        }
+      }
+    } // end loop batches
+    ranges.push_back(IntRange(i1,i2));
+    std::string s;
+    if (ranges.size() > 0) {
+      for (size_t i=0;i<ranges.size();++i) {
+        if (s != "") s += ", ";
+        s += StringUtil::Strip(clipper::String(ranges[i].min()))+" - "+
+          StringUtil::Strip(clipper::String(ranges[i].max()));
+      }
+    }
+
+    return StringUtil::WrapLine(s, 80, 0, ",");
   }
   //--------------------------------------------------------------
   // Copy constructor throws exception unless object is EMPTY

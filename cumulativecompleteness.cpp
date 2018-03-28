@@ -36,10 +36,10 @@ namespace scala {
   //  jbatch  batch group number
   //  Anomclass ALL, IPLUS, IMINUS
   {
-    if (jbatch > nbatches) {
-      std::cout <<"CumulativeCompleteness::AddObservationBatch "<<
-        jbatch<<" "<<nbatches<<"\n";
-    }
+    //    if (jbatch > nbatches) {
+    //      std::cout <<"CumulativeCompleteness::AddObservationBatch "<<
+    //        jbatch<<" "<<nbatches<<"\n";
+    //    }
     ASSERT (jbatch <= nbatches);
     maxBatSer = Max(maxBatSer, jbatch);
     if (Anomclass == ALL) {

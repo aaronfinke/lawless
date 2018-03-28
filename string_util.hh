@@ -1,3 +1,4 @@
+
 #ifndef STRING_UTIL
 #define STRING_UTIL
 
@@ -143,11 +144,13 @@ static std::string valueSD(const double& v, const double& sd,
   //! Extract line from buffer, removing any trailing Cr or Lf characters
   static std::string BuftoLine(const std::string buf);
   //--------------------------------------------------------------
-  //! format integer vector for dump/save
-  static std::string FormatSaveVector(const std::vector<int> ivec);
+  //! format integer vector for dump/save, finalNL true to add newline at end
+  static std::string FormatSaveVector(const std::vector<int> ivec,
+				      const bool& finalNL=true);
   //--------------------------------------------------------------
-  //! format real vector for dump/save
-  static std::string FormatSaveVector(const std::vector<double> vec);
+  //! format real vector for dump/save, finalNL true to add newline at end
+  static std::string FormatSaveVector(const std::vector<double> vec,
+				      const bool& finalNL=true);
   //--------------------------------------------------------------
   //! format real array for dump/save
   static std::string FormatSaveArray(const clipper::Array2d<double>& VC);

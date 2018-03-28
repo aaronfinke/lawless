@@ -1269,13 +1269,13 @@ namespace scala {
       } else if (secscltype == ABSORPTION) {
         text+= "Secondary beam correction in crystal frame, lmax = "+
           clipper::String(lmax)+", "+clipper::String(lmaxodd);
-        text += ", pole = "+formatPole(pole);
+        text += ", pole = "+formatPole();
       }
     }
     return text;
   }
   //--------------------------------------------------------------
-  std::string SecondaryScale::formatPole(const int& pole) const
+  std::string SecondaryScale::formatPole() const
   // Return h, k, l for pole = 1,2,3, else "none"
   {
     std::string s = "automatic";

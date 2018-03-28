@@ -441,8 +441,8 @@ namespace scala {
 
     std::string format() const;
 
-    // Return h, k, l for pole = 1,2,3, else "none" 
-    std::string formatPole(const int& pole) const;
+    // Return h, k, l for pole = 1,2,3, else "none",
+    std::string formatPole() const;
 
     //!
     void Check() const {sphHarmonic.Check();} //!

@@ -219,7 +219,8 @@ namespace scala
   private:
     const reflection* this_ref;
     std::vector<bool> use;         // use flags, initially all true
-    std::vector<bool> outliers;    // outlier flags, initially all false
+    // outlier flags, 0 OK, +1 reject, -1 discrepant but keep, initially all = 0
+    std::vector<int> outliers;
     std::vector<int> part;         // randomly assigned to 0 -> npart-1
     bool discrepant;     // true if outliers found even if not rejected
     int npart;                     // number of part lists

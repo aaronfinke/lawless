@@ -93,7 +93,7 @@ std::vector<double> SphericalHarmonic::Ylm(const double& theta,
         if (m > 0) {
           //      double plm=plm2*pow(sintheta, double(m));
           plm=plm2*sinthetaPowm[m];
-           phm=m*phi;
+          phm=m*phi;
           ylm.push_back(plm*cos(phm));
           ylm.push_back(plm*sin(phm));
         } else {

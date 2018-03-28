@@ -181,19 +181,20 @@ namespace scala
   //  7   128     overlapped multiple spot to be excluded
   //  8   256     rejected by run
   //  9   512     rejected by batch
+  // 10  1024     discrepant outlier not rejected (just two observations)
   {
   public:
     enum ObsStatusFlag {OBSSTAT_FLAG=1, OBSSTAT_RESOLUTION=2, OBSSTAT_OUTLIER=4, OBSSTAT_OUTLIERANOM=8,
 			OBSSTAT_EMAX=16, OBSSTAT_STRONG=32, OBSSTAT_WEAK=64, OBSSTAT_OVERLAP=128,
-			OBSSTAT_RUN=256, OBSSTAT_BATCH=512};
+			OBSSTAT_RUN=256, OBSSTAT_BATCH=512, OBSSTAT_DEVIANT=1024};
 
     ObservationStatus() :bitflags(0){}
     ObservationStatus(const unsigned int& flags) :bitflags(flags){}
 
     void Clear() {bitflags = 0;}
     // Status access
-    //  accepted if no status bits are set
-    bool IsAccepted() const {return (bitflags == 0);}
+    //  accepted if no status bits are set (except DEVIANT)
+    bool IsAccepted() const;
     // Clear all flags except ObsFlag & resolution flag, run & batch rejections
     void ResetStatus(); // {bitflags &= 3;}
 
@@ -255,6 +256,11 @@ namespace scala
     void SetRejectBatch() {bitflags |= OBSSTAT_BATCH;}
     void UnsetRejectBatch() {bitflags &= (wordmask-OBSSTAT_BATCH);}
     bool TestRejectBatch() const {return (bitflags & OBSSTAT_BATCH) != 0;}
+
+    // Deviant but kept
+    void SetDeviant() {bitflags |= OBSSTAT_DEVIANT;}
+    void UnsetDeviant() {bitflags &= (wordmask-OBSSTAT_DEVIANT);}
+    bool TestDeviant() const {return (bitflags & OBSSTAT_DEVIANT) != 0;}
 
     // Format for debugging
     std::string format() const;

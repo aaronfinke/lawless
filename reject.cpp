@@ -49,7 +49,7 @@ namespace scala {
 
     // Check for outliers in specified class, flags with status, accumulate flags
     void Check(const AnomalousClass& selclass, const int& Dts_Index,
-               const ObservationStatus& status);
+               const bool& anomoutlier);
 
     // Check all observations against Emax test
     // Accumulate indices to outlier rejects from vector "selected" into vectors
@@ -83,28 +83,34 @@ namespace scala {
   WeightType::AverageWeightType RejectList::weighttype = WeightType::SQRTSCALE;
   // ------------------------------------------------------------
   void RejectList::Check(const AnomalousClass& selclass, const int& dts_index,
-                         const ObservationStatus& status)
+                         const bool& anomoutlier)
   // Select observations according to dataset index dts_index and anomalous class
   // Accumulate indices to outlier rejects from vector "selected" into vectors
-  // "rejected " and "statusflags". Status for rejects is in "status"
+  // "rejected " and "statusflags".
+  // anomoutlier true is comparing I+ with I-
   //
   {
     SelectedObservations sel(*this_refl, dts_index, selclass, weighttype);
     RejectFlags rejflags = outliercontrol->Reject(selclass, dts_index);
+    // outlierindexlist, list of (indices+1) to rejects, or if negated, deviants
     std::vector<int> outlierindexlist =
       sel.OutlierIndexList(rejflags);
     discrepant = discrepant || sel.Discrepant();
 
-    if (rejected.size() == 0) {
-      rejected.assign(outlierindexlist.begin(),
-                      outlierindexlist.end());
-      statusflags.assign(outlierindexlist.size(), status);
-    } else {
-      rejected.insert(rejected.end(),
-                      outlierindexlist.begin(),
-                      outlierindexlist.end());
-      statusflags.insert(statusflags.end(), outlierindexlist.size(),
-                         status);
+    ObservationStatus status;
+    // Append to rejected and statusflags arrays
+    for (size_t k=0; k<outlierindexlist.size(); k++) {
+      ASSERT (outlierindexlist[k] != 0);
+      size_t kk = std::abs(outlierindexlist[k])-1;
+      if (outlierindexlist[k] < 0) {
+        status = ObservationStatus::OBSSTAT_DEVIANT;
+      } else if (anomoutlier) {
+        status = ObservationStatus::OBSSTAT_OUTLIERANOM;
+      } else if (outlierindexlist[k] > 0) {
+        status = ObservationStatus::OBSSTAT_OUTLIER;
+      }
+      rejected.push_back(kk);
+      statusflags.push_back(status);
     }
     std::vector<float> ddi = sel.DeltaAll();
     ASSERT (ddi.size() == deviations.size());
@@ -202,16 +208,16 @@ namespace scala {
 
         if (anomOn && !Centric) {
           // Anomalous, check I+ & I- seperately
-          rejlist.Check(IPLUS, dts_index, ObservationStatus::OBSSTAT_OUTLIER);
-          rejlist.Check(IMINUS,dts_index, ObservationStatus::OBSSTAT_OUTLIER);
+          rejlist.Check(IPLUS, dts_index, false);
+          rejlist.Check(IMINUS,dts_index, false);
           if (outliercontrol.Anom()) {
             // check for outliers between I+ & I-
             rejlist.UpdateReflection();  // update flags for rejections within I+/-
-            rejlist.Check(BOTH, dts_index, ObservationStatus::OBSSTAT_OUTLIERANOM);
+            rejlist.Check(BOTH, dts_index, true);
           }
         } else {
           // no anomalous, just check all observations
-          rejlist.Check(ALL, dts_index, ObservationStatus::OBSSTAT_OUTLIER);
+          rejlist.Check(ALL, dts_index, false);
         }
       }  // end loop datasets
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -220,7 +226,7 @@ namespace scala {
         rejlist.CheckEmax(NormRes, eprobtest, Centric, ObservationStatus::OBSSTAT_EMAX);
       }
       //  put rejected list in "rejected" & "status"
-      //   list of rejected observations ...
+      //   list of rejected or deviant (negated) observations ...
       std::vector<int> rejected(rejlist.Rejected().begin(), rejlist.Rejected().end());
       //   ... and their status
       std::vector<ObservationStatus> statusflags(rejlist.Statusflags().begin(),
@@ -367,14 +373,20 @@ namespace scala {
   {
     if (Start) {
       rogues = OpenFile("ROGUES", true);  // open ROGUES file
-      fprintf(rogues,
-              "The ROGUES file contains all rejected reflections ");
+      std::string s = "The ROGUES file contains all monitored outliers";
+      if (outliercontrol.Reject(ALL).formatReject2Policy() ==
+          "KEEP") {
+        s += ", including unrejected outliers measured twice";
+      }
+
+      fprintf(rogues, "%s", s.c_str());
       std::string rs =
         std::string("\nRej = '*', '@' for I+- rejects, '#' for Emax rejects, ")+
-        "'x' for accepted flagged observation";
+        "'x' for accepted flagged observation, 'd' for deviant but kept";
       if (multilattice) {
         rs += ",\n      'M' for multiple lattice overlaps";
       }
+      rs += "\nFlag is taken from the Mosflm FLAG column or XDS MISFIT";
       rs += "\n";
       fprintf(rogues, "%s", rs.c_str());
       fprintf(rogues,
@@ -389,7 +401,7 @@ namespace scala {
         fprintf(rogues, "%s", rs.c_str());
       }
       fprintf(rogues,
- "Flagged observations kept are labelled as: B BGratio; P PKratio; N TooNeg; G BGgradient; O Overload; E Edge\n");
+ "Flagged observations kept are labelled as: B BGratio; P PKratio; N TooNeg; G BGgradient; O Overload; E Edge; X XDS MISFIT\n");
       fprintf(rogues,
  "Deviant reflections with two measurements are always listed. Policy for deviant reflections measured twice: %s\n\n",
               outliercontrol.Reject(ALL).formatReject2Policy().c_str());
@@ -447,6 +459,8 @@ namespace scala {
         } else if (status.TestEmax()) {
           reject = '#';
           outlier = true;
+        } else if (status.TestDeviant()) {
+          reject = 'd';
         }
         if (obs.Isym()%2 == 0) {
           PlusMinus = "I-";

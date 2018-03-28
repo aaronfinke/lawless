@@ -33,6 +33,8 @@
 #include "rejectbatches.hh"
 #include "runcorrelations.hh"
 #include "report_errors.hh"
+#include "secondaryscalestats.hh"
+
 
 #if _OPENMP
 #include <omp.h>
@@ -126,8 +128,8 @@ int main(int argc, char* argv[])
       xyzref_filename = input.getXYZIN();
     }
     if (hklref_filename != "" && xyzref_filename != "") {
-      Message::message(Message_fatal
-       ("Cannot have both HKLREF and XYZIN filenames given"));
+      ReportErrors::printFatalError
+        ("Cannot have both HKLREF and XYZIN filenames given");
     }
 
     // XMLOUT command
@@ -139,8 +141,7 @@ int main(int argc, char* argv[])
     }
     PrintTitle(output);
     if (hklin_filename == "")
-      Message::message(Message_fatal("HKLIN filename not given"));
-
+      ReportErrors::printFatalError("HKLIN filename not given");
 
    // TITLE command, defaults to title from HKLIN file (see below)
     std::string runTitle = input.Title();
@@ -283,10 +284,12 @@ int main(int argc, char* argv[])
     int Npart = hkl_list.sum_partials();
     int Nobs = hkl_list.num_observations();
     Nobs = Nobs;
+    std::vector<std::string> dummycolumnlabels;  // dummy for unmerged file
     PrintUnmergedHeaderStuff(hkl_list, output, verbose);
     PrintFileInfoToXML("HKLIN",hklin_filename,
                        hkl_list.cell(),
                        hkl_list.symmetry().symbol_xHM(),
+                       dummycolumnlabels,
                        output);
 
     bool multilattice = hkl_list.MultiLattice();
@@ -301,21 +304,37 @@ int main(int argc, char* argv[])
 
     // Read optional reference file for statistics, check for compatibility
     ReferenceList hklreflist;
+    bool refOK;
     double toleranceratio = 1.0;
     // use SF calculation with bulk solvent, do it later so that
     //  it can be scaled
     bool SF_BULK_SOLVENT = true;
     bool referencedata = (hklref_filename != "" || xyzref_filename != "");
-    // true to read reference list here, else later
     bool readRefFirst = referencedata;
-    if (xyzref_filename != "" && SF_BULK_SOLVENT) {
-      readRefFirst = false;
+    if (referencedata) {
+      // reference data given
+      // true to read reference list here, else later
+      readRefFirst = true;
+      // read/generate reference first if HKLREF
+      if (xyzref_filename != "" && SF_BULK_SOLVENT) {
+        if (controls.refinecontrol.Reference()) {
+          // refining against Fcalc^2 doesn't work well
+          ReportErrors::printFatalError
+            ("Cannot refine against coordinate reference XYZIN");
+        } else {
+          readRefFirst = false;
+        }
+      }
     }
 
     if (readRefFirst) {  // reference from HKLREF or XYZIN with no bulk solvent
       bool verbose = true;
       if (hklref_filename != "") {
-        output.logTab(0,LOGFILE, "\nReference file for analysis (HKLREF)");
+        std::string refmessage = "\nReference file for analysis (HKLREF)";
+        if (controls.refinecontrol.Reference()) {
+          refmessage = "\nReference file for scaling and analysis (HKLREF)";
+        }
+        output.logTab(0,LOGFILE, refmessage);
         hklreflist.init(hklref_filename,
                         input.getLABREF_I(), input.getLABREF_sigI(),
                         hkl_list.ResRange().ResHigh(), verbose,
@@ -323,6 +342,7 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("HKLREF",hklref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
+                           hklreflist.columnLabels(),
                            output);
       } else {
         // xyzref (XYZIN) coordinates given
@@ -332,10 +352,10 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("XYZIN",xyzref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
+                           dummycolumnlabels,
                            output);
       }
-      bool refOK =
-        hklreflist.checkCompatible(hkl_list, toleranceratio);
+      refOK = hklreflist.checkCompatible(hkl_list, toleranceratio);
       if (!refOK) {
         std::string s = "HKLREF file is incompatible with HKLIN file\n";
         s += hklreflist.formatError();
@@ -384,6 +404,7 @@ int main(int argc, char* argv[])
 
     // Set up scale model
     scala::ScaleModel AllScales;
+    SecondaryScaleStats secondaryscalestats;
     bool initialscale = FC.initialScale;
     double overallmeankI = -1000000.0;  // mean I
 
@@ -435,7 +456,9 @@ int main(int argc, char* argv[])
       }
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
-      AllScales.PrintSecondaryCorrections(output);
+      secondaryscalestats.init(AllScales);
+      secondaryscalestats.PrintSecondaryCorrections(output);
+
       applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
       overallmeankI = applyscales.meanI();
 
@@ -543,6 +566,28 @@ int main(int argc, char* argv[])
       output.logFlush();
     }
 
+    // Check valid reference scaling
+    bool scaletoreference = false;
+    if (!FC.OnlyMerge()) {  // no check if only merge
+      if (controls.refinecontrol.Reference()) {
+        // Must have an appropriate reference set
+        if (hklreflist.num_obs() <= 0) {
+          // No reference set read, why not?
+          std::string refmessage = "Cannot refine against reference data:";
+          if (!referencedata) {
+            refmessage += " no reference file assigned";
+          } else if (!readRefFirst && xyzref_filename != "") {
+            refmessage += " coordinates XYZIN not allowed as reference";
+          }
+          ReportErrors::printFatalError(refmessage);
+        }
+        FC.initialScale = false; //  no initial scale for now
+        initialscale = false; // no initial scales
+        scaletoreference = true;
+        hklreflist.recordScaleReference(output); // write info to log and XML
+      }
+    }
+
     bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
     double minimum_overlap = input.Minimum_overlap();
     int allowed_gap = input.Maximum_gap();
@@ -555,15 +600,34 @@ int main(int argc, char* argv[])
     output.logFlush();
 
     // test for enough data for scaling
-    if (minimum_overlap <= 0.0) {
+    bool allowgap = false;
+    if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
+      //  there is a gap in a run, should scaling be suppressed?
+      if (controls.runs.Explicit()) {
+        if (initialscales.numberofrotationranges() == 1) {
+          // Just one range, suppress scaling
+          suppressScaling = true;
+        } else {
+          // OK if there are explicit runs
+          //   unless minimum_overlap is set explicitly to > 0
+          std::string s = "There is a gap in a run, with overlap < "+
+            StringUtil::ftos(std::abs(minimum_overlap));
+          ReportErrors::printWarning(s, "OverlapWarning");
+          allowgap = true;
+          if (minimum_overlap > 0.0) {
+            suppressScaling = true;
+          }
+        }
+      } else {
+        suppressScaling = true;
+      }
+    }
+
+    if (minimum_overlap == 0.0 && !allowgap) {
       output.logTab(0,LOGFILE,
                     "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
     }
-    if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
-      suppressScaling = true;
-    }
-
-    initialscales.reportOverlapXML(output);
+    initialscales.reportOverlapXML(output, allowgap);
 
     if (initialscale) {
       // Option to reject batches based on extreme scale factors
@@ -585,14 +649,20 @@ int main(int argc, char* argv[])
          "\n**** NB No scaling will be done as there seems to be insufficient data\n");
       output.logTabPrintf(0,LOGFILE,
                 "        Minimum threshold for fractional overlap between rotation ranges= %7.2f\n",
-                          minimum_overlap);
+                          std::abs(minimum_overlap));
       AllScales.SetConstant(hkl_list, output);
-      SD_model.SetRefine(0);  // SDDCORRECTION NOREFINE
+      SD_model.SetRefine(0);  // SDCORRECTION NOREFINE
     } else {
       if (!FC.restore || !FC.OnlyMerge()) {
+        if (allowgap) {
+          output.logTabPrintf(0,LOGFILE,
+               "\nThere is a gap in rotation ranges are above the minimum threshold for fractional overlap\n between rotation ranges = %5.2f, but this is allowed with explicit run definition\n",
+                              std::abs(minimum_overlap));
+        } else {
         output.logTabPrintf(0,LOGFILE,
                             "\nSufficient rotation ranges are above the minimum threshold for fractional overlap between rotation ranges = %5.2f\n",
-                            minimum_overlap);
+                            std::abs(minimum_overlap));
+        }
       }
     }
 
@@ -607,6 +677,7 @@ int main(int argc, char* argv[])
     //    SD_model.SetVarianceWeights();
     //    SD_model.SetSqrtScaleWeights();
     //    SD_model.SetUnitWeights();
+
 
     bool anomOn = false;  // no anomalous for scaling
     // ----- first rough scaling
@@ -636,12 +707,13 @@ int main(int argc, char* argv[])
       // and switch off secondary scaling
       AllScales.switchSecondaryScales(false);
 
-      if (controls.refinecontrol.BFGS()) {
+      if (controls.refinecontrol.BFGS() ||
+          controls.refinecontrol.Reference()) {
         if (nparchanged && AllScales.haveParameterVariances()) {
           // don't use incorrect parameter variances (from restore) if number has changed
           AllScales.ignoreParameterVariances();
         }
-        ScaleRefine(hkl_list, AllScales, SD_model, controls,
+        ScaleRefine(hkl_list, hklreflist, AllScales, SD_model, controls,
                     controls.refinecontrol.Ncyc1(), false, output);
         if (nparchanged) {
           // don't use incorrect parameter variances if number has changed
@@ -651,6 +723,7 @@ int main(int argc, char* argv[])
         ScaleRefineFH(hkl_list, AllScales, controls,
                       controls.refinecontrol.Ncycles(), output);
       }
+
       // Apply all scales (ie store g for each observation, the original I is unchanged)
       // All observations are scaled, including rejected ones
       //AllScales.PrintScales(output); //^^
@@ -753,8 +826,10 @@ int main(int argc, char* argv[])
                           hkl_list.num_reflections()-selrej.first,
                           hkl_list.num_reflections(), E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
-      if (controls.refinecontrol.BFGS()) {
-        ScaleRefine(hkl_list, AllScales, SD_model, controls, Ncyc, true, output);
+      if (controls.refinecontrol.BFGS() ||
+          controls.refinecontrol.Reference()) {
+        ScaleRefine(hkl_list, hklreflist,
+                    AllScales, SD_model, controls, Ncyc, true, output);
       } else {
         ScaleRefineFH(hkl_list, AllScales, controls, Ncyc, output);
       }
@@ -762,11 +837,13 @@ int main(int argc, char* argv[])
       // Apply all scales
       // All observations are scaled, including rejected ones
       hkl_list.ResetReflAccept();  // set to accept everything
+      secondaryscalestats.init(AllScales);
       applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
       output.logTab(0,LOGFILE,
                     "\nTime for main scaling: "+timer.format(true));
 
-      AllScales.PrintSecondaryCorrections(output);
+      secondaryscalestats.getScaleStats(hkl_list, onlyUseSingletons);
+      secondaryscalestats.PrintSecondaryCorrections(output);
       AllScales.WriteImage("TILEIMAGE", output);
 
       output.logFlush();
@@ -987,7 +1064,6 @@ int main(int argc, char* argv[])
 
     // Scale optional reference file for statistics to observed data
     if (referencedata) {
-      bool refOK;
       int datasetindex = -2;  // combine all datasets together
       if (xyzref_filename != "" && SF_BULK_SOLVENT) {
         // calculate SF from atoms with bulk solvent
@@ -1000,6 +1076,7 @@ int main(int argc, char* argv[])
         PrintFileInfoToXML("XYZIN",xyzref_filename,
                            hklreflist.Cell(),
                            hklreflist.SpaceGroupSymbol(),
+                           dummycolumnlabels,
                            output);
       }
       // (re)scale to observed, wherever the F list has come from

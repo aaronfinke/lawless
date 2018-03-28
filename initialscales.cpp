@@ -382,34 +382,35 @@ namespace scala {
   // ---------------------------------------------------------
   // return true if there seems to be enough data to refine scales
   bool InitialScales::enoughData(const double& minimum_overlap,
-                                 const int& maximum_gap) const
+                                 const int& maximum_gap)
   // Count for each rotation range:
   //  Noverlap    number of observations which overlap with at least
   //              one other rotation range
   //  NotOverlap  number of observations which are singletons or only
   //              overlap within the rotation range
   // then fractionaloverlap = Noverlap / (Noverlap + NotOverlap)
-  // This should be > minimum_overlap
+  // This should be > abs(minimum_overlap)
+  // sets overlapthreshold & allowedgap (mutable)
   // If minimum_overlap <= 0.0, no check is made
   {
-    bool enough = true;
-    overlapthreshold = minimum_overlap;
+    enoughdata = true;
+    overlapthreshold = std::abs(minimum_overlap);
     allowedgap = maximum_gap;  // allow [default two] below threshold
-    if (overlapthreshold <= 0.0) {
-      return enough;
-    }
-    size_t nrotrange = fractionaloverlapbyrotrange.size();
-    if (nrotrange == 1) {
-      // special for 1 range
+    //    if (overlapthreshold <= 0.0) {
+    //      return enoughdata;
+    //    }
+    ASSERT (nrotranges == int(fractionaloverlapbyrotrange.size()));
+    if (nrotranges == 1) {
+      // special for 1 range, always allow here
       if (fractionaloverlapbyrotrange[0] < overlapthreshold) {
-        enough = false;
+        enoughdata = false;
       }
-    } else if (nrotrange > 1) {
+    } else if (nrotranges > 1) {
       int ngap = 0;
       bool ingap = false;
       int nbad = 0;
       // count ranges with low multiplicity
-      for (size_t ir=0; ir<nrotrange; ir++) {
+      for (size_t ir=0; ir<nrotranges; ir++) {
         if (fractionaloverlapbyrotrange[ir] < overlapthreshold) {
           // too few
           nbad++; // count contiguous bad ranges
@@ -430,22 +431,22 @@ namespace scala {
         ngap++;
       }
       if (ngap > 0) {
-        enough = false;
+        enoughdata = false;
       }
     }
-    return enough;
+    return enoughdata;
   }
   // ---------------------------------------------------------
-  void InitialScales::reportOverlapXML(phaser_io::Output& output) const
+  void InitialScales::reportOverlapXML(phaser_io::Output& output,
+                                       const bool& allowgap) const
   // Report overlap status information to XML
+  //  allowgap true if overlap gap check suppressed
   {
     if (overlapthreshold < 0.0) {
       return;  // no information
     }
     output.logTab(0, LXML,"<RotationalOverlap>");
 
-
-    bool enoughdata = enoughData(overlapthreshold, allowedgap);
     if (enoughdata) {
       // Yes sufficient data overlap
       output.logTab(1, LXML,
@@ -454,6 +455,10 @@ namespace scala {
       // No insufficient data overlap
       output.logTab(1, LXML,
                     StringUtil::MakeXMLtag("EnoughOverlap","False"));
+      if (allowgap) {
+        output.logTab(1, LXML,
+                      StringUtil::MakeXMLtag("GapAllowed","True"));
+      }
     }
     output.logTab(1, LXML,
                   StringUtil::MakeXMLtag("AverageOverlap",

@@ -61,7 +61,7 @@ namespace scala
     // Set size of internal vectors, for all observations in this
     // reflection including unselected ones
     use.assign(nobs, false);
-    outliers.assign(nobs, false);
+    outliers.assign(nobs, 0);
     wI.resize(nobs);
     wj.assign(nobs, 0.0);
     wv.resize(nobs);
@@ -757,8 +757,8 @@ namespace scala
           if (rej2policy == scala::RejectFlags::REJECT) {
             use[lsmaller] = false;
             use[llarger] = false;
-            outliers[lsmaller] = true;
-            outliers[llarger] = true;
+            outliers[lsmaller] = +1;
+            outliers[llarger] = +1;
             Nrej += 2;
             Nused -= 2;
             //^+
@@ -768,7 +768,7 @@ namespace scala
 
           } else if (rej2policy == scala::RejectFlags::REJECTSMALLER) {
             use[lsmaller] = false;
-            outliers[lsmaller] = true;
+            outliers[lsmaller] = +1;
             Nrej++;
             Nused--;
             //^+
@@ -776,12 +776,16 @@ namespace scala
                                  << "  hkl " << this_ref->hkl().format() << "\n";
           } else if (rej2policy == scala::RejectFlags::REJECTLARGER) {
             use[llarger] = false;
-            outliers[llarger] = true;
+            outliers[llarger] = +1;
             Nrej++;
             Nused--;
             //^+
             if (DEBUG) std::cout << "RejLarger " << delta[llarger]
                                  << "  hkl " << this_ref->hkl().format() << "\n";
+          } else if (rej2policy == scala::RejectFlags::KEEP) {
+            // keep both but flag them
+            outliers[lsmaller] = -1;
+            outliers[llarger] = -1;
           }
           State = 0;  // flag to force recalculation of deviations
           if (rej2policy == scala::RejectFlags::KEEP) {break;}
@@ -877,14 +881,20 @@ namespace scala
   // ------------------------------------------------------------
   std::vector<int> SelectedObservations::OutlierIndexList
   (const RejectFlags& rejflags)
-  // Return list of index numbers for each outlier observation, if any
+  // Return list of (index number+1) for each outlier observation, if any,
+  //   or negated for Deviant but not rejected
   // Calls "Outliers" first
+  // only called from RejectList::Check
   {
     Outliers(rejflags);
     std::vector<int> idxlist;
     for (int i=0;i<nobs;++i) {
-      if (outliers[i]) {
-        idxlist.push_back(i);
+      if (outliers[i] > 0) {
+        // reject
+        idxlist.push_back(i+1);
+      } else if (outliers[i] < 0) {
+        // deviant
+        idxlist.push_back(-i-1);
       }
     }
     return idxlist;

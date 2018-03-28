@@ -501,20 +501,23 @@ std::string StringUtil::BuftoLine(const std::string buf)
   return line.substr(l0,ll);
 }
 //--------------------------------------------------------------
-std::string StringUtil::FormatSaveVector(const std::vector<int> ivec)
+std::string StringUtil::FormatSaveVector(const std::vector<int> ivec,
+                                         const bool& finalNL)
 // format integer vector for dump/save
+// finalNL true to add newline at end
 {
   std::string s = "";
   std::string line = "";
   const unsigned int MAXLINE = 100;
   for (size_t i=0;i<ivec.size();++i) {
     line += " "+clipper::String(ivec[i]);
-    if (line.size() > MAXLINE) {
+    if (line.size() > MAXLINE && i < (ivec.size()-1)) {
       s += line+"\n";
       line = "";
     }
   }
-  return s+line+"\n";
+  if (finalNL) {line += "\n";}
+  return s+line;
 }
 //--------------------------------------------------------------
 //! format real array for dump/save, each row delimited by "{}"
@@ -535,20 +538,23 @@ std::string StringUtil::FormatSaveArray(const clipper::Array2d<double>& VC)
   return s;
 }
 //--------------------------------------------------------------
-std::string StringUtil::FormatSaveVector(const std::vector<double> vec)
-// format double vector for dump/save
+std::string StringUtil::FormatSaveVector(const std::vector<double> vec,
+                                         const bool& finalNL)
+// format integer vector for dump/save
+// finalNL true to add newline at end
 {
   std::string s = "";
   std::string line = "";
   const unsigned int MAXLINE = 100;
   for (size_t i=0;i<vec.size();++i) {
     line += " "+clipper::String(vec[i]);
-    if (line.size() > MAXLINE) {
+    if (line.size() > MAXLINE && i < (vec.size()-1)) {
       s += line+"\n";
       line = "";
     }
   }
-  return s+line+"\n";
+  if (finalNL) {line += "\n";}
+  return s+line;
 }
 //--------------------------------------------------------------
 std::string StringUtil::FormatXMLcrossTable(const std::string& elementid, const std::string& tableid,

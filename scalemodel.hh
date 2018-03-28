@@ -127,8 +127,10 @@ namespace scala {
     void clearCounts();
 
     // Set all parameters from vector and count of number of contributions
-    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs);
-    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs);
+    void SetParameters(const std::vector<float>& params, const std::vector<int>& Nobs,
+		       const bool& donormalise=true);
+    void SetParameters(const std::vector<double>& params, const std::vector<int>& Nobs,
+		       const bool& donormalise=true);
 
     // Normalise scales & B-factors
     void NormaliseParameters();
@@ -194,7 +196,6 @@ namespace scala {
     // Print secondary corrections
     void PrintSecondaryCorrections(phaser_io::Output& output) const;
     
-
     //! Write image[s] for each detector scale
     void WriteImage(const std::string imagefilename,
 		    phaser_io::Output& output) const;
@@ -232,6 +233,17 @@ namespace scala {
     // return false if number of variance parameters is not same as nparameters
     // OK (true) if no variance used
     bool checkVarianceNumbers() const;
+
+    int numbersecondaryscales() const {return nsecscales;}
+    // Get secondary factor for ksecscale'th secscale, theta, phi (radians)
+    double secscale(const size_t& ksecscale, const double& theta, const double& phi) const;
+    // Get secondary scale index for run
+    int secondaryScaleIndex(const int& irun) const 
+    {return sec_scale_index_run.at(irun);}
+
+    // for each secondary scale (if any),
+    //  return "SECONDARY" or "ABSORPTION"+pole
+    std::vector<std::string> secondaryscaletypes() const;
 
   private:
     // Setup from scale specifications and reflection list
@@ -373,8 +385,6 @@ namespace scala {
 
     // extract nsd SDs from variance, beginning at index idxsd
     std::vector<double> extractSDs(const int& idxsd, const size_t& nsd) const;
-
-
 
     // return index in runlist, -1 if not found
     int RunNotFound(const std::vector<Run>& runlist,

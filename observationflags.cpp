@@ -69,7 +69,7 @@ namespace scala
     if (TestGradient()) {s[3] = 'G';}
     if (TestOverload()) {s[4] = 'O';}
     if (TestEdge()) {s[5] = 'E';}
-    if (TestMisfit()) {s[5] = 'M';}
+    if (TestMisfit()) {s[5] = 'X';}  // XDS Misfit
     return s;
   }
 //--------------------------------------------------------------
@@ -321,8 +321,18 @@ namespace scala
     if (bitflags == 0) return true;
     const unsigned int ROGUES_FLAG =
       OBSSTAT_OUTLIER & OBSSTAT_OUTLIERANOM & OBSSTAT_EMAX &
-      OBSSTAT_STRONG & OBSSTAT_WEAK;
+      OBSSTAT_STRONG & OBSSTAT_WEAK & OBSSTAT_DEVIANT;
     return (bitflags & ROGUES_FLAG) == 0;
+  }
+  //--------------------------------------------------------------
+    //  accepted if no status bits are set (except DEVIANT)
+  bool ObservationStatus::IsAccepted() const
+  {
+    if (bitflags == 0) {
+      return true;
+    }
+    const unsigned int ACCEPT_MASK = wordmask-OBSSTAT_DEVIANT;
+    return ((bitflags & ACCEPT_MASK) == 0) ;
   }
   //--------------------------------------------------------------
   // Format for debugging
@@ -343,6 +353,7 @@ namespace scala
     if (TestRejectOverlap()) {s += "|OBSSTAT_OVERLAP";}
     if (TestRejectRun()) {s += "|OBSSTAT_RUN";}
     if (TestRejectBatch()) {s += "|OBSSTAT_BATCH";}
+    if (TestDeviant()) {s += "|OBSSTAT_DEVIANT";}
     return s;
   }
 //--------------------------------------------------------------
