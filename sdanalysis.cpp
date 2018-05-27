@@ -583,7 +583,7 @@ namespace scala
                        const bool& fullprint,
                        phaser_io::Output& output)
   // Print table from one or two SDanalysis objects
-  //   sdanal1 if both are present this is for the "core" data
+  //   sdanal1 if sdanal2 not present, this is for the "core" data
   //   sdanal2 if both are present this is for the "core" data, else null
   // fullprint == false for brief printing
   {
@@ -657,7 +657,7 @@ namespace scala
 
         bool fulls = sdanal1.FullsUsed(irun);
         bool partials = sdanal1.PartialsUsed(irun);
-        bool fulls2 = false;
+        bool fulls2 = false;   // 2nd set (core)
         bool partials2 = false;
         if (secondsdanal) {
           fulls2 = sdanal2.FullsUsed(irun);
@@ -687,7 +687,7 @@ namespace scala
         }
         if (partials) { // partials for 1st object
           msddata.push_back(sdanal1.GetMeanSD(irun, false));
-          mnchisq.push_back(sdanal1.GetMeanChiSq(irun, true));
+          mnchisq.push_back(sdanal1.GetMeanChiSq(irun, false));
           whichones[1] = true;
         }
         if (secondsdanal) {
@@ -698,7 +698,7 @@ namespace scala
           }
           if (partials2) { // partials for 2nd object
             msddata.push_back(sdanal2.GetMeanSD(irun, false));
-            mnchisq.push_back(sdanal2.GetMeanChiSq(irun, true));
+            mnchisq.push_back(sdanal2.GetMeanChiSq(irun, false));
             whichones[3] = true;
           }
         }
@@ -804,9 +804,9 @@ namespace scala
     if (outer) {nanalsets *= 2;}
     ASSERT (nanalsets == int(msdanal.size()));
 
-    int c[] =  {5,9,12,15}; // possible y column numbers for graphs
-    int c1[] =  {9,15};      // possible y column numbers for graphs
-    int cc[] =  {12,15};    // possible y column numbers for graphs
+    int c[] =  {5,9,13,17}; // possible y column numbers for graphs
+    int c1[] =  {9,17};      // possible y column numbers for graphs
+    int cc[] =  {13,17};    // possible y column numbers for graphs
 
     int xcolnum = 2;  // column for x axis
 
