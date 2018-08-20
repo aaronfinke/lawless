@@ -1007,12 +1007,6 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
     std::cout << "Element number " << idx+1 << " : ";
     elements[idx].print();
     //    std::cout << "\n";
-    for (int i=0;i<Nsymp;i++) {
-      std::cout << "Symop " << i+1 << "  "
-                << spaceGroup.InvRotSymop(i).format()
-                << "  belongs to element "
-                << element_index[i]+1 << "\n";
-    }
   }
   //--------------------------------------------------------------
   void hkl_symmetry::print_elements() const
@@ -1020,6 +1014,12 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
   {
     std::cout << "\nSymmetry elements: number = " <<  elements.size()
               << "\n";
+    for (int i=0;i<Nsymp;i++) {
+      std::cout << "Symop " << i+1 << "  "
+                << spaceGroup.InvRotSymop(i).format()
+                << "  belongs to element "
+                << element_index[i]+1 << "\n";
+    }
     for (size_t j=0;j<elements.size();j++) {
       print_element(j);
     }

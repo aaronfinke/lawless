@@ -357,7 +357,7 @@ namespace scala
     //! return all cells stored
     std::vector<Scell> Cells() const {return cells;}
 
-    // return average cell
+    //! return average cell
     Scell AverageCell() const {return averagecell;}
 
     //! return list of deviations (A) from average of other cells
@@ -369,6 +369,9 @@ namespace scala
 
     //! Average list of cells, if idxexclude >= 0, exclude entry with this index
     Scell Average(const int& idxexclude=-1) const;
+
+    //! change basis: reindex to get new cells
+    void change_basis(const ReindexOp& reindex_op);
 
     std::string format() const;
 

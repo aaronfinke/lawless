@@ -5,28 +5,6 @@
 #ifndef DATASET_HEADER
 #define DATASET_HEADER
 
-/*
-// Clipper
-#include <clipper/clipper.h>
-#include "clipper/core/clipper_precision.h"
-using clipper::ftype;
-using clipper::Vec3;
-using clipper::Mat33;
-using clipper::String;
-using clipper::Metric_tensor;
-typedef clipper::Vec3<double> DVect3;
-typedef clipper::Mat33<double> DMat33;
-typedef clipper::Vec3<float> FVect3;
-typedef clipper::Mat33<float> FMat33;
-typedef clipper::Vec3<int> IVect3;
-
-#include "ccp4/cmtzlib.h"    // CCP4 MTZlib headers (namespace CMtz)
-#include "ccp4/csymlib.h"    // CCP4 symmetry stuff
-#include "matvec_utils.hh"  // Matrix & vector utilities
-#include "util.hh"
-#include "range.hh"
-*/
-
 #include "hkl_datatypes.hh"
 
 typedef float  Rtype;
@@ -75,7 +53,7 @@ namespace scala
     //! return PXDname for given set ID
     PxdName pxdname(const int& setid) const;
 
-    //! return consensus PXDname (just set Dname to "MultiCrystal")
+    //! return consensus PXDname (just set Xname to "MultiCrystal")
     PxdName pxdname() const;
 
     //! return project name (all Xdatasets have same project name)
@@ -159,7 +137,7 @@ namespace scala
 
     UnitCellSet AllCellSet() const;
     std::vector<Scell> AllCells() const; //!< all cells
-
+    std::vector<double> AllDeviations() const;
     std::vector<double> AllWavelengths() const;
 
     //! return number of cells/wavelengths

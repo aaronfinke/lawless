@@ -57,7 +57,7 @@ namespace scala {
     // Reference groups may be the same
     if (from_SG_ref == to_SG_ref) {
       samereferencegroup = true;
-
+    }
       //      std::string message =
       //        CCtbxSym::SpaceGroupName(from_SG_ref.type(), 'H')+
       //        " has different reference setting from "+
@@ -69,7 +69,7 @@ namespace scala {
       // We want the transformation from HKLIN to input
       reindex = CCtbxSym::SetReindexOp(ChB_ref_to.inverse() * ChB_ref_from);
 
-    } // same reference group
+      ////    } // same reference group
 
     // Test for same intensity group
     bool anom = false;  // ignore anomalous

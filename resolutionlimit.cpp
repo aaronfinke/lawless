@@ -101,7 +101,7 @@ namespace scala {
       // Do the fit even if all are above or all below limit
       //  (flagged in status)
       reshigh = fit(score, ResRange);
-      //std::cout << "status "<<status<<" highres " <<highres<<" reshigh "<<reshigh<<std::endl;
+      //      std::cout << "status "<<status<<" highres " <<highres<<" reshigh "<<reshigh<<std::endl;
       //  Status usually = -2
       //   = +1 all above threshold, and fitted (highres = max res)
       //   = -1 all below threshold, or fit failed (reshigh <= 0.0)
@@ -111,10 +111,12 @@ namespace scala {
           //std::cout << " highres " <<highres<<std::endl;
           status = 0;
         } else {
-          // negative highres, fall back to LINEAR
-          fittype = LINEAR;
-          highres = 0.0;
-          status = -1;
+          if (limit > 0.001) {
+            // negative highres, fall back to LINEAR
+            fittype = LINEAR;
+            highres = 0.0;
+            status = -1;
+          }
         }
         fitted = true;
       } else if (status == -1) {
@@ -305,18 +307,20 @@ namespace scala {
 
     //    std::cout << "ResolutionLimit::fit ResHigh "<<reshigh
     //        <<"\n"<< radialfunction.format() << "\n\n"; //^
-    if (reshigh < 0.0) {
-      // negative highres, fall back to LINEAR
-      fittype = LINEAR;
-      if (slope >= 0.0) {
-        // no answer if slope not negative
-        reshigh = 0.0;
-        status = -1;
-      } else {
-        reshigh = linefit.xvalueaty(limit);  // may still be negative
-        if (reshigh <= 0.0) {
+    if (limit > 0.0) {  // valid limit given
+      if (reshigh < 0.0) {
+        // negative highres, fall back to LINEAR
+        fittype = LINEAR;
+        if (slope >= 0.0) {
+          // no answer if slope not negative
           reshigh = 0.0;
           status = -1;
+        } else {
+          reshigh = linefit.xvalueaty(limit);  // may still be negative
+          if (reshigh <= 0.0) {
+            reshigh = 0.0;
+            status = -1;
+          }
         }
       }
     }

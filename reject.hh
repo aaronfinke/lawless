@@ -96,6 +96,8 @@ namespace scala {
   std::vector<int> EmaxRejectIndexList
   (const SelectedObservations& selobs,
    const Normalise& NormRes, const EProb& eprobtest,
-   const bool& Centric);
+   const bool& Centric,
+   const double& sdrej);
+
 }
 #endif

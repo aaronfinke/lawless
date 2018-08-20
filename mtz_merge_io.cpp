@@ -40,6 +40,7 @@ namespace MtzIO {
   // returns false if fails
   {
     merged = true;
+    bool valid = false;
     if (fileopen)
       ReportErrors::printFatalError("MtzMrgFile: open_read - File already open");
     if ( filename_in == "")
@@ -59,7 +60,7 @@ namespace MtzIO {
     }
     catch (Message_fatal) {
       // Failed to open file, missing or incomplete
-      return false;
+      return valid;
     }
     fileopen = true;
 
@@ -84,8 +85,8 @@ namespace MtzIO {
     ProcessLabels processlabels(ColLab, column_labels());
     merged = processlabels.merged();
     mtzin.close_read();
-    bool status = merged;
-    return status;
+    valid = true;
+    return valid;
   }
   //--------------------------------------------------------------
   FileRead MtzMrgFile::MakeHklList(const std::string& mtzname,
@@ -214,53 +215,83 @@ namespace MtzIO {
     clipper::data32::I_sigI Isig;
     clipper::data32::I_sigI_ano IsigAnom;
     //IsigI Is;
-    Rtype I, Ipr;
+    Rtype I, Ipr, Ip, Im;
     Rtype sigI = 1.0;   // Dummy sigma = 1
     Rtype sigIpr = 1.0;
+    Rtype sigIp = 1.0;   // Dummy sigma = 1
+    Rtype sigIm = 1.0;
+    bool haveIp, haveIm;
+    scala::Hkl hred, hredm;
+    int isymm;
 
     while (next(hkl_index)) {  // increments index if not at_start
       scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
+      hred  = hkl_list.symmetry().put_in_asu(hkl, isym);
+      hredm = hkl_list.symmetry().put_in_asu(-hkl, isymm);  // -hkl
       bool written = false;
       if (anom) {
+        haveIp = false;
+        haveIm = false;
+        bool centric = spacegroup.hkl_class(hkl.HKL()).centric();
         IsigAnom = IsigDataAnom[hkl_index];
         //      std::cout << "makelist " << hkl.format() <<" "<<IsigDataAnom[hkl_index].I()
         //                << " " << IsigData[hkl_index].I()<<"\n"; //^^
+        Ip = 0.0;
+        Im = 0.0;
         if (!clipper::Util::is_null(IsigAnom.I_pl())) { // I+ not null
-          scala::Hkl hred = hkl_list.symmetry().put_in_asu(hkl, isym);
-          I = IsigAnom.I_pl();
-          Ipr = I;
+          haveIp = true;
+          Ip = IsigAnom.I_pl();
           if (!NoSigI) {
-            sigI = IsigAnom.sigI_pl();
-            sigIpr = sigI;
-          }
-          // Store this observation, but not if sigI <= 0
-          if (sigI > 0.0) {
-            written = true;
-            hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-                                Xdet, Ydet, phi, time,
-                                fraction_calc, width, LP,
-                                Npart, Ipart, ObsFlag);
+            sigIp = IsigAnom.sigI_pl();
           }
         }
-        // I- if not centric
-        if (!(spacegroup.hkl_class(hkl.HKL()).centric())) {
-          if (!clipper::Util::is_null(IsigAnom.I_mi())) { // I- not null
-            scala::Hkl hred = hkl_list.symmetry().put_in_asu(-hkl, isym);  // -hkl
-            I = IsigAnom.I_mi();
-            Ipr = I;
-            if (!NoSigI) {
-              sigI = IsigAnom.sigI_mi();
-              sigIpr = sigI;
-            }
-            // Store this observation, but not if sigI <= 0
-            if (sigI > 0.0) {
-              written = true;
-              hkl_list.store_part(hred, isym, batch, I, sigI, Ipr, sigIpr,
-                                  Xdet, Ydet, phi, time,
-                                  fraction_calc, width, LP,
-                                  Npart, Ipart, ObsFlag);
+        if (!clipper::Util::is_null(IsigAnom.I_mi())) { // I- not null
+          haveIm = true;
+          Im = IsigAnom.I_mi();
+          if (!NoSigI) {
+            sigIm = IsigAnom.sigI_mi();
+          }
+        }
+        // If centric, check that I+ and I- are the same
+        if (centric) {
+          sigI = 0.0;
+          if (haveIp && haveIm) {
+            // both present, always take the unweighted average, even if same
+            I = 0.5*(Ip + Im);
+            sigI = 0.5*(sigIp + sigIm);
+          } else {
+            // just one
+            if (haveIp) {
+              I = Ip;
+              sigI = sigIp;
+            } else if (haveIm) {
+              I = Im;
+              sigI = sigIm;
             }
           }
+          Ip = I;
+          sigIp = sigI;
+          Im = I;
+          sigIm = sigI;
+        } // end centric
+        // still anom, centric or acentric
+        // Store these observations, but not if sigI <= 0
+        if (sigIp > 0.0) {
+          written = true;
+          Ipr = Ip;
+          sigIpr = sigIp;
+          hkl_list.store_part(hred, isym, batch, Ip, sigIp, Ipr, sigIpr,
+                              Xdet, Ydet, phi, time,
+                              fraction_calc, width, LP,
+                              Npart, Ipart, ObsFlag);
+        }
+        if (!centric && sigIm > 0.0) { // no I- for centric
+          Ipr = Im;
+          sigIpr = sigIm;
+          hkl_list.store_part(hredm, isymm, batch, Im, sigIm, Ipr, sigIpr,
+                              Xdet, Ydet, phi, time,
+                              fraction_calc, width, LP,
+                              Npart, Ipart, ObsFlag);
         }
       } else { // no anomalous
         Isig = IsigData[hkl_index];
@@ -390,7 +421,7 @@ namespace MtzIO {
       clipper::data32::I_sigI Isig;
       clipper::data32::I_sigI_ano IsigAnom;
       double F;
-      const double iscale = 0.5;  // scale down F^2, by iscale^2
+      const double iscale = 0.1;  // scale down F^2, by iscale^2
 
       for (ih = hkl_info_list.first(); !ih.last(); ih.next()) {
         Isig.set_null();

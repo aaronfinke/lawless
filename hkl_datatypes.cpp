@@ -754,6 +754,15 @@ namespace scala
     return dv;
   }
   //--------------------------------------------------------------
+  //! change basis: reindex to get new cells
+  void UnitCellSet::change_basis(const ReindexOp& reindex_op)
+  {
+    for (size_t k=0; k<cells.size(); k++) {
+      cells[k] = cells[k].change_basis(reindex_op);
+    }
+    Average();
+  }
+  //--------------------------------------------------------------
   std::string UnitCellSet::format() const
   {
     std::string s = "UnitCellSet\n";
@@ -980,6 +989,7 @@ namespace scala
   void Xdataset::change_basis(const ReindexOp& reindex_op)
   {
     cell_ = cell_.change_basis(reindex_op);
+    allcells_.change_basis(reindex_op);
   }
   //--------------------------------------------------------------
   bool operator == (const Xdataset& a,const Xdataset& b)

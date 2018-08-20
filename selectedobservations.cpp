@@ -58,6 +58,7 @@ namespace scala
     int index;
     int PlusMinus;
     nobs = Refl.num_observations();
+    ASSERT (nobs > 0);
     // Set size of internal vectors, for all observations in this
     // reflection including unselected ones
     use.assign(nobs, false);
@@ -258,6 +259,9 @@ namespace scala
         // scaled I', sigI'
         Is = this_ref->get_observation(i).kI_sigI();
         sd = Is.sigI();
+        if (sd <= 0.0) {
+          std::cout << sd << " !!SD\n";
+        }
         ASSERT (sd > 0.0);
         w = wj[i];
         wI[i] = w * Is.I(); // w I'
@@ -496,6 +500,9 @@ namespace scala
           //      if (vv <= 0.0) {
           //        std::cout << "varothers " << varothers<<" "<<vv <<std::endl;
           //      }
+          if (vv <= 0.0) {
+            std::cout << vv << " !!VV\n";
+          }
           ASSERT (vv > 0.0);
           delta[i] = (this_ref->get_observation(i).kI() - Iothers)/sqrt(vv);
           if (DEBUG) {

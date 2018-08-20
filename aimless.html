@@ -567,7 +567,11 @@ sdrej+-] </dd>
       <dd>in merging, if two observations disagree, reject the larger</dd>
       <dt><a name="reject_smaller"></a>SMALLER</dt>
       <dd>in merging, if two observations disagree, reject the smaller</dd><dt><a name="reject_emax"></a>EMAX</dt>
-      <dd>maximum acceptable value for E = normalised |F|, &lt;= 0.0 to switch off test [default = 10.0 for acentrics] <br>
+      <dd>maximum
+acceptable value for E = normalised |F|, &lt;= 0.0 to switch off test
+[default = 10.0 for acentrics]. Observations are only rejected if E
+&gt; EMAX and I/sd(I) &gt; sdrej, to allow for inaccurate normalisation
+in very weak high resolution bins.<br>
       </dd>
 
     </dl>
@@ -853,9 +857,12 @@ crystal, and may stabilize the parameters. The keyword ALL will be assumed if om
 
 <ul>
 
-  <li> For SECONDARY or ABSORPTION parameters, the default is to link runs
-which come from the same crystal. They should be UNLINKed if they are
-different.</li>
+
+  <li> For SECONDARY or ABSORPTION parameters, the default is to link
+runs
+which come from the same crystal as long as they have similar
+wavelengths. They should be UNLINKed if they are different.</li>
+
 </ul>
 <h3><a name="unlink"></a>UNLINK [SURFACE] ALL | &lt;run_2&gt; TO
 &lt;run_1&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
@@ -1378,7 +1385,13 @@ the others, and this one is rejected </li>
   <hr></sup><a name="release_notes"> </a>
   <h2>RELEASE NOTES</h2>
 
-  <dl compact="compact">0.7.2 small fix to SD analysis table<br>
+  <dl compact="compact">0.7.3
+Make it work when excluding 1st of multiple datasets. Make initial
+scaling more robust by using weighted mean(I). Do Emax test before
+outlier test. More robust normalisation;&nbsp; Emax rejection also
+tests I/sd(I) to avoid rejecting weak data in shells with small
+&lt;I&gt;.<br>
+0.7.2 small fix to SD analysis table<br>
 0.7.1 allow gaps in data if explicit runs are given (unless you give
 "initial minimum_overlap &gt; 0.0"). Improved analysis of secondary
 corrections<br>
@@ -1595,6 +1608,9 @@ See above for Release Notes. </p>
 
 
 </dl>
+
+
+
 
 
 

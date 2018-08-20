@@ -1817,10 +1817,42 @@ namespace scala {
     if (nbrej > 0) {
       PurgeRejectedBatches(); // flag observations for rejected batches
     }
-    // Remove any empty datasets
-    for (size_t id=0;id<datasets.size();id++) {
+    // --- Remove any empty datasets
+    //  first, list them
+    std::vector<bool> emptydts(ndatasets, false);
+    bool someempty = false;
+    for (int id=0;id<ndatasets;id++) {
       if (datasets[id].RunIndexList().size() == 0) {
-        datasets.erase(datasets.begin()+id);
+        emptydts[id] = true;
+        someempty = true;
+      }
+    }
+    if (someempty) {
+      //  2nd, remove them if needed
+      int idtdel = 0;
+      int idts = 0;
+      std::vector<int> newindex(ndatasets);
+      for (int id=0;id<ndatasets;id++) {
+        if (emptydts[id]) {
+          datasets.erase(datasets.begin()+id-idtdel);
+          idtdel++;
+          newindex[id] = -1; // deleted
+        } else {
+          newindex[id] = idts;
+          idts++;
+        }
+      }
+      // 3rd, update index in runs for kept datasets
+      for (size_t id=0;id<datasets.size();id++) {
+        std::vector<int> runindexlist = datasets[id].RunIndexList();
+        for (size_t jrun=0; jrun<runindexlist.size(); jrun++) {
+          runlist[jrun].setDatasetIndex(id);
+        }
+      }
+      // Reset dataset index for each batch
+      for (size_t ib=0;ib<batches.size();ib++) {
+        int idtsindex = batches[ib].datasetindex();
+        batches[ib].datasetindex() = newindex[idtsindex];
       }
     }
     ndatasets = datasets.size();
@@ -1932,7 +1964,8 @@ namespace scala {
     DVect3 s0;
     clipper::Rotation U0inv, U;
     // Limit for monitoring large orientation change, 3 degrees
-    double rotlim = clipper::Util::d2rad(3.0);
+    const double DROTLIM = 3.0;
+    double rotlim = clipper::Util::d2rad(DROTLIM);
 
     std::string orientationwarning = "";
 
@@ -1941,6 +1974,11 @@ namespace scala {
       bool allvalid = true;
       bool firstBatch = true;
       int lastBatchIdx = 0; // index to last accepted batch
+
+      // Orientation checks within run
+      IntRange batchrangebadorientation;
+      double maxorientationchange = -1000.;
+      int batch0;
 
       // Loop batches in run
       std::vector<int> batchlist = runlist[irun].BatchList();
@@ -1961,17 +1999,21 @@ namespace scala {
               U0inv = clipper::Rotation(batch.Umat().inverse());
               runlist[irun].StoreSpindleToPrincipleAxis(batch.SpindleToPrincipleAxis());
               runlist[irun].SetValidOrientation(true);
+              sameOrientation = true;
+              batch0 = batchlist[0];
             } else {
               // test for change of orientation
               // Note that this shouldn't happen after automatic run generation, as
               // change of orientation should change run
               double rot = (clipper::Rotation(batch.Umat()) * U0inv).abs_angle();
               if (rot > rotlim) {
-                orientationwarning += StringUtil::itos(int(irun+1),5)+
-                  " "+StringUtil::itos(batchlist[ib],7)+
-                  " "+StringUtil::itos(batchlist[0],7)+
-                  " "+StringUtil::ftos(clipper::Util::rad2d(rot),8,4)+"\n";
-
+                batchrangebadorientation.update(batchlist[ib]);
+                maxorientationchange = std::max(maxorientationchange,
+                                                clipper::Util::rad2d(rot)); // degrees
+                //                orientationwarning += StringUtil::itos(int(irun+1),5)+
+                //                  " "+StringUtil::itos(batchlist[ib],7)+
+                //                  " "+StringUtil::itos(batchlist[0],7)+
+                //                  " "+StringUtil::ftos(clipper::Util::rad2d(rot),8,4)+"\n";
                 sameOrientation = false;
               }
             }  // end valid orientation
@@ -1994,13 +2036,20 @@ namespace scala {
         runlist[irun].SetValidOrientation(false);
       }
       runlist[irun].PhiRange().AllowDescending(); // allow negative phi range
+
+      if (!sameOrientation) {
+        orientationwarning += "   Run:"+StringUtil::itos(int(irun+1),3)+
+          ", batches "+StringUtil::itos(batchrangebadorientation.min(),5)+
+          " to "+StringUtil::itos(batchrangebadorientation.max(),5)+
+          ", maximum orientation difference from batch "+StringUtil::itos(batch0,5)+
+          " = "+StringUtil::Strip(StringUtil::ftos(maxorientationchange,6,2))+" degrees\n";
+      }
     } // end loop runs
 
-    if (!sameOrientation) {
+    if (orientationwarning != "") {
       orientationwarning =
-        "\nWARNING: some batches have a different orientation from that of initial batch (Batch0)\n\n"+
-        std::string("  Run   Batch  Batch0  Orientation difference\n")+
-        orientationwarning;
+        std::string("\n**** WARNING: some batches have a different orientation from that")+
+        " of initial batch in run\n"+orientationwarning;
 
       ReportErrors::printWarning(orientationwarning, "WarningMessage",false);
     }

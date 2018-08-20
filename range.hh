@@ -76,6 +76,9 @@ namespace scala
     // format
     std::string format() const;
 
+    // Returns maximum range
+    Range MaxRange(const Range& other) const;
+
   private:
     double first_, last_;
     mutable int Nbin_;

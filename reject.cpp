@@ -45,7 +45,11 @@ namespace scala {
     RejectList(reflection& This_Refl,
                const OutlierControl& Outliercontrol)
       : this_refl(&This_Refl), outliercontrol(&Outliercontrol), discrepant(false)
-    {deviations.assign(This_Refl.num_observations(), 0.0);}  // clear deviation list
+    {
+      // clear deviation list
+      deviations.assign(This_Refl.num_observations(), 0.0);
+      sdrej = Outliercontrol.Reject(IPLUS, AnomalousClass()).sdrej;
+    }
 
     // Check for outliers in specified class, flags with status, accumulate flags
     void Check(const AnomalousClass& selclass, const int& Dts_Index,
@@ -72,6 +76,7 @@ namespace scala {
   private:
     reflection* this_refl;
     const OutlierControl* outliercontrol;
+    int sdrej;  // for Emax test
 
     std::vector<int> rejected;
     std::vector<ObservationStatus> statusflags;
@@ -128,7 +133,7 @@ namespace scala {
   {
     SelectedObservations sel(*this_refl, -1, ALL);
     std::vector<int> outlierindexlist =
-      EmaxRejectIndexList(sel, NormRes, eprobtest, Centric);
+      EmaxRejectIndexList(sel, NormRes, eprobtest, Centric, sdrej);
     if (outlierindexlist.size() > 0) {
       if (rejected.size() == 0) {
         rejected.assign(outlierindexlist.begin(),
@@ -197,6 +202,13 @@ namespace scala {
       RejectList rejlist(temp_refl, outliercontrol);
       //  Apply current SD correction to reflection (all observations)
       SDM.CorrectReflection(temp_refl);
+      //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      // Emax test, before outlier test
+      if (!(eprobtest.Null())) {
+        rejlist.CheckEmax(NormRes, eprobtest, Centric,
+                          ObservationStatus::OBSSTAT_EMAX);
+        rejlist.UpdateReflection();  // update flags for rejections within I+/-
+      }
 
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       // Outlier check
@@ -219,12 +231,9 @@ namespace scala {
           // no anomalous, just check all observations
           rejlist.Check(ALL, dts_index, false);
         }
+        rejlist.UpdateReflection();  // update flags for rejections within I+/-
       }  // end loop datasets
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      // Emax test
-      if (!(eprobtest.Null())) {
-        rejlist.CheckEmax(NormRes, eprobtest, Centric, ObservationStatus::OBSSTAT_EMAX);
-      }
       //  put rejected list in "rejected" & "status"
       //   list of rejected or deviant (negated) observations ...
       std::vector<int> rejected(rejlist.Rejected().begin(), rejlist.Rejected().end());
@@ -235,7 +244,7 @@ namespace scala {
       ASSERT (rejected.size() == statusflags.size());
       if (rejlist.Discrepant() > 0) {
         if (rejected.size() > 0) {
-          // Set outlier flags back into observations within reflections
+          // Set outlier flags back into reflection
           for (size_t i=0;i<rejected.size();++i) {
             this_obs = this_refl.get_observation(rejected[i]);
             this_obs.UpdateStatus(statusflags[i]);
@@ -333,26 +342,33 @@ namespace scala {
   std::vector<int> EmaxRejectIndexList
   (const SelectedObservations& selobs,
    const Normalise& NormRes, const EProb& eprobtest,
-   const bool& Centric)
+   const bool& Centric,
+   const double& sdrej)
   // Return list of index numbers for each Emax outlier observation, if any
   {
     std::vector<int> idxlist;
     reflection this_ref = selobs.Reflection();
     Rtype invresolsq = this_ref.invresolsq();
 
-    if (NormRes.validResolution(invresolsq)) {
-      // there is a valid normalisation factor for this resolution,
-      //  ie the mean intensity is > 0
-      // Can't normalise 0 -> 1 !
-      observation this_obs;
-
-      int i;
-      while ((i = selobs.next_observation(this_obs)) >= 0) {
-        this_obs =this_ref.get_observation(i);
-        float E2 = NormRes.applyAvg(this_obs.kI(), invresolsq);
-        if (eprobtest.TooBig(E2, Centric)) {
+    observation this_obs;
+    int i;
+    while ((i = selobs.next_observation(this_obs)) >= 0) {
+      this_obs =this_ref.get_observation(i);
+      float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+      if (eprobtest.TooBig(E2, Centric)) {
+        // E^2 too big, positive or negative
+        //  check E^2/sig(E^2), and keep weak observations, as the
+        //  normalisation is unreliable in very weak shells (pending
+        //  improved normalisation
+        float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq);
+        if (std::abs(E2/sigE2) > sdrej) {
           // reject
           idxlist.push_back(i);
+          //^     std::cout << "**Reject "<< invresolsq<<" "<<E2<<" "<<sigE2<<
+          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl;
+          //^   } else {
+          //      std::cout << "**Keep "<< invresolsq<<" "<<E2<<" "<<sigE2<<
+          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl;
         }
       }
     }
@@ -475,7 +491,7 @@ namespace scala {
         if (scale != 0.0) scale = 1./scale;
         std::pair<float,float> XY = obs.XYdet();
 
-        float E = NormRes.applyAvg(obs.kI(), invresolsq);
+        float E = NormRes.apply(obs.kI(), invresolsq);
         if (E > 0.0) {E = sqrt(E);}
         else {E = -sqrt(-E);}
         std::string flagtype = obs.Observationflag().format();

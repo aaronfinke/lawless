@@ -51,6 +51,7 @@ namespace scala {
     //  if Accepted == true, only return accepted batches
     std::vector<int> BatchList(const bool& Accepted=false) const;
     int DatasetIndex() const {return dataset_index;}
+    void setDatasetIndex(const int& datasetindex) {dataset_index=datasetindex;}
     int DatasetID() const {return datasetID;} // -1 if unset or multiple xdatasets
     PxdName PXDname() const {return pxdname;}
     // return minimum & maximum batch number

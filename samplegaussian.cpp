@@ -33,3 +33,4 @@ double SampleGaussian::Get()
   gotone = true;
   return v1*fac;
 }
+

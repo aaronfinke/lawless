@@ -431,6 +431,10 @@ namespace scala {
     // format as "Set <scaleset>, run[s]: <runnumbers>"
     std::string formatSecondaryrunset(const int& scaleset) const;
 
+    // return true if wavelengths are similar
+    bool testwavelengths(const double& wavelength1,
+			 const double& wavelength2) const;
+
   }; // class ScaleModel 
 }
 

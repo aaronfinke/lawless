@@ -1568,8 +1568,6 @@ void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
                                   phaser_io::Output& output)
 // Anomstatus    first estimate of whether there is anomalous in any dataset
 {
-  std::cout << "Nbins "<< ResRange.Nbins() <<" "<<
-    halfDatasetScores.NresBin() <<"\n"; //^;
   ASSERT (ResRange.Nbins() == halfDatasetScores.NresBin());
 
   output.logTab(0,LOGFILE,

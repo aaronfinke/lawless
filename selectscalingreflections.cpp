@@ -46,11 +46,8 @@ namespace scala {
       // Selection by |E^2| minimum
       // Overall Normalisation
       double MinIsigRatio = 0.6;  // resolution cutoff
-      bool Overall = true;
       Rings NoRings;
-      ResoRange ResRangeN = hkl_list.ResLimRange();
-      NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-                                     ResRangeN, NoRings, 0);
+      NormRes = Normalise(hkl_list, MinIsigRatio, NoRings, 0);
     }
 
     reflection this_refl, temp_refl;
@@ -189,7 +186,7 @@ namespace scala {
         }
       }
       if (E2min > 0.0) {
-        double E2 = NormRes.applyAvg(AvIsig.I(), temp_refl.invresolsq());
+        double E2 = NormRes.apply(AvIsig.I(), temp_refl.invresolsq());
         if (E2 < E2min || E2 > E2max) {
           raccept = +1; //reject
         }

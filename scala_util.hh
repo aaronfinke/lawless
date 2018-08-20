@@ -1,4 +1,3 @@
-
 #ifndef SCALA_UTIL
 #define SCALA_UTIL
 
@@ -68,6 +67,32 @@ namespace scala
   // Returns:   average cell for dataset
   Scell AverageBatchCellforDataset(const std::vector<Batch>& batches,
 				   const int& idts);
+  //--------------------------------------------------------------
+  class AverageCells {
+    // Store for various average cells
+  public:
+    AverageCells(){}
+    //! construct from batch list
+    AverageCells(const std::vector<Batch>& batches)
+    {init(batches);}
+
+    //! initialise from batch list
+    void init(const std::vector<Batch>& batches);
+
+    //! return true if worst deviation is unacceptable
+    bool badcell(const double& celldeviationlimit) const;
+
+    //! return average cell
+    Scell AverageCell() const {return cellsets.AverageCell();}
+    //! return worst deviation (A)
+    double WorstDeviation() const {return cellsets.WorstDeviation();}
+
+    Range volumeRange() const {return volumerange;}
+
+  private:
+    UnitCellSet cellsets;  // batch cell for each run
+    Range volumerange;
+  };
   //--------------------------------------------------------------
   // Average wavelengths over all datasets & store average
   // On entry:

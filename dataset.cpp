@@ -102,7 +102,7 @@ namespace scala {
     return xdatasets[idx].pxdname();
   }
   //--------------------------------------------------------------
-  //! return consensus PXDname (just set Dname to "MultiCrystal")
+  //! return consensus PXDname (just set Xname to "MultiCrystal")
   PxdName Dataset::pxdname() const
   {
     dieIfEmpty("pxdname");
@@ -143,6 +143,11 @@ namespace scala {
   std::vector<Scell> Dataset::AllCells() const
   {
     return AllCellSet().Cells();
+  }
+  //--------------------------------------------------------------
+  std::vector<double> Dataset::AllDeviations() const
+  {
+    return AllCellSet().Deviations();
   }
   //--------------------------------------------------------------
   //! return average (or sole) cell

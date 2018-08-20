@@ -81,8 +81,7 @@ namespace scala {
 			 const SDmodel& SDM,
 			 const all_controls& controls,
 			 const AnalyseAnom& analysanom,
-			 const ResoRange& ResRange,
-			 const Normalise& NormRes);
+			 const ResoRange& ResRange);
     
     // Store delAnom, & count reflections used for
     // half-dataset correlations (ie with n+ & n- > 1, correlAnom true)

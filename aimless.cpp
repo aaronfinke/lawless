@@ -456,10 +456,11 @@ int main(int argc, char* argv[])
       }
       AllScales.PrintLayout(output);
       AllScales.PrintScales(output);
-      secondaryscalestats.init(AllScales);
-      secondaryscalestats.PrintSecondaryCorrections(output);
 
+      secondaryscalestats.init(AllScales);
       applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+      secondaryscalestats.getScaleStats(hkl_list, onlyUseSingletons);
+      secondaryscalestats.PrintSecondaryCorrections(output);
       overallmeankI = applyscales.meanI();
 
       // Restore SD correction
@@ -734,16 +735,10 @@ int main(int argc, char* argv[])
 
       // Overall Normalisation
       double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
-      bool Overall = true;  // no run|time variation, just one curve
       Rings NoRings;        // no omission of ice rings
-      // Set up resolution bins for normalisation, allowing for number of observations
-      ResoRange ResRangeN(hkl_list.RRange().min(), hkl_list.RRange().max(),
-                          hkl_list.num_observations());  // shouldn't be changed in Normalise
-
       // Clear all outlier & other status flags (except ObsFlags)
       ClearObsStatus(hkl_list);
-      Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-                                       ResRangeN, NoRings, 0);
+      Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
 
       // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
@@ -863,13 +858,8 @@ int main(int argc, char* argv[])
 
     // Overall Normalisation
     double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
-    bool Overall = true;  // no run|time variation, just one curve
     Rings NoRings;        // no omission of ice rings
-    // Set up resolution bins for normalisation, allowing for number of observations
-    ResoRange ResRangeN(hkl_list.RRange().min(), hkl_list.RRange().max(),
-                          hkl_list.num_observations());  // shouldn't be changed in Normalise
-    Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-                                     ResRangeN, NoRings, 0);
+    Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
 
@@ -934,8 +924,7 @@ int main(int argc, char* argv[])
     //  maximum likely values for final statistics
     //  hkl_list is const
     AllAnomDistributions allAnomDistributions(hkl_list, SD_model, controls,
-                                              analysanom,
-                                              resrangeanom, NormRes);
+                                              analysanom, resrangeanom);
     allAnomDistributions.SetSlope(anomProbSlopes);
     if (hkl_list.num_accepted_datasets() > 1) {
       allAnomDistributions.Print(output);
@@ -1003,16 +992,15 @@ int main(int argc, char* argv[])
                              runTitle, hkl_list.Srange().max(), wavelength,
                              controls.outlierMerge);
       //  hkl_list is updated for status, but SDs are not changed
-      RejectOutlier(hkl_list, SD_model, NormRes, controls.anomalouscontrol.Anomalous,
+      RejectOutlier(hkl_list, SD_model, NormRes,
+                    controls.anomalouscontrol.Anomalous,
                     controls.outlierMerge, RoguesList);
       RoguesList.End();
       std::vector<int> nrejs = CountOutliers(hkl_list);
 
       if (controls.outlierMerge.isEmaxTest()) {
         // yes there is an Emax test
-        output.logTab(0,LOGFILE,
-                      "Emax test limited to high resolution "+
-                      StringUtil::ftos(NormRes.ResRangeLimit().ResHigh(),8,3)+" A");
+        output.logTab(0,LOGFILE, "Test for Emax ");
       } else {
         output.logTab(0,LOGFILE, "No Emax test");
       }

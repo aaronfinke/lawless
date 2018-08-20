@@ -85,7 +85,7 @@ namespace scala {
       } // end loop observations
 
       // Normalisation factor (multiplying)
-      float normscale = normres->CorrAvg(this_refl.invresolsq());
+      float normscale = normres->Corr(this_refl.invresolsq());
       // resolution bin
       int mres = resrange.bin(this_refl.invresolsq());
 

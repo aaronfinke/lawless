@@ -10,7 +10,7 @@ namespace scala
 {
   //--------------------------------------------------------------
   Range::Range()
-    : first_(+1000000), last_(-1000000), Nbin_(0),
+    : first_(+1000000), last_(-1000000), Nbin_(1),
       width(0.0), tolerance(0.001), ascending(true),
       valid(false) {}
   //--------------------------------------------------------------
@@ -26,7 +26,7 @@ namespace scala
   //--------------------------------------------------------------
   Range::Range(const IntRange& intrange) // construct from an IntRange
     : first_(double(intrange.min())), last_(double(intrange.max())),
-      Nbin_(0), ascending(true),
+      Nbin_(1), ascending(true),
       valid(true)
   {
     init();
@@ -144,6 +144,24 @@ namespace scala
     return "Range: first "+clipper::String(first_)+
       " last "+clipper::String(last_)+" Nbin "+clipper::String(Nbin_)+
       " width "+clipper::String(width)+"\n";
+  }
+  //--------------------------------------------------------------
+  // Returns maximum range
+  Range Range::MaxRange(const Range& other) const
+  {
+    if (valid) {
+      if (other.valid) {
+        // Both set
+        return Range(Max(min(), other.min()),
+                     Min(max(), other.max()));
+      } else {
+        // other not set
+        return *this;
+      }
+    } else {
+      // this not set
+      return other;  // if not set
+    }
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------

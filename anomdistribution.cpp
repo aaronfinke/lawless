@@ -18,8 +18,7 @@ namespace scala {
                                              const SDmodel& SDM,
                                              const all_controls& controls,
                                              const AnalyseAnom& analysanom,
-                                             const ResoRange& ResRange,
-                                             const Normalise& NormRes)
+                                             const ResoRange& ResRange)
   // Analyse distribution of anomalous differences to get estimate
   // of maximum likely values, for all datasets
   //

@@ -41,8 +41,7 @@ namespace scala {
     bool Overall = true;
     Rings NoRings;
     ResoRange ResRangeN = hkl_list.ResLimRange();
-    Normalise NormRes = SetNormalise(hkl_list, MinIsigRatio, Overall,
-                                     ResRangeN, NoRings, 0);
+    Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
 
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();
@@ -110,7 +109,7 @@ namespace scala {
         SelectedObservations allobs(this_refl, -1, ALL);
         IsigI AvIsig = allobs.Average();  // average I, 1/variance weight
         raccept = 0; // accept
-        double E2 = NormRes.applyAvg(AvIsig.I(), this_refl.invresolsq());
+        double E2 = NormRes.apply(AvIsig.I(), this_refl.invresolsq());
         if (E2 < E2min) {
           // Accept a fraction frac of these scaled by p(E^2)
           double p = exp(-E2); // p(true(E2) > E2)

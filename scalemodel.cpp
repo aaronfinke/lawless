@@ -175,6 +175,8 @@ namespace scala {
     bfacnormbatch = -1;   // batch number for B-factor  normalisation, -1 for best
     nruns = hkl_list.num_runs();
     std::vector<Run> runlist = hkl_list.RunList();
+    std::vector<Dataset> datasets = hkl_list.AllDatasets();
+
     // One primary scale object for each run
     primary_scales.resize(nruns);
     //  ... and one B-factor object per run
@@ -196,6 +198,7 @@ namespace scala {
     int kscidx = -1;
     int j0 = -1;  // secondary
     std::vector<std::string> runXname(nruns,"");
+    std::vector<double> runwavelengths(nruns,0.0);
     pole = 0; // for ABSORPTION, = 1,2,3 for h,k,l, = -1 unspecified, = 0 SECONDARY
     // Tile stuff
     int ktlidx = -1;
@@ -222,6 +225,7 @@ namespace scala {
       // Secondary checks
       //  Assign secondary scales to runs here, but these assignments will be
       //  replaced later if there are any LINK SURFACE commands
+      int datasetidx;
       if (scaleSpecs[isp].sec_abs != scala::SecondaryScale::NONE &&
           validscalemodel.ValidSecondary(irun)) {
         if (j0 < 0) {
@@ -229,6 +233,8 @@ namespace scala {
           j0 = irun;  //
           sec_scale_index_run[j0] = ++kscidx;  // index for 1st run = 0
           runXname[j0] = runlist[j0].PXDname().xname();
+          datasetidx = runlist[j0].DatasetIndex();
+          runwavelengths[j0] = datasets[datasetidx].wavelength(runXname[j0]);
           if (scaleSpecs[isp].sec_abs == SecondaryScale::ABSORPTION) {
             //  ABSORPTION, store pole
             pole = scaleSpecs[isp].pole;
@@ -250,17 +256,29 @@ namespace scala {
           }
           // check each run beyond 1st for same dataset
           runXname[irun] = runlist[irun].PXDname().xname();
+          datasetidx = runlist[irun].DatasetIndex();
+          runwavelengths[irun] = datasets[datasetidx].wavelength(runXname[irun]);
           // search previous runs for same dataset
           bool found = false;
-          for (int jrun=0;jrun<irun;jrun++) {
+          int jrun;
+          for (jrun=0;jrun<irun;jrun++) {
             if (runXname[jrun] == runXname[irun]) {
               // irun is same dataset as jrun
-              sec_scale_index_run[irun] = sec_scale_index_run[jrun];
               found = true;
               break;
             }
           }
-          if (!found) {
+          if (found) {
+            // irun should have same scale as jrun
+            // but check for different wavelengths
+            if (testwavelengths(runwavelengths[irun], runwavelengths[jrun])) {
+              // similar wavelengths
+              sec_scale_index_run[irun] = sec_scale_index_run[jrun];
+            } else {
+              // different wavelengths, irun is new dataset
+              sec_scale_index_run[irun] = ++kscidx;
+            }
+          } else {
             // irun is new dataset
             sec_scale_index_run[irun] = ++kscidx;
           }
@@ -341,6 +359,15 @@ namespace scala {
     // initialise variances
     VC.resize(nparameters,nparameters,0.0);
     varpar.assign(nparameters, 0.0);
+  }
+  //--------------------------------------------------------------
+  bool ScaleModel::testwavelengths(const double& wavelength1,
+                                   const double& wavelength2) const
+  // return true if wavelengths are similar
+  {
+    const double TEST = 0.1;
+    bool tested = Close<double, double>(wavelength1, wavelength2, TEST);
+    return tested;
   }
   //--------------------------------------------------------------
   void ScaleModel::processLinks(const LinkSpecs& linkspecs,
@@ -1739,8 +1766,10 @@ namespace scala {
     }
     g = ps*bs*ss*ds;
     //^^^
-    if (g < 0.0) {
-      std::cout <<"g negative " << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+    ////    if (g <= 0.0) {
+    if (g <= 1.0e-8) {
+      std::cout <<"g too small "
+                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
     }
     return g;
   }
@@ -1859,8 +1888,10 @@ namespace scala {
     }
     double g = ps*bs*ss*ds;
     //^^^
-    if (g <= 0.0) {
-      std::cout <<"g negative " << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+    ////    if (g <= 0.0) {
+    if (g <= 1.0e-8) {
+      std::cout <<"g too small "
+                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
     }
     obs.SetGscale(g);
     return g;

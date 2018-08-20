@@ -215,6 +215,26 @@ namespace scala
     }
     return cellset.AverageCell();
   }
+
+  //--------------------------------------------------------------
+  void AverageCells::init(const std::vector<Batch>& batches)
+  // store batch cells, indexed by run
+  {
+    cellsets.clear();
+    volumerange.clear();
+    int nbatches = batches.size();
+    for (int k=0; k<nbatches; k++)  {
+      int idx = batches[k].RunIndex(); // run index
+      cellsets.AddCell(batches[k].cell()); // add batch cell
+      volumerange.update(batches[k].cell().Volume());
+    }
+  }
+  //--------------------------------------------------------------
+  //! return true if worst deviation is unacceptable
+  bool AverageCells::badcell(const double& celldeviationlimit) const
+  {
+    return (WorstDeviation() > celldeviationlimit);
+  }
   //--------------------------------------------------------------
   double AverageWavelength(const std::vector<double>& allwavelengths,
                     const int& idxexclude)

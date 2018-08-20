@@ -440,7 +440,7 @@ namespace scala {
   //   controls     all controls
   //   datasetIndex dataset index
   //   ResRange     resolution range with bins
-  //   NormRes      normalisation object, over all data (no run/batch dependence)
+  //   NormRes      normalisation object
   //   anomProbSlope slope of anomalous normal probability plot
   //   hklreflist   reference data for analysis, if present
   //   output
@@ -848,7 +848,7 @@ namespace scala {
 
       // ---- For anisotropic analysis on projections, expand symmetry
       int nsymp = hkl_list.symmetry().NsymP(); // number of primitive operations
-      //float normscale = NormRes.CorrAvg(invresolsq); // Normalisation factor (multiplying)
+      //float normscale = NormRes.Corr(invresolsq); // Normalisation factor (multiplying)
       float normscale = 1.0;
 
       for (int isym=1;isym<=nsymp*2;isym+=2) { // loop odd ISYM, for I+

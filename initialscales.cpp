@@ -124,7 +124,8 @@ namespace scala {
 
     int nrbins =  resrange.Nbins();
     // sum->mean I (rotation, resolution)
-    clipper::Array2d<double> sumI(nrotranges, nrbins);
+    // try weighted mean
+    clipper::Array2d<MeanValue> meanI(nrotranges, nrbins);
     // numbers
     clipper::Array2d<int>      nI(nrotranges, nrbins);
 
@@ -141,7 +142,7 @@ namespace scala {
 
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
-        sumI(i,j) = 0.0; nI(i,j) = 0;}
+        nI(i,j) = 0;}
     }
 
     hkl_list.rewind();
@@ -164,7 +165,12 @@ namespace scala {
         } else {
           irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
         }
-        sumI(irot, ires) += this_obs.I();
+        double weight = 1.0;
+        double sigi = this_obs.sigI();
+        if (sigi > 0.0) {
+          weight = 1.0/(sigi*sigi);
+        }
+        meanI(irot, ires).Add(double(this_obs.I()), weight);
         nI(irot, ires)++;
         nobs++;
         irotlist.push_back(irot);
@@ -207,10 +213,11 @@ namespace scala {
 
     // Compute average intensities
     numobsrotrange.assign(nrotranges, 0); // number of observations for rotrange
+    clipper::Array2d<double> sumI(nrotranges, nrbins);
     for (int i=0;i<nrotranges;++i) {
       for (int j=0;j<nrbins;++j) {
         if (nI(i,j) > 0) {
-          sumI(i,j) /= double(nI(i,j));
+          sumI(i,j) = meanI(i,j).Mean();
           numobsrotrange[i] += nI(i,j);
         }
       }
