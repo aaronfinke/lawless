@@ -24,7 +24,8 @@ namespace scala {
   // ------------------------------------------------------------
   int SelectSDcorrReflections(hkl_unmerge_list& hkl_list,
                               const all_controls& controls,
-                              const int& Nbintarget)
+                              const int& Nbintarget,
+                              const Normalise& NormRes)
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
   //   Nbintarget  target minimum number of reflections / intensity bin
@@ -36,12 +37,6 @@ namespace scala {
   //
   {
     hkl_list.ResetReflAccept();  // set to accept everything
-    // Overall Normalisation
-    double MinIsigRatio = 0.6;  // resolution cutoff
-    bool Overall = true;
-    Rings NoRings;
-    ResoRange ResRangeN = hkl_list.ResLimRange();
-    Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
 
     // Intensity bins etc
     int NintBin = controls.analysis.NiBins();

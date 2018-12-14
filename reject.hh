@@ -35,9 +35,11 @@ namespace scala {
     // Open ROGUESPLOT file & write header if Plot true
     // title & maximum resolution d* = lambda/d
     //  outliercontrol   parameters for rejection
-    WriteRogues(const bool& Start, const bool& Plot,
+    WriteRogues(const std::string& filename,
+		const bool& Start, const bool& Plot,
 		const bool& multilattice,
-		const std::string& title, const float& dstarMax, const float& wavelength,
+		const std::string& title,
+		const float& dstarMax, const float& wavelength,
 		const OutlierControl& outliercontrol);
     
     bool Open() const {return (rogues != NULL);}
@@ -91,13 +93,6 @@ namespace scala {
   std::vector<int> CountOutliers(const hkl_unmerge_list& hkl_list,
 				 std::vector<int>& rejectedbatch,
 				 std::vector<int>& rejecteddataset);
-  // ------------------------------------------------------------
-  // Return list of index numbers for each Emax outlier observation, if any
-  std::vector<int> EmaxRejectIndexList
-  (const SelectedObservations& selobs,
-   const Normalise& NormRes, const EProb& eprobtest,
-   const bool& Centric,
-   const double& sdrej);
 
 }
 #endif

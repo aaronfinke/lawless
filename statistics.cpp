@@ -796,6 +796,7 @@ namespace scala {
         // Analysis against reference data
         if (hklref) {
           // find matching hkl, if present
+
           IsigI Isref = hklreflist.Isig(this_refl.hkl());
           if (Isref.sigI() > 0.0) {
             rreferencebatch[jbatchgroup].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
@@ -963,6 +964,7 @@ namespace scala {
       }
       cumulativecompleteness.EndReflection();
     }  // end loop reflections
+
     // ================================================================
 
     std::vector<float> batchcompleteness =

@@ -59,7 +59,7 @@ namespace scala {
     // Accumulate indices to outlier rejects from vector "selected" into vectors
     // "rejected " and "statusflags". Status for rejects is in "status"
     void CheckEmax(const Normalise& NormRes, const EProb& eprobtest,
-                   const bool& Centric, const ObservationStatus& status);
+                   const bool& Centric);
 
     const std::vector<int>& Rejected() const  {return rejected;}
     const std::vector<ObservationStatus>& Statusflags() const {return statusflags;}
@@ -76,7 +76,7 @@ namespace scala {
   private:
     reflection* this_refl;
     const OutlierControl* outliercontrol;
-    int sdrej;  // for Emax test
+    float sdrej;  // for Emax test
 
     std::vector<int> rejected;
     std::vector<ObservationStatus> statusflags;
@@ -84,6 +84,17 @@ namespace scala {
     bool discrepant;
     // Weighting scheme for averaging observations in outlier testing
     static WeightType::AverageWeightType weighttype;   // type of weighting for average
+
+    // Return list of index numbers for each Emax outlier observation, if any
+    std::vector<int> EmaxRejectIndexList
+    (SelectedObservations& selobs,
+     const Normalise& NormRes, const EProb& eprobtest,
+     const bool& Centric,
+     const float& sdrej) const;
+
+    // negate indices unless already negated, -1 to distinguish +0 from -0
+    std::vector<int> negateIndices(const std::vector<int>& idxv) const;
+
   };
   WeightType::AverageWeightType RejectList::weighttype = WeightType::SQRTSCALE;
   // ------------------------------------------------------------
@@ -108,11 +119,11 @@ namespace scala {
       ASSERT (outlierindexlist[k] != 0);
       size_t kk = std::abs(outlierindexlist[k])-1;
       if (outlierindexlist[k] < 0) {
-        status = ObservationStatus::OBSSTAT_DEVIANT;
+        status.SetDeviant(); // ObservationStatus::OBSSTAT_DEVIANT
       } else if (anomoutlier) {
-        status = ObservationStatus::OBSSTAT_OUTLIERANOM;
+        status.SetOutlierAnom(); // ObservationStatus::OBSSTAT_OUTLIERANOM
       } else if (outlierindexlist[k] > 0) {
-        status = ObservationStatus::OBSSTAT_OUTLIER;
+        status.SetOutlier(); //ObservationStatus::OBSSTAT_OUTLIER
       }
       rejected.push_back(kk);
       statusflags.push_back(status);
@@ -125,26 +136,34 @@ namespace scala {
   }
   // ------------------------------------------------------------
   void RejectList::CheckEmax(const Normalise& NormRes, const EProb& eprobtest,
-                             const bool& Centric, const ObservationStatus& status)
+                             const bool& Centric)
   // Check all observations against Emax test
   // Accumulate indices to outlier rejects from vector "selected" into vectors
-  // "rejected " and "statusflags". Status for rejects is in "status"
+  // "rejected " and "statusflags".
+  // Status for rejects are OBSSTAT_EMAX, or OBSSTAT_EMAX_OK if kept
   //
   {
     SelectedObservations sel(*this_refl, -1, ALL);
+    // get index list of rejected observations, negated to keep
     std::vector<int> outlierindexlist =
       EmaxRejectIndexList(sel, NormRes, eprobtest, Centric, sdrej);
     if (outlierindexlist.size() > 0) {
-      if (rejected.size() == 0) {
-        rejected.assign(outlierindexlist.begin(),
-                        outlierindexlist.end());
-        statusflags.assign(outlierindexlist.size(), status);
-      } else {
-        rejected.insert(rejected.end(),
-                        outlierindexlist.begin(),
-                        outlierindexlist.end());
-        statusflags.insert(statusflags.end(), outlierindexlist.size(),
-                           status);
+      //      std::cout <<"CheckEmax number = " << outlierindexlist.size()
+      //                <<" " << rejected.size() <<" "<<sel.Number()
+      //                <<" "<<sel.hkl().format()
+      //                <<std::endl; //^
+      for (size_t k=0; k<outlierindexlist.size(); k++) {
+        ObservationStatus status;
+        int i = outlierindexlist[k];
+        if (i >= 0) {
+          status.SetEmax();
+        } else {
+          // keep
+          i = -i-1;
+          status.SetEmaxOK();
+        }
+        rejected.push_back(i);
+        statusflags.push_back(status);
       }
       discrepant = true;
     }
@@ -157,7 +176,8 @@ namespace scala {
       // Set outlier flags back into observations within reflections
       for (size_t i=0;i<rejected.size();++i) {
         observation this_obs = this_refl->get_observation(rejected[i]);
-        this_obs.UpdateStatus(statusflags[i]);
+        ObservationStatus status = this_obs.ObsStatus();
+        this_obs.UpdateStatus(status.mergestatus(statusflags[i]));
         this_refl->replace_observation(this_obs);
       }
     }
@@ -205,9 +225,8 @@ namespace scala {
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       // Emax test, before outlier test
       if (!(eprobtest.Null())) {
-        rejlist.CheckEmax(NormRes, eprobtest, Centric,
-                          ObservationStatus::OBSSTAT_EMAX);
-        rejlist.UpdateReflection();  // update flags for rejections within I+/-
+        rejlist.CheckEmax(NormRes, eprobtest, Centric);
+        rejlist.UpdateReflection();  // update flags
       }
 
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -339,22 +358,39 @@ namespace scala {
     return s;
   }
   // ------------------------------------------------------------
-  std::vector<int> EmaxRejectIndexList
-  (const SelectedObservations& selobs,
+  // negate indices unless already negated, -1 to distinguish +0 from -0
+  std::vector<int> RejectList::negateIndices(const std::vector<int>& idxlist) const
+  {
+    std::vector<int> idxv = idxlist;
+    for (size_t k=0; k<idxv.size(); k++) {
+      if (idxv[k] >= 0) {
+        idxv[k] = -idxv[k]-1;
+      }
+    }
+    return idxv;
+  }
+  // ------------------------------------------------------------
+  std::vector<int> RejectList::EmaxRejectIndexList
+  (SelectedObservations& selobs,
    const Normalise& NormRes, const EProb& eprobtest,
    const bool& Centric,
-   const double& sdrej)
+   const float& sdrej) const
   // Return list of index numbers for each Emax outlier observation, if any
   {
     std::vector<int> idxlist;
     reflection this_ref = selobs.Reflection();
     Rtype invresolsq = this_ref.invresolsq();
 
+    // This is a real fudge!
+    float bigtestfactor = NormRes.mmratio(); // a measure of mean/median
+
     observation this_obs;
     int i;
+    int n = 0;
     while ((i = selobs.next_observation(this_obs)) >= 0) {
       this_obs =this_ref.get_observation(i);
       float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+      n++;
       if (eprobtest.TooBig(E2, Centric)) {
         // E^2 too big, positive or negative
         //  check E^2/sig(E^2), and keep weak observations, as the
@@ -364,11 +400,87 @@ namespace scala {
         if (std::abs(E2/sigE2) > sdrej) {
           // reject
           idxlist.push_back(i);
-          //^     std::cout << "**Reject "<< invresolsq<<" "<<E2<<" "<<sigE2<<
-          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl;
+          //      std::cout << "**Reject "<< invresolsq<<" "<<E2<<" "<<sigE2<<
+          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl; //^
           //^   } else {
           //      std::cout << "**Keep "<< invresolsq<<" "<<E2<<" "<<sigE2<<
           //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl;
+        }
+      }
+    }
+
+    // If we have at least one reject, check that we really want to reject them
+    // if all or most observations are rejected, then we probably want to keep them
+    if (idxlist.size() > 0) {  //
+      // fraction rejected
+      double fracrejected = double(idxlist.size())/double(n);
+      const double REJFRAC = 0.8;
+      if (fracrejected > REJFRAC && n > 2) {
+        // More than REJFRAC rejected, and more than 2 observations
+        // Keep all, negate indices (-1 to distinguish 0), if more than 2
+        idxlist = negateIndices(idxlist);
+        //        std::cout << "*^* Emax test, keeping all observations for "
+        //                  << selobs.hkl().format()<<std::endl;
+      } else {
+        // Not all rejected, but are all the observations close to the limit?
+        // First test the average I
+        IsigI E2av = NormRes.apply(selobs.Average(), invresolsq);
+        const float AVTESTFACTOR = 0.8;
+        if ((eprobtest.TooBig(E2av.I(), Centric, AVTESTFACTOR)) &&
+            (std::abs(E2av.I()/E2av.sigI()) > sdrej)) {
+          // ... but not really too big
+          if (!eprobtest.TooBig(E2av.I(), Centric, bigtestfactor)) {
+            // Keep all, negate indices
+            idxlist = negateIndices(idxlist);
+            //            std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
+            //                      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
+            //                      <<selobs.Average().sigI()
+            //                      <<", keeping all observations for "
+            //                      << selobs.hkl().format()<<std::endl;
+            //          } else {
+            //            std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
+            //                      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
+            //                      <<selobs.Average().sigI()
+            //                      <<", REJECTING all observations for "
+            //                      << selobs.hkl().format()<<std::endl;
+          }
+        } else {
+          // Test individual observations against smaller test value
+          //  count how many are above that
+          const float TESTFACTOR = 0.64;  // 0.8^2
+          int nabovetest = 0;
+          n = 0;
+          while ((i = selobs.next_observation(this_obs)) >= 0) {
+            this_obs =this_ref.get_observation(i);
+            float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+            n++;
+            float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq);
+            //            std::cout << "*** Emax test, E2 "<<E2<<" "<<sigE2<<" "<<sdrej<<std::endl; //^^
+            if (eprobtest.TooBig(E2, Centric, TESTFACTOR)) {
+              // E^2 too big, positive or negative
+              //  check E^2/sig(E^2), and keep weak observations, as the
+              //  normalisation is unreliable in very weak shells (pending
+              //  improved normalisation
+              if (std::abs(E2/sigE2) > sdrej) {
+                nabovetest++;
+              }
+            }
+          }
+          fracrejected = double(nabovetest)/double(n);
+          if (fracrejected > REJFRAC) {
+            // most above smaller limit
+            // Keep all, negate indices for previously rejected observations
+            idxlist = negateIndices(idxlist);
+            //            std::cout << "*^* Emax test on individuals, nabove="<<
+            //              nabovetest<<" of "<<n<<
+            //              ", keeping all observations for "
+            //                      << selobs.hkl().format()<<std::endl;
+            //          } else {
+            //            std::cout << "*!* Emax test on individuals, nabove="<<
+            //              nabovetest<<" of "<<n<<
+            //              ", rejecting some observations for "
+            //                      << selobs.hkl().format()<<std::endl;
+          }
         }
       }
     }
@@ -376,7 +488,8 @@ namespace scala {
   }
   // ------------------------------------------------------------
   // ------------------------------------------------------------
-  WriteRogues::WriteRogues(const bool& Start, const bool& Plot,
+  WriteRogues::WriteRogues(const std::string& filename,
+                           const bool& Start, const bool& Plot,
                            const bool& multilattice,
                            const std::string& title, const float& dstarMax,
                            const float& wavelength,
@@ -388,7 +501,7 @@ namespace scala {
   //  outliercontrol   parameters for rejection
   {
     if (Start) {
-      rogues = OpenFile("ROGUES", true);  // open ROGUES file
+      rogues = OpenFile(filename, true);  // open ROGUES file
       std::string s = "The ROGUES file contains all monitored outliers";
       if (outliercontrol.Reject(ALL).formatReject2Policy() ==
           "KEEP") {
@@ -398,7 +511,8 @@ namespace scala {
       fprintf(rogues, "%s", s.c_str());
       std::string rs =
         std::string("\nRej = '*', '@' for I+- rejects, '#' for Emax rejects, ")+
-        "'x' for accepted flagged observation, 'd' for deviant but kept";
+        "'x' for accepted flagged observation,\n"+
+        "   'd' for deviant but kept, '$' for >Emax but kept because most observations are large";
       if (multilattice) {
         rs += ",\n      'M' for multiple lattice overlaps";
       }
@@ -445,7 +559,7 @@ namespace scala {
   {
     bool outlier;
     char partial;
-    char reject;
+    std::string reject;
     std::string PlusMinus;
     std::string flagtype = "";
     fprintf(rogues,"\n");
@@ -462,22 +576,26 @@ namespace scala {
       if (!status.TestObsFlag()) {
         partial = 'p';
         if (obs.IsFull()) {partial = 'f';}
+
         reject = ' ';
         if (!obs.Observationflag().OK()) {
-          reject = 'x';
+          reject += 'x';
         }
         if (status.TestOutlier()) {
-          reject = '*';
+          reject += '*';
           outlier = true;
         } else if (status.TestOutlierAnom()) {
-          reject = '@';
+          reject += '@';
           outlier = true;
         } else if (status.TestEmax()) {
-          reject = '#';
+          reject += '#';
           outlier = true;
+        } else if (status.TestEmaxOK()) {
+          reject += '$';
         } else if (status.TestDeviant()) {
-          reject = 'd';
+          reject += 'd';
         }
+
         if (obs.Isym()%2 == 0) {
           PlusMinus = "I-";
         } else {
@@ -485,7 +603,7 @@ namespace scala {
         }
         if (!obs.IsSingleton()) {
           // multiple lattice overlap
-          reject = 'M';
+          reject += 'M';
         }
         float scale = obs.Gscale();
         if (scale != 0.0) scale = 1./scale;
@@ -494,19 +612,25 @@ namespace scala {
         float E = NormRes.apply(obs.kI(), invresolsq);
         if (E > 0.0) {E = sqrt(E);}
         else {E = -sqrt(-E);}
-        std::string flagtype = obs.Observationflag().format();
+        std::string flagtype = obs.Observationflag().format(); // 6 characters
 
         fprintf(rogues,
-        "%4d%4d%4d  %4d%4d%4d%6d%8d%6d%6.2f%6.1f%c   %2s%7.3f%7.1f%6.2f%7.1f%7.1f%7.1f %5.4f %c  %s\n",
+        "%4d%4d%4d  %4d%4d%4d%6d%8d%6d%6.2f%6.1f%c   %2s%7.3f%7.1f%6.2f%7.1f%7.1f%7.1f %5.4f %s %s\n",
                 obs.hkl_original()[0],obs.hkl_original()[1],obs.hkl_original()[2],
                 this_refl.hkl()[0],this_refl.hkl()[1],this_refl.hkl()[2],
                 obs.Batch(), Nint(obs.kI()), Nint(obs.ksigI()),
                 E, obs.TotalFraction(),
                 partial,  PlusMinus.c_str(), scale, deviations[lobs],
-                d, XY.first, XY.second, obs.phi(), obs.LP(), reject, flagtype.c_str());
-        // ROGUEPLOT?
+                d, XY.first, XY.second, obs.phi(), obs.LP(), reject.c_str(), flagtype.c_str());
+        // ROGUEPLOT? Classes Outlier, OutlierAnom, Emax
+        // Not kept ones (Deviant, EmaxOK)
         if (rogueplot.IsPlot() && outlier) {
-          rogueplot.PlotOutlier(obs.GetS());  // diffraction vector (rlu)
+          ObservationStatus status = obs.ObsStatus();
+          int pclass = 0;
+          if (status.TestOutlier())     {pclass = 1;}
+          if (status.TestOutlierAnom()) {pclass = 2;}
+          if (status.TestEmax())        {pclass = 3;}
+          rogueplot.PlotOutlier(obs.GetS(), pclass);  // diffraction vector (rlu)
         }
       }
     }  // end loop observations

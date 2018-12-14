@@ -136,6 +136,11 @@ int main(int argc, char* argv[])
     if (input.getXMLOUT() != "")
       {output.setXmlout(input.getXMLOUT());}
 
+    // ROGUES command
+    std::string roguesfilename = "ROGUES";
+    if (input.getROGUES() != "")
+      {roguesfilename = input.getROGUES();}
+
     if (!logHeaderdone) {
       output.logHeader(LOGFILE);
     }
@@ -435,6 +440,8 @@ int main(int argc, char* argv[])
     omp_set_num_threads(controls.refinecontrol.Nprocs());
 #endif
 
+    Normalise NormRes;
+
     ApplyScales applyscales;
 
     // Restoring scales from file?
@@ -688,8 +695,10 @@ int main(int argc, char* argv[])
       double IovSDmin = controls.refinecontrol.IovSDmin();
       double E2min = -1.0;   // no |E^2| selection here
       double E2max = -1.0;
+      Normalise NormResDummy;    // dummy, not used
       std::pair<int,int> selrej =
-        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
+        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin,
+                                 NormResDummy, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
                           "\n========= First round scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
@@ -735,10 +744,11 @@ int main(int argc, char* argv[])
 
       // Overall Normalisation
       double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
-      Rings NoRings;        // no omission of ice rings
+      Rings IceRings;        // no omission of ice rings
+      IceRings.DefaultIceRings();
       // Clear all outlier & other status flags (except ObsFlags)
       ClearObsStatus(hkl_list);
-      Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
+      NormRes.init(hkl_list, MinIsigRatio, IceRings, 0);
 
       // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
@@ -813,7 +823,8 @@ int main(int argc, char* argv[])
       double E2min = controls.refinecontrol.E2min();
       double E2max = controls.refinecontrol.E2max();
       std::pair<int,int> selrej =
-        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin, E2min, E2max);
+        SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin,
+                                 NormRes, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
                           "\n========= Main scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
@@ -859,7 +870,8 @@ int main(int argc, char* argv[])
     // Overall Normalisation
     double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
     Rings NoRings;        // no omission of ice rings
-    Normalise NormRes(hkl_list, MinIsigRatio, NoRings, 0);
+    int printlevel = 0;  // 1 to dump to norm.plot
+    NormRes.init(hkl_list, MinIsigRatio, NoRings, printlevel);
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
 
@@ -988,7 +1000,7 @@ int main(int argc, char* argv[])
         hkl_list.CalcSecondaryBeams(pole);
       }
 
-      WriteRogues RoguesList(true, doRoguePlot, multilattice,
+      WriteRogues RoguesList(roguesfilename, true, doRoguePlot, multilattice,
                              runTitle, hkl_list.Srange().max(), wavelength,
                              controls.outlierMerge);
       //  hkl_list is updated for status, but SDs are not changed

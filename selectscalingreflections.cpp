@@ -11,7 +11,6 @@
 //
 
 #include "selectscalingreflections.hh"
-#include "normalise.hh"
 #include "selectedobservations.hh"
 
 
@@ -22,6 +21,7 @@ namespace scala {
                                const SDmodel& SDM,
                                const ScaleModel& AllScales,
                                double& IovSDmin,
+                               const Normalise& NormRes,
                                const double& E2min, const double& E2max)
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
@@ -30,6 +30,7 @@ namespace scala {
   //   IovSDmin    minimum value for  <I>/sd'(<I>), == 0 no test
   //                < 0 negative value from default, to be reset here
   //               [default set to -3.0 in controls.cpp]
+  //   NormRes     normalisation object
   //   E2min       minimum |E^2|, <= 0 no test
   //   E2max       maximum |E^2|, <= 0 no test
   //
@@ -41,14 +42,6 @@ namespace scala {
   {
     hkl_list.ResetReflAccept();  // set to accept everything
     if (IovSDmin == 0.0 && E2min <= 0.0) {return std::pair<int,int>(0,0);}
-    Normalise NormRes;
-    if (E2min > 0.0) {
-      // Selection by |E^2| minimum
-      // Overall Normalisation
-      double MinIsigRatio = 0.6;  // resolution cutoff
-      Rings NoRings;
-      NormRes = Normalise(hkl_list, MinIsigRatio, NoRings, 0);
-    }
 
     reflection this_refl, temp_refl;
     clipper::Array2d<int>      nI;

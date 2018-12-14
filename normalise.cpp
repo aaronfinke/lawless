@@ -17,6 +17,14 @@ namespace scala {
                        const double& MinIsigRatio,
                        Rings& Icerings,
                        const int PrintLevel)
+  {
+    init( hkl_list, MinIsigRatio, Icerings, PrintLevel);
+  }
+  //--------------------------------------------------------------
+  void Normalise::init(const hkl_unmerge_list& hkl_list,
+                       const double& MinIsigRatio,
+                       Rings& Icerings,
+                       const int PrintLevel)
   // Set up intensity normalisation object
   //
   // Use binned <I> to get normalisation object
@@ -27,17 +35,17 @@ namespace scala {
   //                ranges beyond this threshold get reset
   //                if < 0, no reset
   {
-    // We want more resolution bins than there are niormnally for analysis
+    // We want more resolution bins than there are normally for analysis
     resorange = ResoRange(hkl_list.RRange().min(), hkl_list.RRange().max(),
                           hkl_list.num_observations());
     nrbin = resorange.Nbins();
 
     // Sums for overall I/sigI etc by resolution for resolution cut-off
     std::vector<MeanValue> mnSqrv(nrbin);
-    wmnI.resize(nrbin);
-    unwmnI.resize(nrbin);
-    //^    std::vector<MeanVariance> wmnI(nrbin);
-    // std::vector<MeanValue> unwmnI(nrbin);
+
+    std::vector<Median<float> > medI(nrbin);
+    std::vector<Median<float> > medI2(nrbin);
+    std::vector<MeanVariance> weightedMean(nrbin);
 
     // Ice rings
     Icerings.ClearSums();
@@ -50,7 +58,10 @@ namespace scala {
     int zonalrefs = 0;
 
     imax = -100000.;
-    MeanValue overallMnI;
+    double w = 1.0;
+
+    // Use medians of samples
+    int numobsinfile = hkl_list.num_observations();
 
     while (hkl_list.next_reflection(this_refl) >= 0) {
       // use only general reflections h!=k!=l!=0 to avoid
@@ -66,11 +77,12 @@ namespace scala {
           if (Iring < 0) {
             SelectedObservations sel(this_refl, -1, ALL);
             IsigI Isigav = sel.Average();
+            double avI = Isigav.I();
             double w = 1.0/(Isigav.sigI()*Isigav.sigI());
-            wmnI[rbin].Add(double(Isigav.I()), w);
-            unwmnI[rbin].Add(double(Isigav.I()));
+            weightedMean[rbin].Add(double(Isigav.I()), w);
+            medI[rbin].add(avI);
+            medI2[rbin].add(avI*avI);
             mnSqrv[rbin].Add(sSqr);
-            overallMnI.Add(double(Isigav.I()), w);
             imax = std::max(imax, double(Isigav.I()));
             numobs++;
           }
@@ -79,7 +91,6 @@ namespace scala {
         zonalrefs++; // count reflections in centric zones
       }
     }
-    imean = overallMnI.Mean();
 
     if (numobs == 0) {
       clipper::String msg = "No general reflections accepted in normalisation:\n";
@@ -92,12 +103,15 @@ namespace scala {
     setstores();
     int nneg = 0;  // count negative bins
     for (int i=0;i<nrbin;i++) {
-      store(i, mnSqrv[i].Mean(), wmnI[i]);
-      if (wmnI[i].Mean() <= 0.0) {
+      store(i, mnSqrv[i].Mean(), weightedMean[i], medI[i]);
+      if (weightedMean[i].Mean() <= 0.0) {
         nneg++;
       }
     }
 
+    imean = MeanValue(mnI).Mean();
+
+    // We want mnI, sdI, mcount for each resolution bin
     // Reset weak high resolution bins unless MinIsigRatio < 0
     if (MinIsigRatio > 0.0) {
       // Weak high resolution bins are unreliable, so (pending a better method)
@@ -132,17 +146,28 @@ namespace scala {
   {
     mnsSqr.resize(nrbin);
     mnI.resize(nrbin);
+    medianI.resize(nrbin);
     sdI.resize(nrbin);
     mcount.resize(nrbin);
   }
   //--------------------------------------------------------------
   void Normalise::store(const int& ibin, const double& sSqr,
-                        const MeanVariance& mnv)
+                        const MeanVariance& mnv,
+                        Median<float>& medI)
+  // Store:
+  //   mnI      from median, mean of trimmed range
+  //   sdI      from weighted mean
+  //   medianI  median
   {
+    const float TRIMFRAC=0.01;
+    // from simulations of exponential distribution, factor to correct for
+    // 1% trimming top & bottom
+    const float TRIMFACTOR=1.038;
     mnsSqr[ibin]  = sSqr;
-    mnI[ibin] = mnv.Mean();
+    medianI[ibin] = medI.median();
+    mnI[ibin] = medI.meanofrange(1.0f-TRIMFRAC, TRIMFRAC)*TRIMFACTOR;
     sdI[ibin] = mnv.SDofMeanfromWeights();
-    mcount[ibin] = mnv.Count();
+    mcount[ibin] = medI.count();
   }
   //--------------------------------------------------------------
   double Normalise::iovsig(const int& ibin) const
@@ -169,6 +194,7 @@ namespace scala {
     for (i=1;i<nrbin;i++) {
       if (mcount[i] > 0) {
         double mnIovsig = iovsig(i);
+        //^     std::cout <<"***Iovsig "<<i<<" "<<mnIovsig<<"\n";
         if (k < 0 && mnIovsig < minIsigRatio) {
           k = i;  // 1st bin below threshold
         }
@@ -183,14 +209,14 @@ namespace scala {
         double v1 = mnI[k];  // last "reliable" <I>
         double v2 = 0.6*v1;  // value at end, arbitrary
         double d = (v1-v2)/double(k2-k); // difference/bin
-        //^     std::cout << "Nresetweak "<<k<<" "<<v1<<" "<<sdI[k]<<std::endl; //^
-        //      for (int i=k+1;i<nrbin;++i) {
-        //        double xI = v1 - double(i-k) * d;
-        //        double xsd = sdI[k];  // just propagate sd
-        //        mnI[i] = xI;   // store modified values
-        //        sdI[i] = xsd;
-        //^       std::cout << "Nresetweak "<<i<<" "<<xI<<" "<<xsd<<std::endl; //^
-        //      }
+        //      std::cout << "Nresetweak "<<k<<" "<<v1<<" "<<sdI[k]<<std::endl; //^
+        for (int i=k+1;i<nrbin;++i) {
+          double xI = v1 - double(i-k) * d;
+          double xsd = sdI[k];  // just propagate sd
+          mnI[i] = xI;   // store modified values
+          sdI[i] = xsd;
+          //          std::cout << "Nresetweak "<<i<<" "<<xI<<" "<<xsd<<std::endl; //^
+        }
       }
     }
   }
@@ -228,28 +254,51 @@ namespace scala {
     return 1.0 / scorr;
   }
   //--------------------------------------------------------------
-  void Normalise::dump() const
+  // mean/median ratio, averaged over some low resolution bins
+  double Normalise::mmratio() const
+  {
+    MeanValue meanratio;
+    int totalcount = 0;
+    const int MINNUMBER = 1000;
+
+    for (int is=0;is<nrbin;is++) {         // loop resolution bins
+      if (mcount[is] > 0) {
+        if (totalcount > MINNUMBER) {break;}
+        float mnmedratio = mnI[is]/medianI[is];
+        meanratio.Add(mnmedratio);
+        totalcount += mcount[is];
+      }
+    }
+    return meanratio.Mean();
+  }
+  //--------------------------------------------------------------
+  void Normalise::dump(const std::string& filename)
   {
     // **** Open file for dumping  ****
     FILE* file;
-    std::string name = "norm.plot";
+    std::string name = filename;
+    if (filename == "") {
+      name = "norm.plot";
+    }
     file = fopen(name.c_str(), "w");
     if (file == NULL) {
       ReportErrors::printFatalError("Can't open file "+name);
     }
     fprintf(file,
-      "   sSqr      mnI      sdI     Icorr    Corr    IovSd     w<I>     unw<I>     N\n");
+      "   sSqr      mnI      sdI   medianI    Corr    IovSd  mean/median     N\n");
 
     for (int is=0;is<nrbin;is++) {         // loop resolution bins
       if (mcount[is] > 0) {
-        float Icorr = apply(mnI[is], mnsSqr[is]);
-        fprintf(file, " %8.4f %8.4f %8.4f %8.4f %8.4f %8.2f %8.4f %8.4f %8d\n",
-                mnsSqr[is], mnI[is], sdI[is],
-                Icorr, Corr(mnsSqr[is]), iovsig(is),
-                wmnI[is].Mean(), unwmnI[is].Mean(), mcount[is]);
+        // mean from removing extremes
+        float meanI  = mnI[is];
+        float mnmedratio = meanI/medianI[is];
+        fprintf(file,
+                "%8.4f %8.1f %8.2f %8.1f %8.4f %8.1f %8.3f  %8d\n",
+                mnsSqr[is], mnI[is], sdI[is], medianI[is],
+                Corr(mnsSqr[is]), iovsig(is),
+                mnmedratio, mcount[is]);
       }
     }
-    fprintf(file, "&\n");
 
     int status = fclose(file);
     status = status;
