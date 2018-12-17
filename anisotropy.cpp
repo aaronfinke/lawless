@@ -115,38 +115,61 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     bool OK = SetPrincipalDirectionsGeneral(hkl_list, datasetindex, SDM);
     if (OK) {
       status = true;
-      // case (1)
-      if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
-        // Low symmetry, get principal axes from anisotropic U tensor
-        lowsymmetry = true;
-        // case (2)
-      } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
-        principalaxes.assign(3, DVect3(0.0,0.0,0.0));
-        for (int i=0;i<3;++i) {
-          principalaxes[i][i] = 1.0;
-        }
-        // case (3)
-      } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
-                 || cryssys == HEXAGONAL) {
-        abplane = true;  // analysis against plane perpendicular to c*
-        principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
-
-        // Is it rhombohedral in R setting?
-        if (cryssys == TRIGONAL && RhombohedralAxes(hkl_list.Cell().UnitCell())) {
-          rlattice = true;
-          DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
-          principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
-        }
-        // case (4)
-      } else if (cryssys == CUBIC) {
-        cubic = true;
-        principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
-      } else { // shouldn't happen
-        Message::message(Message_fatal
-                         ("AnisotropicAnalysis: undefined Bravais lattice\n"));
+    }
+    //   Reset principal directions anyway
+    // case (1)
+    if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
+      // Low symmetry, get principal axes from anisotropic U tensor
+      lowsymmetry = true;
+      if (!OK) {
+        // set arbitrary axes
+        fakeaxes();
+        status = true;  // really?
       }
+    // case (2)
+    } else if (cryssys == ORTHORHOMBIC){  // orthorhombic, just set to a*, b*, c*
+      principalaxes.assign(3, DVect3(0.0,0.0,0.0));
+      for (int i=0;i<3;++i) {
+        principalaxes[i][i] = 1.0;
+      }
+    // case (3)
+    } else if (cryssys == TETRAGONAL || cryssys == TRIGONAL
+               || cryssys == HEXAGONAL) {
+      abplane = true;  // analysis against plane perpendicular to c*
+      principalaxes.assign(3, DVect3(0.0,0.0,1.0));  // all along c*
+
+      // Is it rhombohedral in R setting?
+      if (cryssys == TRIGONAL && RhombohedralAxes(hkl_list.Cell().UnitCell())) {
+        rlattice = true;
+        DVect3 diagonal = clipper::Coord_reci_frac(1.0,1.0,1.0).coord_reci_orth(ccell);
+        principalaxes.assign(3, diagonal.unit()); // all along diagonal, unit vector
+      }
+     // case (4)
+    } else if (cryssys == CUBIC) {
+      cubic = true;
+      principalaxes.assign(3, DVect3(0.0,0.0,0.0));  // dummy
+    } else { // shouldn't happen
+      Message::message(Message_fatal
+                       ("AnisotropicAnalysis: undefined Bravais lattice\n"));
     }
   }
+//--------------------------------------------------------------------------
+void AnisotropicAnalysis::fakeaxes()
+{
+  DVect3 astar(1.0,0.0,0.0);
+  DVect3 bstar(0.0,1.0,0.0);
+  DVect3 cstar(0.0,0.0,1.0);
+  DVect3 d1,d2,d3;
+  // d2 along b*
+  d2 = bstar;
+  d3 = DVect3::cross(astar, d2).unit();
+  d1 = DVect3::cross(d2, d3).unit();
+  principalaxes.resize(3);
+  principalaxes[0] = d1;
+  principalaxes[1] = d2;
+  principalaxes[2] = d3;
+  return;
+}
 //--------------------------------------------------------------------------
   //! initialise (for testing)
 void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
@@ -221,7 +244,7 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
   (const hkl_unmerge_list& hkl_list,
    const int& datasetindex,
    const SDmodel& SDM)
-  // set principalaxes from data
+  // set principal axes from data
   {
     bool OK = false;
     // merged list for given dataset
@@ -230,7 +253,7 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
       mergedlist.ImeanForDataset(datasetindex);
     // Store number of reflections used
     nreflused = isigi.num_obs();
-    const double MINIOVSIG = 0.5; // exclude very weak data
+    const double MINIOVSIG = 0.4; // exclude very weak data
     if (mergedlist.meanIovermeansigI() > MINIOVSIG) {
       // Get anisotropy
       orthogonalanisotropy.init(isigi);

@@ -16,6 +16,7 @@
 #include "hkl_unmerge.hh"
 #include "sdmodel.hh"
 #include "scalemodel.hh"
+#include "normalise.hh"
 
 namespace scala {
   // On entry:
@@ -24,6 +25,7 @@ namespace scala {
   //   AllScales   scale model just used to set Phi bins for I/sd cutoff
   //   IovSDmin    minimum value for  <I>/sd'(<I>), == 0 no test
   //                < 0 negative value from default, to be reset here 
+  //   NormRes     normalisation object
   //   E2min       minimum |E^2|, <= 0 no test
   //   E2max       maximum |E^2|, <= 0 no test
   //
@@ -36,6 +38,7 @@ namespace scala {
 					      const SDmodel& SDM,
 					      const ScaleModel& AllScales,
 					      double& IovSDmin,
+					      const Normalise& NormRes,
 					      const double& E2min, const double& E2max);
 }
 

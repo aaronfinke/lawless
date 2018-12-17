@@ -263,15 +263,15 @@ clipper::Vec3<int> IntVec(const clipper::Vec3<double>& vector)
           R(i,j) += y[n][i] * x[n][j];
         }}
     } // end loop observations
-    std::cout << "LsqT det[S] " << S.det() << "\n";
-    std::cout << "LsqT det[R] " << R.det() << "\n";
+    //    std::cout << "LsqT det[S] " << S.det() << "\n";
+    //    std::cout << "LsqT det[R] " << R.det() << "\n";
 
     if (AvoidPlanar) {
       if (S.det() < THRESHOLD || R.det() < THRESHOLD) {
         // Add in a few cross-product vectors
         const int KSAMPLE = 20;   // 5%
         int nadd = Max(1,int(x.size())/KSAMPLE);
-        std::cout << "Adding cross-vectors " << nadd <<"\n";
+        //        std::cout << "Adding cross-vectors " << nadd <<"\n";
         int ninc = x.size()/(2*nadd);  // increment for index
         int n = 0; // 1st of pair
         int m = x.size()-1; // 2nd of pair

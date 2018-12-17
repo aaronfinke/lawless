@@ -80,7 +80,7 @@ float EProb::CentricEmax(const float& emaxacen) const
       e = e + step;
     }
   }
-  // If we fall out iof the end, this answer is near enough
+  // If we fall out of the end, this answer is near enough
   double ecen = Min(e - 0.5*step, MAXIMUM_EMAX_CENTRIC);
   return float(ecen);
 }
@@ -99,6 +99,25 @@ bool EProb::TooBig(const float& E2, const bool& Centric) const
       return (E2 < -NEGATIVE_EMAX2_RATIO*emaxcentric2);
     } else {
       return (E2 < -NEGATIVE_EMAX2_RATIO*emaxacen2);
+    }
+  }
+}
+// ------------------------------------------------------------
+//! return true if E > limits, multiplied by factor
+bool EProb::TooBig(const float& E2, const bool& Centric,
+                   const float& factor) const
+{
+  if (E2 > 0.0) { // normal positive E^2
+    if (Centric) {
+      return (E2 > emaxcentric2*factor);
+    } else {
+      return (E2 > emaxacen2*factor);
+    }
+  } else { // test for very negative E^2
+    if (Centric) {
+      return (E2 < -NEGATIVE_EMAX2_RATIO*emaxcentric2*factor);
+    } else {
+      return (E2 < -NEGATIVE_EMAX2_RATIO*emaxacen2*factor);
     }
   }
 }

@@ -13,6 +13,7 @@
 
 #include "hkl_unmerge.hh"
 #include "controls.hh"
+#include "normalise.hh"
 
 namespace scala {
   // ------------------------------------------------------------
@@ -26,7 +27,8 @@ namespace scala {
   // returns number of reflections accepted
   int SelectSDcorrReflections(hkl_unmerge_list& hkl_list,
 			      const all_controls& controls,
-			      const int& Nbintarget);
+                              const int& Nbintarget,
+			      const Normalise& NormRes);
 
 }
 #endif

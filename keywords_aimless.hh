@@ -588,7 +588,7 @@ namespace phaser_io {
     // MinimumHalfdatasetAnomCC  minimum CCanom for resolution warning
     // MinimumIoverSigma          minimum <<I>/sd(<I>)> for resolution warning
     // MinimumBatchIoverSigma     minimum <I/sd(I)> for resolution warning by batch, from unmerged I
-    // SmoothStatisticsRange angle in degrees over which (roghly) to smooth
+    // SmoothStatisticsRange angle in degrees over which (roughly) to smooth
     //            batch statistics, <0 to default to automatic setting,
     // BatchGroupRange        phi range for grouping batches in analysis
     //
@@ -663,6 +663,23 @@ namespace phaser_io {
 
     void setXMLOUT(const std::string& Name) {name = Name;}
     std::string getXMLOUT() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
+  //--------------------------------------------------------------
+  class ROGUES : public InputBase, virtual public CCP4base
+  {
+    // Syntax: ROGUES <filename>
+  public:
+    ROGUES();
+    virtual ~ROGUES() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setROGUES(const std::string& Name) {name = Name;}
+    std::string getROGUES() const {return name;}
     void analyse(){}
 
   private:

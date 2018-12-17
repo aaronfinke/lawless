@@ -175,18 +175,21 @@ namespace scala
   //  1     2     outside (possibly volatile) resolution limits eg within run
   //  2     4     outlier (deviation too large): within I+ or I- set
   //  3     8     outlier (deviation too large): between I+ & I- sets
-  //  4    16     > Emax limit
-  //  5    32     too strong for scaling   (also Emax)
-  //  6    64     too weak for scaling     (Emin)
-  //  7   128     overlapped multiple spot to be excluded
-  //  8   256     rejected by run
-  //  9   512     rejected by batch
-  // 10  1024     discrepant outlier not rejected (just two observations)
+  //  4    16     > Emax limit, rejected
+  //  5    32     > Emax limit, kept
+  //  6    64     too strong for scaling   (also Emax)			 
+  //  7   128     too weak for scaling     (Emin)			 
+  //  8   256     overlapped multiple spot to be excluded		 
+  //  9   512     rejected by run					 
+  // 10  1024     rejected by batch					 
+  // 11  2048	  discrepant outlier not rejected (just two observations)
   {
   public:
-    enum ObsStatusFlag {OBSSTAT_FLAG=1, OBSSTAT_RESOLUTION=2, OBSSTAT_OUTLIER=4, OBSSTAT_OUTLIERANOM=8,
-			OBSSTAT_EMAX=16, OBSSTAT_STRONG=32, OBSSTAT_WEAK=64, OBSSTAT_OVERLAP=128,
-			OBSSTAT_RUN=256, OBSSTAT_BATCH=512, OBSSTAT_DEVIANT=1024};
+    enum ObsStatusFlag {OBSSTAT_FLAG=1, OBSSTAT_RESOLUTION=2, OBSSTAT_OUTLIER=4,
+			OBSSTAT_OUTLIERANOM=8,
+			OBSSTAT_EMAX=16, OBSSTAT_EMAX_OK=32,
+			OBSSTAT_STRONG=64, OBSSTAT_WEAK=128, OBSSTAT_OVERLAP=256,
+			OBSSTAT_RUN=512, OBSSTAT_BATCH=1024, OBSSTAT_DEVIANT=2048};
 
     ObservationStatus() :bitflags(0){}
     ObservationStatus(const unsigned int& flags) :bitflags(flags){}
@@ -205,6 +208,9 @@ namespace scala
     bool IsOKforRogues() const;
 
     unsigned int Bitflags() const {return bitflags;}
+
+    // add in status
+    ObservationStatus mergestatus(const ObservationStatus& status) const;
 
     // ObsFlag acceptance
     void SetObsFlag() {bitflags |= OBSSTAT_FLAG;}  // set
@@ -227,10 +233,15 @@ namespace scala
     void UnsetOutlierAnom() {bitflags &= (wordmask-OBSSTAT_OUTLIERANOM);}
     bool TestOutlierAnom() const {return (bitflags & OBSSTAT_OUTLIERANOM) != 0;}
 
-    // Too large, E > Emax
+    // Too large, E > Emax, rejected
     void SetEmax() {bitflags |= OBSSTAT_EMAX;}
     void UnsetEmax() {bitflags &= (wordmask-OBSSTAT_EMAX);}
     bool TestEmax() const {return (bitflags & OBSSTAT_EMAX) != 0;}
+
+    // Too large, E > Emax, kept
+    void SetEmaxOK() {bitflags |= OBSSTAT_EMAX_OK;}
+    void UnsetEmaxOK() {bitflags &= (wordmask-OBSSTAT_EMAX_OK);}
+    bool TestEmaxOK() const {return (bitflags & OBSSTAT_EMAX_OK) != 0;}
 
     // Too strong for scaling
     void SetTooStrong() {bitflags |= OBSSTAT_STRONG;}

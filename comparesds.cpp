@@ -190,8 +190,8 @@ namespace scala {
                   StringUtil::itos(minimumsample,2)+" observations\n");
 
     //^
-      std::cout << "Msq " << csq1.Mean()<<" : "<< csq2.Mean()<<" : "
-                << csq3.Mean()<<" : N " << csq1.Count()<<  std::endl;
+    //      std::cout << "Msq " << csq1.Mean()<<" : "<< csq2.Mean()<<" : "
+    //                << csq3.Mean()<<" : N " << csq1.Count()<<  std::endl;
 
     TableGraph table(" Compare SD estimates by resolution");
     table.StoreID("Graph-CompareSDsVsResolution");

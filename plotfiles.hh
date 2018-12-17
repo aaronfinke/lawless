@@ -107,6 +107,7 @@ public:
   std::string format() const;
 
 private:
+  std::string titlestring;   // Table title
   std::string headerstring;  // for header stuff (<plot> etc)
   std::string datastring;    // for the data tables (<data>)
   std::vector<std::string> dataIDs; // ID string for each set of data/plotline
@@ -276,8 +277,9 @@ public:
   void End();
 
   // Plot outlier point
-  //  s    diffraction vector in diffratometer frame, 1/A units
-  void PlotOutlier(const FVect3& s);
+  //  s       diffraction vector in diffratometer frame, 1/A units
+  //  pclass   = 1 outlier, = 2 outlierAnom, = 3 Emax
+  void PlotOutlier(const FVect3& s, const int& pclass=0);
 
   std::string formatXML() const {return xmlplot.format();}
 
@@ -285,6 +287,9 @@ private:
   FILE* file;
   XMGRACE xmgrplot;
   XMLplot xmlplot;
+  std::vector<float> x;
+  std::vector<float> y;
+  std::vector<int> sclass;  // = 1 outlier, = 2 outlierAnom, = 3 Emax
 };
 //--------------------------------------------------------------
 #endif

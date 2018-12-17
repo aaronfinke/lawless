@@ -266,7 +266,8 @@ namespace scala
                               "\nFor SD optimisation, number of outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
                               nrejs[0], nrejs[1], nrejs[2]);
           // Select subset of reflections to speed up optimisation
-          int nacc = SelectSDcorrReflections(hkl_list, controls, NintensBinTarget);
+          int nacc = SelectSDcorrReflections(hkl_list, controls,
+                                             NintensBinTarget, NormRes);
           output.logTabPrintf(0,LOGFILE,
                               "\n%7d reflections selected for SD optimisation out of %8d in file\n",
                               nacc, hkl_list.num_reflections());

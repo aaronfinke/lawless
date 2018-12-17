@@ -29,6 +29,11 @@ public:
   //! return true if E > limits
   bool TooBig(const float& E2, const bool& Centric) const;
 
+  //! return true if E > limits, multiplied by factor
+  bool TooBig(const float& E2, const bool& Centric,
+	      const float& factor) const;
+
+
   std::string format() const;
 
   std::string formatXML() const;

@@ -317,22 +317,32 @@ namespace scala
   }
 //--------------------------------------------------------------
   // true is OK or outlier or > Emax (ie suitable for Rogues file)
+  // rejected or kept
   bool ObservationStatus::IsOKforRogues() const {
     if (bitflags == 0) return true;
     const unsigned int ROGUES_FLAG =
-      OBSSTAT_OUTLIER & OBSSTAT_OUTLIERANOM & OBSSTAT_EMAX &
+      OBSSTAT_OUTLIER & OBSSTAT_OUTLIERANOM &
+      OBSSTAT_EMAX & OBSSTAT_EMAX_OK &
       OBSSTAT_STRONG & OBSSTAT_WEAK & OBSSTAT_DEVIANT;
     return (bitflags & ROGUES_FLAG) == 0;
   }
   //--------------------------------------------------------------
-    //  accepted if no status bits are set (except DEVIANT)
+    //  accepted if no status bits are set (except DEVIANT & EMAX_OK)
   bool ObservationStatus::IsAccepted() const
   {
     if (bitflags == 0) {
       return true;
     }
-    const unsigned int ACCEPT_MASK = wordmask-OBSSTAT_DEVIANT;
+    const unsigned int ACCEPT_MASK =
+      wordmask - (OBSSTAT_DEVIANT | OBSSTAT_EMAX_OK);
     return ((bitflags & ACCEPT_MASK) == 0) ;
+  }
+  //--------------------------------------------------------------
+  // add in status
+  ObservationStatus ObservationStatus::mergestatus(const ObservationStatus& status) const
+  {
+    unsigned int bitstatus = (bitflags | status.Bitflags());
+    return bitstatus;
   }
   //--------------------------------------------------------------
   // Format for debugging
@@ -348,6 +358,7 @@ namespace scala
     if (TestOutlier()) {s += "|OBSSTAT_OUTLIER";}
     if (TestOutlierAnom()) {s += "|OBSSTAT_OUTLIERANOM";}
     if (TestEmax()) {s += "|OBSSTAT_EMAX";}
+    if (TestEmaxOK()) {s += "|OBSSTAT_EMAX_OK";}
     if (TestTooStrong()) {s += "|OBSSTAT_STRONG";}
     if (TestTooWeak()) {s += "|OBSSTAT_WEAK";}
     if (TestRejectOverlap()) {s += "|OBSSTAT_OVERLAP";}

@@ -454,7 +454,7 @@ namespace scala {
     if (selobs.Number() < 2) {return;}
 
     if ((mres < 0) || (mres >= meanI.size())) {
-      std::cout << "CCcum mres "<<mres <<"\n";
+      //      std::cout << "CCcum mres "<<mres <<"\n";
       ASSERT (!((mres < 0) || (mres >= meanI.size())));
     }
     // List of (I, weight, Batch)

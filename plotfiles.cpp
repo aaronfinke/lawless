@@ -6,11 +6,13 @@
 #include "file_util.hh"
 #include "jiffy.hh"
 #include "icering.hh"
+#include "report_errors.hh"
 
 // Clipper
 #include <clipper/clipper.h>
-using clipper::Message;
-using clipper::Message_fatal;
+//using clipper::Message;
+//using clipper::Message_fatal;
+
 
 //--------------------------------------------------------------
 PlotSample::PlotSample(const int& Npoints, const int& maxPointDensity,
@@ -324,10 +326,12 @@ RoguePlot::RoguePlot(const std::string& FileName,
 {
   file = OpenFile(FileName, true);  // open write file
 
+  x.clear(); y.clear(); sclass.clear();  // clear arrays
+
   double dstar = wavelength*sqrt(Smax);   // rlu
   float radius = RingRadius(dstar);
-  float legx = radius*0.5;
-  float legy = -radius*0.9;
+  float legx = 0.0;
+  float legy = 0.0;
   xmgrplot.Header(file, "Outliers on detector (horizontal rotation axis)",
                   Title, -radius, +radius, -radius, +radius,
                   0.6, 0.75,
@@ -377,23 +381,59 @@ RoguePlot::RoguePlot(const std::string& FileName,
 // ------------------------------------------------------------
 void RoguePlot::Start()
 {
-  // Start points, symbols, no line
-  int lcol = 1;
-  xmgrplot.Line("", lcol, -1, false);
-  xmlplot.StartLine("", 0, 0, lcol);
+  // Nothing done here, all plotting in function "End"
+
 }
 // ------------------------------------------------------------
 void RoguePlot::End()
 {
-  xmgrplot.EndLine();
+  ASSERT ((x.size() == y.size()) &&  (y.size() == sclass.size()));
+  // Do plots for each class
+  // Do we have members of each class?
+  std::vector<int> numinclass(3,0);
+  for (size_t k=0; k<sclass.size(); k++) {
+    if (sclass[k] > 0 && sclass[k] <= 3) {
+      numinclass[sclass[k]-1]++;
+    } else {
+      // shouldn't happen
+      ReportErrors::printFatalError("RoguePlot::End invalid class");
+    }
+  }
+
+  // Loop classes 1,2,3
+  std::string legend;
+  for (int j=1;j<=3;++j){
+    if (numinclass[j-1] > 0) {
+      // Start points, symbols, no line
+      int lcol = j;  // colour
+      if (j == 1) {
+        legend = "Outlier";
+      } else if (j == 2) {
+        legend = "AnomOutlier";
+      } else if (j == 3) {
+        legend = "Emax";
+      }
+      xmgrplot.Line(legend, lcol, -1, false);
+      xmlplot.StartLine(legend, 0, 0, lcol);
+      for (size_t k=0; k<sclass.size(); k++) {
+        if (sclass[k] == j) {
+          // a point in this class
+          xmgrplot.Point("%10.4f %10.4f\n", x[k], y[k]);
+          xmlplot.Point(x[k], y[k], 10, 4);
+        }
+      }
+      xmgrplot.EndLine();
+      xmlplot.EndLine();
+    }
+  }
   xmgrplot.ClosePlot(0.0, false);
-  xmlplot.EndLine();
   xmlplot.ClosePlot();
 }
 // ------------------------------------------------------------
-void RoguePlot::PlotOutlier(const FVect3& s)
+void RoguePlot::PlotOutlier(const FVect3& s, const int& pclass)
 // Plot outlier point
 //  s    diffraction vector in diffractometer frame, rlu
+//  pclass   = 1 outlier, = 2 outlierAnom, = 3 Emax
 {
   double dstar = sqrt(s*s);
   double theta = asin(0.5*dstar);
@@ -401,8 +441,9 @@ void RoguePlot::PlotOutlier(const FVect3& s)
 
   float ydn = sc * s[1];  // y
   float zdn = sc * s[2];  // z
-  xmgrplot.Point("%10.4f %10.4f\n", zdn, ydn);
-  xmlplot.Point(zdn, ydn, 10, 4);
+  x.push_back(zdn);
+  y.push_back(ydn);
+  sclass.push_back(pclass);
 }
 //--------------------------------------------------------------
 void XMLplot::Header(const std::string& title,
@@ -428,7 +469,7 @@ void XMLplot::Header(const std::string& title,
   dataIDs.clear();
 
   // Title
-  headerstring = "<CCP4Table title=\""+title+"\">\n";
+  titlestring = "<CCP4Table title=\""+title+"\">\n";
   headerstring += "<plot>\n";  // start plot
   headerstring += "<title>"+title+"</title>\n";
 
@@ -466,7 +507,8 @@ void XMLplot::StartLine(const std::string& legend,
 // Symbol    !=0 draw symbols, if < 0 use default symbol,
 //            >0 use specified symbol
 {
-  // If legend is blank don't add a dataid
+  // If legend is blank don't add a dataid to plotline
+  dataIDs.push_back(legend);
   if (legend == "") {
     headerstring += "<plotline xcol=\"1\" ycol=\"2\">\n";
   } else {
@@ -602,7 +644,7 @@ std::string XMLplot::LineStyle(const int& linestyle) const
 std::string XMLplot::format() const
 // return formatted XML
 {
-  return headerstring + datastring + "\n</CCP4Table>\n";
+  return titlestring + datastring + headerstring + "\n</CCP4Table>\n";
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------

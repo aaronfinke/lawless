@@ -30,6 +30,7 @@ namespace phaser_io {
     public ANALYSIS,
     public INITIAL,
     public XMLOUT,
+    public ROGUES,
     public HKLIN,
     public HKLOUT,
     public HKLREF,

@@ -1764,6 +1764,21 @@ Token_value XMLOUT::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+ROGUES::ROGUES() : CCP4base(), InputBase()
+{
+  Add_Key("ROGUES");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value ROGUES::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Unquote(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
 HKLIN::HKLIN() : CCP4base(), InputBase()
 {
   Add_Key("HKLIN");
