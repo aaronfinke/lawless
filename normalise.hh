@@ -9,7 +9,7 @@
 #include "spline.hh"
 #include "icering.hh"
 #include "score_datatypes.hh"
-#include <median.hh>
+#include "median.hh"
 
 #define ASSERT assert
 #include <assert.h>
