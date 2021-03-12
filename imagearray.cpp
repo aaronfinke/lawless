@@ -161,12 +161,12 @@ void Imagearray::ReadFile(const std::string& filename)
 //! Read ADSC image file
 {
   FILE* infile = OpenFile(filename, false, true); // binary read
-  char cheader[lenheader+1];  // buffer for header
-  int nread = fread(cheader, sizeof(char), lenheader, infile);
+  std::vector<char> cheader(lenheader+1);  // buffer for header
+  int nread = fread(cheader.data(), sizeof(char), lenheader, infile);
   ASSERT (nread == lenheader);
   cheader[lenheader] = '\0';
 
-  clipper::String header(cheader);
+  clipper::String header(cheader.data());
   //  std::cout << header <<"\n";
   // Split on "\n"
   std::vector<clipper::String> lines = header.split("\n");

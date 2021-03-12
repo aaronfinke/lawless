@@ -8,6 +8,10 @@
 #include "jiffy.hh"
 #include "string_util.hh"
 
+#ifdef _MSC_VER
+#include <ciso646>
+#endif 
+
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
 using phaser_io::itos;
