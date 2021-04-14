@@ -247,9 +247,13 @@ namespace scala
     else if (nc == 1) return allwavelengths[0];
     // We have 2 or more,average
     double sumwavelength = 0.0;
+    nc = 0;
     for (size_t k=0; k<allwavelengths.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
-        sumwavelength += allwavelengths[k];
+        if (allwavelengths[k] > 0.0) {
+          nc++;
+          sumwavelength += allwavelengths[k];
+        }
       }
     }
     return double(sumwavelength/double(nc));

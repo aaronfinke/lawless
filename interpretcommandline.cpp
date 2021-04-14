@@ -96,7 +96,8 @@ InterpretCommandLine::InterpretCommandLine(Preprocessor& CommandLine,
         else if (stoup(fields[ifld]) == "HKLOUT") {
           HkloutName = fields[++ifld];
         }
-        else if (stoup(fields[ifld]) == "HKLOUTUNMERGED") {
+        else if ((stoup(fields[ifld]) == "UNMERGEDOUT")|
+                 (stoup(fields[ifld]) == "HKLOUTUNMERGED")) {
           HkloutUnmergedName = fields[++ifld];
         }
         else if (stoup(fields[ifld]) == "SCALEPACK") {

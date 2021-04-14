@@ -1551,6 +1551,8 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
 // Syntax:
 //  OUTPUT [MTZ] [NO]MERGED | UNMERGED [SPLIT | TOGETHER]
 //        [SCALEPACK (aka POLISH) MERGED | UNMERGED]
+//        [ORIGINAL | REDUCED]
+//
 // Scalepack output is always split
 {
   bool mtz = true;  // reading keywords for MTZ
@@ -1603,6 +1605,10 @@ Token_value OUTPUT::parse(std::istringstream& input_stream)
         } else { // MTZ UNMERGED SPLIT
           isplitmtzunmerged = -1;
         }
+      } else if (keyIs("ORIGINAL")) {
+        outputcontrols.originalHKL() = true;
+      } else if (keyIs("REDUCED")) {
+        outputcontrols.originalHKL() = false;
       } else {
           ReportSyntaxError
             (keywords, "OUTPUT: unrecognised keyword");
@@ -1804,6 +1810,21 @@ HKLOUT::HKLOUT() : CCP4base(), InputBase()
 }
 //--------------------------------------------------------------
 Token_value HKLOUT::parse(std::istringstream& input_stream)
+{
+  name = StringUtil::Unquote(getLine(input_stream));
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+UNMERGEDOUT::UNMERGEDOUT() : CCP4base(), InputBase()
+{
+  Add_Key("UNMERGEDOUT");
+  name = "";
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value UNMERGEDOUT::parse(std::istringstream& input_stream)
 {
   name = StringUtil::Unquote(getLine(input_stream));
   return ENDLINE;
@@ -2032,6 +2053,43 @@ Token_value LINK::parse(std::istringstream& input_stream)
       // may have LINK ALL (linkall true)
       linkspecs.addUnlink(runs2);
     }
+  }
+
+  return ENDLINE;
+}
+//--------------------------------------------------------------
+PLOT::PLOT() : CCP4base(), InputBase()
+{
+  Add_Key("PLOT");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+  xmgroutput = true;
+}
+//--------------------------------------------------------------
+Token_value PLOT::parse(std::istringstream& input_stream)
+// Option to suppress XMgrace file output
+//    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
+//
+// Syntax: PLOT [NOXMGR]
+{
+  bool OK = true;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("NOXMGR")) {
+        xmgroutput = false;
+      } else if (keyIs("XMGR")) {
+        xmgroutput = true;
+      } else {
+        OK = false;
+      }
+    } else {
+      OK = false;
+    }
+  }
+  if (!OK) {
+    throw SyntaxError(keywords,
+                      "Unrecognised keyword, should be NOXMGR | XMGR");
   }
 
   return ENDLINE;

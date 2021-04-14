@@ -33,11 +33,13 @@ namespace phaser_io {
     public ROGUES,
     public HKLIN,
     public HKLOUT,
+    public UNMERGEDOUT,
     public HKLREF,
     public LABREF,
     public XYZIN,
     public USESDPARAMETER,
-    public LINK
+    public LINK,
+    public PLOT
   {
   public:
     InputAll(Preprocessor&); 

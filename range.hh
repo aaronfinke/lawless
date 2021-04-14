@@ -26,7 +26,7 @@ namespace scala
     // Rfirst & Rlast will be swapped if necessary so that Rfirst < Rlast
     //  unless Ascending == false
     Range(const double& Rfirst, const double& Rlast,
-	  const bool& Ascending=true, const int& Nbin=0);
+	  const bool& Ascending=true, const int& Nbin=1);
 
     Range(const IntRange& intrange); // construct from an IntRange
 

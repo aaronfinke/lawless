@@ -192,8 +192,12 @@ int main(int argc, char* argv[])
     if (input.getHKLOUT() != "") {
       hklout_filename = input.getHKLOUT();
     }
+    std::string hkloutunmerged_filename = CL.getHKLOUTUNMERGED();
+    if (input.getUNMERGEDOUT() != "") {
+      hkloutunmerged_filename = input.getUNMERGEDOUT();
+    }
 
-    outputcontrols.SetFilenames(hklout_filename, CL.getHKLOUTUNMERGED(),
+    outputcontrols.SetFilenames(hklout_filename, hkloutunmerged_filename,
                                 CL.getSCAOUT(), CL.getSCAOUTUNMERGED());
 
     //  Setup up controls for reflection & column selection etc
@@ -246,6 +250,8 @@ int main(int argc, char* argv[])
 
     // Make list of required columns in unmerged HKLIN file
     MtzIO::column_labels column_list = MtzIO::setup_columns();
+
+    controls.plotcontrol.xmgraceoutput = input.XMGRoutput();
 
     //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
     // Construct reflection list by reading MTZ file
@@ -1006,7 +1012,8 @@ int main(int argc, char* argv[])
 
       WriteRogues RoguesList(roguesfilename, true, doRoguePlot, multilattice,
                              runTitle, hkl_list.Srange().max(), wavelength,
-                             controls.outlierMerge);
+                             controls.outlierMerge,
+                             controls.plotcontrol.xmgraceoutput);
       //  hkl_list is updated for status, but SDs are not changed
       RejectOutlier(hkl_list, SD_model, NormRes,
                     controls.anomalouscontrol.Anomalous,
@@ -1179,6 +1186,10 @@ int main(int argc, char* argv[])
       scala::WriteUnmergedOutputFiles(runTitle, hkl_list, SD_model,
                                       NormRes.Imax(), outputcontrols, output);
     }
+    // Record output options to XML
+    outputcontrols.recordToXML(output);
+
+
   }  // end try
 
 

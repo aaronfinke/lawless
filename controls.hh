@@ -484,6 +484,16 @@ public:
   int anomNbinthreshold;
 };
 //=================================================================
+class PlotControl
+// Controls correlation plots and scatterplots 
+{
+ public:
+  PlotControl() : xmgraceoutput(true) {}
+
+  bool xmgraceoutput;  // true to output .xmgr files
+
+ };
+//=================================================================
 class all_controls
 // all controls to store in hkl list
 //  - run controls
@@ -506,6 +516,7 @@ public:
   AnomalousControl anomalouscontrol;
   DatasetControl datasetcontrol;
   PolarizationControl polarizationcontrol;
+  PlotControl plotcontrol;
 }; // all_controls
 }  // namespace scala
 #endif

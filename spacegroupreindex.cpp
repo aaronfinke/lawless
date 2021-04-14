@@ -22,6 +22,7 @@ namespace scala {
   {
     sameintensitygroup = false;
     samereferencegroup = false;
+    samepointgroup = false;
     reindex = ReindexOp(); // h,k,l
 
     // from space group
@@ -58,26 +59,33 @@ namespace scala {
     if (from_SG_ref == to_SG_ref) {
       samereferencegroup = true;
     }
-      //      std::string message =
-      //        CCtbxSym::SpaceGroupName(from_SG_ref.type(), 'H')+
-      //        " has different reference setting from "+
-      //        CCtbxSym::SpaceGroupName(to_SG_ref.type(), 'H')+"\n";
-      //^std::cout <<"Message: "<<message<<"\n";
-      //      Message::message(Message_warn(message));
-      //      throw Message_warn(message);
+    //      std::string message =
+    //        CCtbxSym::SpaceGroupName(from_SG_ref.type(), 'H')+
+    //        " has different reference setting from "+
+    //        CCtbxSym::SpaceGroupName(to_SG_ref.type(), 'H')+"\n";
+    //^std::cout <<"Message: "<<message<<"\n";
+    //      Message::message(Message_warn(message));
+    //      throw Message_warn(message);
 
-      // We want the transformation from HKLIN to input
-      reindex = CCtbxSym::SetReindexOp(ChB_ref_to.inverse() * ChB_ref_from);
+    // We want the transformation from HKLIN to input
+    reindex = CCtbxSym::SetReindexOp(ChB_ref_to.inverse() * ChB_ref_from);
 
-      ////    } // same reference group
+    ////    } // same reference group
 
     // Test for same intensity group
     bool anom = false;  // ignore anomalous
     sgtbx::space_group from_IG = from_SG.build_derived_reflection_intensity_group(anom);
     sgtbx::space_group to_IG = to_SG.build_derived_reflection_intensity_group(anom);
+    // Point groups
+    sgtbx::space_group from_PG = from_SG.build_derived_point_group();
+    sgtbx::space_group to_PG = to_SG.build_derived_point_group();
 
     if (from_IG == to_IG) {
       sameintensitygroup = true;
+    }
+
+    if (from_PG == to_PG) {
+      samepointgroup = true;
     }
   }
   //--------------------------------------------------------------
@@ -110,8 +118,8 @@ namespace scala {
     // Get reindex operator if needed
     SpacegroupReindexOp sgreindex(HKLIN_SGname, Input_SGname);
 
+    Reindex = sgreindex.Reindex();
     if (sgreindex.sameIntensityGroup()) {
-      Reindex = sgreindex.Reindex();
       if (Reindex.IsIdentity()) {
         output.logTab(0,LOGFILE,
                       "\nNo reindexing needed to convert from space group "
@@ -129,7 +137,6 @@ namespace scala {
       return false;
       */
     } else if (sgreindex.sameReferenceGroup()) {
-      Reindex = sgreindex.Reindex();
       // eg C2 <-> I2, H3 <-> R3
       int AllowI2 =  GC.AllowI2();
       if (NewSymm.lattice_type() != 'I') {

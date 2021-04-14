@@ -171,15 +171,33 @@ namespace scala
   // Rotation only!
   {
     std::string fmat = "   h'   = ( h k l ) (";
-    for (int i=0;i<3;i++)
-      {
-        if (i > 0) fmat += "                    (";
-        for (int j=0;j<3;j++)
-          {
+    for (int i=0;i<3;i++) {
+      if (i > 0) fmat += "                    (";
+      for (int j=0;j<3;j++) {
             fmat += " "+String(rot()(i,j),7,4);
-          }
-        fmat += " )\n";
       }
+      fmat += " )\n";
+    }
+    return fmat;
+  }
+  //--------------------------------------------------------------
+  std::string ReindexOp::as_xyz_matrix() const
+  // Rotation only!
+  //    Reindex for real space is inverse
+  //        hT [H] [H]^-1 x
+  //   ie transform   h'T = hT [H]
+  //         but      x'  = [H]^-1 x
+  {
+    clipper::Mat33<double> Hinv = rot().inverse();
+     std::vector<std::string> xyz = {"x","y","z"};
+    std::string fmat =   "      (x')   =  (";
+    for (int i=0;i<3;i++) {
+      if (i > 0) fmat += "      ("+xyz[i]+"')      (";
+      for (int j=0;j<3;j++) {
+            fmat += " "+String(Hinv(i,j),5,2);
+      }
+      fmat += " )  ("+xyz[i]+")\n";
+    }
     return fmat;
   }
   //--------------------------------------------------------------
@@ -297,12 +315,26 @@ namespace scala
     //    std::cout <<  "ReindexOp::Symop, HR\n"<<HR.format()<<
     //      "\nHRinverse\n"<<HR.inverse().format()<<
     //      "\nsymop.rot\n"<<symop.rot().format()<<
+    //      "\nsymop.trn\n"<<symop.trn().format()<<
     //      "\nHRinv.S\n"<<(HR.inverse()*symop.rot()).format()<<"\n"
     //      "\nHRinv.S.HR\n"<<((HR.inverse()*symop.rot())*HR).format()<<"\n";
     //    std::cout <<"Sp\n"<<Sp.format()<<"\n";
     //    std::cout <<"new symop\n"<<clipper::Symop(Sp).format()<<"\n";
 
     return clipper::Symop(Sp);
+  }
+  //--------------------------------------------------------------
+  bool ReindexOp::isCyclic() const
+  // true if Op is a cyclic permutation, ie hkl,klh, or lhk (no negatives)
+  {
+    if (IsTranslation()) {
+      return false;
+    }
+    std::string rdx = as_hkl();
+    if ((rdx=="[h,k,l]") || (rdx=="[k,l,h]") || (rdx=="[l,h,k]")) {
+      return true;
+    }
+    return false;
   }
   //--------------------------------------------------------------
   bool operator == (const ReindexOp& a,const ReindexOp& b)

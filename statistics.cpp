@@ -1148,8 +1148,10 @@ namespace scala {
     }
 
     // Correlplot
-    std::string s = halfDatasetScores.PlotCorrel();
-    if (s != "") {
+    // plotxmgr true to write xmgr file
+    bool plotxmgr = controls.plotcontrol.xmgraceoutput;
+    std::string s = halfDatasetScores.PlotCorrel(plotxmgr);
+    if (s != "") {  // XML plot
       output.logTab(0,LXML,s);
     }
 

@@ -3,6 +3,7 @@
 
 #include "globalcontrols.hh"
 #include "scala_util.hh"
+#include "string_util.hh"
 
 namespace scala
 {
@@ -20,6 +21,7 @@ namespace scala
     scaoutputtype = NONE;      // no scalepack-format
     splitmerged = true;    // true to split multiple datasets into separate merged files
     splitunmerged = true;  // true to split multiple datasets into separate unmerged files
+    originalhkl = false;  // reduced indices in unmerged output
   }
   //------------------------------------------------------------
   void OutputControls::SetMTZoutputType(const OutputType& outputtype) // set
@@ -154,6 +156,57 @@ namespace scala
     return FileNameNoExtension(name)+"_"+datasetname+"."+ext;
   }
   //------------------------------------------------------------
+  //------------------------------------------------------------
+  void OutputControls::recordToXML(phaser_io::Output& output) const
+  // write output  file info to XML
+  {
+    output.logTab(0,LXML,"<OutputFiles>");
+    // enum OutputType {NONE, MERGED, UNMERGED, BOTH};
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("OutputType",
+                  typestring(mtzoutputtype)));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("SCAOutputType",
+                  typestring(scaoutputtype)));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("MTZmergedfilename",
+                                         mtzmergedfilename));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("MTZunmergedfilename",
+                                         mtzunmergedfilename));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("SCAmergedfilename",
+                                         scamergedfilename));
+    output.logTab(0,LXML,
+                  StringUtil::MakeXMLtag("SCAunmergedfilename",
+                                         scaunmergedfilename));
+    std::string tf = "False";
+    if (splitmerged) {tf = "True";}
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("SplitMerged", tf));
+    tf = "False";
+    if (splitunmerged) {tf = "True";}
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("SplitUnmerged", tf));
+    tf = "False";
+    if (originalhkl) {tf = "True";}
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("OriginalHKL", tf));
+    output.logTab(0,LXML,"</OutputFiles>");
+  }
+  //------------------------------------------------------------
+  std::string OutputControls::typestring(const OutputType& otype) const
+  {
+    // enum OutputType {NONE, MERGED, UNMERGED, BOTH};
+    std::string s = "";
+    if (otype == NONE) {
+      s = "NONE";
+    } else if (otype == MERGED) {
+      s = "MERGED";
+    } else if (otype == UNMERGED) {
+      s = "UNMERGED";
+    } else if (otype == BOTH) {
+      s = "BOTH";
+    }
+    return s;
+  }
   //------------------------------------------------------------
   ScoreAccept::ScoreAccept(const double& AcceptanceFraction,
                            const double& MaximumScore)

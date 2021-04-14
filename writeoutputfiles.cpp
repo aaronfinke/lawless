@@ -66,9 +66,19 @@ namespace scala {
                         "\n==== Writing unmerged data for all datasets to file "+
                         filename);
         }
+        bool originalhkl =  outputcontrols.originalHKL();
+        if (originalhkl) {
+          output.logTab(0, LOGFILE,
+                        "\nOriginal hkl indices are output, with ISYM == 1");
+        } else {
+          output.logTab(0, LOGFILE,
+            "\nReduced unique hkl indices are output, with ISYM as in input file");
+        }
+        output.logTab(0, LOGFILE, "  ");
         MtzIO::WriteUnmerged unmergedoutput;
         int nref =
-          unmergedoutput.writeUnmergedMTZ(hkl_list, SDM, summedpartials, datasetindex,
+          unmergedoutput.writeUnmergedMTZ(hkl_list, SDM, summedpartials,
+                                          originalhkl, datasetindex,
                                           filename, title);
         output.logTabPrintf(0, LOGFILE,
                             "\nNumber of observations written = %8d\n", nref);

@@ -79,6 +79,8 @@ namespace scala
   //  SDM        SD correction model
   //  hkl_list   reflection data
   //  controls   may update controls.anomalouscontrol.AnomalousSDcorr
+  //             write XMgrace file if plot and
+  //             controls.plotcontrol.xmgraceoutput are true
   //  NormRes    normalisation
   //  firstAnalysis
   //     = 0  two analyses expected, after rough scaling and main scaling
@@ -364,7 +366,10 @@ namespace scala
     std::vector<NormalProbAnal> normalprobanal(2*Nruns);
     NormalProbPlot NPPlot;
     if (plot) {
-      NPPlot.init("NORMPLOT", true, "Normal probability plot","");
+      std::string filename = "NORMPLOT";
+      if (!controls.plotcontrol.xmgraceoutput) {filename = "";}
+      // Blank filename indicates no XMgrace output
+      NPPlot.init(filename, true, "Normal probability plot","");
     }
 
     // Replot with corrections

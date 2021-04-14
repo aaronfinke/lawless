@@ -174,7 +174,7 @@ private:
 class NormalProbPlot
 {
 public:
-  NormalProbPlot() :  file(0), Nlines(0) {}
+  NormalProbPlot() :  file(0), Nlines(0), xmgr(true) {}
   // Create and write header
   NormalProbPlot(const std::string& FileName,
 		 const bool& WriteLegend,
@@ -209,6 +209,7 @@ private:
   FILE* file;
   int Nlines;
   float xmax, ymax;
+  bool xmgr;  // true to write xmgr file
   XMGRACE xmgrplot;
   XMLplot xmlplot;
   PlotSample sample;  // sampling of points for plotting
@@ -285,6 +286,7 @@ public:
 
 private:
   FILE* file;
+  bool xmgr;  // true to write xmgr file
   XMGRACE xmgrplot;
   XMLplot xmlplot;
   std::vector<float> x;

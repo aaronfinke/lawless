@@ -28,6 +28,7 @@ namespace MtzIO
     int writeUnmergedMTZ(const scala::hkl_unmerge_list& hkl_list,
 			 const scala::SDmodel& SDM,
 			 const bool& summedpartials,
+			 const bool& originalhkl,
 			 const int& datasetIndex,
 			 const std::string& filename_out,
 			 const std::string& title);
@@ -61,6 +62,7 @@ namespace MtzIO
 					const scala::SDmodel& SDM,
 					const int& NumCol,
 					const int& datasetIndex,
+					const bool& originalhkl,
 					CMtz::MTZ* mtzout,
 					CMtz::MTZCOL* col[]);
     // write out summed observations, for selected dataset(s)

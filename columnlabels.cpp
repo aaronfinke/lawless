@@ -482,16 +482,19 @@ namespace MtzIO {
 
     bool nosig = false;
     for (int i=0;i<ncol;++i) {
-      // check types of columns
-      if (CheckColumn(col1+i, selectedtypes[i])) {
-        // column is of correct type
-        selectedcolnums.push_back(col1+i);
-      } else {
-        if (allowmissing) {
-          // column not there, but allowed to be missed
-          nosig = true; // missing sigma
+      if (col1+i < ColumnInfo.size()) {
+        // check types of columns
+        if (CheckColumn(col1+i, selectedtypes[i])) {
+          // column is of correct type
+          selectedcolnums.push_back(col1+i);
         } else {
-          failmessage("Column is of wrong type: "+ColumnInfo[col1+i].type);
+          if (allowmissing) {
+            // column not there, but allowed to be missed
+            nosig = true; // missing sigma
+          } else {
+            failmessage(std::string("Column is of wrong type: ")+
+                        ColumnInfo[col1+i].type);
+          }
         }
       }
     }

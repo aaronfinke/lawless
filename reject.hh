@@ -40,8 +40,9 @@ namespace scala {
 		const bool& multilattice,
 		const std::string& title,
 		const float& dstarMax, const float& wavelength,
-		const OutlierControl& outliercontrol);
-    
+		const OutlierControl& outliercontrol,
+		const bool& xmgraceoutput);
+
     bool Open() const {return (rogues != NULL);}
 
     // Write one rogue reflection to file

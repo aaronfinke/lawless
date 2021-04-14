@@ -283,14 +283,17 @@ namespace scala {
     return C.SD()/E.SD();
   }
   // ------------------------------------------------------------
-  std::string HalfDataset::PlotCorrel() const
-  // plot stuff
+  std::string HalfDataset::PlotCorrel(const bool& plotxmgr) const
+  // plot stuff, returns XML plot
   {
     std::string s;
     if (iscorrelplot) {
-      FILE* correlplotfile = OpenFile("CORRELPLOT", true);
+      FILE* correlplotfile = NULL;
+      if (plotxmgr) {
+        correlplotfile = OpenFile("CORRELPLOT", true);
+      }
       s = correlplot.Plot(correlplotfile);
-      fclose (correlplotfile);
+      if (plotxmgr) {fclose (correlplotfile);}
     }
     return s;
   }

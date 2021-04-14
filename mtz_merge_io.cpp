@@ -172,6 +172,9 @@ namespace MtzIO {
     // Construct dataset (clipper doesn't give us a project)
     std::vector<scala::Dataset> DataSets;
     PxdName pxdname("", labelthings.xname, labelthings.dname);
+    if (!InputPxdName.is_blank()) {
+      pxdname = InputPxdName;
+    }
     DataSets.push_back(scala::Dataset(scala::Xdataset(pxdname,
                       Scell(mtzin.cell()), mtzdataset.wavelength(), 1)));
     // One batch
@@ -223,6 +226,11 @@ namespace MtzIO {
     bool haveIp, haveIm;
     scala::Hkl hred, hredm;
     int isymm;
+    int nI = 0;
+    int nIp = 0;
+    int nIm = 0;
+    int nIpacen = 0;
+    int nImacen = 0;
 
     while (next(hkl_index)) {  // increments index if not at_start
       scala::Hkl hkl(hkl_index.hkl());  // hkl of current reflection
@@ -238,11 +246,15 @@ namespace MtzIO {
         //                << " " << IsigData[hkl_index].I()<<"\n"; //^^
         Ip = 0.0;
         Im = 0.0;
+        sigIp = 0.0;
+        sigIm = 0.0;
         if (!clipper::Util::is_null(IsigAnom.I_pl())) { // I+ not null
           haveIp = true;
           Ip = IsigAnom.I_pl();
           if (!NoSigI) {
             sigIp = IsigAnom.sigI_pl();
+          } else {
+            sigIp = 1.0;
           }
         }
         if (!clipper::Util::is_null(IsigAnom.I_mi())) { // I- not null
@@ -250,6 +262,8 @@ namespace MtzIO {
           Im = IsigAnom.I_mi();
           if (!NoSigI) {
             sigIm = IsigAnom.sigI_mi();
+          } else {
+            sigIm = 1.0;
           }
         }
         // If centric, check that I+ and I- are the same
@@ -284,6 +298,8 @@ namespace MtzIO {
                               Xdet, Ydet, phi, time,
                               fraction_calc, width, LP,
                               Npart, Ipart, ObsFlag);
+          nIp++;
+          if (!centric) {nIpacen++;}
         }
         if (!centric && sigIm > 0.0) { // no I- for centric
           Ipr = Im;
@@ -292,6 +308,8 @@ namespace MtzIO {
                               Xdet, Ydet, phi, time,
                               fraction_calc, width, LP,
                               Npart, Ipart, ObsFlag);
+          nIm++;
+          if (!centric) {nImacen++;}
         }
       } else { // no anomalous
         Isig = IsigData[hkl_index];
@@ -302,6 +320,9 @@ namespace MtzIO {
           if (!NoSigI) {
             sigI = Isig.sigI_pl();
             sigIpr = sigI;
+          } else {
+            sigI = 1.0;
+            sigIpr = sigI;
           }
           // Store this observation, but not if sigI <= 0
           if (sigI > 0.0) {
@@ -310,6 +331,7 @@ namespace MtzIO {
                                 Xdet, Ydet, phi, time,
                                 fraction_calc, width, LP,
                                 Npart, Ipart, ObsFlag);
+            nI++;
           }
         }
 
@@ -318,7 +340,7 @@ namespace MtzIO {
         InvResRange.update( hkl_index.invresolsq());  //smin, smax
       }
     }
-    //
+    // end data read
     bool sorted = true;
     hkl_list.close_part_list(ResoRange(InvResRange), sorted);
 
@@ -332,6 +354,40 @@ namespace MtzIO {
     // Store file name
     hkl_list.AppendFileName(filenamein);
 
+    std::string msg = "";
+    if (nI + nIp + nIm == 0) {
+      // no data at all
+      ReportErrors::printFatalError("No valid data recognised in file");
+    } else if (anom) {
+      // check that we have both I+ and I-
+      if (nIp == 0 || nIm == 0) {
+        if (nIp == 0) {
+          msg = "No valid data in I+ column";
+        } else if (nIm == 0) {
+          msg = "No valid data in I- column";
+        }
+      } else if (nIpacen != nImacen) {
+        // unequal numbers of acentric I+ and I-
+        output += FormatOutput::logTab
+          (1,"NB: some acentric I+ or I- values missing");
+        output += FormatOutput::logTabPrintf
+          (2,"Number of valid I+:%9d, I-%9d\n", nIpacen, nImacen);
+        std::string s = "Some acentric I+ or I- values missing";
+        ReportErrors::printText(s, "DataMissing", false);
+        s = StringUtil::Strip(StringUtil::itos(nIpacen, 9));
+        ReportErrors::printText(s, "N_Iplus", false);
+        s = StringUtil::Strip(StringUtil::itos(nImacen, 9));
+        ReportErrors::printText(s, "N_Iminus", false);
+      }
+    } else {
+      if (nI == 0) {
+        msg = "No valid data in I column";
+      }
+
+    }
+    if (msg != "") {
+      ReportErrors::printWarning(msg, "DataMissing", true);
+    }
     return FileRead(true, true, true, 0);
   }
   //--------------------------------------------------------------

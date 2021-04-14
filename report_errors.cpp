@@ -28,6 +28,7 @@ void ReportErrors::printFatalError(const std::string& errormessage)
   //outputp->logTab(0,LOGFILE,   "**** ERROR ****\n\n");
   outputp->logTab(0, LXML, StringUtil::MakeXMLwithclass("FatalErrorMessage", errormessage,
                                                         true, "errormessage"));
+
   Message::message(Message_fatal(errormessage));
 }
 //--------------------------------------------------------------
@@ -47,4 +48,18 @@ void ReportErrors::printWarning(const std::string& warning,
     outputp->logTab(0, LXML, StringUtil::MakeXMLwarning(xmltag, warning));
   }
   //  Message::message(Message_warn(warning));
+}
+//--------------------------------------------------------------
+void ReportErrors::printText(const std::string& message,
+                             const std::string& xmltag,
+                             const bool& text)
+// print warning message to logfile, and if xmltag != "", to XML
+{
+  if (message == "") {return;}
+  if (text) {
+    outputp->logTab(0, LOGFILE, message);
+  }
+  if (xmltag != "") {
+    outputp->logTab(0, LXML, StringUtil::MakeXMLtag(xmltag, message));
+  }
 }

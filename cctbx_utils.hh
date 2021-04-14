@@ -2,7 +2,7 @@
 
 // Various utility routines for handling 3x3 matrices & vectors
 //   using CCtbx routines
-// For non-cctbx things see mtavec_utils
+// For non-cctbx things see matvec_utils
 //
 // By default all are <double> unless there are special reasons
 // for eg float

@@ -516,6 +516,7 @@ namespace phaser_io {
     // Syntax:
     //  OUTPUT [MTZ] [NO]MERGED | UNMERGED [SPLIT | TOGETHER]
     //        [POLISH MERGED | UNMERGED]
+    //        [ORIGINAL | REDUCED]
   {
   public:
     OUTPUT();
@@ -720,6 +721,23 @@ namespace phaser_io {
     std::string name;
   };
   //--------------------------------------------------------------
+  class UNMERGEDOUT : public InputBase, virtual public CCP4base
+  {
+    // Syntax: UNMERGEDOUT <filename>
+  public:
+    UNMERGEDOUT();
+    virtual ~UNMERGEDOUT() {}
+    Token_value parse(std::istringstream&);
+
+
+    void setUNMERGEDOUT(const std::string& Name) {name = Name;}
+    std::string getUNMERGEDOUT() const {return name;}
+    void analyse(){}
+
+  private:
+    std::string name;
+  };
+  //--------------------------------------------------------------
   class HKLREF : public InputBase, virtual public CCP4base
   {
     // Syntax: HKLREF <filename>
@@ -810,6 +828,26 @@ namespace phaser_io {
 
   private:
     scala::LinkSpecs linkspecs; 
+
+};
+  //--------------------------------------------------------------
+  class PLOT : public InputBase, virtual public CCP4base
+  {
+    // Option to suppress XMgrace file output 
+    //    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
+    //    
+    // Syntax: PLOT NOXMGR | XMGR
+  public:
+    PLOT();
+    virtual ~PLOT() {}
+    Token_value parse(std::istringstream&);
+
+    bool XMGRoutput() const {return xmgroutput;}
+    void setXMGRoutput(const bool& xmgrout) {xmgroutput = xmgrout;}
+    void analyse(){}
+
+  private:
+    bool xmgroutput;
 
 };
 } // phaser_io

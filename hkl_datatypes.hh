@@ -163,6 +163,9 @@ namespace scala
     double det() const {
       return rot().det();}
 
+    // true if Op is a cyclic permutation
+    bool isCyclic() const;
+
     //! change basis of symmetry operator
     //! keepTranslation  true to not transform translation component 
     clipper::Symop Symop(const clipper::Symop& symop,
@@ -174,6 +177,8 @@ namespace scala
     std::string as_matrix() const;
     //! format as string [x,y,z] in real space
     std::string as_xyz() const;
+    //! format as real space matrix x vector
+    std::string as_xyz_matrix() const;
     //! format as XML matrix
     std::string as_XML() const;
     //! format XML operator

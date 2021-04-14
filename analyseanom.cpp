@@ -34,7 +34,10 @@ namespace scala
 
     NormalProbPlot NPPlot;
     if (plot) {
-      NPPlot.init("ANOMPLOT", true, "Anomalous differences","");
+      std::string filename = "ANOMPLOT";
+      if (!controls.plotcontrol.xmgraceoutput) {filename = "";}
+
+      NPPlot.init(filename, true, "Anomalous differences","");
     }
 
     std::vector<NormalProbAnal> normalprobanal;

@@ -100,15 +100,23 @@ void NormalProbPlot::init(const std::string& FileName,
                           const std::string& title1,
                           const std::string& title2)
 {
+  xmgr = true;
+  if (FileName == "") {
+    // No XMGR output
+    xmgr = false;
+  }
+
   // Initialise file for XMgrace
-  file = OpenFile(FileName, true);  // open write file for xmgrace
-  xmax = 4.0;
-  ymax = 5.0;
-  xmgrplot.Header(file, title1, title2, -xmax, xmax, -ymax, ymax,
-                  0.6, 0.7,
-                  1.0, 1.0, true,
-                  "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
-  // Initialise XML output
+  if (xmgr) {
+    file = OpenFile(FileName, true);  // open write file for xmgrace
+    xmax = 4.0;
+    ymax = 5.0;
+    xmgrplot.Header(file, title1, title2, -xmax, xmax, -ymax, ymax,
+                    0.6, 0.7,
+                    1.0, 1.0, true,
+                    "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
+  }
+  // Always initialise XML output
   xmlplot.Header(title1, -xmax, xmax, -ymax, ymax,
                  1.0, 1.0, true,
                  "Delta(expected)", "Delta(observed)", 0.6, 0.0, true);
@@ -140,7 +148,7 @@ void NormalProbPlot::NewLine(const std::string& legend)
   std::vector<int> lcolour(lcol, lcol+15);
   int maxlin = lcolour.size();
   int icol = Nlines%maxlin;  // wrap round after maxlin
-  xmgrplot.Line(legend, lcolour[icol], +2, false);
+  if (xmgr) {xmgrplot.Line(legend, lcolour[icol], +2, false);}
   // start XML line, with a legend, not connected
   xmlplot.StartLine(legend, 0, 1, lcolour[icol]);
 }
@@ -150,7 +158,7 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
 {
   if (std::abs(x) < limit && std::abs(y) < limit) {
     if (sample.Keep(Max(std::abs(x), std::abs(y)))) {
-      xmgrplot.Point("%10.4f %9.4f\n", x, y);
+      if (xmgr) {xmgrplot.Point("%10.4f %9.4f\n", x, y);}
       xmlplot.Point(x, y, 9, 4);
     }
   }
@@ -158,7 +166,7 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
 //--------------------------------------------------------------
 void NormalProbPlot::EndLine()
 {
-  xmgrplot.EndLine();
+  if (xmgr) {xmgrplot.EndLine();}
   xmlplot.EndLine();
   Nlines++;  // increment line number
 }
@@ -167,7 +175,7 @@ void NormalProbPlot::ClosePlot()
 // Draw diagonal line
 {
   float range = xmax;
-  xmgrplot.ClosePlot(range, true);
+  if (xmgr) {xmgrplot.ClosePlot(range, true);}
   // XML
   xmlplot.DrawLine(-range, +range, -range, +range, 9,4,
                    1,1,7); // black
@@ -245,20 +253,25 @@ void CorrelPlot::AddPoint(const int& mres, const float& I1, const float& I2)
 // ------------------------------------------------------------
 std::string CorrelPlot::Plot(FILE* plotfile) const
 // returns XML representation
+// If plotfile = NULL, don't write xmgr file
 {
   if (x.size() <= 0) return "";
   XMLplot xmlplot;
   XMGRACE xmgr;
+  bool bxmgr = (plotfile != NULL);
+
   // Limits on axes
   float lowlimit = valrange.min();
   if (equallimit) {
     lowlimit = -limit;
   }
-  xmgr.Header(plotfile, title, pxd_title,
-              lowlimit, limit, lowlimit, limit,
-              0.6, 0.7,
-              2.0, 2.0, true,
-              "", "", 0.6, 0.0, true);
+  if (bxmgr) {
+    xmgr.Header(plotfile, title, pxd_title,
+                lowlimit, limit, lowlimit, limit,
+                0.6, 0.7,
+                2.0, 2.0, true,
+                "", "", 0.6, 0.0, true);
+  }
   xmlplot.Header(title,
               lowlimit, limit, lowlimit, limit,
               2.0, 2.0, true,
@@ -278,7 +291,7 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
         legend = "High resolution";
       }
     }
-    xmgr.Line(legend, lcolour[iset], +3, false);
+    if (bxmgr) {xmgr.Line(legend, lcolour[iset], +3, false);}
     xmlplot.StartLine(legend, 0, 1, lcolour[iset]);
     int iresmin = iset*(nresbin/nres);
     int iresmax = (iset+1)*(nresbin/nres);
@@ -286,16 +299,16 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
     int np = 0;
     for (size_t i=0;i<x.size();++i) {
       if (resbin[i] >= iresmin && resbin[i] < iresmax) {
-        xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);
+        if (bxmgr) {xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);}
         xmlplot.Point( x[i], y[i], 8, 3);
         np++;
       }
     }
     if (np > 0) iline++;
-    xmgr.EndLine();
+    if (bxmgr) {xmgr.EndLine();}
     xmlplot.EndLine();
   }
-  xmgr.ClosePlot(limit, true);
+  if (bxmgr) {xmgr.ClosePlot(limit, true);}
 
   // XML
   xmlplot.DrawLine(-limit, +limit, -limit, +limit, 9,4,
@@ -323,8 +336,11 @@ RoguePlot::RoguePlot(const std::string& FileName,
                       const float& wavelength)
 // Smax  maximum 4(sin theta/lambda)**2
 //                      = (d*max)**2 = 1/dmin**2
+
 {
-  file = OpenFile(FileName, true);  // open write file
+  xmgr = true;
+  if (FileName == "") {xmgr = false;}
+  if (xmgr) {file = OpenFile(FileName, true);}  // open write file
 
   x.clear(); y.clear(); sclass.clear();  // clear arrays
 
@@ -332,11 +348,13 @@ RoguePlot::RoguePlot(const std::string& FileName,
   float radius = RingRadius(dstar);
   float legx = 0.0;
   float legy = 0.0;
-  xmgrplot.Header(file, "Outliers on detector (horizontal rotation axis)",
-                  Title, -radius, +radius, -radius, +radius,
-                  0.6, 0.75,
-                  radius, radius, false,
-                  "", "", legx, legy, true);
+  if (xmgr) {
+    xmgrplot.Header(file, "Outliers on detector (horizontal rotation axis)",
+                    Title, -radius, +radius, -radius, +radius,
+                    0.6, 0.75,
+                    radius, radius, false,
+                    "", "", legx, legy, true);
+  }
   xmlplot.Header("Outliers on detector (horizontal rotation axis)",
                  -radius, +radius, -radius, +radius,
                  radius, radius, false,
@@ -345,7 +363,7 @@ RoguePlot::RoguePlot(const std::string& FileName,
   // Resolution ring
   int npoint = 96;  // sampling of circle
   int lcol = 1;     // black
-  DrawCircle(xmgrplot, lcol, "", radius, npoint);
+  if (xmgr) {DrawCircle(xmgrplot, lcol, "", radius, npoint);}
   xmlplot.DrawCircle(0.0, 0.0, radius, 8, 4, 1, 1, lcol);
 
   // Draw ice rings
@@ -361,20 +379,22 @@ RoguePlot::RoguePlot(const std::string& FileName,
         label = "ice rings";
         first = false;
       }
-      DrawCircle(xmgrplot, lcol, label, rad, npoint);
+      if (xmgr) {DrawCircle(xmgrplot, lcol, label, rad, npoint);}
       xmlplot.DrawCircle(0.0, 0.0, rad, 8, 4, 1, 1, lcol);
     }
   }
   // Axis lines
   lcol = 1;     // black
-  xmgrplot.Line("", lcol, 0, true); // X axis
-  xmgrplot.Point("%8.4f %8.4f\n", -radius, 0.0);
-  xmgrplot.Point("%8.4f %8.4f\n", +radius, 0.0);
-  xmgrplot.EndLine();
-  xmgrplot.Line("", lcol, 0, true); // Y axis
-  xmgrplot.Point("%8.4f %8.4f\n", 0.0, -radius);
-  xmgrplot.Point("%8.4f %8.4f\n", 0.0, +radius);
-  xmgrplot.EndLine();
+  if (xmgr) {
+    xmgrplot.Line("", lcol, 0, true); // X axis
+    xmgrplot.Point("%8.4f %8.4f\n", -radius, 0.0);
+    xmgrplot.Point("%8.4f %8.4f\n", +radius, 0.0);
+    xmgrplot.EndLine();
+    xmgrplot.Line("", lcol, 0, true); // Y axis
+    xmgrplot.Point("%8.4f %8.4f\n", 0.0, -radius);
+    xmgrplot.Point("%8.4f %8.4f\n", 0.0, +radius);
+    xmgrplot.EndLine();
+  }
   xmlplot.DrawLine(-radius, +radius, 0.0, 0.0, 8,4);
   xmlplot.DrawLine(0.0, 0.0, -radius, +radius, 8,4);
 }
@@ -413,20 +433,20 @@ void RoguePlot::End()
       } else if (j == 3) {
         legend = "Emax";
       }
-      xmgrplot.Line(legend, lcol, -1, false);
+      if (xmgr) {xmgrplot.Line(legend, lcol, -1, false);}
       xmlplot.StartLine(legend, 0, 0, lcol);
       for (size_t k=0; k<sclass.size(); k++) {
         if (sclass[k] == j) {
           // a point in this class
-          xmgrplot.Point("%10.4f %10.4f\n", x[k], y[k]);
+          if (xmgr) {xmgrplot.Point("%10.4f %10.4f\n", x[k], y[k]);}
           xmlplot.Point(x[k], y[k], 10, 4);
         }
       }
-      xmgrplot.EndLine();
+      if (xmgr) {xmgrplot.EndLine();}
       xmlplot.EndLine();
     }
   }
-  xmgrplot.ClosePlot(0.0, false);
+  if (xmgr) {xmgrplot.ClosePlot(0.0, false);}
   xmlplot.ClosePlot();
 }
 // ------------------------------------------------------------

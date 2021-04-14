@@ -50,6 +50,7 @@ namespace MtzIO
   int WriteUnmerged::writeUnmergedMTZ(const scala::hkl_unmerge_list& hkl_list,
                                       const SDmodel& SDM,
                                       const bool& summedpartials,
+                                      const bool& originalhkl,
                                       const int& datasetIndex,
                                       const std::string& filename_out,
                                       const std::string& title)
@@ -57,7 +58,9 @@ namespace MtzIO
   // returns number written
   //
   //  summedpartials   true to output scaled observations with summed partials
-  //                   false to output original data
+  //                   false to output original data  (usually true)
+  //  originalhkl      true to output original hkl, false for reduced hkl
+  //                   if true,  ISYM ==  1 always
   //  datasetIndex     dataset index to output, -1 all data
   //  filename_out     output filename
   //  title
@@ -77,6 +80,8 @@ namespace MtzIO
 
     // Symmetry
     hkl_symmetry NewSymm = hkl_list.symmetry();
+    //std::cout <<"NewSymm\n"<<NewSymm.GetSpaceGroup().formatISYM_as_hkl()<<"\n";
+
     // Check for rhombohedral lattice (H or R)
     char HorR = 'H'; // default H setting
     if (NewSymm.lattice_type() == 'H' || NewSymm.lattice_type() == 'R') {
@@ -218,7 +223,7 @@ namespace MtzIO
     if (summedpartials) {
       // write out summed observations, for selected dataset(s)
       nobsbatch =  writeObservations(hkl_list, SDM, NumCol, datasetIndex,
-                                     mtzout, col);
+                                     originalhkl, mtzout, col);
     } else {
       // write out unsummed parts, for all datasets
       nobsbatch =  writeParts(hkl_list, NumCol, mtzout, col);
@@ -234,7 +239,7 @@ namespace MtzIO
     std::vector<Batch> batches = hkl_list.Batches();  //  all batches
 
     for (int jbat=0;jbat<hkl_list.num_batches();jbat++)  {
-      // Only output accepted batches in appropiriate dataset, but keep empty ones
+      // Only output accepted batches in appropriate dataset, but keep empty ones
       if (batches[jbat].Accepted() &&
                   (datasetIndex < 0 || batches[jbat].datasetindex() == datasetIndex)) {
       //      if (hkl_list.batch(jbat).Accepted() && nobsbatch[jbat] > 0) {
@@ -454,10 +459,12 @@ namespace MtzIO
                                                      const SDmodel& SDM,
                                                      const int& NumCol,
                                                      const int& datasetIndex,
+                                                     const bool& originalhkl,
                                                      MTZ* mtzout,
                                                      MTZCOL* col[])
   // write out summed observations, for selected dataset(s)
   // omitting rejections
+  // if originalhkl is true, output original unreduced  hkl,& ISYM = 1
   {
     // Count observations in each batch
     std::vector<int> nobsbatch(hkl_list.num_batches(),0);
@@ -465,6 +472,7 @@ namespace MtzIO
     float data[MAXNCOLUMNS];
     data_flags  col_sel = hkl_list.DataFlags();
     int maxhkloverlap = hkl_list.MaxHKLoverlap();
+    hkl_symmetry sgsymm = hkl_list.symmetry();
 
     reflection this_refl;
     observation this_obs;
@@ -474,7 +482,7 @@ namespace MtzIO
 
     while (hkl_list.next_reflection(this_refl) >= 0)  { // loop reflections
       SDM.CorrectReflection(this_refl);
-      scala::Hkl hkl = this_refl.hkl();
+      scala::Hkl hkl = this_refl.hkl();   // reduced unique hkl
       data[0] = hkl.h();
       data[1] = hkl.k();
       data[2] = hkl.l();
@@ -485,6 +493,14 @@ namespace MtzIO
           // Packed M/ISYM
           // always M = 0 for "full" since partials have been summed (but see NPART)
           int isym = this_obs.Isym();
+          if (originalhkl) {
+            // reconstruct original indices ohkl
+            scala::Hkl ohkl = this_obs.hkl_original();
+            data[0] = ohkl.h();
+            data[1] = ohkl.k();
+            data[2] = ohkl.l();
+            isym = 1;
+          }
           ic = 3;
           data[ic++] = isym;
           data[ic++] = this_obs.Batch();

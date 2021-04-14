@@ -31,6 +31,10 @@ namespace scala {
     //  eg C2 & I2, or R3 & H3
     bool sameReferenceGroup() const {return samereferencegroup;}
 
+    // true if same point group
+    //  eg C2 & I2, or R3 & H3
+    bool samePointGroup() const {return samepointgroup;}
+
   private:
     bool status;  // true if set
     // true if groups have same intensity group,
@@ -39,6 +43,8 @@ namespace scala {
     // true if different settings of the same space group,
     //  eg C2 & I2, or R3 & H3
     bool samereferencegroup;
+    // true if groups have same point group,
+    bool samepointgroup;
 
     ReindexOp reindex;  // reindex from -> to, == h,k,l if !samereferencegroup
   };

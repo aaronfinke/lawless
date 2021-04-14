@@ -59,9 +59,9 @@ namespace MtzIO
     for (int i = 0; i < mtzsym.nsym; ++i) {
       for (int k = 0; k < 3; ++k) {
         for (int l = 0; l < 3; ++l) {
-          mtzsym.sym[i][k][l] = cspgp.symop(i).rot()(k,l);
+          mtzsym.sym[i][k][l] = cspgp.Symop(i).rot()(k,l);
         }
-        mtzsym.sym[i][k][3] = cspgp.symop(i).trn()[k];
+        mtzsym.sym[i][k][3] = cspgp.Symop(i).trn()[k];
         for (int l = 0; l < 3; ++l)
           mtzsym.sym[i][3][l] = 0.0;
         mtzsym.sym[i][3][3] = 1.0;
@@ -122,11 +122,14 @@ namespace MtzIO
     strncpy( mtzout->mtzsymm.spcgrpname, mtzsymb.c_str(), 11 );
     strncpy( mtzout->mtzsymm.pgname, mtzlaue.c_str(), 11 );
     for ( int i = 0; i < sg.num_symops(); i++ ) {
-      for ( int j = 0; j < 3; j++ )
-        for ( int k = 0; k < 3; k++ )
+      for ( int j = 0; j < 3; j++ ) {
+        for ( int k = 0; k < 3; k++ ) {
           mtzout->mtzsymm.sym[i][j][k] = sg.Symop(i).rot()(j,k);
-      for ( int j = 0; j < 3; j++ )
+        }
+      }
+      for ( int j = 0; j < 3; j++ ) {
         mtzout->mtzsymm.sym[i][j][3] = sg.Symop(i).trn()[j];
+      }
     }
   }
   //--------------------------------------------------------------

@@ -7,6 +7,7 @@
 #include "hkl_datatypes.hh"
 
 using phaser_io::LOGFILE;
+using phaser_io::LXML;
 
 namespace scala
 {
@@ -145,6 +146,9 @@ public:
   bool  SplitUnmerged() const {return splitunmerged;} //!< return SplitUnmerged flag
   bool& SplitUnmerged() {return splitunmerged;} //!< set SplitUnmerged flag
 
+  bool  originalHKL() const {return originalhkl;} //!< return originalhkl
+  bool& originalHKL() {return originalhkl;} //!< set originalhkl
+
   //! set filenames from here or from environment
   void SetFilenames(const std::string& hkloutname, const std::string& hkloutunmergedname,
 		    const std::string& scaoutname, const std::string& scaoutunmergedname);
@@ -164,6 +168,8 @@ public:
   //! return output unmerged Scalepackfilename
   std::string Scaunmergedfilename(const std::string& datasetname) const
   {return FileDatasetName(scaunmergedfilename, datasetname);}
+  // write output  file info to XML
+  void recordToXML(phaser_io::Output& output) const;
 
 private:
   std::string basefilename; // base file name
@@ -177,6 +183,9 @@ private:
   // true to split multiple datasets into separate unmerged MTZ files
   bool splitunmerged;
 
+  // if originalhkl is true, output original unreduced  hkl,& ISYM = 1
+  bool originalhkl;
+
   OutputType mtzoutputtype;  // MERGED (averaged), UNMERGED for mtz file, or BOTH
   OutputType scaoutputtype;  // MERGED (averaged), UNMERGED for sca file, or BOTH
 
@@ -186,6 +195,9 @@ private:
   // return output filename, with optional dataset name appended
   std::string FileDatasetName(const std::string& name,
 			      const std::string& datasetname) const;
+
+  std::string typestring(const OutputType& otype) const;
+
 }; // OutputControls
 //=================================================================
 class ScoreAccept

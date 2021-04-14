@@ -10,7 +10,7 @@
 
 #ifdef _MSC_VER
 #include <ciso646>
-#endif 
+#endif
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -546,7 +546,7 @@ namespace scala {
         s2 = ", but a resolution limit could still be determined:\n"+
           anomresolimitCC.formatbrief(true);
       }
-      if (found and consistent) {
+      if (found && consistent) {
         s2 = "\n" + anomresolimitCC.formatbrief(true);
       }
     }

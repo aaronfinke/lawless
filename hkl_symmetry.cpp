@@ -83,6 +83,143 @@ namespace scala {
     return s;
   }
   //--------------------------------------------------------------
+  LatticeCenteringTest::LatticeCenteringTest(const char& lattype)
+  {
+    latticetype = lattype;
+    if (latticetype == ' ') {latticetype = 'P';}
+    if (!AllowedLatticeType(latticetype)) {
+    }
+  }
+  //--------------------------------------------------------------
+  bool LatticeCenteringTest::isabsent(const Hkl& hkl) const
+  // return true if absent
+  {
+    if (latticetype == 'P' || latticetype == 'R' ) {return false;}
+    int h = hkl.h();
+    int k = hkl.k();
+    int l = hkl.l();
+    bool in = true;
+    switch (latticetype) {
+    case 'F':
+      if ((h%2 == 0 && k%2 == 0 && l%2 == 0) ||
+          (h%2 != 0 && k%2 != 0 && l%2 != 0)) {in = false;}
+      break;
+    case 'I':
+      if ((h+k+l)%2 == 0) {in = false;}
+      break;
+    case 'H':
+      if ((-h+k+l)%3 == 0) {in = false;}
+      break;
+    case 'C':
+      if ((h+k)%2 == 0) {in = false;}
+      break;
+    case 'A':
+      if ((k+1)%2 == 0) {in = false;}
+      break;
+    case 'B':
+      if ((h+1)%2 == 0) {in = false;}
+      break;
+    }
+    return in;
+  }
+  //--------------------------------------------------------------
+  bool LatticeCenteringTest::isLattypeAllowed(const hkl_symmetry& symm)
+  // True if latticetype is valid for crystal system
+  {
+    CrystalSystem cryssys = symm.CrysSys();
+    std::vector<char> lattypes;
+
+    if (cryssys == TRICLINIC) {
+      LatticeCenteringList latcen;
+      lattypes = latcen.latticeTypes();
+    } else if (cryssys == MONOCLINIC) {
+      lattypes = {'P','A','B','C','I'};
+    } else if (cryssys == ORTHORHOMBIC) {
+      lattypes = {'P','A','B','C','I','F'};
+    } else if (cryssys == TETRAGONAL) {
+      lattypes = {'P','I'};
+    } else if (cryssys == TRIGONAL) {
+      lattypes = {'P','H','R'};
+    } else if (cryssys == HEXAGONAL) {
+      lattypes = {'P'};
+    } else if (cryssys == CUBIC) {
+      lattypes = {'P','I','F'};
+    }
+    bool OK = inList(lattypes);
+    if (!OK) {
+      errormessage =
+        "Illegal LATTICE command: in space group "+symm.symbol_xHM()+
+        ", cannot replace lattice type by "+ std::string(1,latticetype);
+    }
+
+    return OK;
+  }
+  //--------------------------------------------------------------
+  bool LatticeCenteringTest::inList(const std::vector<char>& lattypes) const
+  // true if latticetype is allowed for spacegroup
+  {
+    if (std::find(lattypes.begin(), lattypes.end(), latticetype)
+        == lattypes.end()) {
+      // not found
+      return false;
+    }
+    return true;
+  }
+  //--------------------------------------------------------------
+  void LatticeCenteringTest::print(phaser_io::Output& output) const
+  // only if set
+  {
+    if (!isSet()) {return;}
+    std::string message =
+      "\nCentred lattice absences will be removed for lattice type "+
+      std::string(1,latticetype);
+    output.logTab(0,LOGFILE, message);
+  }
+  //--------------------------------------------------------------
+  void LatticeCenteringTest::printresult(const char& origLatType,
+                                         const int& nparts,
+                                         const int& nremoved,
+                                         const hkl_symmetry& symm,
+                                         phaser_io::Output& output) const
+  // nobs0 is negated if there are partials
+  {
+    int nobs0 = nparts;
+    bool hasparts = false;
+    if (nparts < 0) {
+      hasparts = true;
+      nobs0 = std::abs(nparts);
+    }
+    output.logTab(0,LOGFILE, "\nLattice absences removed: (LATTICE)");
+    output.logTabPrintf(1,LOGFILE,
+                        "Original lattice type: %c, new lattice type: %c\n",
+                        origLatType, latticetype);
+    if (hasparts) {
+      output.logTabPrintf(1,LOGFILE,
+                "Number of observation parts removed %d from %d\n",
+                          nremoved, nobs0);
+    } else {
+      output.logTabPrintf(1,LOGFILE,
+                          "Number of observations removed %d from %d\n",
+                          nremoved, nobs0);
+    }
+    output.logTab(1,LOGFILE,"Space group changed to "+symm.symbol_xHM());
+    output.logTab(0,LOGFILE,
+                  "\n===============================================================");
+
+    output.logTab(0,LXML, "<StripLattice>");
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("OriginalLatticeType",
+                                                 std::string(1,origLatType)));
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("NewLatticeType",
+                                                 std::string(1,latticetype)));
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("NewSpaceGroup",
+                                                 symm.symbol_xHM()));
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("Nremoved",
+                                                 nremoved));
+    output.logTab(0,LXML, StringUtil::MakeXMLtag("Nbefore",
+                                                 nobs0));
+    output.logTab(0,LXML, "</StripLattice>");
+  }
+  //--------------------------------------------------------------
   // for sorting
   bool operator < (const SymElement& a, const SymElement& b)
   // Sort on rotation order and axis direction (a,b,c)
@@ -164,9 +301,10 @@ namespace scala {
   //  class SpaceGroup
   //    constructors
   //--------------------------------------------------------------
-  SpaceGroup::SpaceGroup(std::vector<clipper::Symop>& symops)
+  SpaceGroup::SpaceGroup(std::vector<clipper::Symop>& symops,
+                         const bool& softfail)
     : Nsymp(0), status(0), statusmessage("")
-  {init(symops);}
+  {init(symops, softfail);}
   SpaceGroup::SpaceGroup(const int& SpgNumber)
     : Nsymp(0), status(0), statusmessage("")
   {init(SpgNumber);}
@@ -357,7 +495,7 @@ namespace scala {
   {
     for (int i=0;i<Nsymp;++i) {
       clipper::HKL h = hkl.transform(rotsymops[i]);
-      if (recip_asu(h)) {
+      if (recip_asu(h)) {   // clipper::Spacegroup::recip_asu
         isym = 2*i +1;
         return h;
       }
@@ -388,6 +526,12 @@ namespace scala {
     return csymops[(isym-1)/2];
   }
   //--------------------------------------------------------------
+  bool SpaceGroup::is_centric(const clipper::HKL& hkl) const
+  // true if reflection centric
+  {
+    return hkl_class(hkl).centric();
+  }
+  //--------------------------------------------------------------
   SpaceGroup  SpaceGroup::NewLatticePointGroup(const char& Lattype) const
   //! Return group with new lattice, keeping point group operators
   {
@@ -396,7 +540,14 @@ namespace scala {
     //    for (int i=0;i<symcodes.size();++i) {
     //      std::cout << "SymCode " << i << " " << symcodes[i].symop().format() << "\n";
     //    } //^-
+
     clipper::String lat1 = std::string(1,Lattype)+" 1";  // P 1, C 1, I 1 etc
+    // Special for P1 -> C1 etc
+    if (symcodes.size() == 1) {
+      SpaceGroup SG(lat1);
+      return SG;
+    }
+
     clipper::Spgr_descr latops(lat1);
     clipper::Spgr_descr::Symop_codes latcodes = latops.generator_ops();
     for (size_t i=0;i<latcodes.size();++i) {
@@ -445,7 +596,7 @@ namespace scala {
       censymops[i] = clipper::Spacegroup::centering_symop(i);
       //      std::cout <<"Centering Op: "<<censymops[i].format()<<"\n";
     }
-    // Now deal with lattice centering
+    // Now deal with (reindex) lattice centering
     std::vector<clipper::Symop> rcensymops(ncent);
     for (int i=0;i<ncent;++i) {
       rcensymops[i] = H.Symop(censymops[i]);
@@ -469,8 +620,10 @@ namespace scala {
       //      clipper::Vec3<double>  t = csymops[js].trn();
       //      clipper::RTop<double> Sp(HR.inverse()*S*HR, HR.inverse() * t);
       //      csymops[js] = clipper::Symop(Sp);
+      //      std::cout <<"*** ChangeBasis Symop in: " << csymops[js].format() <<"\n";
       //      std::cout <<"*** ChangeBasis Symop out: " << newsymops[js].format() <<"\n";
     }
+    // We now have newcensymops and newsymops (primitive)
 
     // --- Messages
     //std::cout <<"newlattype: "<<newlattype<<"|\n";
@@ -478,7 +631,7 @@ namespace scala {
     //                  so reset to 'P'
     if (newlattype == ' ') {
       status = +1;
-      statusmessage += "Invalid reindexed lattice centering\n";
+      statusmessage += "Reindexing changes lattice centering, reset to P\n";
       newlattype = 'P';
     } else if (newlattype != lattype) {
       status = +2;
@@ -500,10 +653,10 @@ namespace scala {
     //    std::cout << "Status:\n"<<statusmessage<<"\n";
     // ---
     std::string spgname = spacegroupname;  // save space group name
-    newSG(newcensymops, Nsymp, newsymops);
+    newSG(newcensymops, Nsymp, newsymops);  // sets status = -1 if invalid
     if (status < 0) {
       // failed, check that pointgroup is unchanged
-      SpaceGroup PG = PointGroup();
+      SpaceGroup PG = PointGroup();  // derived point group
       std::vector<clipper::Symop> newpgsymops(PG.num_primops());
       for (size_t js=0;js<PG.num_primops();js++) {
         newpgsymops[js] = PG.Symop(js);
@@ -516,7 +669,7 @@ namespace scala {
       }
       SpaceGroup RPG(newpgsymops);
       if (PG == RPG) {
-        // OK, just use existing space group
+        // OK, reset to point group
         init(spgname);
         // success, set status to indicate possible origin shift
         status = -3;
@@ -539,12 +692,12 @@ namespace scala {
                          std::vector<clipper::Symop>& newsymops)
   // try to build new space group from reindexed operators
   // alters newsymops, adding lattice centering
+  // sets status = -1 if invalid
   {
     if (newcensymops.size() > 1) { // non-primitive
       for (size_t i=1;i<newcensymops.size();++i) { // skip 1st identity
         //      std::cout <<"New Centering Op: "<<newcensymops[i].format()<<"\n";
         // Apply them to primitive operators
-        newsymops.resize(Nsymp);
         for (size_t js=0;js<Nsymp;js++) {
           clipper::Symop cs(newsymops[js]*newcensymops[i]);
           newsymops.push_back(cs);
@@ -572,7 +725,7 @@ namespace scala {
   {
     std::string s;
     for (int i=0;i<num_symops();++i) {
-      s += symop(i).format()+"\n";
+      s += Symop(i).format()+"\n";
     }
     return s;
   }
@@ -582,7 +735,7 @@ namespace scala {
   {
     std::string s;
     for (int i=0;i<num_symops();++i) {
-      s += MVutil::FormatSymop_as_hkl(symop(i), "[]")+"\n";
+      s += MVutil::FormatSymop_as_hkl(Symop(i), "[]")+"\n";
     }
     return s;
   }
@@ -672,9 +825,22 @@ namespace scala {
   }
   //--------------------------------------------------------------
   SpaceGroup SpaceGroup::PointGroup() const
+  // Point group has no lattice translations
   {
     return SpaceGroup(clipper::Spacegroup
       (clipper::Spgr_descr(generator_ops().pgrp_ops())));
+  }
+  //--------------------------------------------------------------
+  SpaceGroup SpaceGroup::DerivedGroup() const
+  // remove translations except lattice centring
+  {
+    // Point group operators
+    clipper::Spgr_descr::Symop_codes sc = generator_ops().pgrp_ops();
+    // lattice centring if any
+    clipper::Spgr_descr::Symop_codes cen = generator_ops().centering_ops();
+    sc.insert(sc.end(), cen.begin(), cen.end());
+    //std::cout <<"Nops "<< sc.size() <<" Ncen "<<cen.size() <<"\n";
+    return SpaceGroup(clipper::Spacegroup(clipper::Spgr_descr(sc)));
   }
   //--------------------------------------------------------------
   CSym::ccp4_symop SpaceGroup::MakeCCP4symop(const clipper::Symop& S) const
@@ -718,6 +884,18 @@ namespace scala {
     if (ccp4spg == NULL) return "";
     //^    std::cout << "CCP4 spgname: " << std::string(ccp4spg->symbol_xHM) <<"\n"; //^
     return std::string(ccp4spg->symbol_xHM);
+  }
+  //--------------------------------------------------------------
+  CSym::CCP4SPG* SpaceGroup::CCP4spacegroup() const
+  {
+    int nsym = num_symops();
+    std::vector<CSym::ccp4_symop> ccp4ops(nsym);
+    for (int i=0;i<nsym;++i) {
+      //^      std::cout << "Symop " << csymops[i].format() <<"\n"; //^-
+      ccp4ops[i] = MakeCCP4symop(csymops[i]);
+    }
+    CSym::CCP4SPG* ccp4spg = CSym::ccp4_spgrp_reverse_lookup(nsym, &*ccp4ops.begin());
+    return ccp4spg;  // NULL Is fails
   }
   //--------------------------------------------------------------
   void SpaceGroup::CCP4spaceGroupNumber()
@@ -1489,81 +1667,115 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
   // Cases:
   // 1) Just explicit reindex (no spacegroup from input or reference)
   //    check that reindexed filespacegroupname is a legimate space group
-  //    (status = -1 if not)
+  //    (status = -1 or -2 if not)
   // 2) Just explicit space group name: mainly relevant for C2<->I2, R3:H<->R3:R (may not work).
   //    and primitive orthorhombics
   //    A reindex operator will be generated as appropriate
   // 3) Both reindex and space group given: check that they are compatible and fail if not
-  //    (status = -2 if intensity group (point group) is changed
+  //    if intensity group (point group) is changed
   //
+  //  (a) Use reindex to generate new symmetry
+  //     - if fails (eg changes point group), status = -1 or -2, fails in "report"
+  //  (b) If SG given (reference or explicit), check whether it is the same as that
+  //      generated from reindex
+  //      (i)  same point group, OK but not for phases
+  //      (ii) same space group, OK for phases
+  //
+  //  Sets newsymmetry_ to the accepted revised symmetry:
+  //   if sgnamegiven is true, then this will be the new symmetry
   {
     status = 0;  // default OK flag
     newsymmetry_ = symmetry;
     reindex_ = reindex;
     sgnamegiven_ = sgnamegiven;
-    reindexfrominput_ = reindex.fromInput();
+    reindexfrominput_ = reindex.fromInput(); // true if explicit reindex given
     spacegroupname_ = spaceGroupName;
+    givenspacegroupname_ = spaceGroupName;
+    filespacegroupname_ = filespacegroupname;
+    sameintensitygroup_ = false;
     samereferencegroup_ = false;
+    spacegroupchanged_ = false;
+    exchangeRandH_ = 0;  // +-1 if transforming between R <-> H lattices
     det_ = reindex_.det();
+    sameorigin_ = false;
+    reindexstatusmessage_ = "";
 
-    // Special case R3 <-> H3
+    // Special case R3 <-> H3, does nothing if false
     if (checkRhombohedral(filespacegroupname)) {
       return;
     }
 
-    if (!sgnamegiven_) { // space group name not given, so derive from MTZ name + reindex
-      if (newsymmetry_.ChangeBasis(reindex_) != 0) {
-        // An issue or failure in change basis with this operator,
-        //   set status, = -1 fail, > 0 warning
-        status = newsymmetry_.GetSpaceGroup().Status();
-      }
-      SG_ = newsymmetry_.GetSpaceGroup();
-      spacegroupname_ = newsymmetry_.symbol_xHM();
-      // check reindexed SG is same pointgroup
-      SpacegroupReindexOp sgreindex(filespacegroupname, spacegroupname_);
-      if (sgreindex.sameReferenceGroup()) {
-        samereferencegroup_ = true;   // same reference group
-      }
-    } else {
-      // Space group name given
-      if (reindexfrominput_) {
-        // reindex has come from reference, so let's trust it and SG name
-        status = 0;
-      } else {
-        // if reindex is given as well as name, check compatibility
-        SG_.init(filespacegroupname);
-        if (SG_.ChangeBasis(reindex_) < 0) {
-          // fail
-          status = SG_.Status();
-        } else {
-          // check reindexed SG is same pointgroup
-          SpacegroupReindexOp sgreindex(SG_.symbol_xHM(), spacegroupname_);
-          if (sgreindex.sameReferenceGroup()) {
-            samereferencegroup_ = true;   // same reference group
-          } else if (!sgreindex.sameIntensityGroup()) {
-            // not same
-            status = -2;
-          }
-        }
+    // try to reindex
+    SG_.init(filespacegroupname);
+
+    if (!reindex_.IsIdentity()) {
+      // Returns status: = 0, OK, no lattice change
+      //                 = -1 not OK, invalid space group
+      //                 = -2 not OK,
+      //                 = -3 OK, origin shifted (translations not reindexed)
+      //                 = +1 OK, invalid lattice type changed to P
+      //                 = +2 OK, lattice type changed
+      status = SG_.ChangeBasis(reindex_);
+      reindexstatusmessage_ = SG_.statusMessage();
+      if (status == -1 || status == -2) {
+        return;  // fail
       }
     }
+
+    // if SG given, force given space group
+    if (sgnamegiven_) {
+      newsymmetry_ = hkl_symmetry(givenspacegroupname_);
+      if (reindex_.IsIdentity()) {
+        SG_ = newsymmetry_.GetSpaceGroup();
+      } else {
+        if (status == -3) {
+          // origin shifted, set symmetry to point group + lattice centring
+          SG_ = newsymmetry_.GetSpaceGroup();
+        }
+      }
+    } else {
+      if (status == -3) {
+        // origin shifted, set symmetry to point group + lattice centring
+        newsymmetry_ = hkl_symmetry(SG_.DerivedGroup());
+        SG_ = newsymmetry_.GetSpaceGroup();
+      } else {
+        newsymmetry_ = hkl_symmetry(SG_);
+      }
+    }
+    spacegroupname_ = newsymmetry_.symbol_xHM();
+
+    // check whether reindexed SG is same reference space group and point group
+    SpacegroupReindexOp sgreindex(filespacegroupname, spacegroupname_);
+    if (sgreindex.sameReferenceGroup()) {
+      samereferencegroup_ = true;   // same reference group
+    }
+    if (sgreindex.sameIntensityGroup()) {
+      sameintensitygroup_ = true;  // same point group
+    } else if (status == 0) {
+      status = -2;
+    }
     // SG changed if SG(filespacegroupname) != SG_
-    spacegroupchanged_ = false;
     if (SpaceGroup(filespacegroupname) != SG_) {
       spacegroupchanged_ = true;
     }
-    sameorigin_ = true;
-    if (status == -3) {
-      //  the origin might have changed, space group undetermined
-      sameorigin_ = false;
+    // status -3 may indicate origin change or other problems
+    if (status >= 0) {
+      sameorigin_ = true;
     }
   }
   //--------------------------------------------------------------
-  void CheckReindexSymmetry::report(const bool& verbose,
-                                    phaser_io::Output& output) const
+  bool CheckReindexSymmetry::report(const bool& verbose,
+                                    phaser_io::Output& output,
+                                    const bool& softfail) const
   {
     output.logTab(0,LXML, reindex_.as_hkl_XML()+"\n");
     output.logTab(0,LXML, reindex_.as_XML());
+
+    if (sgnamegiven_) {
+      output.logTab(0,LXML,
+                    StringUtil::MakeXMLtag("GivenSpacegroupName",
+                                           givenspacegroupname_));
+    }
 
     std::string tf = "False";
     if (spacegroupchanged_) {tf = "True";}
@@ -1575,46 +1787,105 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
     output.logTab(0,LXML,
                     StringUtil::MakeXMLtag("OriginChanged",tf));
 
+    tf = "True";
+    if (sameintensitygroup_) {tf = "False";}
+    output.logTab(0,LXML,
+                    StringUtil::MakeXMLtag("IntensityGroupChanged",tf));
+
     std::string statusmessage = SG_.statusMessage();
     std::string newspacegroupname = SG_.symbol_xHM();
     if (newspacegroupname == "Unknown") {newspacegroupname = spacegroupname_;}
-
     output.logTab(0,LXML,
                   StringUtil::MakeXMLtag("NewSpacegroupName",newspacegroupname));
 
     // Normally reindex determinant = 1.0, else changes cell volume
-    const double TOL = 0.0001;
-    if (!Close(det_, 1.0, TOL)) {
+    const double TOL = 0.001;
+    double idealdet = 1.0;
+    if (exchangeRandH_ > 0) {
+        // H -> R, det should = 0.333
+      idealdet = 0.33333;
+    } else if (exchangeRandH_ < 0) {
+      // H -> R, det should = 3.0
+      idealdet = 3.0;
+    }
+    if (!Close(det_, idealdet, TOL)) {
+      // fail
       std::string message = "Reindex operator changes the lattice volume";
-      if (det_ < 0.99) {
+      if (det_ < idealdet-0.01) {
         message += ", some reflections will be discarded";
       } else {
         message += ", some reflections will be missing in new lattice";
       }
       message += ", det(H) = "+StringUtil::ftos(det_,6,2);
+      //message += "\nBeware, space group may need to be changed\n";
       ReportErrors::printWarning(message, "ReindexDeterminantMessage", false);
     }
-    if ((status == -3) && (sgnamegiven_)) {
-      statusmessage =
-        "Specified space group " + spacegroupname_ +
-        " used, no check has been done on its validity";
-      ReportErrors::printWarning(statusmessage, "ChangedSpaceGroupMessage", false);
-    } else if (status < 0) {
-      // Fatal, maybe die here
-      if (status == -2) {
-        statusmessage =
-          "Specified SPACEGROUP "+spacegroupname_+
-          " must belong to same crystal system and point group\n"+
-          "as the reindexed input space group "+newspacegroupname+
-          ", reindex operator "+reindex_.as_hkl();
-      } else if (status == -3) {
-        statusmessage +=
-          "\nYou need to give an explicit space group to override the input one";
+
+    bool fatal = false;
+    if (status <= -2) {  // -2 or -3
+      if (sgnamegiven_) {
+        // Do the given SG and the reindexed base group
+        // have the same intensity (Laue) group?
+        if (sameintensitygroup_) {
+          // Accept given space group, but warn
+          statusmessage =
+            "Specified space group " + spacegroupname_ + " used\n" +
+            " as it has the same intensity (Laue) group as the reindexed group";
+        } else {
+          // Intensity group changed
+          if (softfail) {
+            statusmessage =
+              "Specified SPACEGROUP "+spacegroupname_+
+              " does not belong to same crystal system and point group\n"+
+              "as the reindexed input space group "+newspacegroupname+
+              ", reindex operator "+reindex_.as_hkl();
+          } else {
+            statusmessage =
+              "Specified SPACEGROUP "+spacegroupname_+
+              " must belong to same crystal system and point group\n"+
+              "as the reindexed input space group "+newspacegroupname+
+              ", reindex operator "+reindex_.as_hkl();
+            fatal = true;
+          }
+        }
+      } else {
+        // no SG given
+
+        // Do the initial SG and the reindexed base group
+        // have the same intensity (Laue) group?
+        if (sameintensitygroup_) {
+          statusmessage =
+            std::string("Reindexed base spacegroup (without translations) ")+
+             "used,\n as reindexed space group has an origin shift";
+        } else {
+          // Intensity group changed, normally fatal
+          if (softfail) {
+            statusmessage =
+              std::string("Reindexed spacegroup ")+
+              " does not belong to same crystal system and point group\n"+
+            "as the  input space group "+filespacegroupname_+
+            ", reindex operator "+reindex_.as_hkl();
+
+          } else {
+            statusmessage =
+              std::string("Reindexed spacegroup ")+
+              " must belong to same crystal system and point group\n"+
+              "as the  input space group "+filespacegroupname_+
+              ", reindex operator "+reindex_.as_hkl();
+            fatal = true;
+          }
+        }
       }
-      ReportErrors::printFatalError(statusmessage);
-    } else if (status != 0) {
-      ReportErrors::printWarning(statusmessage, "ReindexWarning", false);
     }
+
+    bool error = false;
+    if (fatal && !softfail) {
+      ReportErrors::printFatalError(statusmessage);
+    } else if (status != 0 || fatal) {
+      ReportErrors::printWarning(statusmessage, "ReindexWarning", false);
+      error = true;
+    }
+
     if (!sgnamegiven_) {
       if (verbose) {
         output.logTabPrintf(1,LOGFILE,
@@ -1622,9 +1893,10 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
                             newsymmetry_.symbol_xHM().c_str());
       }
     } else {
+      // sgname given, explicit or reference
       if (verbose) {
         output.logTabPrintf(1,LOGFILE,
-                            "Space group : %s\n\n",
+                            "Output space group : %s\n\n",
                             newsymmetry_.symbol_xHM().c_str());
       }
     }
@@ -1633,6 +1905,7 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
       "Copying merged data to output file in space group " + spacegroupname_;
     output.logTab(0,LXML,
                   StringUtil::MakeXMLtag("CopyMessage", s));
+    return error;
   }
   //--------------------------------------------------------------
   bool CheckReindexSymmetry::HorR(const char& X) const
@@ -1663,10 +1936,48 @@ ReportErrors::printFatalError("hkl_symmetry: symmetry operator not in element");
     SG_.init(spacegroupname_);
     newsymmetry_ = hkl_symmetry(spacegroupname_);
     samereferencegroup_ = true;
+    sameintensitygroup_ = true; // not really, but OK for this case
     spacegroupchanged_ = true;
     sameorigin_ = true;
 
+    // Transformations: +1  H -> R; -1 R -> H
+    if (RH1 == 'H') {exchangeRandH_ = +1;}
+    else {exchangeRandH_ = -1;}
+
     return true;
+  }
+  //--------------------------------------------------------------
+  bool CheckReindexSymmetry::allowPhaseCopy() const
+  // return true if phases can be legitimately copied with appropriate changes
+  {
+    bool OK = true;
+    if (!sameReferenceGroup()) {
+      OK = false;  // change of reference space group
+    }
+    // OK if no errors or lattice type changed
+    if ((status == 0) || (status == +2)) {return OK;}
+    if (reindex_.IsTranslation()) {
+      OK = false;  // translations in reindex
+    }
+    if (!sameOrigin()) {
+      OK = false;  // change of origin
+    }
+    if (spacegroupChanged()) {
+      OK = false;  // change of space group (including R3<->H3)
+    }
+    return OK;
+  }
+  //--------------------------------------------------------------
+  std::string CheckReindexSymmetry::phasemessage() const
+  {
+    std::string s = "";
+    if (!allowPhaseCopy()) {
+      // special message for P212121 with acyclic reindex
+      if ((spacegroupname_ == "P 21 21 21") && !reindex_.isCyclic()) {
+        s += "In space group P 21 21 21 with phases, reindexing must be a cyclic permutation (hkl, klh or lhk)";
+      }
+    }
+    return s;
   }
   //--------------------------------------------------------------
 }

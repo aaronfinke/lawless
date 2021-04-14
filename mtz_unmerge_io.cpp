@@ -98,7 +98,7 @@ namespace MtzIO
     if ( mtzin == NULL) {
       return false;
     }
-    if (!CMtz::MtzAssignHKLtoBase( mtzin )) {return false;}
+    if (!CMtz::MtzAssignHKLtoBase( mtzin )) {return false;} // assign columns to base dataset
     // get the list of datasets (fdatasets) from the file
     // (returns 0 if no datasets in file & one was created)
     int Ndatasets_file = read_datasets();
@@ -142,8 +142,9 @@ namespace MtzIO
     // get spacegroup by decoding symops
     bool no_symm = true;
     if (mtzsym.spcgrp > 0) {
-      // We already have MTZ-style symmetry from an hkl_list object, check that it is
-      // the same as this one
+      // If this isn't the first file, we already have MTZ-style symmetry from
+      // an hkl_list object,
+      // check that it is the same as this one
       if (CmtzSymgrpEqual(mtzsym, mtzin->mtzsymm)) {
         // Yes it is the same
         no_symm = false;
@@ -531,6 +532,10 @@ namespace MtzIO
     //^
     //    std::cout << "XDS::ReadObservations time " << timer.Dtime() << " elapsed " << timer.Etime() << "\n";
     //^-
+    if (ChangeIndex) {
+      output += "Some hkl indices changed while reading\n";
+    }
+
     if (Nread <= 0)
       ReportErrors::printFatalError("hkl_unmerge_list:: No reflections read");
 
@@ -826,6 +831,7 @@ namespace MtzIO
     Rtype sigscale = 0.0;
     bool StatusFlag;
     Nrej_batch = 0;
+    bool originalhkl = true;  // true if all ISYM = 1
 
     int nbatches = batches.size();
     hash_table batch_lookup;
@@ -850,10 +856,14 @@ namespace MtzIO
       //      std::cout << "Symmetry changing to " <<  hkl_list.symmetry().symbol_xHM() <<"\n"; //^^
     }
 
+    //    std::cout <<"FileSym:\n"<<FileSym.GetSpaceGroup().formatISYM_as_hkl()<<"\n";
+    //    std::cout <<"ListSym:\n"<<
+    //      hkl_list.symmetry().GetSpaceGroup().formatISYM_as_hkl()<<"\n";
+
     // MAXNLATTICES is maximum number of lattices allowed
     // +1 as lattices are numbered from 1
     numberinlattice.assign(MAXNLATTICES+1,0);
-    latticenumberrange.clear();
+   latticenumberrange.clear();
     mainlatticenumberrange.clear();
 
     int phierrorcount = 0;
@@ -1047,17 +1057,21 @@ namespace MtzIO
         mainlatticenumberrange.update(latnum);
       }  // end multilattice
 
-      if (changeSymmetry) {
-        //  reduce hkl to asymmetric unit
-        int new_isym;
-         Hkl hkl_new = hkl_list.symmetry().put_in_asu(FileSym.get_from_asu(hkl,isym), new_isym);
-        if (new_isym != isym) {
-          // changed from input
-          ChangeIndex = true;
-        }
-        isym = new_isym;
-        hkl = hkl_new;
+      //  always reduce hkl to asymmetric unit, if needed
+      if (isym != 1) {originalhkl = false;}
+      int new_isym;
+      Hkl hkl_orig = FileSym.get_from_asu(hkl,isym);
+      Hkl hkl_new = hkl_list.symmetry().put_in_asu(hkl_orig, new_isym);
+      if (hkl == hkl_new) {
+        // No change of hkl, leave ISYM unchanged
+        new_isym = isym;
       }
+      if (new_isym != isym) {
+        // changed from input
+        ChangeIndex = true;
+      }
+      isym = new_isym;
+      hkl = hkl_new;
 
       // Process partial flags Mflag and Mpart
       Npart = 1;  // Default full, one part
@@ -1121,6 +1135,11 @@ namespace MtzIO
 
     // Store accepted resolution range for this file
     resrange = ResoRange(InvResRange);
+
+    if (originalhkl) {
+      output += "File contains original hkl indices, all ISYM = 1\n";
+    }
+
     return nread;
   }
   //--------------------------------------------------------------

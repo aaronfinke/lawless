@@ -39,7 +39,37 @@ namespace scala {
     //  (including the identity)
     std::vector<std::vector<clipper::Symop> > latcenops; 
   };
+  //--------------------------------------------------------------
+  class LatticeCenteringTest
+  //  Store test for lattice centring absences
+  {
+  public:
+    LatticeCenteringTest() : latticetype('P'), errormessage(""){}
+    LatticeCenteringTest(const char& lattype);
 
+    bool isabsent(const Hkl& hkl) const;  // true if absent
+
+    char lattype() const {return latticetype;}
+
+    bool isSet() const {return (latticetype != 'P');}
+
+    bool isLattypeAllowed(const hkl_symmetry& symm);
+
+    std::string errorMessage() const {return errormessage;}
+
+    void print(phaser_io::Output& output) const;
+    void printresult(const char& origLatType,
+		     const int& nobs0,
+		     const int& nremoved,
+		     const hkl_symmetry& symm,
+		     phaser_io::Output& output) const;
+
+  private:
+    char latticetype;
+    std::string errormessage;
+    bool inList(const std::vector<char>& lattypes) const;
+
+  };
   //--------------------------------------------------------------
   //! Change H to R or vv in space group name
   //! If 1st character of name is H or R, change to :
@@ -62,7 +92,8 @@ namespace scala {
     // Constructors
     SpaceGroup() : Nsymp(0), status(0), statusmessage("") {}
 
-    SpaceGroup(std::vector<clipper::Symop>& symops); //!< constructor from symops
+    SpaceGroup(std::vector<clipper::Symop>& symops,
+	       const bool& softfail=false); //!< constructor from symops
     SpaceGroup(const std::string& spgname);          //!< constructor from name
     SpaceGroup(const int& SpgNumber);                //!< constructor from number
     SpaceGroup(const clipper::Spacegroup& ClpSG);    //!< constructor from clipper
@@ -97,6 +128,8 @@ namespace scala {
     SpaceGroup PattersonGroup() const;
     //! return derived point group
     SpaceGroup PointGroup() const;
+    //! return derived group without translations, bu keep lattice centring
+    SpaceGroup DerivedGroup() const;
 
     //! return lattice type character
     char LatType() const {return lattype;}
@@ -121,21 +154,32 @@ namespace scala {
     int Spacegroup_number() const {return spacegroupnumber;}
     //! CCP4 Space group number
     int CCP4_Spacegroup_number() const {return CCP4spacegroupnumber;}
+    //! CCP4 Space group
+    CSym::CCP4SPG* CCP4spacegroup() const;
 
     //! put hkl into asymmetric unit, return ISYM symmetry number (even for -h-k-l)
     clipper::HKL put_in_asu(const clipper::HKL& hkl, int& isym) const;
     //! get hkl from asymmetric unit, given ISYM symmetry number (even for -h-k-l)
     clipper::HKL get_from_asu(const clipper::HKL& hkl, const int& isym) const;
 
+    bool is_centric(const clipper::HKL& hkl) const; //!< true if reflection centric
+
     //! Compare whole symops (including translations)
     friend bool operator == (const SpaceGroup& a,const SpaceGroup& b);
     friend bool operator != (const SpaceGroup& a,const SpaceGroup& b);
 
-    //! Change basis, reindex
-    //! Returns: = 0, OK, no lattice change
-    //!          = +1 OK, lattice type changed
-    //!          = -1 not OK, fail
+    //! Change basis by reindex operator, returns = 0, OK
+    // This is (I think) only valid if the reindexing operation preserves the point group
+    // Also lattice centering operations need care
+    // Probably only useful for permuting axes where appropriate, and I2<->C2
+    // Returns status: = 0, OK, no lattice change
+    //                 = -1 not OK, fail
+    //                 = -2 not OK,
+    //                 = -3 OK, origin shifted (translations not reindexed)
+    //                 = +1 OK, invalid lattice type changed to P
+    //                 = +2 OK, lattice type changed
     int ChangeBasis(const scala::ReindexOp& reindex);
+
     int  Status() const {return status;}
     std::string statusMessage() const {return statusmessage;}
     ReindexOp reindexUsed() const {return reindexused;}
@@ -401,27 +445,42 @@ namespace scala {
     // there might be a possible origin shift
     bool sameOrigin() const {return sameorigin_;}
 
+    bool spacegroupChanged() const {return spacegroupchanged_;}
+
+    // return true if phases can be legitimately copied with appropriate changes
+    bool allowPhaseCopy() const;
 
     hkl_symmetry newSymmetry() const {return newsymmetry_;}
 
     ReindexOp reindex() const {return reindex_;}
 
     // Report and maybe exit (if fatal error)
-    void report(const bool& verbose,
-		phaser_io::Output& output) const;
+    bool report(const bool& verbose,
+		phaser_io::Output& output,
+		const bool& softfail=false) const;
+
+    int Status() const {return status;}
+
+    std::string phasemessage() const;
 
   private:
-    int status;
+    mutable int status;
     hkl_symmetry newsymmetry_;
     ReindexOp reindex_;
     bool sgnamegiven_;
     bool reindexfrominput_;
     std::string spacegroupname_;
+    std::string givenspacegroupname_;
+    std::string filespacegroupname_;
     SpaceGroup SG_;
+    bool sameintensitygroup_;
     bool samereferencegroup_;
     bool spacegroupchanged_;
+    // Transformations: +1  H -> R; -1 R -> H; else = 0
+    int exchangeRandH_;
     double det_;
     bool sameorigin_;
+    std::string reindexstatusmessage_;
 
     // if filespacegroupname and spacegroupname_ indicate a transformation
     // between rhombohedral and hexagonal settings of rhombohedral lattice

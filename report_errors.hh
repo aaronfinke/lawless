@@ -37,6 +37,11 @@ public:
 			   const std::string& xmltag,
 			   const bool& text=true);
 
+  // print message to logfile, and to XML if xmltag != ""
+  static void printText(const std::string& message,
+			const std::string& xmltag,
+			const bool& text=true);
+
 private:
   static phaser_io::Output*  outputp;  // pointer to Output object
 

@@ -724,6 +724,7 @@ namespace CCtbxSym
     //  angular_tolerance  similarity allowed for
     //                     monoclinic & triclinic cells
     //  AllowI2      > 0 to add I2 settings to C2 (mC or mI)
+    //               = 0 force C2 setting
     //               < 0 force I2 setting
     //
     // On exit:

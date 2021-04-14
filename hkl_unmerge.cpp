@@ -2286,6 +2286,7 @@ namespace scala {
         //    else  = false
         // Npart is number of parts recorded for the 1st obs_part
 
+
         if (Nfound == 1) { // potential FULL
           if (Npart == 1) { // yes it is
             partial_status = FULL;
@@ -2335,7 +2336,8 @@ namespace scala {
             //^
             //      std::cout << "hkl_unmerge_list::partials, rejected large "
             //                << refl_symm.get_from_asu(refl_list[j].hkl(), isym1).format()
-            //                <<" fract "<< total_fraction <<"\n";
+            //                <<" fract "<< total_fraction
+            //                <<" max "<<partial_flags.accept_fract_max()<<"\n";
             //^-
           } else {
             check_ok = true; // total fraction in range
@@ -3023,7 +3025,8 @@ namespace scala {
   int hkl_unmerge_list::change_symmetry(const hkl_symmetry& new_symm,
                                         const ReindexOp& reindex_op,
                                         const bool& reindexSecondaryLattices,
-                                        const bool& AllowFractIndex)
+                                        const bool& AllowFractIndex,
+                                        const LatticeCenteringTest& newlattype)
   // Change symmetry in all internal lists to new_spgp,
   // ie
   // 1. for each obs_part, get original indices
@@ -3036,6 +3039,12 @@ namespace scala {
   //
   // If AllowFractIndex true, allow discarding of fractional index
   // observations after reindexing, otherwise this is a fatal error
+  //
+  // If newlattype is set != 'P', then treat as centred lattice type,
+  // and remove indices for lattice absences
+  // Count in NfractIdx, returned
+  // Check indices before any reindex operator
+  //   (reindex usually identity in this case)
   {
     Hkl hkl, hkl_reindex, hkl_new;
     int new_isym;
@@ -3047,6 +3056,37 @@ namespace scala {
     for (int ib=0; ib<nbatches; ib++)
       {batches[ib].SetCellConstraint(lbcell);}
 
+    // ***  Remove lattice centring?  if newlattype is set
+    bool testlattice = false;
+    hkl_symmetry newlattsymm;
+    if (newlattype.isSet()) {
+      // no change if the same as current version
+      if (newlattype.lattype() != refl_symm.lattice_type()) {
+        char newlt = newlattype.lattype();
+        testlattice = true;
+        if (newlt == 'R') {
+          // special for R lattice, treat as primitive
+          newlattsymm = hkl_symmetry("P 1");
+        } else {
+          // Add new lattice centering into space group
+          SpaceGroup sgrp = refl_symm.GetSpaceGroup();
+          SpaceGroup sgrpl = sgrp.NewLatticePointGroup(newlt);
+          if (sgrpl.symbol_xHM() != "Unknown") {
+            newlattsymm = hkl_symmetry(sgrpl);
+          } else {
+            // Reset space group:
+            //  if lattype  H -> H3, else X1
+            std::string newsg = std::string(1,newlt)+" 1";
+            if (newlt == 'H') {
+              newsg = std::string(1,newlt)+" 3";
+            }
+            newlattsymm = hkl_symmetry(newsg);
+          }
+        }
+      }
+    }
+
+    // ***  Reindex
     bool reindex = true;
     if (reindex_op.IsIdentity()) reindex = false;
 
@@ -3074,10 +3114,21 @@ namespace scala {
       ASSERT (nlattices > 0);    // should have already called partials() to set nlattices
     }
 
+    // - - - - - loop
     for (size_t i = 0; i < N_part_list; i++) {  // loop all raw observations
       // Original indices
       hkl = refl_symm.get_from_asu(find_part(i).hkl(), find_part(i).isym());
 
+      if (testlattice) {
+        if (newlattype.isabsent(hkl)) {
+          //std::cout <<"remove "<<i<<" "<<find_part(i).hkl().format()<<"\n";
+          NfractIdx++;
+          obs_part_pointer[i] = NULL;  // Clear pointer
+          continue;
+          //    } else {
+          //std::cout <<"keep "<<i<<" "<<find_part(i).hkl().format()<<"\n";
+        }
+      }
       if (reindex)  {
         // returns false if non-integral indices
         bool HklOK = hkl.change_basis(hkl_reindex, reindex_op);
@@ -3089,7 +3140,7 @@ namespace scala {
         hkl_new = new_symm.put_in_asu(hkl_reindex, new_isym);
         // Multilattice
         if (dataflags.is_latnum && reindexSecondaryLattices) {
-          observation_part& part = find_part(i);
+          observation_part part = find_part(i);
           std::vector<LatticeIndexInfo> lathkl = part.lathkl();
           for (int j=0;j<nlattices;++j) {
             HklOK = HklOK || lathkl[j].hkl.change_basis(hkl_reindex, reindex_op);
@@ -3102,7 +3153,11 @@ namespace scala {
           find_part(i).set_lathkl(lathkl);
         }
       } else {  // no reindex
-        hkl_new = new_symm.put_in_asu(hkl, new_isym);
+        if (testlattice) {
+          hkl_new = newlattsymm.put_in_asu(hkl, new_isym);
+        } else {
+          hkl_new = new_symm.put_in_asu(hkl, new_isym);
+        }
       }
       //^
       //        std::cout << find_part(i).hkl().format() << " " << find_part(i).isym()
@@ -3112,12 +3167,18 @@ namespace scala {
       //^-
       find_part(i).set_hkl(hkl_new);
       find_part(i).set_isym(new_isym);
-    }
-    // Reset symmetry
-    refl_symm = new_symm;
-    // Store reindex operator to get back
-    refl_symm.set_reindex(reindex_op.inverse());
+      //      std::cout<<"CS>> "<<i<<" "<<find_part(i).isym()<<" "<<
+      //        find_part(i).hkl().format()<<"\n";
 
+    }  // end loop parts
+    // Reset symmetry
+    if (testlattice) {
+      refl_symm = newlattsymm;
+    } else {
+      refl_symm = new_symm;
+      // Store reindex operator to get back
+      refl_symm.set_reindex(reindex_op.inverse());
+    }
     if (NfractIdx > 0) {
       // Some fractional indices have been found & discarded
       // Is this allowed?
@@ -3125,11 +3186,13 @@ namespace scala {
         ReportErrors::printFatalError
           ("hkl_unmerge_list::change_symmetry: illegal fractional indices generated by reindex operator");
       }
-        // Pack down pointer list
+
+      // Pack down pointer list
       int j = 0;
       for (size_t i=0;i<N_part_list;i++)  {
-        if (obs_part_pointer[i])
-          {obs_part_pointer[j++] = obs_part_pointer[i];}
+        if (obs_part_pointer[i] != 0) {
+          obs_part_pointer[j++] = obs_part_pointer[i];
+        }
       }
       N_part_list = j;
       obs_part_pointer.resize(N_part_list);

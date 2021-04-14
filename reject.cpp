@@ -493,12 +493,15 @@ namespace scala {
                            const bool& multilattice,
                            const std::string& title, const float& dstarMax,
                            const float& wavelength,
-                           const OutlierControl& outliercontrol)
+                           const OutlierControl& outliercontrol,
+                           const bool& xmgraceoutput)
   // Open ROGUES file & write header if Start true
   // Open ROGUESPLOT file & write header if Plot true
+  // If filename = "", no xmgr output
   // multilattice = true is there are multiple lattices
   // title & maximum resolution d* = lambda/d
   //  outliercontrol   parameters for rejection
+  // xmgraceoutput if true, write xmgr file ROGUEPLOT
   {
     if (Start) {
       rogues = OpenFile(filename, true);  // open ROGUES file
@@ -547,7 +550,9 @@ namespace scala {
       rogues = NULL;
     }
     if (Plot) {
-      rogueplot = RoguePlot("ROGUEPLOT", title, dstarMax, wavelength);
+      std::string roguefilename = "ROGUEPLOT";
+      if (!xmgraceoutput) {roguefilename = "";}
+      rogueplot = RoguePlot(roguefilename, title, dstarMax, wavelength);
       rogueplot.Start();
     }
   }

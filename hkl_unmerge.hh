@@ -559,7 +559,9 @@ namespace scala {
     void SetIceRings(const Rings& rings);
     //! clear ice rings
     void clearIceRings() {SetIceRings(Rings());}
-
+    //! return ice rings
+    Rings getIceRings() const {return Icerings;}
+    
     //! If there are any resolution limits set by run, go through the observation
     // list and flag observations which are outside these limits
     void ImposeResoByRunLimits();
@@ -755,7 +757,9 @@ namespace scala {
     int change_symmetry(const hkl_symmetry& new_symm,
 			const ReindexOp& reindex_op,
 			const bool& reindexSecondaryLattices = true,
-			const bool& AllowFractIndex = false);
+			const bool& AllowFractIndex = false,
+	const LatticeCenteringTest& newlattype=LatticeCenteringTest());
+
 
     //! Prepare list for reflection processing
     /*!  if required, sort, organise, partials
