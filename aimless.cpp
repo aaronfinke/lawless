@@ -37,7 +37,7 @@
 
 #ifdef _MSC_VER
 #include <io.h>
-#defined STDIN_FILENO 0
+#define STDIN_FILENO 0
 #endif
 
 #if _OPENMP
