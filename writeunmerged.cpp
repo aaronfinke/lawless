@@ -494,7 +494,7 @@ namespace MtzIO
           // always M = 0 for "full" since partials have been summed (but see NPART)
           int isym = this_obs.Isym();
           if (originalhkl) {
-            // reconstruct original indices ohkl
+            // get original indices ohkl
             scala::Hkl ohkl = this_obs.hkl_original();
             data[0] = ohkl.h();
             data[1] = ohkl.k();

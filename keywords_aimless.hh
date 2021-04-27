@@ -237,7 +237,11 @@ namespace phaser_io {
     scala::OutlierControl GetOutlierControlsMerge() const
     {return outliercontrolsmerge;}
 
+    // true if this command has been given
+    bool isrejectset() const {return set;}
+
   private:
+    bool set;   // true if set explicitly from coammnds
     scala::OutlierControl outliercontrolsscale;
     scala::OutlierControl outliercontrolsmerge;
   };
@@ -447,6 +451,9 @@ namespace phaser_io {
     //! return sampleSD flag
     bool SampleSD() const {return sampleSD;}
 
+    //! return set flag, true if this command has been given
+    bool isSDcorrectionSet() const {return set;}
+
   private:
     // refine = +1 refine (non-linear), 0 no refine, -1 linear fit
     int refine;
@@ -462,6 +469,7 @@ namespace phaser_io {
     std::vector<double> sdtargets;  // ... and their SDs (= 0 no target)
     scala::WeightType::AverageWeightType weighttype;
     bool sampleSD;
+    bool set;  // true if this command has been given
   };
   //--------------------------------------------------------------
   class INTENSITIES : public InputBase, virtual public CCP4base

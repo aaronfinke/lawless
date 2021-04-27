@@ -310,6 +310,7 @@
 
 
 
+
             | SPACING &lt;delta_time&gt; </dt>
           <dd>Define number of B-factors or (if SPACING keyword present)
             the interval on "time": usually no time is defined in the
@@ -352,6 +353,7 @@
             implements a scale model for 3x3 tiled CCD detectors to
             correct for the underestimation of intensities in the
             corners of the tile, see <a href="#appendix2_tiles">Appendix
+
 
 
 
@@ -419,11 +421,13 @@ fixes
 
 
 
+
         the SdB parameter in the refinement (but it seems best to let it
         refine, even though it has no obvious physical meaning) <br>
       </li>
       <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
 
 
 
@@ -439,12 +443,14 @@ restrain
 
 
 
+
         parameters to be the same for all runs, with SDs optionally
         given for SdFac (sd1), SdB (sd2), and SdAdd (sd3) [defaults 0.2,
         3.0, 0.04)<br>
       </li>
       <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
 
 
 
@@ -545,6 +551,7 @@ set
       style="font-weight: bold;">maximum_gap</span> specifies the
     maximum number of contiguous rotation ranges which are allowed to
     fall below the <span style="font-weight: bold;">minimum_overlap </span>criterion,
+
 
 
 
@@ -697,6 +704,7 @@ set
 
 
 
+
         4</a> </p>
     <h3><a name="anomalous"></a>ANOMALOUS [OFF] [ON] </h3>
     <dl>
@@ -772,9 +780,12 @@ set
     are grouped to reduce the number of ranges, with a group size
     of&nbsp; BatchGroupRange degrees [default 1.0 degrees]<br>
     <h3><a name="onlymerge"></a>ONLYMERGE </h3>
-    <p>Only do the merge step, no initial analysis, no scaling. If
-      RESTORE is also given, the SDCORRECTION optimising will also be
-      skipped.<br>
+    <p>Only do the merge step, no initial analysis, no scaling.&nbsp;
+      Now, as of version 0.7.7,&nbsp; SDCORRECTION and outlier rejection
+      will be switched off, unless they are explicitly given. This is
+      equivalent to<br>
+      SDCORRECTION NOREFINE 1.0 0.0 0.0&nbsp;&nbsp; # No SD correction<br>
+      REJECT NONE&nbsp;&nbsp; # no outlier rejection<br>
     </p>
     <p> </p>
     <h3><a name="dump"></a>DUMP [&lt;Scale_file_name&gt;]<span
@@ -1072,6 +1083,7 @@ set
     specifying it on the command line. This file is used to provide a
     "best" estimate of intensity, possibly for the option to refine
     against a reference set (see <a href="#scaletoreference">above</a>).
+
 
 
 
@@ -1437,6 +1449,7 @@ set
 
 
 
+
     as a Fourier series, A = A0{a cos(phi) + b sin(phi) + c cos(2phi) +
     d sin(2phi)}<br>
     <br>
@@ -1528,6 +1541,8 @@ set
         <hr></sup><a name="release_notes"> </a>
       <h2>RELEASE NOTES</h2>
       <dl compact="compact">
+        0.7.7 ONLYMERGE now switches off SDcorrection and outlier
+        rejection by default, but honours explicit settings.<br>
         0.7.6 Added PLOT NOXMR to suppress xmgr files. Fix for
         occasional ISYM error in unmerged output. Unmerged OUTPUT
         ORIGINAL option for original hkl, which can now be read back in

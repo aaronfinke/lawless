@@ -5,9 +5,9 @@
 #define PROGRAM_VERSION_HEADER
 
 #define PROGRAM_NAME     std::string("AIMLESS")
-#define PROGRAM_VERSION  std::string("0.7.6")
-#define PROGRAM_DATE     std::string("7th April 2021")
-#define PROGRAM_DATE2    std::string("2021/04/07")
+#define PROGRAM_VERSION  std::string("0.7.7")
+#define PROGRAM_DATE     std::string("23rd April 2021")
+#define PROGRAM_DATE2    std::string("2021/04/23")
 #define PROGRAM_EXPIRES  bool(false)
 #define EXPIRE_DAY       int(1)
 #define EXPIRE_MONTH     int(1)

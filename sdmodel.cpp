@@ -18,10 +18,14 @@ namespace scala
 {
 //--------------------------------------------------------------
 SDmodel CreateSDmodel(const phaser_io::InputAll& input,
-                      const std::vector<Run>& runlist)
+                      const std::vector<Run>& runlist,
+                      const bool& setnull)
 // Create SDmodel for each run from input or defaults
 {
   SDcorrection sdcdeffull(1.0,0.0,0.02);
+  if (setnull) {
+    sdcdeffull = SDcorrection(1.0,0.0,0.0);
+  }
   sdcdeffull.SetDefaultRestraints();
 
   SDcorrection sdcdefpartial = sdcdeffull;  // default values

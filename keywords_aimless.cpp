@@ -622,6 +622,7 @@ REJECT::REJECT()
   //Add to CCP4base;
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
+  set = false;
 }
 //--------------------------------------------------------------
 Token_value REJECT::parse(std::istringstream& input_stream)
@@ -756,6 +757,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
       outliercontrolsmerge.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
     }
   }
+  set = true;
 
   return skip_line(input_stream);
 }
@@ -1127,6 +1129,7 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   weighttype = scala::WeightType::VARIANCE;
   //weighttype = scala::WeightType::SCALE;
   sampleSD = false;
+  set = false;
 }
 //--------------------------------------------------------------
 Token_value SDCORRECTION::parse(std::istringstream& input_stream)
@@ -1376,6 +1379,7 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
       }
     }
   }
+  set = true;
   ASSERT (sdinput.size() == runnumbers.size());
   return skip_line(input_stream);
 }

@@ -328,7 +328,8 @@ namespace scala
   //--------------------------------------------------------------
   //! Create SDmodel for each run from input or defaults
   SDmodel CreateSDmodel(const phaser_io::InputAll& input,
-			const std::vector<Run>& runlist);
+			const std::vector<Run>& runlist,
+			const bool& setnull=false);
 //-------------------------------------------------------------
   void SetSdmFullPartialFlags(const Run::FullsAndPartials& FandP,
 			      SDmodel& SDM, const int& irun);

@@ -241,8 +241,14 @@ int main(int argc, char* argv[])
 
     // OutlierControl from input or defaults
     // Set number of datasets later
-    controls.outlierScale = input.GetOutlierControlsScale();
-    controls.outlierMerge = input.GetOutlierControlsMerge();
+    if (FC.OnlyMerge() && !input.isrejectset()) {
+      // Onlymerge with no explicit setting, turn off outlier tests
+      controls.outlierScale.SetNoreject();
+      controls.outlierMerge.SetNoreject();
+    } else {
+      controls.outlierScale = input.GetOutlierControlsScale();
+      controls.outlierMerge = input.GetOutlierControlsMerge();
+    }
 
     // Controls on acceptable observation flags, for merging only
     // All flagged observations will be omitted from scaling
@@ -405,12 +411,16 @@ int main(int argc, char* argv[])
 
     // Set up SD correction model for all runs, fulls & partials for each run
     // from input or by default
-    SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList());
+    // If Onlymerge and SDcorrection not set explciitly, set null correction
+    bool setnull = (FC.OnlyMerge() && !input.isSDcorrectionSet());
+      SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList(), setnull);
     if (SD_model.SampleSD()) {
       SelectedObservations::SetSampleSD(SD_model.MinimumSample());
     }
-    FC.sdoptimise = true;  // normally optimise SD correction unless onlymerge && restore
-
+    FC.sdoptimise = true;
+    if (FC.OnlyMerge() && !input.SDC_RefineSet()) {
+      FC.sdoptimise = false;  // normally optimise SD correction unless onlymerge
+    }
     // Print outlier information
     PrintOutlierSettings(controls, output);
 
@@ -506,9 +516,14 @@ int main(int argc, char* argv[])
         }
       }
     } else {
+      // not RESTORE
       if (FC.OnlyMerge()) {
         // Onlymerge, set scales CONSTANT
         AllScales.SetConstant(hkl_list, output);
+        if(!input.SDC_RefineSet()) {
+          // turn off sd optimisation unless requested
+          FC.sdoptimise = false;
+        }
       } else {
         // Set up scale model, from input commands & reflection list
         AllScales.init(input, hkl_list, output);

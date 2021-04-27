@@ -32,6 +32,7 @@ namespace scala {
 
   private:
     double angleinterval;  // angle interval for analysis on theta and phil
+    Range histogramrange;
 
     // Table of calculated corrections
     int nsecscales;
@@ -44,10 +45,12 @@ namespace scala {
     std::vector<clipper::Array2d<double> > secscales;
     // count of number in each theta, phi bin
     std::vector<clipper::Array2d<int> > sscount;
-    Range secscalerange;
-    Histogram secscalehisto; // histogram of values
+    std::vector<Range> secscalerange;
+    std::vector<Histogram> secscalehisto; // histogram of values
 
     const ScaleModel*  allscales;
+
+    std::string dtsnames;
 
     void setupHistogram();
     void PrintHistogram(phaser_io::Output& output) const;
