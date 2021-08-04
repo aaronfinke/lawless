@@ -1863,6 +1863,7 @@ namespace scala {
   void hkl_unmerge_list::CheckAllRuns() {
     // Check each run for status of time information
     // Also add in any resolution range cutoffs from run_flags (run_controls)
+    // and set run cell from datasets
     std::vector<bool> negateTimeInBatch(nbatches, false); // true if time negated in batch
     bool negateTime = false; // true if any to be negated
     for (size_t irun=0;irun<runlist.size();++irun) {
@@ -1936,6 +1937,27 @@ namespace scala {
         ResoLimRange = maxrange;
       }
     }
+
+    // set cell for run, in case it is needed
+    for (int i=0;i<runlist.size();++i) {
+      PxdName pxdname = runlist[i].PXDname();
+      std::string xname = pxdname.xname();
+      bool found = false;
+      for (int j=0;j<ndatasets;++j) {
+        // try to find xdataset with this xname
+        Xdataset xdataset = datasets[j].getXdataset(xname);
+        if (!xdataset.null()) {
+          // found
+          runlist[i].setcell(xdataset.cell());
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        std::string message = "Can't find xdataset "+xname;
+        ReportErrors::printFatalError(message);
+      }
+    } // end loop runs
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::set_run()
@@ -2732,9 +2754,11 @@ namespace scala {
         int irun = this_obs.run();  // run index
         int ibatch = this_obs.Batch(); // batch number (central slot)
         obs_status =  this_obs.ObsStatus();
-        // resolution limit to test
+        Dtype invresolsq = this_obs.hkl_original().invresolsq(runlist[irun].getcell());
+        // resolution limit to test (ibatch not used)
         if (runlist[irun].IsResoRange() &&
-            !runlist[irun].InResoRange(refl_list[j].invresolsq(), ibatch)) {
+            !runlist[irun].InResoRange(invresolsq, ibatch)) {
+          ////            !runlist[irun].InResoRange(refl_list[j].invresolsq(), ibatch)) {
           // outside limits
           obs_status.SetResolution(); // set resolution reject flag
         } else {

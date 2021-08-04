@@ -138,6 +138,10 @@ namespace scala {
     //! Return use run flag
     bool Use() {return use_;}
 
+    //! set cell
+    void setcell(const Scell& cell) { cell_ = cell;}
+    //! get cell
+    Scell getcell() const {return cell_;}
 
   private:
     int runnumber;   // run number, an arbitrary integer (typically 1,2,3...)
@@ -162,6 +166,7 @@ namespace scala {
     bool resrangeset;   // true if there is a run resolution limit
     int latnum;         // lattice number, = 0 for single lattice
     bool use_;        // true to use
+    Scell cell_;
 
     // returns index into list if found, else -1
     int indexInList(const int& Batchnum) const;

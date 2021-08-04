@@ -692,21 +692,35 @@ namespace scala
   }
   //--------------------------------------------------------------
   //! Construct from list of cells
-  UnitCellSet::UnitCellSet(const std::vector<Scell>& Cells) :cells(Cells)
+  UnitCellSet::UnitCellSet(const std::vector<Scell>& Cells,
+                           const std::vector<double>& wts)
   {
-    averagecell = Average(); // average all cells
+    init(Cells, wts);
   }
   //--------------------------------------------------------------
   //! Initialise from list of cells
-  void UnitCellSet::init(const std::vector<Scell>& Cells)
+  void UnitCellSet::init(const std::vector<Scell>& Cells,
+                         const std::vector<double>& wts)
   {
     cells = Cells;
+    if (wts.size() > 0) {
+      ASSERT (wts.size() == Cells.size());
+      weights = wts;
+    } else {
+      weights = std::vector<double>(Cells.size(), 1.0);
+    }
     averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
-  void UnitCellSet::AddCell(const Scell& Cell)
+  void UnitCellSet::setweights(const double& wt)
+  {
+    weights = std::vector<double>(cells.size(), wt);
+  }
+  //--------------------------------------------------------------
+  void UnitCellSet::AddCell(const Scell& Cell, const double& wt)
   {
     cells.push_back(Cell);
+    weights.push_back(wt);
     averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
@@ -714,9 +728,11 @@ namespace scala
   void UnitCellSet::AddCellSet(const UnitCellSet& CellSet)
   {
     std::vector<Scell> newcells = CellSet.Cells();
+    std::vector<double> wts = CellSet.Weights();
     for (size_t i=0; i<newcells.size(); i++) {
-      AddCell(newcells[i]);
+      AddCell(newcells[i], wts[i]);
     }
+    averagecell = Average(); // average all cells
   }
   //--------------------------------------------------------------
   Scell UnitCellSet::Average(const int& idxexclude) const
@@ -731,17 +747,18 @@ namespace scala
       int j = (idxexclude+1)%2; // 1 or 0
       return cells[j];
     }
-    // We have 2 or more,average
-    std::vector<Dtype> sumcell(6,0.0);
+    // We have 2 or more, average, with weights
+    std::vector<MeanValue> meancell(6);
     for (size_t k=0; k<cells.size(); k++) {
       if (idxexclude < 0 || int(k) != idxexclude) {
         for (int i=0; i<6; i++) {
-          sumcell[i] += cells[k].UnitCell()[i];
+          meancell[i].Add(cells[k].UnitCell()[i], weights[k]);
         }
       }
     }
-    for (int i=0; i<6; i++) {sumcell[i] /= nc;}
-    return Scell(sumcell);
+    std::vector<double> mcell(6);
+    for (int i=0; i<6; i++) {mcell[i] = meancell[i].Mean();}
+    return Scell(mcell);
   }
   //--------------------------------------------------------------
   //! return list of deviations (A) from average of other cells
@@ -953,6 +970,11 @@ namespace scala
     allwavel_.assign(1, wavel);
   }
   //--------------------------------------------------------------
+  void Xdataset::SetWavelength(const double& wavel) {
+    wavel_ = wavel;
+    allwavel_.assign(1, wavel);
+  }
+  //--------------------------------------------------------------
   //! average multiple cells and wavelengths, return false if they differ by more than tolerance
   void Xdataset::AverageCellWavelength()
   // Tolerance in A
@@ -1022,6 +1044,13 @@ namespace scala
   {
     cell_ = cell_.change_basis(reindex_op);
     allcells_.change_basis(reindex_op);
+  }
+  //--------------------------------------------------------------
+  void Xdataset::setweights()
+  {
+    double wt = batches.size();
+    if (wt < 1.0) {wt = 1.0;}
+    allcells_.setweights(wt);
   }
   //--------------------------------------------------------------
   bool operator == (const Xdataset& a,const Xdataset& b)

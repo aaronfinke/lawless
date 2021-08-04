@@ -83,9 +83,10 @@ namespace scala
     //! change basis: reindex to get new cell
     void change_basis(const ReindexOp& reindex_op);
 
-    //! Set unit cells for all Xdatasets
+    //! Set unit cells for all Xdatasets if all == true
     ///    void SetCell(const Scell& cell);
-    void SetCellWavelength(const Scell& cell, const double& wavel);
+    void SetCellWavelength(const Scell& cell, const double& wavel,
+			   const bool& all=false);
 
     //! Set mosaicity for all Xdatasets
     void SetMosaicity(const double& mosaicity);
@@ -153,6 +154,12 @@ namespace scala
 
     //! set accepted flag
     void setaccepted(const bool& accept) {accepted_ = accept;}
+
+    //! return Xdataset with xname
+    Xdataset getXdataset(const std::string& xname) const;
+
+    // set cell weights in each xdataset
+    void setweights();
 
   private:
     std::vector<Xdataset> xdatasets;

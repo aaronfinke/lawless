@@ -345,13 +345,18 @@ namespace scala
   public:
     UnitCellSet(){}
     //! Construct from list of cells
-    UnitCellSet(const std::vector<Scell>& Cells);
+    UnitCellSet(const std::vector<Scell>& Cells,
+		const std::vector<double>& wts = std::vector<double>());
     //! Initialise from list of cells
-    void init(const std::vector<Scell>& Cells);
+    void init(const std::vector<Scell>& Cells,
+	      const std::vector<double>& wts = std::vector<double>());
     //! Clear cell list
     void clear() {cells.clear(); averagecell = Scell();}
     //! Add in a cell
-    void AddCell(const Scell& Cell);
+    void AddCell(const Scell& Cell, const double& wt = 1.0);
+
+    //! set weights
+    void setweights(const double& wt);
 
     //! Add in a cell set
     void AddCellSet(const UnitCellSet& CellSet);
@@ -361,6 +366,8 @@ namespace scala
 
     //! return all cells stored
     std::vector<Scell> Cells() const {return cells;}
+    //! return weights
+    std::vector<double> Weights() const {return weights;}
 
     //! return average cell
     Scell AverageCell() const {return averagecell;}
@@ -383,6 +390,7 @@ namespace scala
   private:
     std::vector<Scell> cells;
     Scell averagecell;
+    std::vector<double> weights; // for weighted average
 
   }; // UnitCellSet
   //======================================================================
@@ -493,12 +501,14 @@ namespace scala
     via a Dataset object */
   {
   public:
-    Xdataset(){}
+    Xdataset() {}
     //! constructor from names, cell, wavelength, Xdataset ID index
     /*!  setid is an ID number unique in a file */
     Xdataset(const PxdName& pxdname, const Scell& cell,
 	     const double& wavel, const int& setid);
-  
+
+    bool null() const {return (allcells_.Number() == 0);}
+
     //! Add batch number to list for this dataset
     void add_batch(const int& batch_num);
     void ClearBatchList() {batches.clear();} //!< clear batch list
@@ -510,7 +520,7 @@ namespace scala
     void ClearRunList() {run_index_list.clear();} //!< clear run index list
     std::vector<int> RunIndexList() const {return run_index_list;} //!< return run index list
   
-    PxdName pxdname() const {return pxdname_;} //!< return PXD names
+    PxdName pxdname() const {return pxdname_;} //!< return PXD name
     // setid_ is a unique Xdataset identifier number
     int setid() const {return setid_;} //!< get set ID
     int& setid() {return setid_;}  //!< set set ID
@@ -518,6 +528,7 @@ namespace scala
     Scell cell() const {return cell_;} //!< return cell
     Scell& cell() {return cell_;} //!< set cell
     void SetCellWavelength(const Scell& cell, const double& wavel);
+    void SetWavelength(const double& wavel);
 
     double wavelength() const {return wavel_;} //!< return wavelength
 
@@ -535,6 +546,7 @@ namespace scala
     int NumberofCells() const {return allcells_.Number();}
 
     UnitCellSet AllCells() const {return allcells_;}
+    void setweights();  // set cell weights = number of batches
 
     // List of wavelengths if multiple runs
     std::vector<double> AllWavelengths() const {return allwavel_;}

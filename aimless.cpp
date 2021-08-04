@@ -272,9 +272,10 @@ int main(int argc, char* argv[])
     double Tolerance = 2.0;
     std::string outputstring;
     timer.Start();
+    Scell inputcell = input.getCELL();
     mtzin.AddHklList(fileSeries,
                      hklin_filename, file_sel, column_selection, column_list,
-                     controls, InputPxdName, scala::Scell(),
+                     controls, InputPxdName, inputcell,
                      Tolerance, outputstring, verbose,
                      hkl_list);
     output.logTab(0,LOGFILE,outputstring);

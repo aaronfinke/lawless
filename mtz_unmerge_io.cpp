@@ -418,7 +418,9 @@ namespace MtzIO
     bool DifferentCell;
     averagecell = get_dset_batch_info(fileSeries, file_sel, InputPxdName, cell,
                                       col_select, DifferentCell);
+
     Scell accepted_cell = averagecell;
+    if (!cell.null()) {accepted_cell = cell;}
 
     if (DifferentCell) {
       output += FormatOutput::logTab(0,
@@ -429,7 +431,6 @@ namespace MtzIO
       output += FormatOutput::logTabPrintf(1,"Input cell:         ");
       for (int i=0;i<6;i++) output += FormatOutput::logTabPrintf(0,"%7.1f",cell[i]);
       output += FormatOutput::logTab(0,"\n\n");
-      accepted_cell = cell;
     }
     // MTZ headers read
 
@@ -528,7 +529,8 @@ namespace MtzIO
     // Read all observations into hkl_list, subject to selection flags
     bool ChangeIndex;
     //^    Timer timer;
-    int Nread = get_refs(hkl_list, file_sel, col_select, accepted_cell, ChangeIndex, output);
+    int Nread = get_refs(hkl_list, file_sel, col_select, accepted_cell,
+                         ChangeIndex, output);
     //^
     //    std::cout << "XDS::ReadObservations time " << timer.Dtime() << " elapsed " << timer.Etime() << "\n";
     //^-
@@ -614,8 +616,9 @@ namespace MtzIO
   //
   // Only wanted datasets are stored, but all batches in the
   // file are stored, so that automatic run assignment will
-  // work properly: however, for rejected batches, only the batch header will be stored.
-  // The actual observations will not be.
+  // work properly: however, for rejected batches,
+  //     only the batch header will be stored.
+  // The actual observations will not be stored
   // Rejected batches are flagged, including those from rejected datasets.
   //
   // On entry:
@@ -638,7 +641,7 @@ namespace MtzIO
     const double TOLERANCE = 3.0;   // angular difference limit for warning
     DifferentCell = false;
     bool NewCell = false;
-    if (cell[0] != 0.0) {NewCell = true;}   // use input cell
+    if (!cell.null()) {NewCell = true;}   // use input cell
 
     datasets.clear();
     // If InputPxdName not blank, then we are going to put all input datasets
@@ -663,6 +666,8 @@ namespace MtzIO
 
     // Average unit cells over all datasets & store average
     int ndatasets = datasets.size();
+    // weight unit cells in dataset by number of batches
+    setdatasetcellweights();
     Scell averagecell = AverageDsetCell(datasets);
     double averagewvl = AverageDsetWavelength(datasets);
 
@@ -679,7 +684,7 @@ namespace MtzIO
         if (wvl < 0.001) {
           wvl = averagewvl;
         }
-        datasets[id].SetCellWavelength(accepted_cell, wvl);   // reset all dataset cells to average
+        datasets[id].SetCellWavelength(accepted_cell, wvl, true);   // reset all dataset cells to average
       }
     }
 
@@ -761,6 +766,14 @@ namespace MtzIO
     return averagecell;
   }
   //--------------------------------------------------------------
+  void MtzUnmrgFile::setdatasetcellweights()
+  // for each xdataset in each dataset, set cell weight to number of batches
+  {
+    for (size_t i=0; i<datasets.size(); i++) {
+      datasets[i].setweights();
+    }
+  }
+  //--------------------------------------------------------------
   float check_column(const std::vector<float>& cols,
                      const std::vector<bool>& col_mnf,
                      const int& mcol, bool& status)
@@ -793,7 +806,7 @@ namespace MtzIO
   int MtzUnmrgFile::get_refs(hkl_unmerge_list& hkl_list,
                              file_select& file_sel,
                              const column_select& col_sel,
-                             const Scell& averagecell,
+                             const Scell& accepted_cell,
                              bool& ChangeIndex,
                              std::string& output)
   //
@@ -919,7 +932,7 @@ namespace MtzIO
       }
 
       // Resolution range
-      double s =  hkl.invresolsq(averagecell);
+      double s =  hkl.invresolsq(accepted_cell);
       if (! file_sel.in_reslimits(s)) {
         file_sel.incr_rej_reso();
         continue;
@@ -1261,6 +1274,7 @@ namespace MtzIO
           bool added = false;
           if (fdatasets.size() > 0) {
             // try to add this Xdataset to existing datasets
+            //   if has same dname
             for (size_t idts=0;idts<fdatasets.size();++idts) {
               added = fdatasets[idts].AddXdataset(xdts);
               if (added) break;

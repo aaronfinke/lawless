@@ -263,14 +263,20 @@ namespace scala {
     }
   }
   //--------------------------------------------------------------
-  //! Set unit cells for all Xdatasets
-  void Dataset::SetCellWavelength(const Scell& cell, const double& wavel)
-  ///  void Dataset::SetCell(const Scell& cell)
+  //! Set wavelength for all Xdatasets, and datasets average cell
+  //  if all == true, set cell for all xdatasets, else just set average
+  void Dataset::SetCellWavelength(const Scell& cell, const double& wavel,
+                                  const bool& all)
   {
     dieIfEmpty("SetCell");
     for (size_t k=0; k<xdatasets.size(); k++) {
-      xdatasets[k].SetCellWavelength(cell, wavel);
+      if (all) {
+        xdatasets[k].SetCellWavelength(cell, wavel);
+      } else {
+        xdatasets[k].SetWavelength(wavel);
+      }
     }
+    averagecell_ = cell;
   }
   //--------------------------------------------------------------
   //! Set mosaicity for all Xdatasets
@@ -591,6 +597,27 @@ namespace scala {
       worst = Max(worst, xdatasets[i].WorstDeviation());
     }
     return worst;
+  }
+  //--------------------------------------------------------------
+  //! return Xdataset with xname
+  Xdataset Dataset::getXdataset(const std::string& xname) const
+  {
+    Xdataset xdts;
+    if (xdatasets.size() <= 0) return xdts;
+    for (int i=0;i<xdatasets.size();++i) {
+      if (xdatasets[i].pxdname().xname() == xname) {
+        return xdatasets[i];
+      }
+    }
+    return xdts;
+  }
+  //--------------------------------------------------------------
+  void Dataset::setweights()
+  // set cell weights in each xdataset
+  {
+    for (size_t k=0; k<xdatasets.size(); k++) {
+      xdatasets[k].setweights();
+    }
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------

@@ -2099,4 +2099,29 @@ Token_value PLOT::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+CELL::CELL() : CCP4base(), InputBase()
+{
+  Add_Key("CELL");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value CELL::parse(std::istringstream& input_stream)
+{
+  int i = 0;
+  std::vector<Dtype> vcell(6);
+  while (get_token(input_stream) != ENDLINE)  {
+    if (tokenIs(1,NUMBER)) {
+      vcell[i++] = number_value;
+    }
+  }
+  if (i != 6) {
+    ReportSyntaxError(keywords,
+                      "ERROR in command CELL: six numbers must be given");
+  }
+  cell = scala::Scell(vcell);
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 } // phaser_io

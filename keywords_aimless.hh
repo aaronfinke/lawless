@@ -858,6 +858,24 @@ namespace phaser_io {
     bool xmgroutput;
 
 };
+  //--------------------------------------------------------------
+  class CELL : public InputBase, virtual public CCP4base
+  {
+    // Input of unit cell to override all file cells
+    // Syntax: CELL   a  b  c  alpha  beta  gamma 
+    //   Supply cell to override all cells in input files
+  public:
+    CELL();
+    virtual ~CELL() {}
+    Token_value parse(std::istringstream&);
+
+    void setCELL(const scala::Scell& Cell) {cell = Cell;}
+    scala::Scell  getCELL() const {return cell;}
+    void analyse(){}
+
+  private:
+    scala::Scell cell;
+};
 } // phaser_io
 
 #endif

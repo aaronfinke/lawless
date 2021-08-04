@@ -278,9 +278,11 @@ namespace MtzIO {
       // set and nlatticesall if needed
       void setLatticeCount();
 
+      // for each xdataset in each dataset,
+      //   set cell weight to number of batches
+      void setdatasetcellweights();
+
   }; //   class MtzUnmrgFile;
-
-
 
 }
 

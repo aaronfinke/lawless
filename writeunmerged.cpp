@@ -127,7 +127,18 @@ namespace MtzIO
       for (size_t ixt=0;ixt<pxdnames.size();++ixt) { // loop crystals
         std::string xname = pxdnames[ixt].xname();
         if (xtals[xname] == 0) { // new crystal
-          HKLcell = CG.constrain(hkl_list.dataset(jxd).cell());
+          // Find xdataset for this crystal
+
+          Xdataset xdataset = dataset.getXdataset(xname);
+          scala::Scell cell;
+          if (!xdataset.null()) {
+            cell = xdataset.cell();
+          } else {
+            // fall back to dataset cell
+            cell =  dataset.cell();
+          }
+
+          HKLcell = CG.constrain(cell);
           for (int i=0;i<6;i++) {
             ucell[i] = HKLcell[i];
           }

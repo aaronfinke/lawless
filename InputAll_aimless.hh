@@ -39,7 +39,8 @@ namespace phaser_io {
     public XYZIN,
     public USESDPARAMETER,
     public LINK,
-    public PLOT
+    public PLOT,
+    public CELL
   {
   public:
     InputAll(Preprocessor&); 

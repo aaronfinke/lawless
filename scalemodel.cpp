@@ -730,7 +730,7 @@ namespace scala {
       if (!batchscale) { // smooth mode
         if (!validscalemodel.ValidPrimary(irun)) {
           s = "\nERROR in ScaleModel: run "+clipper::String(run.RunNumber())+
-            " has insuffient information for smooth scaling\n";
+            " has insufficient information for smooth scaling\n";
           ReportErrors::printWarning(s, "ScaleModelError");
           status = -1;
           return s;
@@ -791,7 +791,7 @@ namespace scala {
       // Check for valid data: note that if primary data is missing, then so must be secondary
       if (!validscalemodel.ValidSecondary(irun)) {
           s += FormatOutput::logTabPrintf(0,
-     "WARNING: Run %3d has insuffient information for secondary beam scaling\n",
+     "WARNING: Run %3d has insufficient information for secondary beam scaling\n",
                                           run.RunNumber());
       } else {
         // Which secondary scale object corresponds to this run?
@@ -809,7 +809,7 @@ namespace scala {
     if (scaleSpec.detectorscaletype != DetectorScale::NONE) {
       if (!validscalemodel.ValidTile(irun)) {
           s += FormatOutput::logTabPrintf(0,
-     "WARNING: Run %3d has insuffient information for detector (tile) scaling\n",
+     "WARNING: Run %3d has insufficient information for detector (tile) scaling\n",
                                           run.RunNumber());
       } else {
         int jsc = detector_scale_index_run.at(irun);
@@ -825,7 +825,7 @@ namespace scala {
                                       detectortypes[irun]);
           } else {
             s += FormatOutput::logTabPrintf(0,
-     "WARNING: Run %3d has insuffient information for detector (tile) scaling\n",
+     "WARNING: Run %3d has insufficient information for detector (tile) scaling\n",
                                           run.RunNumber());
           }
         }
@@ -1569,7 +1569,7 @@ namespace scala {
   {
     if (IsRefinable()) {return "";}
     if (status < 0) {
-      return "insufficent information in file";
+      return "insufficient information in file";
     }  // insufficient information
     if (nparameters <= 1) {
       return "only one parameter";
