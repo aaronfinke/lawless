@@ -598,7 +598,15 @@ void Output::logHeader(outStream where)
       }
     }
   }
-
+  // ---------------------------------------------------------------------------
+  void Output::CloseFlush()
+  // flush and close out xml file
+  {
+    if (XMLOUT)      {
+      logTab(0, LXML, "</"+PROGRAM_NAME+">");
+      }
+    logFlush();
+  }
 
  /*
 void Output::logTrailer(PhaserError err)

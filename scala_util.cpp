@@ -345,7 +345,7 @@ namespace scala
     return *this;
   }
   //--------------------------------------------------------------
-  MeanSD& operator +
+  MeanSD operator +
   (const MeanSD& a, const MeanSD& b)
   {
     MeanSD c = a;
@@ -414,7 +414,7 @@ namespace scala
     return *this;
   }
   //--------------------------------------------------------------
-  MeanValue& operator +
+  MeanValue operator +
   (const MeanValue& a, const MeanValue& b)
   {
     MeanValue c = a;
@@ -595,7 +595,7 @@ namespace scala
     return *this;
   }
   //--------------------------------------------------------------
-  MeanVariance& operator +
+  MeanVariance operator +
   (const MeanVariance& a, const MeanVariance& b)
   {
     MeanVariance c = a;
@@ -613,7 +613,7 @@ namespace scala
     return *this;
   }
   //--------------------------------------------------------------
-  MeanVariance& operator -
+  MeanVariance operator -
   (const MeanVariance& a, const MeanVariance& b)
   {
     MeanVariance c = a;

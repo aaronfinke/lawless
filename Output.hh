@@ -34,7 +34,7 @@ class Output
     void setOutput(const Output &);
     Output(const Output &);
     const Output& operator=(const Output&);
-  virtual ~Output() throw() { WriteResult(); verboseStream.close(); logfileStream.close();
+  virtual ~Output() throw() { WriteResult(); CloseFlush(); verboseStream.close(); logfileStream.close();
       summaryStream.close(); xmlStream.close(); }
  
   private:
@@ -100,6 +100,7 @@ class Output
     bool doXmlout() { return XMLOUT; } 
     // Write out RESULT stream to stdout if CCP4 & anything in it
     void WriteResult();
+    void CloseFlush();
 
     std::string Fileroot() { return FILEROOT; }
     std::string XmlFile() { return XMLFILE; } 

@@ -252,11 +252,11 @@ TROBJ= ${TREXE}.o  ${OBJ} ${COBJ}
 ${TREXE}: ${TROBJ}
 	${CXX} $(LFLAGS) -o ${TREXE} ${TROBJ}  ${LDLIBS}
 ## - - -
-#TTOBJ= t.o 
+TTOBJ= t.o 
 #TTOBJ= t.o timer.o string_util.o range.o report_errors.o  Output.o  jiffy.o
 #TTOBJ= t.o  eprob.o string_util.o range.o fileread.o Output.o jiffy.o \
 #	tablegraph.o radialfunction.o
-TTOBJ= t.o ${OBJ} ${COBJ}
+#TTOBJ= t.o ${OBJ} ${COBJ}
 
 TTEXE= t
 

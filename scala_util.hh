@@ -133,7 +133,7 @@ namespace scala
     std::string format() const;
 
     MeanSD& operator+=(const MeanSD& other);
-    friend MeanSD& operator+ (const MeanSD& a, const MeanSD& b);
+    friend MeanSD operator+ (const MeanSD& a, const MeanSD& b);
     static bool MeanSDsmallerSD(const MeanSD& a, const MeanSD& b);
 
   private:
@@ -161,7 +161,7 @@ namespace scala
     std::string format() const;
 
     MeanValue& operator+=(const MeanValue& other);
-    friend MeanValue& operator+ (const MeanValue& a, const MeanValue& b);
+    friend MeanValue operator+ (const MeanValue& a, const MeanValue& b);
 
   private:
     double sum_sc, sum_w;
@@ -208,9 +208,9 @@ namespace scala
     std::string format() const;
 
     MeanVariance& operator+=(const MeanVariance& other);
-    friend MeanVariance& operator+ (const MeanVariance& a, const MeanVariance& b);
+    friend MeanVariance operator+ (const MeanVariance& a, const MeanVariance& b);
     MeanVariance& operator-=(const MeanVariance& other);
-    friend MeanVariance& operator- (const MeanVariance& a, const MeanVariance& b);
+    friend MeanVariance operator- (const MeanVariance& a, const MeanVariance& b);
 
   private:
     double sum_sc, sum_w, sum_w2;

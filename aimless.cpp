@@ -1249,7 +1249,10 @@ int main(int argc, char* argv[])
     errorstatus = 7;
   }
 
-  if (output.doXmlout()) output.logTab(0, LXML,"</AIMLESS>");
+  if (output.doXmlout()) {
+    output.logTab(0, LXML,"</AIMLESS>");
+    output.unsetXmlout();
+  }
 
   Citation citation
     ("P.R.Evans and G.N.Murshudov, 'How good are my data and what is the resolution?'"+
