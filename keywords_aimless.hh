@@ -218,11 +218,15 @@ namespace phaser_io {
     //            NOALL (== ALL 0) switches off this test
     //            Only applies to merging step (scaling step checks all anyway)
     //  EMAX <Emax> maximum normalised F accepted
+    //  [NO]ANISO [do not] use anisotropic normalisation for Emax test
     //  BATCH  <batchrejectfactor>
     //          if > 0, reject batches with scales >
     //             batchrejectfactor * medianscale
     //           (and negatives)
     //           valid only for batch scaling eg for serial data
+    //  WEIGHT   weighting scheme for outlier test, VARIANCE, SCALE or SQRTSCALE
+    //  NONE no outlier rejection
+
   {
   public:
     REJECT();
@@ -240,10 +244,16 @@ namespace phaser_io {
     // true if this command has been given
     bool isrejectset() const {return set;}
 
+    // Anisotropic normalisation?
+    bool anisotropicNormalisation() const {return anisonormalise;}
+
   private:
     bool set;   // true if set explicitly from coammnds
     scala::OutlierControl outliercontrolsscale;
     scala::OutlierControl outliercontrolsmerge;
+
+    // true to use anisotropic normalisation for Emax test
+    bool anisonormalise;
   };
   //--------------------------------------------------------------
   class TIE : public InputBase, virtual public CCP4base

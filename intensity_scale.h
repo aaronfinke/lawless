@@ -39,6 +39,8 @@
 //L  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 //L  MA 02111-1307 USA
 
+// Modified from clipper by Norman Stein, for ctruncate
+
 #ifndef CLIPPER_ISCALE
 #define CLIPPER_ISCALE
 
@@ -57,6 +59,7 @@
 
 #include "intensity_target.h"
 
+#include <iostream>
 
 namespace clipper {
 
@@ -92,7 +95,11 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
   HKL_data<datatypes::I_sigI<T> > io1( hkl1 ), is1( hkl1 ), ic1( hkl1 );
   for ( HRI ih = hkl1.first(); !ih.last(); ih.next() ) {
     datatypes::I_sigI<T> i = io[ih.hkl()];
-    if ( i.I() >= nsig_ * i.sigI() ) is1[ih] = io1[ih] = i;
+    if ( i.I() >= nsig_ * i.sigI() ) { 
+      is1[ih] = io1[ih] = i;
+      //      std::cout << ih.hkl().format() << " "<<i.I()
+      //	<<" "<<i.sigI()<<"\n";
+    }
   }
 
   // perform aniso scaling 3 times to allow aniso scale from previous
@@ -118,8 +125,8 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
 
     //%/
     //^^
-    //    U_aniso_orth u0 = bfn.u_aniso_orth( param );
-    //    std::cout << "u0\n" <<u0.format() <<"\n";
+    // U_aniso_orth u0 = bfn.u_aniso_orth( param );
+    // std::cout << "u0\n" <<u0.format() <<"\n";
     //    clipper::Matrix<double> Uorth(3,3);
     //    for (int j=0;j<3;++j) {
     //      for (int i=0;i<3;++i) {
@@ -162,7 +169,7 @@ template<class T> bool Iscale_aniso<T>::operator() ( HKL_data<datatypes::I_sigI<
     //    std::cout <<"\n";
     //^-
 
-  }
+  }  // end loop 3 times
 
   // store the results
   for ( HRI ih = hkls.first(); !ih.last(); ih.next() )

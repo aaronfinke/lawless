@@ -426,6 +426,7 @@ namespace scala {
                                const int& datasetIndex,
                                const ResoRange& ResRange,
                                const Normalise& NormRes,
+			       const AnisotropicAnalysis& anisoanal,
                                const AnomDistribution& anomDistribution,
                                const float& anomProbSlope,
                                const ReferenceList& hklreflist,
@@ -600,14 +601,9 @@ namespace scala {
     std::vector<std::vector<MeanSD> > mnIsdResAniso(3);  // Mean(<I>/sd(<I>))
     for (int i=0;i<3;++i) {mnIsdResAniso[i].resize(nresbin);}
 
-    Timer anisotime;
     // Get principal axes of anisotropy depending on symmetry and data
-    AnisotropicAnalysis anisoanal(hkl_list, datasetIndex, SDM);
-    anisoanal.SetConeAngle(controls.analysis.ConeAngle());  // store cone angle
+    //   previously determined for each dataset
     summaryStatistics.StoreAnisoDeltaB(anisoanal.BfactorDifference());
-    output.logTab(0, LOGFILE,
-         "\nTime for determination of anisotropic axes: "+anisotime.format(true));
-    // ----
 
     // Sample SD option
     CompareSDs comparesds;

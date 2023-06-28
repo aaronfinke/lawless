@@ -25,6 +25,9 @@ namespace scala {
                                              const ResoRange& ResRange)
   // Analyse distribution of anomalous differences to get estimate
   // of maximum likely values, for all datasets
+  // If > 1 dataset,
+  // get cross-correlations of anomaloius and dispersive differences,
+  // and also correlations between intensities
   //
   {
     reflection this_refl;
@@ -60,8 +63,12 @@ namespace scala {
     int ndispcc = (ndatasets-2)*(ndatasets - 1)/2; // number of dispersive cc
     if (ncorrel > 0) {
       cca.resize(ncorrel);  // CC between anomalous differences
+      cci.resize(ncorrel);  // CC between intensities
       ccadtsindex.resize(ncorrel);
-      for (int i=0;i<ncorrel;++i) {cca[i].resize(nresbin);}
+      for (int i=0;i<ncorrel;++i) {
+	cca[i].resize(nresbin);
+	cci[i].resize(nresbin);
+      }
       int k=0;
       for (int j=0;j<ndatasets-1;++j) {
         for (int i=j+1;i<ndatasets;++i) {
@@ -103,6 +110,7 @@ namespace scala {
     double danom;
     std::vector<double> danomdts(ndatasets); // DelAnom for each dataset
     std::vector<double> Imeandts(ndatasets); // <I> for each dataset, for dispersive values
+
     SelectedObservations obsall, obsplus, obsminus;
     int nacc = 0;
 
@@ -122,6 +130,7 @@ namespace scala {
         obsall.init(this_refl, id, ALL);
         if (obsall.Number() > 0) {
           Imeandts[id] = obsall.Average().I();
+	  nacc++;
           if (!Centric) {
             obsplus.init(this_refl, id, IPLUS);
             if (obsplus.Number() > 0) {
@@ -140,7 +149,6 @@ namespace scala {
                   danom = (Iplus.I()-Iminus.I());
                   anomdistributions[id].Add(mres, danom, correlAnom, obsplus, obsminus);
                   danomdts[id] = danom;
-                  nacc++;
                 }
               }
             }
@@ -152,6 +160,7 @@ namespace scala {
         AddCorrelations(danomdts, Imeandts, mres);
       }
     } // end loop reflections
+    std::cout <<"added\n";
   }
   // ------------------------------------------------------------
   // Store slopes of normal probability anomplot for each dataset into Anomdistribution
@@ -163,7 +172,7 @@ namespace scala {
     }
   }
   // ------------------------------------------------------------
-  bool AllAnomDistributions::IsAnomalous(const all_controls& controls) const
+  int AllAnomDistributions::IsAnomalous(const all_controls& controls) const
   // return true if it appears that any dataset has significant anomalous
   // At present, anomalous scattering is considered to be present if any one of
   // the following is true (defaults in brackets):
@@ -173,8 +182,10 @@ namespace scala {
   //  3) RCRanom > anomRCRthreshold (1.3) in more than anomNbinthreshold bins (2), or overall
   //
   // It should be possible to estimate probabilities, but this will do for now
+  // Returns: -1 no anomalous data; 0 weak anomalous; +1 significant anomalous
   {
     bool isanomalous = false;
+    bool noanomdata = true;
 
     for (size_t k=0; k<cca.size(); k++) {  // loop cross-correlation CCanom
       // Interdataset CCs
@@ -202,6 +213,9 @@ namespace scala {
       int nccanom  = 0; // ... CCanom
       int nrcranom = 0; // ... RCRanom
       int nbin = anomdistributions[id].Halfdataset().NresBin();
+      if (anomdistributions[id].Halfdataset().CCanom().result().count > 0) {
+	noanomdata = false;
+      }
       if (anomdistributions[id].Halfdataset().CCanom().result().val >
             controls.anomalouscontrol.anomCCthreshold) {
         isanomalous = true;   // overall value above threshold
@@ -224,8 +238,15 @@ namespace scala {
       if (nccanom > controls.anomalouscontrol.anomNbinthreshold) {
         isanomalous = true;
       }
+      if (nrcranom > controls.anomalouscontrol.anomNbinthreshold) {
+        isanomalous = true;
+      }
+
     } // end loop datasets
-    return isanomalous;
+    int anomstatus = 0;
+    if (isanomalous) {anomstatus = +1;}
+    if (noanomdata)  {anomstatus = -1;}
+    return anomstatus;
   }
   // ------------------------------------------------------------
   void AllAnomDistributions::AddCorrelations
@@ -241,6 +262,9 @@ namespace scala {
         if (danomdts[i]!=0.0 && danomdts[j]!=0.0) {
           cca[k][mres].add(danomdts[i], danomdts[j]);
         }
+	if (Imeandts[i] != 0.0 && Imeandts[j] != 0.0) {
+          cci[k][mres].add(Imeandts[i], Imeandts[j]);
+	}
         k++;
       }}
     if (ndatasets > 2) { // no correlation if < 3 datasets
@@ -266,9 +290,9 @@ namespace scala {
   {
     if (ndatasets < 2) return;
     output.logTab(0, LOGFILE,
-  "\nCorrelation coefficients for anomalous & dispersive differences between different datasets");
+  "\nCorrelation coefficients for differences between different datasets");
     output.logTab(0, LOGFILE,
-                  "==========================================================================================\n");
+                  "===================================================================\n");
     output.logTab(0, LOGFILE,"\nDatasets and wavelengths:\n");
     for (int id=0;id<ndatasets;++id) {
       std::string s("    ");
@@ -278,36 +302,69 @@ namespace scala {
                           pxdnames[id].format().c_str());
     }
 
-    std::string title = "=== Correlation of Anomalous Differences between datasets";
-    std::string graphtitle = "Anom CCs v resln -";
-    for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
+    std::string title;
+    std::string graphtitle;
     std::string cl1 = "1st dataset         ";
     std::string cl2 = "2nd dataset         ";
     std::vector<correl_coeff> allcc;  // totals
-    FormatTable(title, graphtitle, cl1, cl2, cca,
-                ccadtsindex, false, allcc, output);
+    // Is there any anomalous information?
+    bool haveanom = false;
+    if (checkCC(cca)) {
+      title = "=== Correlation of Anomalous Differences between datasets";
+      graphtitle = "Anom CCs v resln -";
+      for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
+      FormatTable(title, graphtitle, cl1, cl2, cca,
+		  ccadtsindex, false, allcc, output);
+      
+      // Format cross-correlation table
+      title = "\nOverall correlation of Anomalous Differences between datasets\n";
+      title += "      (Numbers in brackets)\n\n";
+      CrossCorrelation(title, "DatasetAnomalousCorrelation",allcc, false, output);
+      haveanom = true;
+    }
+    if (checkCC(cci)) {
+      title = "=== Correlation of intensities between datasets";
+      graphtitle = "Intensity CCs v resln -";
+      for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
+      FormatTable(title, graphtitle, cl1, cl2, cci,
+		  ccadtsindex, false, allcc, output);
 
-    // Format cross-correlation table
-    title = "\nOverall correlation of Anomalous Differences between datasets\n";
-    title += "      (Numbers in brackets)\n\n";
-    CrossCorrelation(title, "DatasetAnomalousCorrelation",allcc, false, output);
-
+      // Format cross-correlation table
+      title = "\nOverall correlation of intensities between datasets\n";
+      title += "      (Numbers in brackets)\n\n";
+      CrossCorrelation(title, "DatasetIntensityCorrelation",allcc, false, output);
+    }
     if (ndatasets < 3) return;
 
-    // Dispersive differences
-    title = "Correlation of Dispersive Differences between datasets";
-    graphtitle = "Dispersive CCs v resln -";
-    for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
-    cl1 = "1st difference      ";
-    cl2 = "2nd difference      ";
-    FormatTable(title, graphtitle, cl1, cl2, ccd,
-                ccddtsindex, true, allcc, output);
-    // Format cross-correlation table
-    title = "\nCorrelation between datasets of Dispersive Differences from base set\n";
-    title += "      (Numbers in brackets)\n\n";
-    CrossCorrelation(title, "DatasetDispersiveCorrelation", allcc, true, output);
+    if (checkCC(ccd) and haveanom) {
+      // Dispersive differences, ignore if no anomalous data
+      title = "=== Correlation of Dispersive Differences between datasets";
+      graphtitle = "Dispersive CCs v resln -";
+      for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
+      cl1 = "1st difference      ";
+      cl2 = "2nd difference      ";
+      FormatTable(title, graphtitle, cl1, cl2, ccd,
+		  ccddtsindex, true, allcc, output);
+      // Format cross-correlation table
+      title = "\nCorrelation between datasets of Dispersive Differences from base set\n";
+      title += "      (Numbers in brackets)\n\n";
+      CrossCorrelation(title, "DatasetDispersiveCorrelation", allcc, true, output);
+    }
   }
   // ------------------------------------------------------------
+  bool AllAnomDistributions::checkCC(const std::vector<std::vector<correl_coeff> > cc) const
+  {
+    // Return false if all cc elements are empty
+    for (size_t i=0;i<cc.size();++i) {
+      for (size_t j=0;j<cc[i].size();++j) {
+	if (cc[i][j].result().count > 0) {
+	  return true;
+	}
+      }
+    }
+    return false;
+  }
+// ------------------------------------------------------------
   void AllAnomDistributions::FormatTable(const std::string& title,
                                          const std::string& graphtitle,
                                          const std::string& ccl1,
@@ -409,7 +466,7 @@ namespace scala {
     std::string line = "Overall           ";
     char buf[256];
     for (size_t i=0;i<cc.size();++i) {
-      sprintf(buf, fmtn.c_str(),
+      snprintf(buf, 256, fmtn.c_str(),
               allcc[i].result().val, allcc[i].result().count);
       line += std::string(buf);
     }
@@ -533,6 +590,8 @@ namespace scala {
       s = "Anomalous flag switched OFF in input, anomalous signal is weak";
     } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_ABSENT) {
       s = "The anomalous signal appears to be weak so anomalous flag was left OFF";
+    } else if (anomalousstatus == AnomalousStatus::NO_ANOMALOUS_DATA) {
+      s = "There is no anomalous information in the data";
     }
 
     std::string s2 = "";

@@ -131,6 +131,8 @@ Token_value SCALES::parse(std::istringstream& input_stream)
       } else if (keyIs("ON")) {
         if (spec.nbfac == -1) {
           spec.nbfac = -2;  // switch on B-factors
+        } else if (spec.nbfac == 0) {
+          spec.nbfac = 1;  // one B-factor for CONSTANT
         }
       } else if (keyIs("OFF")) {
         spec.nbfac = 0;  // switch off B-factors
@@ -623,6 +625,7 @@ REJECT::REJECT()
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
   set = false;
+  anisonormalise = true;
 }
 //--------------------------------------------------------------
 Token_value REJECT::parse(std::istringstream& input_stream)
@@ -649,6 +652,13 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   //            NOALL (== ALL 0) switches off this test
   //            Only applies to merging step (scaling step checks all anyway)
   //  EMAX <Emax> maximum normalised F accepted
+  //  [NO]ANISO [do not] use anisotropic normalisation for Emax test
+  //  BATCH  <batchrejectfactor>
+  //          if > 0, reject batches with scales >
+  //             batchrejectfactor * medianscale
+  //           (and negatives)
+  //           valid only for batch scaling eg for serial data
+  //  WEIGHT    weighting scheme for outlier test, VARIANCE, SCALE or SQRTSCALE
   //  NONE no outlier rejection
 
   // default to current values
@@ -661,6 +671,7 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   bool combine = false;
   float batchrejectfactor = -1.0;  // no batch rejection
 
+
   int merge = 0;  // expecting values for MERGE && SCALE, = +1 for MERGE, = -1 for SCALE
   // enum Reject2Policy {REJECT, KEEP, REJECTLARGER, REJECTSMALLER};
   scala::RejectFlags::Reject2Policy rej2policy = scala::RejectFlags::KEEP;
@@ -668,6 +679,10 @@ Token_value REJECT::parse(std::istringstream& input_stream)
   bool first = true;  // first of pair
   bool batchreject = false; // REJECT BATCH
   bool none = false;  // do some rejection
+  bool weight = false;  // weight option given
+  // current weight type
+  scala::WeightType::AverageWeightType newweighttype =
+    outliercontrolsmerge.weightType();
 
   while (get_token(input_stream) != ENDLINE) {
     if (tokenIs(1,NAME)) {
@@ -696,6 +711,30 @@ Token_value REJECT::parse(std::istringstream& input_stream)
         emaxgiven = 0;
       } else if (keyIs("BATCH")) {
         batchreject = true;
+      } else if (keyIs("WEIGHT")) {
+	weight = true;
+      } else if (keyIs("VARIANCE")) {
+	if (!weight) {
+	  ReportSyntaxError
+	    (keywords, "REJECT: VARIANCE token must follow WEIGHT");
+	}
+	newweighttype = scala::WeightType::VARIANCE; // or SQRTSCALE or SCALE
+      } else if (keyIs("SCALE")) {
+	if (!weight) {
+	  ReportSyntaxError
+	    (keywords, "REJECT: SCALE token must follow WEIGHT");
+	}
+	newweighttype = scala::WeightType::SCALE;
+      } else if (keyIs("SQRTSCALE")) {
+	if (!weight) {
+	  ReportSyntaxError
+	    (keywords, "REJECT: SQRTSCALE token must follow WEIGHT");
+	}
+	newweighttype = scala::WeightType::SQRTSCALE;
+      } else if (keyIs("ANISO")) {
+	anisonormalise = true;
+      } else if (keyIs("NOANISO")) {
+	anisonormalise = false;
       } else if (keyIs("NONE")) {
         none = true;
       } else {
@@ -745,6 +784,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
     if (none) {
       outliercontrolsscale.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
     }
+    if (weight) {
+      outliercontrolsscale.setWeightType(newweighttype);
+    }
   }
   //  MERGE or both
   if (merge >= 0) {
@@ -755,6 +797,9 @@ Token_value REJECT::parse(std::istringstream& input_stream)
     if (emaxgiven >= 0) outliercontrolsmerge.SetEmax(emax);
     if (none) {
       outliercontrolsmerge.SetOutlierPolicy(scala::OutlierControl::NOREJECT);
+    }
+    if (weight) {
+      outliercontrolsmerge.setWeightType(newweighttype);
     }
   }
   set = true;

@@ -627,7 +627,7 @@ std::string FormatOutput::logTabPrintf(const int& tab,
   temp[temp_size-1] = '\0';
   va_list arglist;
   va_start(arglist,formattext);
-  vsprintf(temp,formattext,arglist);
+  vsnprintf(temp,8192,formattext,arglist);
   va_end(arglist);
   assert(temp[temp_size-1] == '\0');
   return std::string(3*tab, ' ') + std::string(temp);

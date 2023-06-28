@@ -140,6 +140,7 @@ namespace scala
     ValCount(const Rtype v, const int n) : val(v), count(n) {}
 
     Rtype val;
+
     int count;
   };
 

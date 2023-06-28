@@ -420,8 +420,6 @@ public:
 			 const std::vector<bool>& ZeroMark,
 			 const std::string& pformat);
 
-  //!  Return formatted line, with zeroes by '-' if requested
-
   //! This will probably fail if the number of arguments doesn't match
   //! the format
   std::string Line(const int nc, ...) const;

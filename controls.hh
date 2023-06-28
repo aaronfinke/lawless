@@ -288,6 +288,8 @@ public:
 
   // Weighting scheme for averaging observations in outlier testing
   WeightType::AverageWeightType weightType() const {return weighttype;}
+  void setWeightType(const WeightType::AverageWeightType& wttype)
+  { weighttype = wttype;}
 
   void SetNdatasets(const int& Ndatasets); // copy outliercontrols from 1st dataset
 

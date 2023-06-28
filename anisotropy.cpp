@@ -21,11 +21,11 @@ void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isig
   //! initialise from intensity list
 {
   // Scale intensities to isotropic average
-  sfscl = clipper::Iscale_aniso<float>(3.0);
+  sfscl = clipper::Iscale_aniso<float>(3.0);  
   sfscl(isigi);
   uanorth = sfscl.u_aniso_orth();
   // uanorth is U matrix to apply to intensities, divide by 2 for amplitude equivalent
-
+  //std::cout <<"OrthogonalAnisotropy u_orth\n"<< uanorth.format() <<"\n";
 
   clipper::Matrix<double> Uorth(3,3);
   for (int j=0;j<3;++j) {
@@ -35,9 +35,12 @@ void OrthogonalAnisotropy::init(clipper::HKL_data<clipper::data32::I_sigI>& isig
   eigvec.resize(3);
   std::vector<double> eo = Uorth.eigen();
   for (int j=0;j<3;++j) {
+    //    std::cout << "EigVal, vecs: "<<eo[j]<<":  ";
     for (int i=0;i<3;++i) {
       eigvec[j][i] = Uorth(i,j);  // store eigenvectors (orthogonal frame)
+      //      std::cout <<Uorth(i,j) <<", ";
     }
+    //    std::cout <<"\n";
     eigval[j] = eo[j];  // store eigenvalues
   }
   // sort on closest to a*b*c*
@@ -51,15 +54,21 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
   DVect3 eigvalsrt;
   std::vector<int> close(3, -1);
 
-  for (int i=0;i<3;++i) { // loop a*, b*, c*
+  for (int i=2;i>0;--i) { // loop  c*, b*
     double evcmax = 0.0;
     for (int j=0;j<3;++j) { // loop vectors
-      if (std::abs(eigvec[j][i]) > evcmax) {
-        evcmax = std::abs(eigvec[j][i]);
-        close[i] = j;
+      if (close[j] != j) {
+	if (std::abs(eigvec[j][i]) > evcmax) {
+	  evcmax = std::abs(eigvec[j][i]);
+	  close[i] = j;
+	}
       }
     }
   }
+
+  // set close[0] to whatever is not in close[1] and [2]
+  close[0] = 3 - (close[1] + close[2]);
+
   // close[i] for i -> a*, b*, c* is closest vector
   for (int i=0;i<3;++i) { // loop a*, b*, c*
     if (close[i] < 0) { // fail
@@ -71,6 +80,8 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
   // replace
   for (int i=0;i<3;++i) {
     eigvec[i] = eigvecsrt[i];
+    //    std::cout << "Sorted eiginval,vec " << eigvalsrt[i] <<": "
+    //	      << eigvecsrt[i][0] << " "<< eigvecsrt[i][1] << " "<< eigvecsrt[i][2] << "\n";
   }
   eigval = eigvalsrt;
 }
@@ -98,7 +109,8 @@ void OrthogonalAnisotropy::SortEigenVectorsOrth()
     //  3) trigonal, hexagonal, tetragonal, rhombohedral (H setting):
     //     one direction is along c*, the other "direction" is the a* b* plane
     //  4) cubic: all directions are equivalent, no anisotropy
-
+    //
+    //  datasetindex = -1 to use all
     symmetry = hkl_list.symmetry(); // store symmetry
     cryssys = symmetry.CrysSys();
     ccell = hkl_list.Cell().ClipperCell();
@@ -234,10 +246,11 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
   if (cryssys == TRICLINIC || cryssys == MONOCLINIC) {
     // Low symmetry, get principal axes from anisotropic U tensor
     lowsymmetry = true;
-    // Get anisotropy
-    OrthogonalAnisotropy orthogonalanisotropy(isigi);
-    principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
   }
+  // Get anisotropy
+  orthogonalanisotropy.init(isigi);   // saved
+  // OrthogonalAnisotropy orthogonalanisotropy(isigi);
+  principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
 }
 //--------------------------------------------------------------------------
   bool AnisotropicAnalysis::SetPrincipalDirectionsGeneral
@@ -248,16 +261,17 @@ void AnisotropicAnalysis::init(const hkl_symmetry& ssymmetry,
   {
     bool OK = false;
     // merged list for given dataset
-    MergedList mergedlist(hkl_list, SDM, "", datasetindex);
+    int idts = datasetindex;
+    if (datasetindex < 0) {idts = -2;}  // combine datasets
+    MergedList mergedlist(hkl_list, SDM, "", idts);
     clipper::HKL_data<clipper::data32::I_sigI>& isigi =
-      mergedlist.ImeanForDataset(datasetindex);
+      mergedlist.ImeanForDataset(0);  // ... and get the combined one
     // Store number of reflections used
     nreflused = isigi.num_obs();
     const double MINIOVSIG = 0.4; // exclude very weak data
     if (mergedlist.meanIovermeansigI() > MINIOVSIG) {
       // Get anisotropy
       orthogonalanisotropy.init(isigi);
-      //%/    OrthogonalAnisotropy orthogonalanisotropy(isigi);
       principalaxes = orthogonalanisotropy.EigenVectorsOrth(); // store directions
       OK = true;
     }
@@ -415,6 +429,7 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
     }
   } else if (lowsymmetry) {
     double tol = 0.001;
+    std::vector<clipper::Vec3<int> > hklaxis(3);
     for (int j=0;j<3;++j) {
       clipper::Coord_reci_orth crdro(principalaxes[j]);
       clipper::Coord_reci_frac crdrf = crdro.coord_reci_frac(ccell);
@@ -431,6 +446,12 @@ std::vector<std::string> AnisotropicAnalysis::Axesformat() const
       if (jz < 2) {
         // not along axis
         labels[j] = formatHvector(crdrf);
+	hklaxis[j] = MVutil::IntVec(NormaliseVector(crdrf));
+	std::string s;
+	for (int i=0;i<3;++i) {
+	  s += StringUtil::itos(hklaxis[j][i],4);
+	}
+	labels[j] += "   ~= hkl direction "+s;
       }
     } // end loop axes
   }

@@ -39,6 +39,7 @@ namespace scala {
 		  const all_controls& controls, const int& datasetIndex, 
 		  const ResoRange& ResRange,
 		  const Normalise& NormRes,
+		  const AnisotropicAnalysis& anisoanal,
 		  const AnomDistribution& anomDistribution,
 		  const float& anomProbSlope,
 		  const ReferenceList& hklreflist,

@@ -111,6 +111,8 @@ void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& outpu
   } else {
     output.logTab(0,LOGFILE,controls.outlierScale.Reject(ALL).format());
     output.logTab(0,LOGFILE,controls.outlierScale.EMaxTest().format());
+    output.logTab(0,LOGFILE, "Outlier test weight type: "+
+	   WeightType::formatWeightType(controls.outlierScale.weightType()));
   }
 
   output.logTab(0,LOGFILE,"\nIn merging:");
@@ -119,6 +121,8 @@ void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& outpu
   } else {
     output.logTab(0,LOGFILE,controls.outlierMerge.Reject(ALL).format());
     output.logTab(0,LOGFILE,controls.outlierMerge.EMaxTest().format());
+    output.logTab(0,LOGFILE, "Outlier test weight type: "+
+	   WeightType::formatWeightType(controls.outlierMerge.weightType()));
   }
   output.logTab(0,LOGFILE,"\n");
 }
@@ -810,7 +814,7 @@ void PrintDeviationsByResolution(const PxdName& dataset_pxd,
                 );
   if (Anom) {
     output.logTab(0,LOGFILE,
-          "All statistics in this table are with I+ or I- sets (anomalous on)");
+          "All statistics in this table are within I+ or I- sets (anomalous on)");
   } else {
     output.logTab(0,LOGFILE,
           "All statistics in this table are relative to the overall mean I+/- (anomalous off)");
@@ -1289,7 +1293,7 @@ void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
                 "=================\n");
   if (Anom) {
     output.logTab(0,LOGFILE,
-          "All statistics in this table are with I+ or I- sets (anomalous on)");
+          "All statistics in this table are within I+ or I- sets (anomalous on)");
   } else {
     output.logTab(0,LOGFILE,
           "All statistics in this table are relative to the overall mean I+/- (anomalous off)");

@@ -148,7 +148,7 @@ namespace scala
     //   use individual variance
     std::vector<float> Deviations(const bool& fromSample=false);    
     //! Deviations including rejected outliers
-    std::vector<float> DeltaAll() const {return delta;}
+    std::vector<float> DeltaAll() const;
     //! List of deviations delta2 (ie fac * delI/sigma(I) ) where delI
     //!  is difference from mean of all observations and
     //!  fac = sqrt(n/n-1)
@@ -241,7 +241,8 @@ namespace scala
     std::vector<double> wv; 
     double sumwv;  // Sum(wv)
     // Deviations delI/sigma  from "others"
-    std::vector<float> delta;     // for current list
+    std::vector<float> delta;        // for current list
+    std::vector<float> deltaall;     // for initial list
     WeightType::AverageWeightType weighttype;   // type of weighting for average
     MeanVariance mv;  // for sample variance
 

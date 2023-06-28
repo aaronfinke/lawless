@@ -414,7 +414,7 @@ int main(int argc, char* argv[])
     // from input or by default
     // If Onlymerge and SDcorrection not set explciitly, set null correction
     bool setnull = (FC.OnlyMerge() && !input.isSDcorrectionSet());
-      SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList(), setnull);
+    SDmodel SD_model = CreateSDmodel(input, hkl_list.RunList(), setnull);
     if (SD_model.SampleSD()) {
       SelectedObservations::SetSampleSD(SD_model.MinimumSample());
     }
@@ -892,7 +892,6 @@ int main(int argc, char* argv[])
     }
     double resrangewidth = ResRange.Width(); // bin width for maximum resolution
 
-
     // Overall Normalisation
     double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
     Rings NoRings;        // no omission of ice rings
@@ -969,34 +968,41 @@ int main(int argc, char* argv[])
     }
 
     // Do we really have anomalous?
-    bool anomfound =
+    //  -1 no data, 0 weak anomalous, +1 significant
+    int isanom =
       allAnomDistributions.IsAnomalous(controls); // true if anomalous
-    // Should we change the options?
-    if (controls.anomalouscontrol.FlagInput || !chiralsg) {
-      // explicit anomalous on or off from input
-      if (controls.anomalouscontrol.Anomalous) { // On
-        if (anomfound) {
-          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_FOUND);
-        } else {
-          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_ABSENT);
-        }
-      } else { // Off
-        if (anomfound) {
-          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_FOUND);
-        } else {
-          allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_ABSENT);
-        }
-      }
-    } else { // No explicit flag given, set appropriately
-      if (anomfound) {
-        controls.anomalouscontrol.Anomalous = true;
-        controls.anomalouscontrol.AnomalousSDcorr = true;
-        if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
-        allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_FOUND);
-      } else {
-        controls.anomalouscontrol.Anomalous = false;
-        controls.anomalouscontrol.AnomalousSDcorr = false;
-        allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ABSENT);
+    bool anomfound = (isanom > 0);
+    if (isanom < 0) {
+      // no information
+      allsummarystatistics.SetAnomStatus(AnomalousStatus::NO_ANOMALOUS_DATA);
+    } else {
+      // Should we change the options?
+      if (controls.anomalouscontrol.FlagInput || !chiralsg) {
+	// explicit anomalous on or off from input
+	if (controls.anomalouscontrol.Anomalous) { // On
+	  if (anomfound) {
+	    allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_FOUND);
+	  } else {
+	    allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ON_ABSENT);
+	  }
+	} else { // Off
+	  if (anomfound) {
+	    allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_FOUND);
+	  } else {
+	    allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_OFF_ABSENT);
+	  }
+	}
+      } else { // No explicit flag given, set appropriately
+	if (anomfound) {
+	  controls.anomalouscontrol.Anomalous = true;
+	  controls.anomalouscontrol.AnomalousSDcorr = true;
+	  if (lowmultiplicity) {controls.anomalouscontrol.AnomalousSDcorr = false;}
+	  allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_FOUND);
+	} else {
+	  controls.anomalouscontrol.Anomalous = false;
+	  controls.anomalouscontrol.AnomalousSDcorr = false;
+	  allsummarystatistics.SetAnomStatus(AnomalousStatus::ANOMALOUS_ABSENT);
+	}
       }
     }
     output.logTab(0,LOGFILE,"\n"+
@@ -1015,6 +1021,45 @@ int main(int argc, char* argv[])
     for (int i=0;i<hkl_list.num_datasets();++i) {
       wavelength = Min(wavelength, hkl_list.dataset(i).wavelength());
     }
+
+    // ----   Get anisotropy to use for normaliastion and Emax test,
+    //        assume same for all datasets
+    // and Normalisation 
+    Timer anisotime;
+    AnisotropicAnalysis anisoanal;
+    int idts = -1;  // all together
+    // Get principal axes of anisotropy depending on symmetry and data
+    anisoanal.init(hkl_list, idts, SD_model);
+    anisoanal.SetConeAngle(controls.analysis.ConeAngle());
+    output.logTab(0, LOGFILE,
+         "\nTime for determination of anisotropic axes: "+anisotime.format(true));
+
+    // Update normalisation
+    bool aniso_normalisation = input.anisotropicNormalisation();
+    if (anisoanal.IsCubic()) {
+      aniso_normalisation = false;
+    }
+    std::string normmsg = "";
+    if (aniso_normalisation) {
+      clipper::U_aniso_frac uanisofrac = anisoanal.U_aniso_frac();
+      NormRes.setAniso(uanisofrac);
+      output.logTab(0, LOGFILE,
+		    "Normalisation with anisotropy correction");
+      normmsg = "True";
+    } else {
+      NormRes.noAniso();
+      output.logTab(0, LOGFILE,
+		    "Normalisation NO anisotropy correction");
+      normmsg = "False";
+    }
+    output.logTab(0,LXML,
+	     StringUtil::MakeXMLtag("anisotropicNormalisation",normmsg));
+    // Overall Normalisation
+    //printlevel = 1;  // 1 to dump to norm.plot
+    printlevel = 0;  // 1 to dump to norm.plot
+    NormRes.init(hkl_list, MinIsigRatio, NoRings, printlevel,true);
+
+    // ----
 
     if (controls.outlierMerge.GetOutlierPolicy() != OutlierControl::NOREJECT) {
       // doRoguePlot true as long as we have geometric data for all batches
@@ -1139,7 +1184,7 @@ int main(int argc, char* argv[])
         double aslope = anomProbSlopes.at(idts);
         SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
                                                controls, idts, resrangedataset,
-                                               NormRes, anomds, aslope,
+                                               NormRes, anisoanal, anomds, aslope,
                                                hklreflist,
                                                output);
 

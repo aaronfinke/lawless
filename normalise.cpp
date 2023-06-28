@@ -16,15 +16,19 @@ namespace scala {
   Normalise::Normalise(const hkl_unmerge_list& hkl_list,
                        const double& MinIsigRatio,
                        Rings& Icerings,
-                       const int PrintLevel)
+		       const clipper::U_aniso_frac& u_aniso_frac,
+		       const int PrintLevel,
+		       bool final)
   {
-    init( hkl_list, MinIsigRatio, Icerings, PrintLevel);
+    setAniso(u_aniso_frac);
+    init( hkl_list, MinIsigRatio, Icerings, PrintLevel, final);
   }
   //--------------------------------------------------------------
   void Normalise::init(const hkl_unmerge_list& hkl_list,
                        const double& MinIsigRatio,
                        Rings& Icerings,
-                       const int PrintLevel)
+		       const int PrintLevel,
+		       bool final)
   // Set up intensity normalisation object
   //
   // Use binned <I> to get normalisation object
@@ -44,7 +48,8 @@ namespace scala {
     std::vector<MeanValue> mnSqrv(nrbin);
 
     std::vector<Median<float> > medI(nrbin);
-    std::vector<Median<float> > medI2(nrbin);
+    std::vector<Median<float> > anisoMedI(nrbin);
+    // weightedMean used just for SD(mean) from weights
     std::vector<MeanVariance> weightedMean(nrbin);
 
     // Ice rings
@@ -80,8 +85,13 @@ namespace scala {
             double avI = Isigav.I();
             double w = 1.0/(Isigav.sigI()*Isigav.sigI());
             weightedMean[rbin].Add(double(Isigav.I()), w);
+	    if (useAniso) {
+	      // apply u_aniso
+	      double anisoscale = exp(u_aniso_frac_scaled.quad_form(this_refl.hkl().real()));
+	      double aI = avI * anisoscale;
+	      anisoMedI[rbin].add(aI);
+	    }
             medI[rbin].add(avI);
-            medI2[rbin].add(avI*avI);
             mnSqrv[rbin].Add(sSqr);
             imax = std::max(imax, double(Isigav.I()));
             numobs++;
@@ -98,27 +108,60 @@ namespace scala {
       ReportErrors::printFatalError(msg);
     }
 
+    // Remove last bin if it is empty
+    while (weightedMean[nrbin-1].Count() == 0) {
+      nrbin--;
+      resorange.SetNbins(nrbin);
+    }
+
     // Store <I>, sd<I>, count for each bin,
     // weak ones may be replaced below
     setstores();
     int nneg = 0;  // count negative bins
     for (int i=0;i<nrbin;i++) {
-      store(i, mnSqrv[i].Mean(), weightedMean[i], medI[i]);
-      if (weightedMean[i].Mean() <= 0.0) {
+      // sets medianI, mnI, mcount, anisomedI, sdI for each bin
+      store(i, mnSqrv[i].Mean(), weightedMean[i], medI[i], anisoMedI[i]);
+      if (mnI[i] <= 0.0) {
         nneg++;
       }
+      //      std::cout << medianI[i] <<" "<< mnI[i] <<" "
+      //		<< mcount[i] <<" "<< anisomedI[i] <<" "<< sdI[i] <<"\n";
     }
 
+    if (nneg > 0) {
+      // Fix up negative bins, replace by sdI THIS IS A FUDGE
+         for (int i=0;i<nrbin;i++) {
+	   if (mnI[i] <= 0.0) {
+	     mnI[i] = sdI[i];
+	   }
+	 }
+	 std::string message = "Normalisation: "+StringUtil::itos(nneg,3)+
+	   " negative bins have been reset to sd(<I>";	 
+	 if (useAniso) {
+	   message += ", and anisotropy has been turned off";
+	   // turn off anisotropic correction
+	   useAniso = false;
+	 }
+	 if (final) {
+	   ReportErrors::printWarning(message, "NegativeNormalisation");
+	 }
+    }
     imean = MeanValue(mnI).Mean();
+
+    std::vector<double> mnI0 = mnI;
+
+    // fit highresolution part to exponential curve, replace mnI
+    if (nneg == 0) {mnI = fitLogCurve(MinIsigRatio);}
 
     // We want mnI, sdI, mcount for each resolution bin
     // Reset weak high resolution bins unless MinIsigRatio < 0
-    if (MinIsigRatio > 0.0) {
+    // NOT USED NOW, replaced by fitLogCurve
+    //if (MinIsigRatio > 0.0) {
       // Weak high resolution bins are unreliable, so (pending a better method)
       // replace <I> by a value extrapolated from the last accepted bin
       // Very crude!!
-      resetweak(MinIsigRatio);
-    }
+    //  resetweak(MinIsigRatio);
+    //}
 
     // Set up spline
     std::vector<RPair> sSqrmnI; // extra slots at beginning and end
@@ -129,7 +172,13 @@ namespace scala {
       }
     }
     // Duplicate last point
-    sSqrmnI.push_back(RPair(resorange.max(), mnI[nrbin-1]));
+    if (mcount[nrbin-1] > 0) {
+      sSqrmnI.push_back(RPair(resorange.max(), mnI[nrbin-1]));
+    }
+    //    for (size_t i=0; i<sSqrmnI.size(); i++) { 
+    //      std::cout << sSqrmnI[i].first << " "<< sSqrmnI[i].second <<" <<\n";
+    //    }
+
     bincorr = Spline(sSqrmnI);  // make spline
     valid = true;
 
@@ -142,6 +191,22 @@ namespace scala {
     return;
   }
   //--------------------------------------------------------------
+  void Normalise::setAniso(const clipper::U_aniso_frac& u_aniso_frac)
+  {
+    // Store u_aniso_frac tensor (scaled)
+    // Negated and scaled by twoPi^2 for use in quadratic form,
+    // u_aniso_frac may be null
+    useAniso = true;
+    if (u_aniso_frac.is_null()) {
+      u_aniso_frac_scaled =
+	clipper::U_aniso_frac(clipper::Mat33sym<double>().null());
+      useAniso = false;
+    } else {
+      u_aniso_frac_scaled = -clipper::Util::twopi2()*u_aniso_frac;
+      //std::cout<<"Normalise u_aniso_frac_scaled:\n"<<u_aniso_frac_scaled.format()<<"\n";
+    }
+  }
+  //--------------------------------------------------------------
   void Normalise::setstores()
   {
     mnsSqr.resize(nrbin);
@@ -149,15 +214,18 @@ namespace scala {
     medianI.resize(nrbin);
     sdI.resize(nrbin);
     mcount.resize(nrbin);
+    anisomedI.resize(nrbin);
   }
   //--------------------------------------------------------------
   void Normalise::store(const int& ibin, const double& sSqr,
                         const MeanVariance& mnv,
-                        Median<float>& medI)
+                        Median<float>& medI,
+                        Median<float>& anisoMedI)
   // Store:
-  //   mnI      from median, mean of trimmed range
-  //   sdI      from weighted mean
-  //   medianI  median
+  //   mnI        from median, mean of trimmed range,
+  //               after anisotrpic correction if useAniso true
+  //   sdI        from weighted mean
+  //   medI       median
   {
     const float TRIMFRAC=0.01;
     // from simulations of exponential distribution, factor to correct for
@@ -165,9 +233,15 @@ namespace scala {
     const float TRIMFACTOR=1.038;
     mnsSqr[ibin]  = sSqr;
     medianI[ibin] = medI.median();
-    mnI[ibin] = medI.meanofrange(1.0f-TRIMFRAC, TRIMFRAC)*TRIMFACTOR;
+    if (useAniso) {
+      mnI[ibin] = anisoMedI.meanofrange(1.0f-TRIMFRAC, TRIMFRAC)*TRIMFACTOR;
+      mcount[ibin] = anisoMedI.count();
+    } else {
+      mnI[ibin] = medI.meanofrange(1.0f-TRIMFRAC, TRIMFRAC)*TRIMFACTOR;
+      mcount[ibin] = medI.count();
+    }
+    anisomedI[ibin] = anisoMedI.median();
     sdI[ibin] = mnv.SDofMeanfromWeights();
-    mcount[ibin] = medI.count();
   }
   //--------------------------------------------------------------
   double Normalise::iovsig(const int& ibin) const
@@ -180,11 +254,65 @@ namespace scala {
     return snratio;
   }
   //--------------------------------------------------------------
+  std::vector<double> Normalise::fitLogCurve(const double& minIsigRatio)
+  // fit exponential curve to data beyond resolution of ~3A
+  {
+
+    // Find out where the really weak data start
+    int i;
+    int kfirst = -1;
+    // Skip 0'th bin in case of low resolution funnies
+    for (i=1;i<nrbin;i++) {
+      if (mcount[i] > 0) {
+        double mnIovsig = iovsig(i);
+	//std::cout <<"***Iovsig, mnI "<<i<<" "<<mnIovsig<<" "<< mnI[i]<<"\n";
+        if (kfirst < 0 && mnIovsig < minIsigRatio) {
+          kfirst = i;  // 1st bin below threshold
+        }
+      }
+    }
+    // kfirst is first bin below threshold
+
+
+    // fit data beyond this resolution if there are enough points
+    const double RESBEYOND = 3.0;
+    const int MINPOINTS = 5;
+    double sSqrbeyond = 1.0/(RESBEYOND*RESBEYOND);
+    int kbin = resorange.tbin(sSqrbeyond);
+    std::vector<double> mnIb(nrbin, 0.0);
+
+    if (nrbin-kbin < MINPOINTS) {    // too few points
+      return mnI;  // return unchecged data
+    }
+
+    if (kfirst < 0) {
+      kfirst = kbin;
+    }
+    LinearFit linfit;
+    for (int i=kbin;i<nrbin;++i) {
+      if (mnI[i] > 0.0) {  // omit negatives
+	double v = log(mnI[i]);
+	linfit.add(mnsSqr[i], v, 1.0);
+      }
+    }
+
+    RPair sfit = linfit.result();
+    for (int i=0;i<nrbin;++i) {
+      if (i<kfirst) {
+	mnIb[i] = mnI[i];
+      } else {
+	double lnI = sfit.first * mnsSqr[i] + sfit.second;
+	mnIb[i] = exp(lnI);
+      }
+    }
+    return mnIb;
+  }
+  //--------------------------------------------------------------
   void Normalise::resetweak(const double& minIsigRatio)
   {
     // Weak high resolution bins are unreliable, so (pending a better method)
     // replace <I> by a value extrapolated from the last accepted bin
-    // Very crude!!
+    // Very crude!!   NOT USED NOW
 
     if (minIsigRatio < 0.0) return;
 
@@ -194,7 +322,6 @@ namespace scala {
     for (i=1;i<nrbin;i++) {
       if (mcount[i] > 0) {
         double mnIovsig = iovsig(i);
-        //^     std::cout <<"***Iovsig "<<i<<" "<<mnIovsig<<"\n";
         if (k < 0 && mnIovsig < minIsigRatio) {
           k = i;  // 1st bin below threshold
         }
@@ -209,30 +336,35 @@ namespace scala {
         double v1 = mnI[k];  // last "reliable" <I>
         double v2 = 0.6*v1;  // value at end, arbitrary
         double d = (v1-v2)/double(k2-k); // difference/bin
-        //      std::cout << "Nresetweak "<<k<<" "<<v1<<" "<<sdI[k]<<std::endl; //^
         for (int i=k+1;i<nrbin;++i) {
           double xI = v1 - double(i-k) * d;
           double xsd = sdI[k];  // just propagate sd
           mnI[i] = xI;   // store modified values
           sdI[i] = xsd;
-          //          std::cout << "Nresetweak "<<i<<" "<<xI<<" "<<xsd<<std::endl; //^
         }
       }
     }
   }
   //--------------------------------------------------------------
-  float Normalise::apply(const float& I, const float& sSqr) const
-  // apply correction
+  float Normalise::apply(const float& I, const float& sSqr,
+			 const DVect3& rhkl) const
+  // apply correction to generate E^2
+  //  The relevant <I> for hkl is anisoCorr/<I>, so divide by that
   {
     if (!valid) {
       ReportErrors::printFatalError("Normalise not set");
     }
-    // Dividing scale, = <I>
+    // Dividing scale, = <I>/anisoscale
     float scorr = bincorr.Interpolate(sSqr);
-    return I / scorr;
+    // apply u_aniso if useAniso true
+    double anisoscale = anisoCorr(rhkl);
+    return I * (anisoscale / scorr);
   }
   //--------------------------------------------------------------
-  IsigI Normalise::apply(const IsigI& Is, const float& sSqr) const
+  IsigI Normalise::apply(const IsigI& Is, const float& sSqr,
+			 const DVect3& rhkl) const
+  // apply correction to generate E^2
+  //  The relevant <I> for hkl is anisoCorr/<I>, so divide by that
   {
     if (!valid) {
       ReportErrors::printFatalError("Normalise not set");
@@ -240,18 +372,36 @@ namespace scala {
     // Dividing scale, = <I>
     float scorr = bincorr.Interpolate(sSqr);
     IsigI IsScl(Is);
-    IsScl.scale(1./scorr);
+    // apply u_aniso  if useAniso true
+    double anisoscale = anisoCorr(rhkl);
+    IsScl.scale(anisoscale / scorr);
     return IsScl;
   }
   //--------------------------------------------------------------
-  float Normalise::Corr(const float& sSqr) const
+  float Normalise::anisoCorr(const DVect3& rhkl) const
+  // anisotropic part of correction
+  // This is the scale needed to bring an individual I to match the average
+  {
+    double anisoscale = 1.0;
+    if (useAniso) {
+      // apply u_aniso
+      anisoscale = exp(u_aniso_frac_scaled.quad_form(rhkl));
+    }
+    return anisoscale;
+  }
+  //--------------------------------------------------------------
+  float Normalise::Corr(const float& sSqr, const DVect3& rhkl) const
   // correction, multiplying scale
   {
     if (!valid) {
       ReportErrors::printFatalError("Normalise not set");
     }
     float scorr = bincorr.Interpolate(sSqr);
-    return 1.0 / scorr;
+    double anisoscale = 1.0;
+    if (std::abs(rhkl*rhkl) > 1.0e-20) {
+      anisoscale = anisoCorr(rhkl);
+    }
+    return anisoscale / scorr;
   }
   //--------------------------------------------------------------
   // mean/median ratio, averaged over some low resolution bins
@@ -285,7 +435,7 @@ namespace scala {
       ReportErrors::printFatalError("Can't open file "+name);
     }
     fprintf(file,
-      "   sSqr      mnI      sdI   medianI    Corr    IovSd  mean/median     N\n");
+      "   sSqr      mnI    sdI  medianI AnisoMed   Corr    IovSd  mean/median    N\n");
 
     for (int is=0;is<nrbin;is++) {         // loop resolution bins
       if (mcount[is] > 0) {
@@ -293,9 +443,10 @@ namespace scala {
         float meanI  = mnI[is];
         float mnmedratio = meanI/medianI[is];
         fprintf(file,
-                "%8.4f %8.1f %8.2f %8.1f %8.4f %8.1f %8.3f  %8d\n",
-                mnsSqr[is], mnI[is], sdI[is], medianI[is],
-                Corr(mnsSqr[is]), iovsig(is),
+                "%8.4f %7.1f %6.2f %7.1f %7.1f %8.4f %8.1f %8.3f  %7d\n",
+                mnsSqr[is], mnI[is], sdI[is], 
+		medianI[is], anisomedI[is],
+                Corr(mnsSqr[is], DVect3(0,0,0)), iovsig(is),
                 mnmedratio, mcount[is]);
       }
     }

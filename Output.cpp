@@ -493,7 +493,7 @@ void Output::logTabPrintf(unsigned t,outStream where, const char* format, ...)
   temp[temp_size-1] = '\0';
   va_list arglist;
   va_start(arglist,format);
-  vsprintf(temp,format,arglist);
+  vsnprintf(temp,8192,format,arglist);
   va_end(arglist);
   assert(temp[temp_size-1] == '\0');
   logOutput(where,formatMessage(temp,t,false));

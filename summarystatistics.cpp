@@ -383,7 +383,7 @@ namespace scala {
                             anisodeltaB);
 
       } else {
-        output.logTab(0,OUTSTREAM, "\nNo anisotropy");
+        output.logTab(0,OUTSTREAM, "\nNo anisotropy analysis");
       }
 
       output.logTab(0,OUTSTREAM,

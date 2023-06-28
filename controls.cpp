@@ -235,7 +235,8 @@ namespace scala
     SetNdatasets(Ndatasets);
     anomreject = true;
     emaxtest.init(10.0);
-    weighttype = WeightType::VARIANCE; // or SQRTSCALE or SCALE
+    //weighttype = WeightType::VARIANCE; // or SQRTSCALE or SCALE
+    weighttype = WeightType::SQRTSCALE; // or VARIANCE or SCALE
     outlierpolicy = OutlierControl::REJECTBOTH;
   }
   //------------------------------------------------------------

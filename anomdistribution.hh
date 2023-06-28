@@ -101,8 +101,9 @@ namespace scala {
     // Store slopes of normal probability anomplot for each dataset into Anomdistribution
     void SetSlope(const std::vector<double>& slope);
 
-    // return true if it appears that any dataset has significant anomalous 
-    bool IsAnomalous(const all_controls& controls) const;
+    // return +1 if it appears that any dataset has significant anomalous 
+    //        -1 if no anomalous information, else 0
+    int IsAnomalous(const all_controls& controls) const;
     
     // Print correlation tables
     void Print(phaser_io::Output& output) const;
@@ -117,7 +118,8 @@ namespace scala {
     ResoRange resrange;
     std::vector<std::vector<correl_coeff> > cca;  // anom differences
     std::vector<std::vector<correl_coeff> > ccd;  // dispersive differences
-    // dataset index pairs for each CC in cca
+    std::vector<std::vector<correl_coeff> > cci;  // intensities
+    // dataset index pairs for each CC in cca and cci
     std::vector<std::pair<int,int> > ccadtsindex;
     // dataset index pairs for each CC in ccd
     std::vector<std::pair<int,int> > ccddtsindex;
@@ -141,6 +143,8 @@ namespace scala {
 			  const bool& diff,
 			  phaser_io::Output& output) const;
 
+    // Return false if all cc elements are empty
+    bool checkCC(const std::vector<std::vector<correl_coeff> > cc) const;
 
   };
 }

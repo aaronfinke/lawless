@@ -142,6 +142,101 @@ SDmodel CreateSDmodel(const phaser_io::InputAll& input,
 
   return SDM;
 }
+//--------------------------------------------------------------
+SDmodel CreateSDmodel(const std::vector<Run>& runlist,
+                      const bool& setnull)
+// Create SDmodel for each run from  defaults (no input)
+// mainly for testing
+{
+  SDcorrection sdcdeffull(1.0,0.0,0.02);
+  if (setnull) {
+    sdcdeffull = SDcorrection(1.0,0.0,0.0);
+  }
+  sdcdeffull.SetDefaultRestraints();
+
+  SDcorrection sdcdefpartial = sdcdeffull;  // default values
+  SDcorrection sdcfull = sdcdeffull;
+  SDcorrection sdcpartial = sdcdefpartial;  // actual values
+
+  SDmodel SDM;
+  int Nruns = runlist.size();
+  int nrunsused = Nruns;
+
+  // Refine flag
+  SDM.SetRefine(0);  // no refine
+  SDM.SetDamp(-1);
+
+  const int MINIMUMSAMPLE = 6; // minimum number for sample SD
+  SDM.SetSampleSD(false, MINIMUMSAMPLE);
+
+  // All runs same flag
+  bool allrunssame = true;
+  if (Nruns == 1) allrunssame = false;
+  if (allrunssame) nrunsused = 1;
+
+  std::vector<Run::FullsAndPartials> FandP(Nruns);
+
+  for (int irun=0;irun<Nruns;irun++) { // loop all runs
+    SDM.AddRun(runlist[irun].RunNumber(), sdcfull, sdcpartial);
+    if (!allrunssame) { // not all same, set flags for all runs
+      SetSdmFullPartialFlags(runlist[irun].fullsAndPartials(), SDM, irun);
+    } else { // all the same, store flags
+      FandP[irun] = runlist[irun].fullsAndPartials();
+    }
+  } // end loop runs
+  SDM.SetAllRunsSame(allrunssame);
+  // Fix SdB flag
+  bool fixSDb = true;
+  SDM.SetNoSDb(fixSDb);
+
+  //^^^^
+  //      SDM.FullAsPartial(0, true);   // full as partial for test FIXME
+  //      std::cout << "SDM full as partial!!\n";
+  //  SDM.PartialAsFull(0, true);   //  partial as full for test FIXME
+  //  std::cout << "SDM partial as full!!\n";
+  //^^^^-
+  if (allrunssame) { // all runs same, find overall setting for ONLY|FEW Fulls|PARTIALS
+    // only here if >1 run
+    Run::FullsAndPartials FP1;
+    bool sameflag = true; // all have the same flag
+    bool anyboth = false;
+    bool anyFewFull = false;
+    bool anyFewPartial = false;
+
+    for (int irun=0;irun<Nruns;irun++) { // loop runs
+      if (irun == 0) {
+        FP1 = FandP[irun];
+      }
+      if (FandP[irun] != FP1) sameflag = false;
+      if (FandP[irun] == Run::FULLSANDPARTIALS) anyboth = true;
+      if (FandP[irun] == Run::FEWFULLS) anyFewFull = true;
+      if (FandP[irun] == Run::FEWPARTIALS) anyFewPartial = true;
+    } // end loop runs
+    // Set flags for all runs, not just the first, even though this is allrunssame
+    for (int irun=0;irun<Nruns;irun++) { // loop runs
+      if (sameflag) {
+        // all same flags, use that one
+        SetSdmFullPartialFlags(FP1, SDM, irun);
+      } else if (anyboth) {
+        // any have both fulls & partials (not few), leave as that default
+      } else if (anyFewFull && !anyFewPartial) {
+        // use FEWFULLS unless FEWPARTIALS is also set
+        SetSdmFullPartialFlags(Run::FEWFULLS, SDM, irun);
+      } else if (!anyFewFull && anyFewPartial) {
+        // use FEWPARTIALS unless FEWFULLS is also set
+        SetSdmFullPartialFlags(Run::FEWPARTIALS, SDM, irun);
+      }
+    }  // end loop runs
+  } // allrunssame
+
+  std::vector<double> targets(3, 0.0);    // 3 targets
+  std::vector<double> sdtargets(3, 0.0);  // ... and their SDs (= 0 no target)
+  // = 0 no tie, = -1 defaults, = +1 set from input, = +2 similarity tie
+  int tietype = 0;
+  SDM.SetTies(tietype, targets, sdtargets);  // for all SD corrections
+
+  return SDM;
+}
 //-------------------------------------------------------------
   void SetSdmFullPartialFlags(const Run::FullsAndPartials& FandP,
                               SDmodel& SDM, const int& irun)

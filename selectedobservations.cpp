@@ -67,6 +67,7 @@ namespace scala
     wj.assign(nobs, 0.0);
     wv.resize(nobs);
     delta.assign(nobs,0.0);
+    deltaall.assign(nobs,0.0);
     part.assign(nobs,0);
     Nused = 0;
 
@@ -565,6 +566,17 @@ namespace scala
     return mnothers;
   }
   // ------------------------------------------------------------
+  std::vector<float> SelectedObservations::DeltaAll() const
+  {
+    std::vector<float> delall = delta;
+    for (size_t i=0;i<delta.size();++i) {
+      if (delta[i] == 0.0) {
+	delall[i] = deltaall[i];
+      }
+    }
+    return delall;
+  }
+  // ------------------------------------------------------------
   std::vector<float> SelectedObservations::Delta2(const bool& fromSample)
   // List of deviations delta2 (ie delI/sigma(I) ) where delI
   //  is difference from mean of all observations
@@ -728,17 +740,28 @@ namespace scala
     //  enum Reject2Policy {REJECT, KEEP, REJECTLARGER, REJECTSMALLER};
 
     int Nrej = 0;
-    if (Nused <= 0) return Nrej;
+    if (Nused <= 0) {
+      Deviations();
+      return Nrej;
+    }
     if (State == 0) Average();
 
     float I;
     int lsmaller, llarger;
+    bool first = true;
 
     // Loop until only one observation if necessary
     // ie iterative outlier rejection
     while (Nused > 1) {
       //recalculate deviations if required
-      if (State < +2) Deviations();
+      if (State < +2) {
+	Deviations();
+	if (first) {
+	  // save initial deviations, for printing
+	  deltaall = delta;
+	  first = false;
+	}
+      }
       if (Nused == 2) {
         //  -  -  -  -  -  -  two observations -  -  -  -  -  -
         float smaller = 1.0e+20;

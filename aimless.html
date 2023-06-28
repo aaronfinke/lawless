@@ -315,6 +315,12 @@
 
 
 
+
+
+
+
+
+
             | SPACING &lt;delta_time&gt; </dt>
           <dd>Define number of B-factors or (if SPACING keyword present)
             the interval on "time": usually no time is defined in the
@@ -357,6 +363,12 @@
             implements a scale model for 3x3 tiled CCD detectors to
             correct for the underestimation of intensities in the
             corners of the tile, see <a href="#appendix2_tiles">Appendix
+
+
+
+
+
+
 
 
 
@@ -432,11 +444,23 @@ fixes
 
 
 
+
+
+
+
+
+
         the SdB parameter in the refinement (but it seems best to let it
         refine, even though it has no obvious physical meaning) <br>
       </li>
       <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
+
+
+
+
+
 
 
 
@@ -460,12 +484,24 @@ restrain
 
 
 
+
+
+
+
+
+
         parameters to be the same for all runs, with SDs optionally
         given for SdFac (sd1), SdB (sd2), and SdAdd (sd3) [defaults 0.2,
         3.0, 0.04)<br>
       </li>
       <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
+
+
+
+
+
 
 
 
@@ -580,6 +616,12 @@ set
 
 
 
+
+
+
+
+
+
     default 2.<br>
     Fractional overlap is <span style="font-style: italic;">(Number of
       observations with matching observations in a different rotation
@@ -627,12 +669,16 @@ set
         </dl>
       </dd>
     </dl>
-    <h3><a name="reject"></a>REJECT <dd>[SCALE | MERGE] [COMBINE]
-        [SEPARATE] </dd>
+    <h3><a name="reject"></a>REJECT <dd>[SCALE |
+        MERGE]&nbsp;&nbsp;&nbsp;&nbsp; [COMBINE] [SEPARATE] </dd>
       <dd> &lt;Sdrej&gt; [&lt;Sdrej2&gt;] </dd>
       <dd> [ALL &lt;Sdrej+-&gt; [&lt;Sdrej2+-&gt;]] </dd>
       <dd>[KEEP | REJECT | LARGER | SMALLER]</dd>
-      <dt>[EMAX &lt;Emax&gt;]</dt>
+      <dt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [WEIGHT
+        &lt;VARIANCE |&nbsp; SCALE | SQRTSCALE&gt;]<br>
+      </dt>
+      <dt>[EMAX &lt;Emax&gt;] [[NO]ANISO]<br>
+      </dt>
       <dd>[BATCH &lt;batchrejectfactor&gt;]</dd>
       <dt>[NONE]<br>
       </dt>
@@ -656,7 +702,12 @@ set
       keyword here enables an additional test on all observations
       including I+ &amp; I- <br>
       observations. Observations rejected on this second check are
-      flagged "@" in the ROGUES file.</p>
+      flagged "@" in the ROGUES file.<br>
+    </p>
+    <p>WEIGHT sets the weighting scheme for averaging the "other"
+      observations in outlier testing: options are VARIANCE,&nbsp;
+      SCALE, and SQRTSCALE (default)<br>
+    </p>
     <p>REJECT BATCH &lt;batchrejectfactor&gt; is intended for batch
       scaling of eg XFEL data. After the initial scales are calculated,
       very weak batches with scale factorsbatchrejectfactor x median
@@ -709,17 +760,39 @@ set
           <dt><a name="reject_smaller"></a>SMALLER</dt>
           <dd>in merging, if two observations disagree, reject the
             smaller</dd>
+          <dt><a name="reject_weight"></a>WEIGHT <br>
+          </dt>
+          <dd>Set weighting scheme for averaging "other" observations,
+            VARIANCE,&nbsp; SCALE, and SQRTSCALE. Default is SQRTSCALE.
+            VARIANCE weighting relies on accurate variances, which are
+            sometimes not reliable when there are outliers. Weighting
+            based on scale factors are maybe more reliable and less
+            fierce with respect to weighting down weak observations
+            (variance weighting is roughly proportional to scale^2)<br>
+          </dd>
+        </dl>
+        <dl>
           <dt><a name="reject_emax"></a>EMAX</dt>
           <dd>maximum acceptable value for E = normalised |F|, &lt;= 0.0
             to switch off test [default = 10.0 for acentrics].
             Observations are only rejected if E &gt; EMAX and I/sd(I)
             &gt; sdrej, to allow for inaccurate normalisation in very
-            weak high resolution bins.<br>
+            weak high resolution bins.</dd>
+          <dt><a name="reject_aniso"></a>[NO]ANISO</dt>
+          <dd>By default, normalisation for the Emax test includes an
+            anisotropy correction. NOANISO makes the normalisation
+            isotropic<br>
           </dd>
         </dl>
       </dd>
     </dl>
     <p>The test for outliers is described in <a href="#outlier">Appendix
+
+
+
+
+
+
 
 
 
@@ -1118,6 +1191,12 @@ set
 
 
 
+
+
+
+
+
+
     This reference set is also used to compare to the scaled observed
     data, analysing it for its agreement as a function of batch, as
     R-factors and correlation coefficients, so that particularly bad
@@ -1486,6 +1565,12 @@ set
 
 
 
+
+
+
+
+
+
     as a Fourier series, A = A0{a cos(phi) + b sin(phi) + c cos(2phi) +
     d sin(2phi)}<br>
     <br>
@@ -1555,7 +1640,10 @@ set
           <dt>(a) for each observation Ihl, </dt>
           <ol>
             <li>calculate weighted mean of all other observations
-              &lt;I&gt;n-1 &amp; its sd(&lt;I&gt;n-1) </li>
+              &lt;I&gt;n-1 &amp; its sd(&lt;I&gt;n-1&nbsp; See <a
+                moz-do-not-send="true" href="#reject_weight">REJECT
+                WEIGHT</a> for weighting schemes<br>
+            </li>
             <li>deviation </li>
             <pre>          Delta(hl) =<br>       (Ihl - ghl &lt;I&gt;n-1&gt;) / sqrt[sigIhl**2 + (ghl*sd(&lt;I&gt;n-1))**2]<br></pre>
             <li>find largest deviation max|Delta(hl)| </li>
@@ -1577,6 +1665,11 @@ set
         <hr></sup><a name="release_notes"> </a>
       <h2>RELEASE NOTES</h2>
       <dl compact="compact">
+        0.7.12 anisotropic normalisation for Emax test (by default),
+        revised (simplified) Emax test, improvements for previously
+        merged data, correlation of intensities between datasets<br>
+        0.7.11 allow change of weighting in outlier rejection (REJECT
+        WEIGHT) and echo to logfile and XML<br>
         0.7.9 make sure that outer XML block is closed by destructor of
         Output object, even after a crash. Change some operator
         definitions in scala_util from returning a reference<br>

@@ -54,7 +54,7 @@ std::string PreprocessorError::partialEcho() { return echo; }
     sfile.erase(sfile.begin(),sfile.begin()+i+1);
     std::string::size_type j = sfile.rfind("\\"); //microsoft file separator
     sfile.erase(sfile.begin(),sfile.begin()+j+1);
-    sprintf(buf, "%ld", line);
+    snprintf(buf, 64, "%ld", line);
     msg_ =   std::string("Program") + s + " Error: "
               + file + "(" + buf + ")";
     if (msg.size()) msg_ += std::string(": ") + msg;

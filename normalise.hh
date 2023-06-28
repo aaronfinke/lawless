@@ -30,26 +30,48 @@ namespace scala {
   //
   {
   public:
-    Normalise() : valid(false) {}
+    Normalise() : valid(false), useAniso(false) {}
 
     Normalise(const hkl_unmerge_list& hkl_list,
 	      const double& MinIsigRatio,
 	      Rings& Icerings,
-	      const int PrintLevel);
+	      const clipper::U_aniso_frac& u_aniso_frac,
+	      const int PrintLevel,
+	      bool final=false);
+
+    // Store u_aniso_frac tensor (scaled), may be null
+    //  tensor as returned from AnisotropicAnalysis.U_aniso_frac()
+    // Stored here scaled by -twoPi^2 for use in quadratic form
+    void setAniso(const clipper::U_aniso_frac& u_aniso_frac);
+    // Disable anisotropy correction
+    void noAniso() {useAniso = false;}
+
+    // this should be called after setAniso or noAniso
     void init(const hkl_unmerge_list& hkl_list,
 	      const double& MinIsigRatio,
 	      Rings& Icerings,
-	      const int PrintLevel);
+	      const int PrintLevel,
+	      bool final=false);
 
     //  true if there is a valid normalisation factor at this resolution
     bool validResolution(const float& sSqr) const; //? reject
-
+    
     // Total average correction, multiplying scale
-    float Corr(const float& sSqr) const;
+    // This is the scale needed to bring an individual I to match the average
+    float Corr(const float& sSqr,
+	       const DVect3& rhkl=DVect3()) const;
+    // anisotropic part of correction, multiplying scale
+    // This is the scale needed to bring an individual I to match the average
+    float anisoCorr(const DVect3& rhkl) const;
 
-    // Correction factors
-    float apply(const float& I, const float& sSqr) const;
-    IsigI apply(const IsigI& Is, const float& sSqr) const;
+    // Apply correction factors to get E^2 from I
+    //  The relevant <I> for hkl is anisoCorr/<I>, so divide by that
+    float apply(const float& I, const float& sSqr,
+		const DVect3& rhkl=DVect3()) const;
+    IsigI apply(const IsigI& Is, const float& sSqr,
+		const DVect3& rhkl=DVect3()) const;
+
+
 
     // <I> overall input data
     double Imean() const {return imean;}  //? Ibinning
@@ -66,9 +88,11 @@ namespace scala {
     int nrbin;  // number of resolution bins
 
     std::vector<double> mnsSqr;  // <sSqr> by resolution bin
-    std::vector<double> mnI;     //  <I> by resolution bin, from trimmed range
+    //  <I> by resolution bin from trimmed range, aniso corrected if useAniso true
+    std::vector<double> mnI;
+    std::vector<double> sdI;     // corresponding sd(<I>) from weights
     std::vector<double> medianI; //  median(I) by resolution bin
-    std::vector<double> sdI;     // corresponding sd(<I>)
+    std::vector<double> anisomedI; //  median(I) by resolution bin aniso corrected
     std::vector<int> mcount;     // number used for mnI
 
     double imean; // overall <I>
@@ -77,17 +101,28 @@ namespace scala {
     Spline bincorr;
     float E2max;  // Maximum allowed E**2
 
+    // Scaled by twoPi^2 for use in quadratic form,
+    // and by 2.0 to allow for scaling intensities rather than amplitudes
+    clipper::U_aniso_frac u_aniso_frac_scaled;
+    bool useAniso;
+
     // Internal methods
     void setstores();
 
-    void store(const int& ibin, const double& mnsSqr,
+    void store(const int& ibin, const double& sSqr,
 	       const MeanVariance& mnv,
-	       Median<float>& medI);
+	       Median<float>& medI,
+	       Median<float>& anisoMedI);
 
     // Weak high resolution bins are unreliable, so (pending a better method)
     // replace <I> by a value extrapolated from the last accepted bin
-    // Very crude!!
+    // Very crude!!   NOT USED NOW, replaced by fitLogCurve
+
     void resetweak(const double& minIsigRatio);
+
+    // fit exponential curve to data beyond resolution of ~3A
+    std::vector<double> fitLogCurve(const double& minIsigRatio);
+
 
     // return I/sigI for resolution bin
     double iovsig(const int& ibin) const;

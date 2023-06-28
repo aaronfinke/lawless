@@ -82,6 +82,8 @@ namespace scala
     float&    I() {return    I_;}
     float& sigI() {return sigI_;}
 
+    // NB these functions apply the scale directly,
+    //  unlike clipper::I_sigI.scale which applies scale^2
     void scale(const float& a) {I_ *= a; sigI_ *=a;}
     void scale(const double& a) {I_ *= float(a); sigI_ *=float(a);}
 

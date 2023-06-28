@@ -816,7 +816,7 @@ std::string TableGraph::NumberLine(const int nc, ...) const
   temp[temp_size-1] = '\0';
   va_list arglist;
   va_start(arglist, nc);
-  vsprintf(temp,prtf_format.c_str(),arglist);
+  vsnprintf(temp,8192,prtf_format.c_str(),arglist);
   va_end(arglist);
   assert(temp[temp_size-1] == '\0');
   sdatatable.push_back(std::string(temp));
@@ -848,7 +848,7 @@ std::string TableGraph::Line(const int nc, ...) const
       if (iv == 0 && fields[i].dashpos >= 0) {
         sfld[fields[i].dashpos] = '-';
       } else {
-        sprintf(buf, fields[i].fmt.c_str(), iv);
+        snprintf(buf, buf_size, fields[i].fmt.c_str(), iv);
         sfld.assign(buf, fields[i].fieldwidth);
       }
     } else {
@@ -857,7 +857,7 @@ std::string TableGraph::Line(const int nc, ...) const
       if (fv == 0.0 && fields[i].dashpos >= 0) {
         sfld[fields[i].dashpos] = '-';
       } else {
-        sprintf(buf, fields[i].fmt.c_str(), fv);
+        snprintf(buf, buf_size, fields[i].fmt.c_str(), fv);
         sfld.assign(buf, fields[i].fieldwidth);
       }
     }
@@ -905,7 +905,7 @@ std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) 
       if (iv == 0 && fields[i].dashpos >= 0) {
         sfld[fields[i].dashpos] = '-';
       } else {
-        sprintf(buf, fields[i].fmt.c_str(), iv);
+        snprintf(buf, buf_size, fields[i].fmt.c_str(), iv);
         sfld.assign(buf, fields[i].fieldwidth);
       }
     } else {
@@ -918,7 +918,7 @@ std::string TableGraph::Line(const std::vector<double>& val, const int nc, ...) 
       if (fv == 0.0 && fields[i].dashpos >= 0) {
         sfld[fields[i].dashpos] = '-';
       } else {
-        sprintf(buf, fields[i].fmt.c_str(), fv);
+        snprintf(buf, buf_size, fields[i].fmt.c_str(), fv);
         sfld.assign(buf, fields[i].fieldwidth);
       }
     }
@@ -949,7 +949,7 @@ void TableGraph::AddToLine(const int& iv)
     sfld[fields[kfield].dashpos] = '-';
   } else {
     char buf[256];
-    sprintf(buf, fields[kfield].fmt.c_str(), iv);
+    snprintf(buf, 256, fields[kfield].fmt.c_str(), iv);
     sfld.assign(buf, fields[kfield].fieldwidth);
   }
   if (sfld[0] != ' ') {
@@ -971,7 +971,7 @@ void TableGraph::AddToLine(const float& v)
     sfld[fields[kfield].dashpos] = '-';
   } else {
     char buf[256];
-    sprintf(buf, fields[kfield].fmt.c_str(), v);
+    snprintf(buf, 256, fields[kfield].fmt.c_str(), v);
     sfld.assign(buf, fields[kfield].fieldwidth);
   }
   if (sfld[0] != ' ') {

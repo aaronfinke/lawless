@@ -48,7 +48,11 @@ namespace scala {
     {
       // clear deviation list
       deviations.assign(This_Refl.num_observations(), 0.0);
-      sdrej = Outliercontrol.Reject(IPLUS, AnomalousClass()).sdrej;
+      // Test for "weak" reflections in Emax test is based on E2/sigE2
+      // Make the acceptance criterion stricter than the outlier test
+      const float SDREJ_RATIO = 0.6;
+      sdrej = SDREJ_RATIO*
+	Outliercontrol.Reject(IPLUS, AnomalousClass()).sdrej;
     }
 
     // Check for outliers in specified class, flags with status, accumulate flags
@@ -92,10 +96,12 @@ namespace scala {
      const bool& Centric,
      const float& sdrej) const;
 
-    // negate indices unless already negated, -1 to distinguish +0 from -0
+    // negate all indices unless already negated, -1 to distinguish +0 from -0
     std::vector<int> negateIndices(const std::vector<int>& idxv) const;
+    int negateIndex(const int& idxin) const;
 
   };
+  // Default weight type, mostly set via keywords and their default
   WeightType::AverageWeightType RejectList::weighttype = WeightType::SQRTSCALE;
   // ------------------------------------------------------------
   void RejectList::Check(const AnomalousClass& selclass, const int& dts_index,
@@ -213,6 +219,9 @@ namespace scala {
 
     EProb eprobtest = outliercontrol.EMaxTest();  // Emax test
 
+    // Weighting type for outliers
+    RejectList::setWeightType(outliercontrol.weightType());
+
     hkl_list.rewind();
 
     while (hkl_list.next_reflection(this_refl) >= 0)  {  // loop reflections
@@ -223,6 +232,9 @@ namespace scala {
       //  Apply current SD correction to reflection (all observations)
       SDM.CorrectReflection(temp_refl);
       //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      //      if (this_refl.hkl() == Hkl(-32,-9,1)) {
+      //	std::cout << this_refl.hkl().format() << " <<<<\n";
+      //      }
       // Emax test, before outlier test
       if (!(eprobtest.Null())) {
         rejlist.CheckEmax(NormRes, eprobtest, Centric);
@@ -359,15 +371,25 @@ namespace scala {
   }
   // ------------------------------------------------------------
   // negate indices unless already negated, -1 to distinguish +0 from -0
+  //  > 0 reject, < 0 keep
   std::vector<int> RejectList::negateIndices(const std::vector<int>& idxlist) const
   {
     std::vector<int> idxv = idxlist;
     for (size_t k=0; k<idxv.size(); k++) {
-      if (idxv[k] >= 0) {
-        idxv[k] = -idxv[k]-1;
-      }
+      idxv[k] = negateIndex(idxv[k]);
     }
     return idxv;
+  }
+  // ------------------------------------------------------------
+  // negate index unless already negated, -1 to distinguish +0 from -0
+  //  > 0 reject, < 0 keep
+  int RejectList::negateIndex(const int& idxin) const
+  {
+    int idx = idxin;
+    if (idx >= 0) {
+        idx = -idx-1;
+    }
+    return idx;
   }
   // ------------------------------------------------------------
   std::vector<int> RejectList::EmaxRejectIndexList
@@ -380,6 +402,7 @@ namespace scala {
     std::vector<int> idxlist;
     reflection this_ref = selobs.Reflection();
     Rtype invresolsq = this_ref.invresolsq();
+    DVect3 rhkl = this_ref.hkl().real();
 
     // This is a real fudge!
     float bigtestfactor = NormRes.mmratio(); // a measure of mean/median
@@ -387,31 +410,97 @@ namespace scala {
     observation this_obs;
     int i;
     int n = 0;
+    bool ilist = true;
+    float corr = NormRes.Corr(invresolsq);
+    Hkl hkl;
+    bool allok = true;
+    int nfail = 0;
+
     while ((i = selobs.next_observation(this_obs)) >= 0) {
       this_obs =this_ref.get_observation(i);
-      float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+      float E2 = NormRes.apply(this_obs.kI(), invresolsq, rhkl);
       n++;
       if (eprobtest.TooBig(E2, Centric)) {
-        // E^2 too big, positive or negative
-        //  check E^2/sig(E^2), and keep weak observations, as the
-        //  normalisation is unreliable in very weak shells (pending
-        //  improved normalisation
-        float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq);
-        if (std::abs(E2/sigE2) > sdrej) {
-          // reject
-          idxlist.push_back(i);
-          //      std::cout << "**Reject "<< invresolsq<<" "<<E2<<" "<<sigE2<<
-          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl; //^
-          //^   } else {
-          //      std::cout << "**Keep "<< invresolsq<<" "<<E2<<" "<<sigE2<<
-          //        " "<< E2/sigE2<<" "<<sdrej<<" "<<selobs.hkl().format()<<std::endl;
-        }
+	
+	//	if (nfail == 0) {
+	//	  std::cout <<"\n"<< this_ref.hkl().format() << " N: " <<selobs.Number()
+	//		    << " sdrej "<< sdrej <<  "\n";
+	//	}
+
+	allok = false;  // at least one marked as too big (for now)
+	nfail++;  // count failures
+	// is it weak?
+	float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq, rhkl);
+	// E^2 too big, positive or negative
+	//  check E^2/sig(E^2), and keep weak observations, as the
+	//  normalisation is unreliable in very weak shells
+	//    (maybe pending improved normalisation)
+	if (std::abs(E2/sigE2) > sdrej) {
+	  idxlist.push_back(i);
+	  //	  std::cout << "**Reject "<<" "<<E2<<" "<<sigE2<<
+	  //	    " "<< E2/sigE2<<" "<<" "<<std::endl;
+	} else { 
+	  //	  std::cout << "**Keep "<<" "<<E2<<" "<<sigE2<<
+	  //	  " "<< E2/sigE2<<" "<<" "<<std::endl;
+	  idxlist.push_back(-i-1);  // flag for accepted Emax fail
+	}
       }
     }
+    return idxlist;
+  }
+  /*
+    if (allok) {
+      // all observations pass the Emax test, quit returning empty list
+      return idxlist;
+    }
 
+    std::cout <<"\n"<< this_ref.hkl().format() << " N: " <<selobs.Number()
+	      << " sdrej "<< sdrej <<  "\n";
+
+    // At least one observation failed initial Emax test
+
+    // Count the number of weak observations
+    bool unflaggedweak = true;  // if all the unflagged observations are weak
+    int nweak = 0;
+    while ((i = selobs.next_observation(this_obs)) >= 0) {
+      this_obs =this_ref.get_observation(i);
+      float E2 = NormRes.apply(this_obs.kI(), invresolsq, rhkl);
+      float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq, rhkl);
+      // E^2 too big, positive or negative
+      //  check E^2/sig(E^2), and keep weak observations, as the
+      //  normalisation is unreliable in very weak shells
+      //    (maybe pending improved normalisation)
+      if (std::abs(E2/sigE2) <= sdrej) {
+	nweak++;
+	std::cout << "**Keep "<<" "<<E2<<" "<<sigE2<<
+	  " "<< E2/sigE2<<" "<<" "<<std::endl;
+      } else {
+	// not weak, is it flagged?
+	if (flags[i]) {
+	  // not flagged but not weak
+	  unflaggedweak = false;  // not all unflagged obs are weak
+	} else {
+	  // flagged and not weak
+	  std::cout << "**Reject "<<" "<<E2<<" "<<sigE2<<
+	  " "<< E2/sigE2<<" "<<" "<<std::endl;
+	}
+      }
+    }  // end obs loop
+    // If all observations are weak, keep all
+    if (nweak == nobs) {
+      idxlist = negateIndices(idxlist);
+    }
+    return idxlist;
+  }
+    */
+
+  /*
+  //  older program versions had more exceptions to the reject/keep options
+  //   0.7.12 skip this
     // If we have at least one reject, check that we really want to reject them
     // if all or most observations are rejected, then we probably want to keep them
-    if (idxlist.size() > 0) {  //
+    // if (false) {  //
+    if (idxlist.size() > 0) {  // TESTING
       // fraction rejected
       double fracrejected = double(idxlist.size())/double(n);
       const double REJFRAC = 0.8;
@@ -419,30 +508,30 @@ namespace scala {
         // More than REJFRAC rejected, and more than 2 observations
         // Keep all, negate indices (-1 to distinguish 0), if more than 2
         idxlist = negateIndices(idxlist);
-        //        std::cout << "*^* Emax test, keeping all observations for "
-        //                  << selobs.hkl().format()<<std::endl;
+	std::cout << "*^* Emax test, keeping all observations for "
+		  << selobs.hkl().format()<<std::endl;
       } else {
         // Not all rejected, but are all the observations close to the limit?
         // First test the average I
-        IsigI E2av = NormRes.apply(selobs.Average(), invresolsq);
+        IsigI E2av = NormRes.apply(selobs.Average(), invresolsq, rhkl);
         const float AVTESTFACTOR = 0.8;
         if ((eprobtest.TooBig(E2av.I(), Centric, AVTESTFACTOR)) &&
             (std::abs(E2av.I()/E2av.sigI()) > sdrej)) {
           // ... but not really too big
           if (!eprobtest.TooBig(E2av.I(), Centric, bigtestfactor)) {
-            // Keep all, negate indices
+            // Keep all, negate list indices
             idxlist = negateIndices(idxlist);
-            //            std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
-            //                      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
-            //                      <<selobs.Average().sigI()
-            //                      <<", keeping all observations for "
-            //                      << selobs.hkl().format()<<std::endl;
-            //          } else {
-            //            std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
-            //                      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
-            //                      <<selobs.Average().sigI()
-            //                      <<", REJECTING all observations for "
-            //                      << selobs.hkl().format()<<std::endl;
+	    std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
+		      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
+		      <<selobs.Average().sigI()
+		      <<", keeping all observations for "
+		      << selobs.hkl().format()<<std::endl;
+	  } else {
+	    std::cout << "*^* Emax test on average, E2av = "<<E2av.I()<<" "
+		      <<E2av.sigI() <<", Av(I) " <<selobs.Average().I()<<" "
+		      <<selobs.Average().sigI()
+		      <<", REJECTING all observations for "
+		      << selobs.hkl().format()<<std::endl;
           }
         } else {
           // Test individual observations against smaller test value
@@ -452,16 +541,17 @@ namespace scala {
           n = 0;
           while ((i = selobs.next_observation(this_obs)) >= 0) {
             this_obs =this_ref.get_observation(i);
-            float E2 = NormRes.apply(this_obs.kI(), invresolsq);
+            IsigI E2sigE2 =
+	      NormRes.apply(this_obs.kI_sigI(), invresolsq, rhkl);
             n++;
-            float sigE2 = NormRes.apply(this_obs.ksigI(), invresolsq);
-            //            std::cout << "*** Emax test, E2 "<<E2<<" "<<sigE2<<" "<<sdrej<<std::endl; //^^
-            if (eprobtest.TooBig(E2, Centric, TESTFACTOR)) {
+	    std::cout << "*** Emax test, E2 "<<E2sigE2.I()
+		      <<" "<<E2sigE2.sigI()<<" "<<sdrej<<std::endl; //^^
+            if (eprobtest.TooBig(E2sigE2.I(), Centric, TESTFACTOR)) {
               // E^2 too big, positive or negative
               //  check E^2/sig(E^2), and keep weak observations, as the
               //  normalisation is unreliable in very weak shells (pending
               //  improved normalisation
-              if (std::abs(E2/sigE2) > sdrej) {
+              if (std::abs(E2sigE2.I()/E2sigE2.sigI()) > sdrej) {
                 nabovetest++;
               }
             }
@@ -471,21 +561,22 @@ namespace scala {
             // most above smaller limit
             // Keep all, negate indices for previously rejected observations
             idxlist = negateIndices(idxlist);
-            //            std::cout << "*^* Emax test on individuals, nabove="<<
-            //              nabovetest<<" of "<<n<<
-            //              ", keeping all observations for "
-            //                      << selobs.hkl().format()<<std::endl;
-            //          } else {
-            //            std::cout << "*!* Emax test on individuals, nabove="<<
-            //              nabovetest<<" of "<<n<<
-            //              ", rejecting some observations for "
-            //                      << selobs.hkl().format()<<std::endl;
+	    std::cout << "*^* Emax test on individuals, nabove="<<
+	      nabovetest<<" of "<<n<<
+	      ", keeping all observations for "
+		      << selobs.hkl().format()<<std::endl;
+	  } else {
+	    std::cout << "*!* Emax test on individuals, nabove="<<
+	      nabovetest<<" of "<<n<<
+	      ", rejecting some observations for "
+		      << selobs.hkl().format()<<std::endl;
           }
         }
       }
     }
     return idxlist;
-  }
+    }
+    */
   // ------------------------------------------------------------
   // ------------------------------------------------------------
   WriteRogues::WriteRogues(const std::string& filename,
@@ -515,7 +606,7 @@ namespace scala {
       std::string rs =
         std::string("\nRej = '*', '@' for I+- rejects, '#' for Emax rejects, ")+
         "'x' for accepted flagged observation,\n"+
-        "   'd' for deviant but kept, '$' for >Emax but kept because most observations are large";
+        "   'd' for deviant but kept, '$' for >Emax but kept because the observation is small";
       if (multilattice) {
         rs += ",\n      'M' for multiple lattice overlaps";
       }
@@ -570,6 +661,7 @@ namespace scala {
     fprintf(rogues,"\n");
     float invresolsq = this_refl.invresolsq();
     float d = 1./sqrt(invresolsq);
+    DVect3 rhkl = this_refl.hkl().real();
 
     for (int lobs=0;lobs<this_refl.num_observations();++lobs) {
       outlier = false;
@@ -614,7 +706,7 @@ namespace scala {
         if (scale != 0.0) scale = 1./scale;
         std::pair<float,float> XY = obs.XYdet();
 
-        float E = NormRes.apply(obs.kI(), invresolsq);
+        float E = NormRes.apply(obs.kI(), invresolsq, rhkl);
         if (E > 0.0) {E = sqrt(E);}
         else {E = -sqrt(-E);}
         std::string flagtype = obs.Observationflag().format(); // 6 characters

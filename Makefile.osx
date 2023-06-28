@@ -245,6 +245,13 @@ lib: ${OBJ} ${COBJ}
 	ar -r libaimless.a ${OBJ} ${COBJ}
 
 ## - - -
+TNEXE= testnorm
+# might as well chuck everything in!
+TNOBJ= ${TNEXE}.o  ${OBJ} ${COBJ} 
+
+${TNEXE}: ${TNOBJ}
+	${CXX} $(LFLAGS) -o ${TNEXE} ${TNOBJ}  ${LDLIBS}
+## - - -
 TREXE= test-sdfit
 # might as well chuck everything in!
 TROBJ= ${TREXE}.o  ${OBJ} ${COBJ} 
@@ -252,11 +259,11 @@ TROBJ= ${TREXE}.o  ${OBJ} ${COBJ}
 ${TREXE}: ${TROBJ}
 	${CXX} $(LFLAGS) -o ${TREXE} ${TROBJ}  ${LDLIBS}
 ## - - -
-TTOBJ= t.o 
+#TTOBJ= t.o 
 #TTOBJ= t.o timer.o string_util.o range.o report_errors.o  Output.o  jiffy.o
 #TTOBJ= t.o  eprob.o string_util.o range.o fileread.o Output.o jiffy.o \
 #	tablegraph.o radialfunction.o
-#TTOBJ= t.o ${OBJ} ${COBJ}
+TTOBJ= t.o ${OBJ} ${COBJ}
 
 TTEXE= t
 
@@ -391,9 +398,10 @@ allclean: clean
 # Export etc
 
 export:
+	CLEAN_CLUTTER=$CLIB/python3.7/cctbx/bin/libtbx.clean_clutter
 	/bin/rm -rf ../Export/
 	mkdir ../Export
-	libtbx.clean_clutter
+	${CLEAN_CLUTTER}
 	cp ${SOURCE} ../Export/
 	cp ${CSOURCE} ../Export/
 	cp ${HDR} ../Export/

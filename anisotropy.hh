@@ -103,6 +103,14 @@ private:
     //! return difference between maximum & minimum B-factor
     double BfactorDifference() const;
 
+    //! return fractional U matrix
+    clipper::U_aniso_frac U_aniso_frac()
+    {return orthogonalanisotropy.u_aniso_frac(ccell);}
+
+    //! return orthogonal U matrix
+    clipper::U_aniso_orth U_aniso_orth()
+    {return orthogonalanisotropy.u_aniso_orth();}
+
     //! return number of reflections used in fit, for lowsymmetry (else = 0)
     int NreflUsed() const {return nreflused;}
 
@@ -133,7 +141,7 @@ private:
     // Orthogonal space in Clipper convention, unit vectors
     std::vector<DVect3> principalaxes;
     OrthogonalAnisotropy orthogonalanisotropy;  // anisotropy
-
+    
     CrystalSystem cryssys;
     bool lowsymmetry;  // true if monoclinic or triclinic, get axes from fit
     int nreflused;     // number of reflections used to fit axes, if lowsymmetry
