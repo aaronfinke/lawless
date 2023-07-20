@@ -125,14 +125,14 @@ namespace scala {
     std::vector<std::pair<int,int> > ccddtsindex;
 
     // Private methods
-    // diff = true for dispersive differences
+    // diff = +1 for dispersive differences, -1 for anomalous, 0 for intensities
     void FormatTable(const std::string& title,
 		     const std::string& graphtitle,
 		     const std::string& ccl1,
 		     const std::string& ccl2,
 		     const std::vector<std::vector<correl_coeff> >& cc,
 		     const std::vector<std::pair<int,int> >& ccidx,
-		     const bool& diff,
+		     const int& diff,
 		     std::vector<correl_coeff>& allcc,
 		     phaser_io::Output& output) const;
 

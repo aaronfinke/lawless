@@ -173,7 +173,7 @@ namespace scala {
   }
   // ------------------------------------------------------------
   int AllAnomDistributions::IsAnomalous(const all_controls& controls) const
-  // return true if it appears that any dataset has significant anomalous
+  // return +1 if it appears that any dataset has significant anomalous
   // At present, anomalous scattering is considered to be present if any one of
   // the following is true (defaults in brackets):
   //  1) Anomplot slope > anomslopethreshold (1.3)
@@ -192,6 +192,9 @@ namespace scala {
       int nccanom  = 0; // ... CCanom
       correl_coeff cc;
       for (size_t mres=0;mres<cca[k].size();++mres) {
+        if (cca[k][mres].result().count > 0) {
+	  noanomdata = false;
+	}
         if (cca[k][mres].result().val >
             controls.anomalouscontrol.anomCCthreshold) {
           nccanom++;
@@ -314,7 +317,7 @@ namespace scala {
       graphtitle = "Anom CCs v resln -";
       for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
       FormatTable(title, graphtitle, cl1, cl2, cca,
-		  ccadtsindex, false, allcc, output);
+		  ccadtsindex, -1, allcc, output);
       
       // Format cross-correlation table
       title = "\nOverall correlation of Anomalous Differences between datasets\n";
@@ -327,7 +330,7 @@ namespace scala {
       graphtitle = "Intensity CCs v resln -";
       for (int id=0;id<ndatasets;++id) {graphtitle += " "+dnames[id];}
       FormatTable(title, graphtitle, cl1, cl2, cci,
-		  ccadtsindex, false, allcc, output);
+		  ccadtsindex, 0, allcc, output);
 
       // Format cross-correlation table
       title = "\nOverall correlation of intensities between datasets\n";
@@ -344,7 +347,7 @@ namespace scala {
       cl1 = "1st difference      ";
       cl2 = "2nd difference      ";
       FormatTable(title, graphtitle, cl1, cl2, ccd,
-		  ccddtsindex, true, allcc, output);
+		  ccddtsindex, +1, allcc, output);
       // Format cross-correlation table
       title = "\nCorrelation between datasets of Dispersive Differences from base set\n";
       title += "      (Numbers in brackets)\n\n";
@@ -371,20 +374,22 @@ namespace scala {
                                          const std::string& ccl2,
                                          const std::vector<std::vector<correl_coeff> >& cc,
                                          const std::vector<std::pair<int,int> >& ccidx,
-                                         const bool& diff,
+                                         const int& diff,
                                          std::vector<correl_coeff>& allcc,
                                          phaser_io::Output& output) const
-  // diff = true for dispersive differences
+  // diff = +1 for dispersive differences, -1 for anomalous, 0 for intensities
   // private
   {
     TableGraph table(title);
-    std::string id = "Graph-";
-    if (diff) {
-      id += "DispersiveDifferences";
+    std::string gid = "Graph-";
+    if (diff > 0) {
+      gid += "DispersiveDifferences";
+    } else if (diff < 0) {
+      gid += "AnomalousDifferences";
     } else {
-      id += "AnomalousDifferences";
+      gid += "Intensities";
     }
-    table.StoreID(id);
+    table.StoreID(gid);
 
     int ng = cc.size();     // number of graphs
 
