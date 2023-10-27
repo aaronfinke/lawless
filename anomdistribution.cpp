@@ -419,7 +419,7 @@ namespace scala {
       int idx1 = ccidx[i].first;  // dataset indices for this CC
       int idx2 = ccidx[i].second;
       std::string cl;
-      if (diff) {
+      if (diff > 0) {
         // dispersive difference
         std::string bd = itos(basedataset+1);
         cl = StringUtil::Strip(itos(idx1+1)+bd+"-"+itos(idx2+1)+bd);
@@ -428,7 +428,7 @@ namespace scala {
         cl1 += StringUtil::CentreString(dl1,16);
         cl2 += StringUtil::CentreString(dl2,16);
       } else {
-        // anomalous
+        // anomalous or intensities
         cl = StringUtil::Strip(itos(idx1+1)+"-"+itos(idx2+1));
         cl1 += StringUtil::CentreString(dnames[idx1],16);
         cl2 += StringUtil::CentreString(dnames[idx2],16);

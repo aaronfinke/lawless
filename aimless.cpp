@@ -34,6 +34,7 @@
 #include "runcorrelations.hh"
 #include "report_errors.hh"
 #include "secondaryscalestats.hh"
+#include "comparetoreference.hh"
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -468,7 +469,7 @@ int main(int argc, char* argv[])
     // Restoring scales from file?
     FC.restore = input.Restore();
     if (FC.restore) {
-      AllScales.init(input, hkl_list, output);
+      AllScales.init(input, hkl_list, controls, output);
       AllScales.Restore(input.RestoreFileName(),
                         hkl_list.RunList());
       initialscale = false; // no initial scales
@@ -527,21 +528,24 @@ int main(int argc, char* argv[])
         }
       } else {
         // Set up scale model, from input commands & reflection list
-        AllScales.init(input, hkl_list, output);
+        AllScales.init(input, hkl_list, controls, output);
         // If no refinable parameters, set OnlyMerge
         if (!AllScales.IsRefinable()) {
-          FC.SetOnlyMerge();
-          AllScales.SetConstant(hkl_list, output);
-          // turn off sd optimisation unless explicit
-          if (!input.SDC_RefineSet()) {
-            FC.sdoptimise = false;
-          }
-          std::string s = "No scaling done, "+AllScales.whyNotRefineable();
-          output.logTab(0,LOGFILE, s);
-          output.logTab(0,LXML,
-                        StringUtil::MakeXMLwithclass("ScaleModelFail",
+	  if (!controls.refinecontrol.Reference()) {
+	    // but not refine reference
+	    FC.SetOnlyMerge();
+	    AllScales.SetConstant(hkl_list, output);
+	    // turn off sd optimisation unless explicit
+	    if (!input.SDC_RefineSet()) {
+	      FC.sdoptimise = false;
+	    }
+	    std::string s = "No scaling done, "+AllScales.whyNotRefineable();
+	    output.logTab(0,LOGFILE, s);
+	    output.logTab(0,LXML,
+			  StringUtil::MakeXMLwithclass("ScaleModelFail",
                                                      s, false,
                                                      "warningmessage"));
+	  }
         } else {
           AllScales.PrintLayout(output);
         }
@@ -627,43 +631,43 @@ int main(int argc, char* argv[])
     int allowed_gap = input.Maximum_gap();
 
     // ----- Initial scales
-    timer.Start();
-    InitialScales initialscales(hkl_list, AllScales, initialscale, controls, output);
-    output.logTab(0,LOGFILE,
-                  "\nTime for initial scaling: "+timer.format(true));
-    output.logFlush();
-
-    // test for enough data for scaling
     bool allowgap = false;
-    if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
-      //  there is a gap in a run, should scaling be suppressed?
-      if (controls.runs.Explicit()) {
-        if (initialscales.numberofrotationranges() == 1) {
-          // Just one range, suppress scaling
-          suppressScaling = true;
-        } else {
-          // OK if there are explicit runs
-          //   unless minimum_overlap is set explicitly to > 0
-          std::string s = "There is a gap in a run, with overlap < "+
-            StringUtil::ftos(std::abs(minimum_overlap));
-          ReportErrors::printWarning(s, "OverlapWarning");
-          allowgap = true;
-          if (minimum_overlap > 0.0) {
-            suppressScaling = true;
-          }
-        }
-      } else {
-        suppressScaling = true;
-      }
-    }
-
-    if (minimum_overlap == 0.0 && !allowgap) {
-      output.logTab(0,LOGFILE,
-                    "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
-    }
-    initialscales.reportOverlapXML(output, allowgap);
-
     if (initialscale) {
+      timer.Start();
+      InitialScales initialscales(hkl_list, AllScales, initialscale, controls, output);
+      output.logTab(0,LOGFILE,
+		    "\nTime for initial scaling: "+timer.format(true));
+      output.logFlush();
+
+      // test for enough data for scaling
+      if (! initialscales.enoughData(minimum_overlap, allowed_gap)) {
+	//  there is a gap in a run, should scaling be suppressed?
+	if (controls.runs.Explicit()) {
+	  if (initialscales.numberofrotationranges() == 1) {
+	    // Just one range, suppress scaling
+	    suppressScaling = true;
+	  } else {
+	    // OK if there are explicit runs
+	    //   unless minimum_overlap is set explicitly to > 0
+	    std::string s = "There is a gap in a run, with overlap < "+
+	      StringUtil::ftos(std::abs(minimum_overlap));
+	    ReportErrors::printWarning(s, "OverlapWarning");
+	    allowgap = true;
+	    if (minimum_overlap > 0.0) {
+	      suppressScaling = true;
+	    }
+	  }
+	} else {
+	  suppressScaling = true;
+	}
+      }
+
+      if (minimum_overlap == 0.0 && !allowgap) {
+	output.logTab(0,LOGFILE,
+		      "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
+      }
+      initialscales.reportOverlapXML(output, allowgap);
+
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data
       if (controls.outlierScale.Reject(ALL).batchrejectfactor > 0.0) {
@@ -1156,6 +1160,12 @@ int main(int argc, char* argv[])
         hklreflist.scaleToObserved(hkl_list, datasetindex,
                                    SD_model, toleranceratio, output);
         ASSERT (refOK); // checked earlier
+
+	// Comparison of multiple datasets to reference
+	if (!hklreflist.IsEmpty() && (hkl_list.num_datasets() > 1)) {
+	  CompareToReference comparetoreference(hkl_list, hklreflist, ResRange);
+	  comparetoreference.printTable(output);
+	}
     }
 
     // get maximum batch width

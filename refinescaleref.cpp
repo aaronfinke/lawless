@@ -127,7 +127,7 @@ namespace scala {
               ghl.push_back(g);
             }
           }
-          if (nused > 1) {
+          if (nused > 0) {
             mnI = isigiref.I();
             for (l=0;l!=nused;++l) {  // loop observations
               sd = obs_used[l].sigI();
@@ -327,7 +327,7 @@ namespace scala {
             //              }
           }
         }
-        if (nused > 1) {
+        if (nused > 0) {
           mnI = isigiref.I();
 
           for (l=0;l!=nused;++l) {  // loop observations

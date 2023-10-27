@@ -657,8 +657,8 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
 
   TableGraphPlot graph("Rref and CCref v Batch for all runs");
   if (smoothR) { // smoothed, 2 lines
-    graph.AddLine(TableGraphPlotline(1,7,"red","",symbolsize,false)); // smoothed
-    graph.AddLine(TableGraphPlotline(1,3,"blue","",symbolsize,false)); // unsmoothed
+    graph.AddLine(TableGraphPlotline(1,7,"red","",symbolsize,false)); // R smoothed
+    graph.AddLine(TableGraphPlotline(1,3,"blue","",symbolsize,false)); // R unsmoothed
     TableGraphPlotline ccline(1,8,"black","",symbolsize,false);
     TableGraphPlotline ccline2(1,5,"green","",symbolsize,false); // CC unsmoothed
     ccline.SetRHaxis();
@@ -756,6 +756,103 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
       //^-
     }  // rejected batches
   } // batch loop
+  table.CloseTable();
+  output.logTab(0,LOGFILE, "\n"+table.format());
+  lineformat = "Overall:      "+lineformat;
+  output.logTabPrintf(0,LOGFILE,lineformat.c_str(),
+                      Rf.R(), Rf.result().count, CC.Mean(), nCC,
+                      Rf.R(), CC.Mean());
+  output.logTab(0,LOGFILE,table.RawLabels());
+  output.logTab(0,LXML,table.XMLformat());
+}
+//--------------------------------------------------------------
+void PrintComparisonToReferenceByReso(const PxdName& dataset_pxd,
+				      const ResoRange& ResRange,
+				      const std::vector<Rfactor>& rreferencereso,
+				      std::vector<std::vector<correl_coeff> > ccreferencebatch,
+				      const std::vector<MeanValue>& meanIrefreso,
+				      const std::vector<MeanValue>& meanIobsreso,
+				      phaser_io::Output& output)
+{
+  output.logTab(0,LOGFILE,
+                std::string("\n\nAgreement with reference data, analysed by resolution\n")+
+                                "=====================================================\n\n");
+
+  int nresbin = ccreferencebatch[0].size();
+  std::vector<correl_coeff> ccreferencereso(nresbin);
+  size_t nbatch = ccreferencebatch.size();
+  for (int mres=0;mres<nresbin;mres++) {
+    for (size_t kb=0; kb<nbatch; kb++) { 
+      ccreferencereso[mres] += ccreferencebatch[kb][mres];
+    }
+  }
+
+  output.logTab(0,LOGFILE,
+                std::string("Rref   is Sum(Iobs - k.Iref) / Sum(Iobs)\n")+
+                "CCref  is  CC(Iobs, k.Iref) \n\n");
+
+  int symbolsize = 1;
+  TableGraph table
+    (" Comparison to reference data by resolution for all runs, "+dataset_pxd.dname());
+  table.StoreID("Graph-RefStatsVsReso");
+  TableGraphPlot graph("Rref and CCref v Resolution for all runs");
+  graph.AddLine(TableGraphPlotline(1,4,"blue",""));  // R-factor
+  TableGraphPlotline ccline(1,6,"green","",symbolsize,false); // CC
+  ccline.SetRHaxis();
+  graph.AddLine(ccline);
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetRightYaxis("", true,Range(0.0,1.0));
+  Range xrange = ResRange; // x axis range to full resolution limit
+  xrange.first() = 0.0;    // from 0
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  table.AddGraph(graph);
+
+  graph.init("<Iobs>, <Iref> v Resolution for all runs");
+  int c1 = 8;
+  graph.AddLine(TableGraphPlotline(1,c1,"red","",symbolsize)); // <Iobs>
+  graph.AddLine(TableGraphPlotline(1,c1+1,"blue","",symbolsize)); // <Iref>
+  graph.SetYaxis("", true);  // Y from zero
+  graph.SetXaxis("", true, xrange);  // x axis is 1/d^2
+  table.AddGraph(graph);
+
+  std::vector<std::string> collabels;
+  collabels.push_back("N");         // 1
+  collabels.push_back("1/d^2");     // 2
+  collabels.push_back("Dmid");      // 3
+  collabels.push_back("Rref");      // 4
+  collabels.push_back("Number");    // 5
+  collabels.push_back("CCref");     // 6
+  collabels.push_back("CCnumber");  // 7
+  collabels.push_back("<Iobs>");    // 8
+  collabels.push_back("<Iref>");    // 9
+  int nc = collabels.size();
+
+  bool z[] =
+    {false, false, true, true, true, true, true, true, true};
+  std::vector<bool> Zero(z, z+nc);
+  std::string lineformat = " %8.4f %8.3f %8d %8.3f %8d %9d %9d\n";
+  table.StoreColumnFields(collabels, Zero, "%5d %7.3f "+lineformat);
+
+  // Overall
+  Rfactor Rf;
+  MeanValue CC;
+  int nCC = 0;
+
+  int n=1;
+  for (size_t i=0;i<nresbin;++i) {
+    table.Line(nc, n++, ResRange.middle(i),
+               ResRange.middleA(i),
+	       rreferencereso[i].R(),
+	       rreferencereso[i].result().count,
+	       ccreferencereso[i].CC(),
+	       ccreferencereso[i].Number(),
+	       Nint(meanIobsreso[i].Mean()),
+	       Nint(meanIrefreso[i].Mean()));
+      n++;
+      Rf += rreferencereso[i];
+      CC.Add(ccreferencereso[i].CC());
+      nCC += ccreferencereso[i].Number();;
+  } // reso loop
   table.CloseTable();
   output.logTab(0,LOGFILE, "\n"+table.format());
   lineformat = "Overall:      "+lineformat;

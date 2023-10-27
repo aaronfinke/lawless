@@ -73,12 +73,14 @@ namespace scala {
     //  All secondary beam direction in hkl_list will be calculated if needed
     ScaleModel(const phaser_io::InputAll& input,
 	       hkl_unmerge_list& hkl_list,
+	       all_controls& controls,
 	       phaser_io::Output& output);
 
     // Initialise from input commands and reflection list
     //  All secondary beam direction in hkl_list will be calculated if needed
     void init(const phaser_io::InputAll& input,
 	      hkl_unmerge_list& hkl_list,
+	      all_controls& controls,
 	      phaser_io::Output& output);
 
     // call at beginning of each refinement cycle to clear negative sec scale flag
@@ -350,6 +352,7 @@ namespace scala {
 			 //  after construction, batch serial number in run
     bool normalisebfac;  // usually true to normalise Bfactor,
 			 // false if no Bfactor refinement for at least one run
+    bool refinereference;  // true if refining to reference
 
     // Variance/covariance information
     clipper::Array2d<double> VC;  // variance/covariance matrix for parameters

@@ -103,6 +103,14 @@ void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
 				       const std::vector<MeanValue>& meanIobsbatch,
 				       phaser_io::Output& output);
 //--------------------------------------------------------------
+void PrintComparisonToReferenceByReso(const PxdName& dataset_pxd,
+				      const ResoRange& ResRange,
+				      const std::vector<Rfactor>& rreferencereso,
+				      std::vector<std::vector<correl_coeff> > ccreferencebatch,
+				      const std::vector<MeanValue>& meanIrefreso,
+				      const std::vector<MeanValue>& meanIobsreso,
+				      phaser_io::Output& output);
+//--------------------------------------------------------------
 void PrintDeviationsByResolution(const PxdName& dataset_pxd,
 				 const ResoRange& ResRange, const bool& Anom,
 				 const std::vector<Rfactor>& rmergeRes,

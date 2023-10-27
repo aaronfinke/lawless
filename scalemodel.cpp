@@ -31,19 +31,24 @@ namespace scala {
   //--------------------------------------------------------------
   ScaleModel::ScaleModel(const phaser_io::InputAll& input,
                          hkl_unmerge_list& hkl_list,
+			 all_controls& controls,
                          phaser_io::Output& output)
   // Construct from input commands and reflection list
   {
-    init (input, hkl_list, output);
+    init (input, hkl_list, controls, output);
   }
   //--------------------------------------------------------------
   void ScaleModel::init(const phaser_io::InputAll& input,
                         hkl_unmerge_list& hkl_list,
+			all_controls& controls,
                         phaser_io::Output& output)
   // initialise from input commands and reflection list
   // Scale specification(s) from input
   {
     status = 0;
+    // Refine reference, allow on scale parameter
+    refinereference = controls.refinecontrol.Reference();
+
     // Setup scale model
     pole = 0;
     std::vector<scala::ScaleSpecification> scaleSpecs =
@@ -1253,8 +1258,8 @@ namespace scala {
     idxrun_detector.resize(ndetscales);
 
     // Primary
-    // if SCALES CONSTANT and one run, then set nparameters = 0
-    if ((nruns == 1) && (primary_scales[0].Number() <= 1)) {
+    // if SCALES CONSTANT and one run, then set nparameters = 0, unles refine reference
+    if ((nruns == 1) && (primary_scales[0].Number() <= 1) && !refinereference) {
       nparameters = 0;
       nprimaryscale = 0;
       idxrun_primary_scales[0] = 0;

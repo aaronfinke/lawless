@@ -524,18 +524,24 @@ namespace scala {
     // statistics relative to reference dataset
     bool hklref = !(hklreflist.IsEmpty());
     std::vector<Rfactor> rreferencebatch;    // Rfactor to reference data
+    std::vector<Rfactor> rreferencereso;
     // CC to reference data by resolution & batch
     std::vector<std::vector<correl_coeff> > ccreferencebatch;
     std::vector<MeanValue> meanIrefbatch;
     std::vector<MeanValue> meanIobsbatch;
+    std::vector<MeanValue> meanIrefreso;
+    std::vector<MeanValue> meanIobsreso;
     if (hklref) {
       rreferencebatch.resize(nbatchgroups);
+      rreferencereso.resize(nresbin);
       ccreferencebatch.resize(nbatchgroups);
       for (int i=0;i<nbatchgroups;++i) {  // ... by resolution for each batch
         ccreferencebatch[i].assign(nresbin,correl_coeff());
       }
       meanIrefbatch.resize(nbatchgroups);
       meanIobsbatch.resize(nbatchgroups);
+      meanIrefreso.resize(nresbin);
+      meanIobsreso.resize(nresbin);
     }
 
     // by resolution
@@ -796,9 +802,12 @@ namespace scala {
           IsigI Isref = hklreflist.Isig(this_refl.hkl());
           if (Isref.sigI() > 0.0) {
             rreferencebatch[jbatchgroup].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
+            rreferencereso[mres].add(this_obs.kI()-Isref.I(), this_obs.kI(), 1.0);
             ccreferencebatch[jbatchgroup][mres].add(this_obs.kI(), Isref.I(), 1.0);
             meanIrefbatch[jbatchgroup].Add(Isref.I());
             meanIobsbatch[jbatchgroup].Add(this_obs.kI());
+            meanIrefreso[mres].Add(Isref.I());
+            meanIobsreso[mres].Add(this_obs.kI());
           }
         }
         if (allobs.Number() > 1) {
@@ -1063,6 +1072,10 @@ namespace scala {
                                         rreferencebatchsmoothed, averageccbatchsmoothed,
                                         meanIrefbatch, meanIobsbatch,
                                         output);
+      PrintComparisonToReferenceByReso(dataset_pxd, ResRange,
+				       rreferencereso, ccreferencebatch,
+				       meanIrefreso, meanIobsreso,
+				       output);
     }
 
     // process halfdataset scores, work out resolution "limits"

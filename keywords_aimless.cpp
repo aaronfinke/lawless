@@ -524,7 +524,7 @@ EXCLUDE::EXCLUDE() : CCP4base(), InputBase()
 Token_value EXCLUDE::parse(std::istringstream& input_stream)
 // Syntax:
 //   EXCLUDE DATASET <datasetname> | <crystalname>/<datasetname>
-//     exclude dataset
+//     exclude dataset     NOT IMPLEMENTED
 //   EXCLUDE BATCH [FILE|SERIES  <Jfile>]  <b1> <b2> <b3> ... | <b1> TO <b2>
 //     exclude batch list or range: if FILE key present, b1 etc
 //     refer to original (file) batch numbers (SERIES is the equivalent for a

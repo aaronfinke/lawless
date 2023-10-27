@@ -322,6 +322,7 @@
 
 
 
+
             | SPACING &lt;delta_time&gt; </dt>
           <dd>Define number of B-factors or (if SPACING keyword present)
             the interval on "time": usually no time is defined in the
@@ -364,6 +365,7 @@
             implements a scale model for 3x3 tiled CCD detectors to
             correct for the underestimation of intensities in the
             corners of the tile, see <a href="#appendix2_tiles">Appendix
+
 
 
 
@@ -453,11 +455,13 @@ fixes
 
 
 
+
         the SdB parameter in the refinement (but it seems best to let it
         refine, even though it has no obvious physical meaning) <br>
       </li>
       <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
 
 
 
@@ -495,12 +499,14 @@ restrain
 
 
 
+
         parameters to be the same for all runs, with SDs optionally
         given for SdFac (sd1), SdB (sd2), and SdAdd (sd3) [defaults 0.2,
         3.0, 0.04)<br>
       </li>
       <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
 
 
 
@@ -612,6 +618,7 @@ set
       style="font-weight: bold;">maximum_gap</span> specifies the
     maximum number of contiguous rotation ranges which are allowed to
     fall below the <span style="font-weight: bold;">minimum_overlap </span>criterion,
+
 
 
 
@@ -794,6 +801,7 @@ set
       </dd>
     </dl>
     <p>The test for outliers is described in <a href="#outlier">Appendix
+
 
 
 
@@ -1206,6 +1214,7 @@ set
 
 
 
+
     This reference set is also used to compare to the scaled observed
     data, analysing it for its agreement as a function of batch, as
     R-factors and correlation coefficients, so that particularly bad
@@ -1581,6 +1590,7 @@ set
 
 
 
+
     as a Fourier series, A = A0{a cos(phi) + b sin(phi) + c cos(2phi) +
     d sin(2phi)}<br>
     <br>
@@ -1675,6 +1685,7 @@ set
         <hr></sup><a name="release_notes"> </a>
       <h2>RELEASE NOTES</h2>
       <dl compact="compact">
+        0.7.14 analysis of multiple datasets against reference, if given<br>
         0.7.13 cosmetic change to cross-dataset graphs<br>
         0.7.12 anisotropic normalisation for Emax test (by default),
         revised (simplified) Emax test, improvements for previously
