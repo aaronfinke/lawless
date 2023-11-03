@@ -17,12 +17,12 @@
 namespace scala {
 
   // ------------------------------------------------------------
-  std::pair<int,int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
-                               const SDmodel& SDM,
-                               const ScaleModel& AllScales,
-                               double& IovSDmin,
-                               const Normalise& NormRes,
-                               const double& E2min, const double& E2max)
+  std::vector<int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
+					    const SDmodel& SDM,
+					    const ScaleModel& AllScales,
+					    double& IovSDmin,
+					    const Normalise& NormRes,
+					    const double& E2min, const double& E2max)
   // On entry:
   //   hkl_list    reflection list, scales applied if needed
   //   SDM         sd correction model
@@ -37,11 +37,13 @@ namespace scala {
   // On exit:
   //   hkl_list    reflection list, reflection accept flags updated
   //
-  // returns number of reflections rejected, and nskip
+  // returns number of reflections accepted, total and nskip
   //
   {
     hkl_list.ResetReflAccept();  // set to accept everything
-    if (IovSDmin == 0.0 && E2min <= 0.0) {return std::pair<int,int>(0,0);}
+    if (IovSDmin == 0.0 && E2min <= 0.0) {
+      return std::vector<int> {0,0,0};
+    }
 
     reflection this_refl, temp_refl;
     clipper::Array2d<int>      nI;
@@ -160,6 +162,7 @@ namespace scala {
     int refRejected = 0;
     int nc = 0;  // counting for skip
     hkl_list.rewind();
+    int naccepted = 0;
     while (hkl_list.next_reflection(this_refl) >= 0)  {
       //  Apply current SD correction to copy of reflection (all observations)
       temp_refl = this_refl;
@@ -188,9 +191,12 @@ namespace scala {
         this_refl.SetStatus(raccept);
         hkl_list.replace_reflection(this_refl); // store updated reflection
         refRejected++;
+      } else {
+	naccepted++;
       }
       nc++;
     }  // end loop reflections
-    return std::pair<int,int>(refRejected, nskip);
+    std::vector<int> refnums = {naccepted, naccepted+refRejected, nskip};
+    return refnums;
   }
 }

@@ -434,6 +434,7 @@ namespace scala {
     // Retrieval
     int num_observations() const; //!< return number of observations
     int NvalidObservations() const; //!< return number of valid observations
+    void setNvalidObservations(const int& nvobs); //!< set number of valid observations
     observation get_observation(const int& lobs) const; //!< return lobs'th observation
 
     //! Return next valid observation in obs, returns index number, = -1 if end
@@ -719,6 +720,7 @@ namespace scala {
     observation_part& find_part(const int& i) const;
     //! Total number of parts. Required for MTZ dump, otherwise for internal use
     int num_parts() const {return int(N_part_list);} // length of part list
+    int num_accepted_parts() const {return Nparts;}
 
     // // ! set number of lattices (shouldn't be necessary
     //    void SetNumberofLattices(const int& nlat) {nlattices = nlat;}
@@ -882,6 +884,7 @@ namespace scala {
     int Nref_valid;
 
     int Nobservations;
+    int Nparts;
     int Nobs_full;
     int Nobs_partial;
     int Nobs_scaled;

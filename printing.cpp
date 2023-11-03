@@ -2240,7 +2240,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       output.logTabPrintf(0,LOGFILE,
                           "     %8.2f %6.2f  %10d%7d%10d\n",
                           hkl_list.ResRange().ResLow(), hkl_list.ResRange().ResHigh(),
-                          hkl_list.num_parts(), hkl_list.num_batches(),
+                          hkl_list.num_accepted_parts(), hkl_list.num_batches(),
                           hkl_list.num_datasets());
 
     } else {
@@ -2248,8 +2248,8 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       //                            "\nSummary of reflection list\n");
       output.logTabPrintf(0,LOGFILE,
                           "\n   Resolution range accepted: %8.2f    %8.2f\n",
-                          hkl_list.ResRange().ResLow(),
-                          hkl_list.ResRange().ResHigh());
+                          hkl_list.ResLimRange().ResLow(),
+                          hkl_list.ResLimRange().ResHigh());
 
       output.logTabPrintf(0,LOGFILE,
                           "\n   Number of reflections  =    %10d\n",
@@ -2259,7 +2259,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
                           hkl_list.num_observations());
       output.logTabPrintf(0,LOGFILE,
                           "   Number of parts        =    %10d\n",
-                          hkl_list.num_parts());
+                          hkl_list.num_accepted_parts());
       output.logTabPrintf(0,LOGFILE,
                           "   Number of batches      =    %10d\n",
                           hkl_list.num_batches());
@@ -2381,7 +2381,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
       }
     }
     output.logTab(0,LXML,"<ReflectionData>");
-    float resmax = hkl_list.ResRange().ResHigh();
+    float resmax = hkl_list.ResLimRange().ResHigh();
     output.logTab(1,LXML,
                   StringUtil::MakeXMLtag("ResolutionHigh",
                                          resmax,8,2));
@@ -2393,7 +2393,7 @@ void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
                                          hkl_list.num_observations(),10));
     output.logTab(1,LXML,
                   StringUtil::MakeXMLtag("NumberParts",
-                                         hkl_list.num_parts(),10));
+                                         hkl_list.num_accepted_parts(),10));
     int numberoflattices = hkl_list.NumberofMainLattices();
     output.logTab(1,LXML,
                   StringUtil::MakeXMLtag("NumberLattices",

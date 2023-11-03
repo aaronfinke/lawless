@@ -32,9 +32,9 @@ namespace scala {
   // On exit:
   //   hkl_list    reflection list, reflection accept flags updated
   //
-  // returns number of reflections rejected, and nskip
+  // returns number of reflections accepted, total and nskip
 
-  std::pair<int,int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
+  std::vector<int> SelectScalingReflections(hkl_unmerge_list& hkl_list,
 					      const SDmodel& SDM,
 					      const ScaleModel& AllScales,
 					      double& IovSDmin,

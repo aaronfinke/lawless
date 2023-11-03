@@ -726,19 +726,18 @@ int main(int argc, char* argv[])
       double E2min = -1.0;   // no |E^2| selection here
       double E2max = -1.0;
       Normalise NormResDummy;    // dummy, not used
-      std::pair<int,int> selrej =
+      std::vector<int> selrej =
         SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin,
                                  NormResDummy, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
                           "\n========= First round scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
           "\nFirst scaling: %7d reflections selected from %8d with I/sd > %6.2f",
-                          hkl_list.num_reflections()-selrej.first,
-                          hkl_list.num_reflections(), IovSDmin);
-      if (selrej.second > 1) {
+			  selrej[0], selrej[1], IovSDmin);
+      if (selrej[2] > 1) {
         output.logTabPrintf(0,LOGFILE,
                             ", using every %3d'th reflection above that limit",
-                          selrej.second);
+                          selrej[2]);
       }
       output.logTabPrintf(0,LOGFILE,"\n");
 
@@ -852,15 +851,14 @@ int main(int argc, char* argv[])
       double IovSDmin = 0.0;
       double E2min = controls.refinecontrol.E2min();
       double E2max = controls.refinecontrol.E2max();
-      std::pair<int,int> selrej =
+      std::vector<int> selrej =
         SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin,
                                  NormRes, E2min, E2max);
       output.logTabPrintf(0,LOGFILE,
                           "\n========= Main scaling =========\n");
       output.logTabPrintf(0,LOGFILE,
          "\nMain scaling: %7d reflections selected from %8d with |E^2| > %6.2f and |E^2| < %6.2f\n\n",
-                          hkl_list.num_reflections()-selrej.first,
-                          hkl_list.num_reflections(), E2min, E2max);
+			  selrej[0], selrej[1], E2min, E2max);
       int Ncyc = controls.refinecontrol.Ncycles();
       if (controls.refinecontrol.BFGS() ||
           controls.refinecontrol.Reference()) {

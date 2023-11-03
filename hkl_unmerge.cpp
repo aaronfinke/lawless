@@ -644,6 +644,9 @@ namespace scala {
   //--------------------------------------------------------------
   int reflection::NvalidObservations() const {return NvalidObs;}
   //--------------------------------------------------------------
+  void reflection::setNvalidObservations(const int& nvobs)
+  {NvalidObs = nvobs;}
+  //--------------------------------------------------------------
   observation reflection::get_observation(const int& lobs) const
     //                    ^^^^^^^^^^^^^^
     // Return lobs'th observation
@@ -2461,7 +2464,6 @@ namespace scala {
     status = PREPARED;
     updateResolutionranges(invresrangebydataset, invresrangebyrun);
 
-    ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
   } // end ::partials
   //--------------------------------------------------------------
@@ -2584,7 +2586,6 @@ namespace scala {
     status = PREPARED;
     updateResolutionranges(invresrangebydataset, invresrangebyrun);
 
-    ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobservations;
   } // end ::nopartials
   //--------------------------------------------------------------
@@ -2709,6 +2710,9 @@ namespace scala {
     Nobs_full = 0;
     Nobs_partial = 0;
     Nobs_scaled = 0;
+    // Default number of of accepted parts,
+    // may be reset in ImposeResoByRunLimits
+    Nparts = num_parts();
     int Nfull, Npart, Nscaled;
     maxintensity = -10000.;
 
@@ -2728,6 +2732,7 @@ namespace scala {
     }
     status = SUMMED;
     NextRefNum = 0;        // point to first reflection in list
+    ImposeResoByRunLimits();  // mark observations if outside run limits
     return Nobs_partial;
   }
   //--------------------------------------------------------------
@@ -2744,11 +2749,15 @@ namespace scala {
 
     observation this_obs;
     ObservationStatus obs_status;
+    Nref_valid = 0;
+    Nobservations = 0;
+    Nparts = 0;
 
     std::vector<Range> invresrangebydataset(ndatasets);
 
     // * * * * Loop reflections
     for (size_t j=0;j<refl_list.size();++j) {
+      int nvalidobs = 0;
       for (int iobs=0;iobs<refl_list[j].num_observations();++iobs) { // loop observations
         this_obs = refl_list[j].get_observation(iobs);
         int irun = this_obs.run();  // run index
@@ -2765,10 +2774,17 @@ namespace scala {
           obs_status.UnSetResolution(); // unset resolution reject flag
           // inv resolution range by dataset
           invresrangebydataset[this_obs.datasetIndex()].update(refl_list[j].invresolsq());
+	  nvalidobs++;
+	  Nparts += this_obs.num_parts();
         }
         this_obs.UpdateStatus(obs_status);
         refl_list[j].replace_observation(this_obs);
       } // end loop observations
+      refl_list[j].setNvalidObservations(nvalidobs);
+      if (nvalidobs > 0) {
+	Nref_valid++;
+	Nobservations += nvalidobs;
+      }
     } // end loop reflections
 
     // Store resolution range for each dataset
@@ -3461,9 +3477,10 @@ namespace scala {
   //  (subject to resolution checks etc)
   {
     int Next = 0;
+    reflection this_refl;
     while (Next < Nref) {
       // Process all reflections unconditionally
-      reflection this_refl = get_reflection(Next++);
+      this_refl = get_reflection(Next++);
       if (this_refl.Status() != 0) {
         this_refl.SetStatus(0);  // accept
         replace_reflection(this_refl);
