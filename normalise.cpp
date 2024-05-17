@@ -15,18 +15,18 @@ namespace scala {
   //--------------------------------------------------------------
   Normalise::Normalise(const hkl_unmerge_list& hkl_list,
                        const double& MinIsigRatio,
-                       Rings& Icerings,
+                       Rings& icerings,
 		       const clipper::U_aniso_frac& u_aniso_frac,
 		       const int PrintLevel,
 		       bool final)
   {
     setAniso(u_aniso_frac);
-    init( hkl_list, MinIsigRatio, Icerings, PrintLevel, final);
+    init( hkl_list, MinIsigRatio, icerings, PrintLevel, final);
   }
   //--------------------------------------------------------------
   void Normalise::init(const hkl_unmerge_list& hkl_list,
                        const double& MinIsigRatio,
-                       Rings& Icerings,
+                       Rings& icerings,
 		       const int PrintLevel,
 		       bool final)
   // Set up intensity normalisation object
@@ -53,8 +53,7 @@ namespace scala {
     std::vector<MeanVariance> weightedMean(nrbin);
 
     // Ice rings
-    Icerings.ClearSums();
-    float IceTolerance = 3.0;  // changed from 4 in 1.6.14
+    icerings.ClearSums();
 
     reflection this_refl;
     observation this_obs;
@@ -78,12 +77,12 @@ namespace scala {
         int rbin = resorange.tbin(sSqr);
         if (rbin >= 0) { // test that reflection is in range
           // Is this in an ice ring? Omit these from averages
-          int Iring = Icerings.InRing(sSqr);
+          int Iring = icerings.InRing(sSqr);
+	  SelectedObservations sel(this_refl, -1, ALL);
+	  IsigI Isigav = sel.Average();
           if (Iring < 0) {
-            SelectedObservations sel(this_refl, -1, ALL);
-            IsigI Isigav = sel.Average();
-            double avI = Isigav.I();
-            double w = 1.0/(Isigav.sigI()*Isigav.sigI());
+	    double avI = Isigav.I();
+	    double w = 1.0/(Isigav.sigI()*Isigav.sigI());
             weightedMean[rbin].Add(double(Isigav.I()), w);
 	    if (useAniso) {
 	      // apply u_aniso
@@ -95,7 +94,9 @@ namespace scala {
             mnSqrv[rbin].Add(sSqr);
             imax = std::max(imax, double(Isigav.I()));
             numobs++;
-          }
+	  } else {
+	    continue;
+	  }
         }
       } else {
         zonalrefs++; // count reflections in centric zones
@@ -117,12 +118,16 @@ namespace scala {
     // Store <I>, sd<I>, count for each bin,
     // weak ones may be replaced below
     setstores();
-    int nneg = 0;  // count negative bins
+    int nneg = 0;  // count negative and zero bins
+    int nzero = 0;
     for (int i=0;i<nrbin;i++) {
       // sets medianI, mnI, mcount, anisomedI, sdI for each bin
       store(i, mnSqrv[i].Mean(), weightedMean[i], medI[i], anisoMedI[i]);
       if (mnI[i] <= 0.0) {
         nneg++;
+      }
+      if (mcount[i] == 0) {
+	nzero++;
       }
       //      std::cout << medianI[i] <<" "<< mnI[i] <<" "
       //		<< mcount[i] <<" "<< anisomedI[i] <<" "<< sdI[i] <<"\n";
@@ -130,12 +135,27 @@ namespace scala {
 
     if (nneg > 0) {
       // Fix up negative bins, replace by sdI THIS IS A FUDGE
-         for (int i=0;i<nrbin;i++) {
-	   if (mnI[i] <= 0.0) {
-	     mnI[i] = sdI[i];
-	   }
-	 }
-	 std::string message = "Normalisation: "+StringUtil::itos(nneg,3)+
+      for (int i=0;i<nrbin;i++) {
+	if (mnI[i] < 0.0) {
+	  mnI[i] = sdI[i];
+	}
+      }
+
+      // Interpolate empty single bins; last bin will not be empty
+      if (nzero > 0) {
+	for (int i=1;i<nrbin-1;i++) {  // not 1st or last
+	  if (mcount[i] == 0) {
+	    if (mcount[i-1] > 0 && mcount[i+1] > 0) {
+	      mnI[i] = 0.5*(mnI[i-1] + mnI[i+1]);
+	      sdI[i] = 0.5*(sdI[i-1] + sdI[i+1]);
+	      medianI[i] = 0.5*(medianI[i-1] + medianI[i+1]);
+	    }
+	  }
+	}
+      }
+      
+      if (nneg-nzero > 0) {
+	std::string message = "Normalisation: "+StringUtil::itos(nneg,3)+
 	   " negative bins have been reset to sd(<I>";	 
 	 if (useAniso) {
 	   message += ", and anisotropy has been turned off";
@@ -145,7 +165,10 @@ namespace scala {
 	 if (final) {
 	   ReportErrors::printWarning(message, "NegativeNormalisation");
 	 }
+      }
     }
+
+
     imean = MeanValue(mnI).Mean();
 
     std::vector<double> mnI0 = mnI;
@@ -223,7 +246,7 @@ namespace scala {
                         Median<float>& anisoMedI)
   // Store:
   //   mnI        from median, mean of trimmed range,
-  //               after anisotrpic correction if useAniso true
+  //               after anisotropic correction if useAniso true
   //   sdI        from weighted mean
   //   medI       median
   {
@@ -279,10 +302,14 @@ namespace scala {
     const int MINPOINTS = 5;
     double sSqrbeyond = 1.0/(RESBEYOND*RESBEYOND);
     int kbin = resorange.tbin(sSqrbeyond);
+    // if we are below RESBEYOND:
+    if (kbin<0) {
+      return mnI;  // return unchanged data
+    }
     std::vector<double> mnIb(nrbin, 0.0);
 
     if (nrbin-kbin < MINPOINTS) {    // too few points
-      return mnI;  // return unchecged data
+      return mnI;  // return unchanged data
     }
 
     if (kfirst < 0) {
@@ -446,7 +473,7 @@ namespace scala {
                 "%8.4f %7.1f %6.2f %7.1f %7.1f %8.4f %8.1f %8.3f  %7d\n",
                 mnsSqr[is], mnI[is], sdI[is], 
 		medianI[is], anisomedI[is],
-                Corr(mnsSqr[is], DVect3(0,0,0)), iovsig(is),
+                Corr(mnsSqr[is], DVect3(0.,0.,0.)), iovsig(is),
                 mnmedratio, mcount[is]);
       }
     }

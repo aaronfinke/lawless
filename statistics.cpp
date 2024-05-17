@@ -1054,6 +1054,9 @@ namespace scala {
     output.logTabPrintf(0,LOGFILE,"Number of observations rejected on Emax limit %9d\n\n",
                         outliercount.at(2));
 
+    Rings icerings = hkl_list.getIceRings();
+    icerings.report(output);
+
     PrintScalesByBatch(dataset_pxd, batches, batchgroup, runlist, datasetIndex,
                        scale0batch, bfacbatch, nbfacrun, scalebatch,
                        output);

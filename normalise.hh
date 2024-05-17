@@ -59,7 +59,7 @@ namespace scala {
     // Total average correction, multiplying scale
     // This is the scale needed to bring an individual I to match the average
     float Corr(const float& sSqr,
-	       const DVect3& rhkl=DVect3()) const;
+	       const DVect3& rhkl=DVect3(0.0,0.0,0.0)) const;
     // anisotropic part of correction, multiplying scale
     // This is the scale needed to bring an individual I to match the average
     float anisoCorr(const DVect3& rhkl) const;
@@ -67,9 +67,9 @@ namespace scala {
     // Apply correction factors to get E^2 from I
     //  The relevant <I> for hkl is anisoCorr/<I>, so divide by that
     float apply(const float& I, const float& sSqr,
-		const DVect3& rhkl=DVect3()) const;
+		const DVect3& rhkl=DVect3(0.0,0.0,0.0)) const;
     IsigI apply(const IsigI& Is, const float& sSqr,
-		const DVect3& rhkl=DVect3()) const;
+		const DVect3& rhkl=DVect3(0.0,0.0,0.0)) const;
 
 
 

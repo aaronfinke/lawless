@@ -463,6 +463,24 @@ int main(int argc, char* argv[])
 #endif
 
     Normalise NormRes;
+    // Put Ice ring object into hkl_list
+    Rings icerings;
+    int ringlisttype = input.ringListType();
+    bool iceringreject = input.iceRingReject();
+
+    icerings.setIceRings(ringlisttype);
+    if (ringlisttype == 0) {
+      // Keep icerings for everything
+      icerings.SetRejectAll(false);
+    } else {
+      // Reject icerings for scaling etc
+      icerings.SetRejectAll(true);
+    }
+    hkl_list.SetIceRings(icerings);
+
+    Rings normicerings;  // for Normalisation
+    normicerings.setIceRings(ringlisttype);
+    normicerings.SetRejectAll(false);
 
     ApplyScales applyscales;
 
@@ -773,11 +791,9 @@ int main(int argc, char* argv[])
 
       // Overall Normalisation
       double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
-      Rings IceRings;        // no omission of ice rings
-      IceRings.DefaultIceRings();
       // Clear all outlier & other status flags (except ObsFlags)
       ClearObsStatus(hkl_list);
-      NormRes.init(hkl_list, MinIsigRatio, IceRings, 0);
+      NormRes.init(hkl_list, MinIsigRatio, normicerings, 0);
 
       // -- 1st outlier rejection
       // Use outlier flags appropriate for scaling
@@ -896,9 +912,8 @@ int main(int argc, char* argv[])
 
     // Overall Normalisation
     double MinIsigRatio = 0.6;  // resolution cutoff for Emaxtest
-    Rings NoRings;        // no omission of ice rings
     int printlevel = 0;  // 1 to dump to norm.plot
-    NormRes.init(hkl_list, MinIsigRatio, NoRings, printlevel);
+    NormRes.init(hkl_list, MinIsigRatio, normicerings, printlevel);
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);  // count observation flag rejects
 
@@ -1059,7 +1074,7 @@ int main(int argc, char* argv[])
     // Overall Normalisation
     //printlevel = 1;  // 1 to dump to norm.plot
     printlevel = 0;  // 1 to dump to norm.plot
-    NormRes.init(hkl_list, MinIsigRatio, NoRings, printlevel,true);
+    NormRes.init(hkl_list, MinIsigRatio, normicerings, printlevel,true);
 
     // ----
 
@@ -1073,8 +1088,16 @@ int main(int argc, char* argv[])
         hkl_list.CalcSecondaryBeams(pole);
       }
 
+      Rings ploticerings;
+      int rltype = ringlisttype;
+      if (ringlisttype == 0) {
+	rltype = 2;
+      }
+      ploticerings.setIceRings(rltype);
+
       WriteRogues RoguesList(roguesfilename, true, doRoguePlot, multilattice,
                              runTitle, hkl_list.Srange().max(), wavelength,
+			     ploticerings,
                              controls.outlierMerge,
                              controls.plotcontrol.xmgraceoutput);
       //  hkl_list is updated for status, but SDs are not changed
@@ -1190,6 +1213,14 @@ int main(int argc, char* argv[])
 
         AnomDistribution anomds = allAnomDistributions.Anomdistribution(idts);
         double aslope = anomProbSlopes.at(idts);
+
+	// Put icering definition into hkl_list copying reject status from input
+	// Default no rejections
+ 	Rings finalicerings = hkl_list.getIceRings();
+	finalicerings.SetRejectAll(iceringreject);
+	finalicerings.CopyRejRings(finalicerings);
+	hkl_list.SetIceRings(finalicerings);
+
         SummaryStatistics sumstat = Statistics(AllScales, hkl_list, SD_model,
                                                controls, idts, resrangedataset,
                                                NormRes, anisoanal, anomds, aslope,

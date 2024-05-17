@@ -261,10 +261,12 @@
         style="font-weight: bold;" href="#xmlout">XMLOUT</a><span
         style="font-weight: bold;">, </span><a style="font-weight:
         bold;" href="#xyzin">XYZIN</a><b>, <a moz-do-not-send="true"
-          href="#plot">PLOT</a>, <a moz-do-not-send="true" href="#cell">CELL</a><br>
+          href="#plot">PLOT</a>, <a moz-do-not-send="true" href="#cell">CELL</a>,
+        <a moz-do-not-send="true" href="#icering">ICERING</a><br>
       </b></p>
     <h3><a name="run"></a>RUN &lt;Nrun&gt; &nbsp;BATCH &lt;b1&gt; to
-      &lt;b2&gt;<span style="color: rgb(255, 102, 0);"></span> </h3>
+      &lt;b2&gt;&nbsp;&nbsp;&nbsp; <span style="color: rgb(255, 102,
+        0);"></span> </h3>
     <p>Define a "run" : Nrun is the Run number, with an arbitrary
       integer label (<em>i.e.</em> not necessarily 1,2,3 etc). A "run"
       defines a set of reflections which share a set of scale factors.
@@ -305,6 +307,8 @@
           <dd>Switch Bfactors on or off. The default is ON.<br>
           </dd>
           <dt><a name="scales_brotation"></a>BROTATION&nbsp;&lt;Ntime&gt;
+
+
 
 
 
@@ -366,6 +370,8 @@
             implements a scale model for 3x3 tiled CCD detectors to
             correct for the underestimation of intensities in the
             corners of the tile, see <a href="#appendix2_tiles">Appendix
+
+
 
 
 
@@ -459,11 +465,15 @@ fixes
 
 
 
+
+
         the SdB parameter in the refinement (but it seems best to let it
         refine, even though it has no obvious physical meaning) <br>
       </li>
       <li>DAMP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
+
 
 
 
@@ -505,12 +515,16 @@ restrain
 
 
 
+
+
         parameters to be the same for all runs, with SDs optionally
         given for SdFac (sd1), SdB (sd2), and SdAdd (sd3) [defaults 0.2,
         3.0, 0.04)<br>
       </li>
       <li>TIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 set
+
+
 
 
 
@@ -624,6 +638,8 @@ set
       style="font-weight: bold;">maximum_gap</span> specifies the
     maximum number of contiguous rotation ranges which are allowed to
     fall below the <span style="font-weight: bold;">minimum_overlap </span>criterion,
+
+
 
 
 
@@ -827,7 +843,19 @@ set
 
 
 
-        4</a> </p>
+
+
+        4</a><br>
+    </p>
+    <h3><a name="icering"></a>ICERING [R1 | R2 | NONE] [[NO]REJECT]</h3>
+    By default (NOREJECT), reflections lying in ice rings are omitted
+    from the scaling and normalisation, but included in the final
+    statistics and the output file. The REJECT option here will omit
+    them from the final statistics and the output file. Two sets of ring
+    definitions are available: R1 is a list of 10 rings from Mosflm,
+    thanks to Harry Powell; R2 (the default) is a longer list of 61
+    narrower rings from Clemens Vonrhein, as used in autoPROC. NONE
+    switches off all ice ring rejections.<br>
     <h3><a name="anomalous"></a>ANOMALOUS [OFF] [ON] </h3>
     <dl>
       <dd>
@@ -1224,6 +1252,8 @@ set
 
 
 
+
+
     This reference set is also used to compare to the scaled observed
     data, analysing it for its agreement as a function of batch, as
     R-factors and correlation coefficients, so that particularly bad
@@ -1582,6 +1612,8 @@ set
     </div>
     <br>
     Amplitude A various azimuthally with the angle phi = tan<sup>-1</sup>(y/x)
+
+
 
 
 

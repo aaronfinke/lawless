@@ -50,13 +50,13 @@ namespace scala {
     std::vector<int> countsr(NintBin, 0);  // N rejected
 
     // Omit ice rings
-    Rings icerings;
-    icerings.DefaultIceRings();
+    Rings icerings = hkl_list.getIceRings();
 
     hkl_list.rewind();
     reflection this_refl;
     int nvrefl = 0;  // count number of valid reflections with at least 2 observations
     while (hkl_list.next_reflection(this_refl) >= 0)  {
+      int ir = icerings.InRing(this_refl.invresolsq());
       if ((icerings.InRing(this_refl.invresolsq()) < 0) &&
         (this_refl.NvalidObservations() > 1)) {  // no singletons or in icering
         nvrefl++;

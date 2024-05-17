@@ -40,6 +40,7 @@ namespace scala {
 		const bool& multilattice,
 		const std::string& title,
 		const float& dstarMax, const float& wavelength,
+		const Rings& icerings,
 		const OutlierControl& outliercontrol,
 		const bool& xmgraceoutput);
 

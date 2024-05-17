@@ -333,7 +333,7 @@ double RingRadius(const double& dstar)
 // ------------------------------------------------------------
 RoguePlot::RoguePlot(const std::string& FileName,
                      const std::string& Title, const float& Smax,
-                      const float& wavelength)
+		     const float& wavelength, const scala::Rings& icerings)
 // Smax  maximum 4(sin theta/lambda)**2
 //                      = (d*max)**2 = 1/dmin**2
 
@@ -367,8 +367,6 @@ RoguePlot::RoguePlot(const std::string& FileName,
   xmlplot.DrawCircle(0.0, 0.0, radius, 8, 4, 1, 1, lcol);
 
   // Draw ice rings
-  scala::Rings icerings;
-  icerings.DefaultIceRings();  // set default ice rings
   lcol = 2;     // probably red
   bool first = true;
   for (int ir=0;ir<icerings.Nrings();++ir) {

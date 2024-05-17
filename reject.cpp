@@ -584,7 +584,8 @@ namespace scala {
                            const bool& multilattice,
                            const std::string& title, const float& dstarMax,
                            const float& wavelength,
-                           const OutlierControl& outliercontrol,
+			   const Rings& icerings,
+			   const OutlierControl& outliercontrol,
                            const bool& xmgraceoutput)
   // Open ROGUES file & write header if Start true
   // Open ROGUESPLOT file & write header if Plot true
@@ -643,7 +644,8 @@ namespace scala {
     if (Plot) {
       std::string roguefilename = "ROGUEPLOT";
       if (!xmgraceoutput) {roguefilename = "";}
-      rogueplot = RoguePlot(roguefilename, title, dstarMax, wavelength);
+      rogueplot = RoguePlot(roguefilename, title, dstarMax,
+			    wavelength, icerings);
       rogueplot.Start();
     }
   }

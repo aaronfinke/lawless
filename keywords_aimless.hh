@@ -885,7 +885,30 @@ namespace phaser_io {
 
   private:
     scala::Scell cell;
-};
+  };
+  //--------------------------------------------------------------
+  class ICERING : public InputBase, virtual public CCP4base
+  {
+    // Set Ice ring treatment
+    // Syntax: ICERING R1 | R2 | NONE [REJECT]
+    //   R1 and R2 are alternative ring definitions, R2 is default
+    //   NONE no icerings
+    //   REJECT omits ice ring reflections from final output file
+  public:
+    ICERING();
+    virtual ~ICERING() {}
+    Token_value parse(std::istringstream&);
+
+    int ringListType() const {return ringlisttype;}
+    bool iceRingReject() const {return reject;}
+
+    void analyse(){}
+
+  private:
+    int ringlisttype;  // 1 or 2
+    bool reject;  // true to reject ice rings from final data
+
+  };
 } // phaser_io
 
 #endif

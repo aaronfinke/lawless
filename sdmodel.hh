@@ -342,8 +342,8 @@ namespace scala
 // ---------------------------------------------------------
 class TargetResiduals {
 public:
-  TargetResiduals() : R1(0.0), R1lsq(0.0), R2(0.0), quadratic(true),
-		      converged(false) {}
+  TargetResiduals() :  quadratic(true), converged(false),
+		       R1(0.0), R1lsq(0.0), R2(0.0) {}
   void Add(const double& r1, const double& r2)
   {R1 += r1;R2 += r2;}
   void AddLsq(const double& r1lsq)

@@ -561,7 +561,7 @@ namespace scala {
     //! clear ice rings
     void clearIceRings() {SetIceRings(Rings());}
     //! return ice rings
-    Rings getIceRings() const {return Icerings;}
+    Rings getIceRings() const {return icerings;}
     
     //! If there are any resolution limits set by run, go through the observation
     // list and flag observations which are outside these limits
@@ -916,7 +916,7 @@ namespace scala {
     partial_controls partial_flags;
 
     // Ice rings
-    Rings Icerings;
+    Rings icerings;
 
     // Datasets & batches
     std::vector<Dataset> datasets;

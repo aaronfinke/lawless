@@ -11,6 +11,7 @@
 #include "CCP4base.hh"
 
 #include "range.hh"
+#include "icering.hh"
 
 //--------------------------------------------------------------
 class PlotSample
@@ -267,7 +268,8 @@ public:
   //                      = (d*max)**2 = 1/dmin**2
   // wavelength  
   RoguePlot(const std::string& FileName,
-	    const std::string& Title, const float& Smax, const float& wavelength);
+	    const std::string& Title, const float& Smax,
+	    const float& wavelength, const scala::Rings& icerings);
 
   // Return true if plotting is turned on
   bool IsPlot() const {return xmgrplot.IsPlot();}

@@ -2169,4 +2169,44 @@ Token_value CELL::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
+ICERING::ICERING() : CCP4base(), InputBase()
+{
+  Add_Key("ICERING");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+  ringlisttype = 2;  // default
+  reject = false;
+}
+//--------------------------------------------------------------
+Token_value ICERING::parse(std::istringstream& input_stream)
+{
+  bool OK = true;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("R1")) {
+	ringlisttype = 1;
+      } else if (keyIs("R2")) {
+	ringlisttype = 2;
+      } else if (keyIs("NONE")) {
+	ringlisttype = 0;
+      } else if (keyIs("REJECT")) {
+	reject = true;
+      } else if (keyIs("NOREJECT")) {
+	reject = false;;
+      } else {
+        OK = false;
+      }
+    } else {
+      OK = false;
+    }
+  }
+
+  if (!OK) {
+    throw SyntaxError(keywords,
+      "Unrecognised keyword, should be TYPE1 | TYPE2 | REJECT");
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 } // phaser_io

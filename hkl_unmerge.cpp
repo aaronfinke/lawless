@@ -1256,7 +1256,7 @@ namespace scala {
     averagecell = Scell();
     run_set = 0;
     partial_set = false;
-    Icerings = Rings();
+    icerings = Rings();
     datasets.clear();
     batches.clear();
     batch_lookup.Clear();
@@ -2827,7 +2827,7 @@ namespace scala {
   void hkl_unmerge_list::SetIceRings(const Rings& rings)
   {
     // Only store rings flagged as "reject"
-    Icerings.CopyRejRings(rings);
+    icerings.CopyRejRings(rings);
   }
   //--------------------------------------------------------------
   void hkl_unmerge_list::MakeHklLookup() const
@@ -2880,6 +2880,7 @@ namespace scala {
   void hkl_unmerge_list::rewind() const
   {
     NextRefNum = -1;
+    icerings.ClearCounts();
   }
   //--------------------------------------------------------------
   bool hkl_unmerge_list::accept() const
@@ -2898,8 +2899,8 @@ namespace scala {
       return false;
     }
     // Check ice rings: only "reject" rings are stored
-    if (Icerings.Nrings() > 0) {
-      int ir = Icerings.InRing(s2);
+    if (icerings.Nrings() > 0) {
+      int ir = icerings.InRing(s2);
       if (ir >= 0) {
         Nref_icering++; // mutable
         return false;
@@ -2923,8 +2924,8 @@ namespace scala {
     if (ResoLimRange.tbin(s2) < 0)
       return false;
     // Check ice rings: only "reject" rings are stored
-    if (Icerings.Nrings() > 0) {
-      int ir = Icerings.InRing(s2);
+    if (icerings.Nrings() > 0) {
+      int ir = icerings.InRing(s2);
       if (ir >= 0) {
         return false;
       }

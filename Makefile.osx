@@ -8,8 +8,8 @@ LXX=clang++
 #CXX=g++
 #LXX=g++
 
-#OPT = -g -std=c++11 -Wreturn-type
-OPT = -O2 -std=c++11 -Wreturn-type
+OPT = -g -std=c++11 -Wreturn-type -Wno-deprecated-declarations
+#OPT = -O2 -std=c++11 -Wreturn-type -Wno-deprecated-declarations
 #OPT = -g -Wall
 #OPT = -O2 -Wall
 
