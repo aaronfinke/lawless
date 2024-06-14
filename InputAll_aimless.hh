@@ -41,7 +41,8 @@ namespace phaser_io {
     public LINK,
     public PLOT,
     public CELL,
-    public ICERING
+    public ICERING,
+    public BFACTOR
   {
   public:
     InputAll(Preprocessor&); 

@@ -347,9 +347,9 @@ namespace scala {
     int scalenormbatch;  // batch number for scale  normalisation, -1 for 1st
 			 //  after construction, batch serial number in run
 
-    int bfacnormrun;     // run number for B-factor normalisation
-    int bfacnormbatch;   // batch number for B-factor  normalisation, -1 for best
-			 //  after construction, batch serial number in run
+    int bfacnormrun;   // run number for B-factor normalisation
+    int bfacnormbatch; // batch number for B-factor  normalisation, -1 for best, -2 for 1st
+    int bfacnormbatchserial;	//  after construction, batch serial number in run
     bool normalisebfac;  // usually true to normalise Bfactor,
 			 // false if no Bfactor refinement for at least one run
     bool refinereference;  // true if refining to reference

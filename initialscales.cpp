@@ -84,7 +84,7 @@ namespace scala {
       output.logTab(0,LOGFILE,
                     "\n========= Checking for scaling overlaps =========\n\n");
     }
-    std::vector<Run> runlist = hkl_list.RunList();   // runs
+    runlist = hkl_list.RunList();   // runs
     int nruns = runlist.size();
     // true if a run has batch scales
     std::vector<bool> batch_scale_run(nruns, false);
@@ -92,7 +92,7 @@ namespace scala {
     std::vector<int> nranges_run(nruns,0);
 
     nrotranges = 0; // total number of ranges
-    std::vector<int> idxrun(nruns); // index to 1st rotation range for each run
+    idxrun.assign(nruns, -1); // index to 1st rotation range for each run
     // Set up rotation ranges for each run
     for (int irun=0;irun<nruns;++irun) {
       // Store number of rotation ranges
@@ -109,7 +109,7 @@ namespace scala {
       //^
       //      std::cout << "Phirange run " << irun << " " << runlist[irun].PhiRange().format();
       //^-
-    }
+    }  // end run
 
 
     // Resolution ranges
@@ -156,15 +156,17 @@ namespace scala {
         // loop observations
         int irun = this_obs.run();
         Rtype phi = this_obs.phi();
+	int batchnum = this_obs.Batch();
         if (AllScales.primary_scale(irun).IsBatchScale()) {
           // batch scale
-          int batchnum = this_obs.Batch();
           // serial index in run
           int batchserial = AllScales.primary_scale(irun).batchSerialIndex(batchnum);
           irot = batchserial + idxrun[irun];
         } else {
           irot = runlist[irun].PhiRange().bin(phi) + idxrun[irun];
         }
+	// batchnum  batch number
+	// irot rotation range number
         double weight = 1.0;
         double sigi = this_obs.sigI();
         if (sigi > 0.0) {
@@ -227,9 +229,15 @@ namespace scala {
     std::vector<bool> validranges(nrotranges, false);
     int nvalidranges = 0;
     fractionaloverlapbyrotrange.assign(nrotranges, 0.0);
+    runnumberbyrotrange.assign(nrotranges, -1);
     int noverlap = 0;
     int nnot = 0;
+    int irun = 0;
     for (int i=0;i<nrotranges;++i) {
+      if (numobsrotrange.at(i) > 0) {
+	// empty rotranges are marked as irun = -1
+	runnumberbyrotrange[i] = irun;
+      }
       int ntot = noverlaprot[i]+notoverlap[i];
       if (ntot > 0) {
         fractionaloverlapbyrotrange[i] =
@@ -241,7 +249,15 @@ namespace scala {
 
       noverlap += noverlaprot[i];
       nnot += notoverlap[i];
-    }
+
+      if (i <  nrotranges-1 && irun < nruns-1) {
+	// not last rotrange
+	if (i >= idxrun.at(irun+1)) {
+	  // increment run
+	  irun++;
+	}
+      }
+    }   // rotranges
     averageoverlap = 0.0;
     if (nnot > 0) {
       averageoverlap = double(noverlap)/double(noverlap+nnot);
@@ -290,7 +306,7 @@ namespace scala {
       output.logTabPrintf(0,LOGFILE,"\n");
     }
     output.logTabPrintf(0, LOGFILE,
-       "\nOverall fractional overlap between rotation ranges %5.2f, minimum %5.2f\n",
+       "\nOverall fractional overlap between rotation ranges %5.2f, minimum %5.2f (excluding gaps)\n",
                         averageoverlap, minimumoverlap);
 
     if (!determineScales) {return;}
@@ -319,6 +335,7 @@ namespace scala {
       bool empty = false;
       int i1 = idxrun[irun];
       int i2 = nrotranges;
+
       if (irun < nruns-1) i2 = idxrun[irun+1];  // not last run
       std::vector<bool> validinrun(i2-i1, true);
       // scales for irun go from i1 to i2-1
@@ -346,20 +363,19 @@ namespace scala {
               }
             }
             int k2 = -1;  // hunt forwards
-            if (k < i2-1) {
+            if (k < i2-1) {   // k is invalid
               for (int j=k+1;j<i2;j++) {
                 if (validinrun[j]) {
                   k2 = j;  // k2 is next valid scale
                   break;
                 }
               }
-            }
+            } else {k2 = i2;}
             // we need to fill in from k to k2-1
             floatType g = 0.0;
             int ng = 0;
             if (k1 >= 0) {g += gscales[k1]; ng++;}
-            if (k2 >= 0) {g += gscales[k2]; ng++;}
-            else {k2 = i2;}
+            if (k2 >= 0 && validinrun[k2]) {g += gscales[k2]; ng++;}
             if (ng > 0) {
               g /= floatType(ng);
               for (int j=k;j<k2;j++) {  // to k2-1 or i2-1
@@ -368,10 +384,10 @@ namespace scala {
               }
             }
             k = k2-1;
-          }
+          }  // scale k missing
           k++;
-        }
-      }
+        }  // while k < i2
+      }   // empty
       for (int i=i1;i<i2;++i) {
         if ((i-i1) > 0 && (i-i1)%NPERLINE == 0) output.logTabPrintf(0,LOGFILE,"\n");
         if (gscales[i] != 0.0) {
@@ -380,7 +396,6 @@ namespace scala {
         output.logTabPrintf(0,LOGFILE," %9.3f", scales[i]);
       }
       output.logTabPrintf(0,LOGFILE,"\n");
-
     }  // end loop runs
     // Store initial scales
     AllScales.SetInitialScales(gscales, numobsrotrange);
@@ -416,6 +431,8 @@ namespace scala {
       int ngap = 0;
       bool ingap = false;
       int nbad = 0;
+      int i1 = -1;
+      std::vector<RotationGap> gaps;
       // count ranges with low multiplicity
       for (size_t ir=0; ir<nrotranges; ir++) {
         if (fractionaloverlapbyrotrange[ir] < overlapthreshold) {
@@ -423,11 +440,24 @@ namespace scala {
           nbad++; // count contiguous bad ranges
           if (!ingap) {
             ingap = true;
+	    i1 = ir;  // 1st range in gap
           }
         } else {
           if (ingap && (nbad > allowedgap)) {
             // found a range longer than allowedgap, count them
             ngap++;
+	    // rotrange in gap
+	    int i2 = i1+nbad-1;
+	    IntRange gaprotrange(i1, i2);
+	    int irun = runnumberbyrotrange[i1-1];
+	    Range phirange = runlist[irun].PhiRange();
+	    // are all the ranges in the gap empty?
+	    bool allempty = true;
+	    for (int i=i1;i<=i2;++i) {
+	      if (numobsrotrange[i] > 0) {allempty = false;}
+	    }
+	    RotationGap rotgap(irun, gaprotrange, phirange, allempty);
+	    rotgaps.push_back(rotgap);
           }
           ingap = false;
           nbad = 0;
@@ -444,14 +474,60 @@ namespace scala {
     return enoughdata;
   }
   // ---------------------------------------------------------
-  void InitialScales::reportOverlapXML(phaser_io::Output& output,
+  std::string InitialScales::reportGaps(phaser_io::Output& output) const
+  {
+    int ngaps = rotgaps.size();
+    std::string s;
+    if (ngaps == 0) {return s;}  //  no gaps
+    int nruns = runlist.size();
+    for (size_t k=0; k<rotgaps.size(); k++) { 
+      int irun = rotgaps[k].runindex();
+      int runnumber = runlist[irun].RunNumber();
+      if (nruns > 1) {
+	s = "Rotation range gap in run "+
+	  StringUtil::itos(runnumber, 3) + "\n";
+      }
+      IntRange gapindices = rotgaps[k].gapIndices();
+      int i1 = gapindices.min();
+      int i2 = gapindices.max();
+      float phi1 = rotgaps[k].phiRange().middle(i1);
+      float phi2 = rotgaps[k].phiRange().middle(i2);
+      s += "Gap in rotation ranges from number "+
+	StringUtil::itos(i1)+" to "+
+	StringUtil::itos(i2)+
+	" (Phi "+StringUtil::ftos(phi1,6,2)+
+	" to "+StringUtil::ftos(phi2,6,2)+")";
+      if (rotgaps[k].allEmpty()) {
+	s += " all empty";
+      }
+      output.logTab(0,LOGFILE, s);
+
+      // Some XML things
+      
+      std::string rs = StringUtil::Strip(StringUtil::itos(runnumber,3));
+      std::string tag = "<GapRun run="+rs+">";
+      output.logTab(1, LXML, tag);
+      rs = StringUtil::itos(i1)+" "+StringUtil::itos(i2);
+      output.logTab(2, LXML,
+		    StringUtil::MakeXMLtag("RotationGapIndexRange", rs));
+      rs = StringUtil::ftos(phi1,7,2)+" "+StringUtil::ftos(phi2,7,2);
+      output.logTab(2, LXML,
+		    StringUtil::MakeXMLtag("RotationGapPhiRange", rs));
+      output.logTab(1, LXML,"</GapRun>");
+    }
+
+    return s;
+  }
+  // ---------------------------------------------------------
+  std::string InitialScales::reportOverlap(phaser_io::Output& output,
                                        const bool& allowgap) const
-  // Report overlap status information to XML
+  // Report overlap status information to logfile and XML
   //  allowgap true if overlap gap check suppressed
   {
     if (overlapthreshold < 0.0) {
-      return;  // no information
+      return std::string();  // no information
     }
+
     output.logTab(0, LXML,"<RotationalOverlap>");
 
     if (enoughdata) {
@@ -479,7 +555,14 @@ namespace scala {
     output.logTab(1, LXML,
                   StringUtil::MakeXMLtag("MinimumOverlap",
                                          minimumoverlap,5,2));
-    output.logTab(0, LXML,"</RotationalOverlap>");
 
+    std::string gapmessage = reportGaps(output);
+    if (!gapmessage.empty()) {
+      output.logTab(1, LXML,
+		    StringUtil::MakeXMLtag("GapMessage", gapmessage));
+    }
+
+    output.logTab(0, LXML,"</RotationalOverlap>");
+    return gapmessage;
   }
 } // namespace scala

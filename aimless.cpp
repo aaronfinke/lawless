@@ -645,8 +645,8 @@ int main(int argc, char* argv[])
     }
 
     bool suppressScaling = false;  // maybe suppress scaling (onlymerge)
-    double minimum_overlap = input.Minimum_overlap();
-    int allowed_gap = input.Maximum_gap();
+    double minimum_overlap = input.Minimum_overlap();  // default -0.05
+    int allowed_gap = input.Maximum_gap();             // default 2
 
     // ----- Initial scales
     bool allowgap = false;
@@ -665,11 +665,6 @@ int main(int argc, char* argv[])
 	    // Just one range, suppress scaling
 	    suppressScaling = true;
 	  } else {
-	    // OK if there are explicit runs
-	    //   unless minimum_overlap is set explicitly to > 0
-	    std::string s = "There is a gap in a run, with overlap < "+
-	      StringUtil::ftos(std::abs(minimum_overlap));
-	    ReportErrors::printWarning(s, "OverlapWarning");
 	    allowgap = true;
 	    if (minimum_overlap > 0.0) {
 	      suppressScaling = true;
@@ -684,7 +679,14 @@ int main(int argc, char* argv[])
 	output.logTab(0,LOGFILE,
 		      "\nNo test for minimum fractional overlap between rotation ranges (INITIAL MINIMUM_OVERLAP)");
       }
-      initialscales.reportOverlapXML(output, allowgap);
+
+      std::string gapwarning = initialscales.reportOverlap(output, allowgap);
+      // To logfile and XML, report gaps
+      //  Gap is OK if there are explicit runs
+      //   unless minimum_overlap is set explicitly to > 0
+      if (!gapwarning.empty()) {
+	ReportErrors::printWarning(gapwarning, "OverlapWarning");
+      }
 
       // Option to reject batches based on extreme scale factors
       // relevant for eg XFEL data

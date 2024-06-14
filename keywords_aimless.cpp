@@ -2209,4 +2209,30 @@ Token_value ICERING::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
+BFACTOR::BFACTOR()  : runnumber(-1), batchnumber(-1)
+{
+  Add_Key("BFACTOR");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value BFACTOR::parse(std::istringstream& input_stream)
+{
+  // Syntax: BFACTOR  [RUN <runnumber>] FIRST
+  //  Normalise the B-factors on first in run
+  //   run runnumber [default 1st one]
+  //     FIRST to use first batch in first run or <runnumber>
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      if (keyIs("RUN")) {
+        runnumber = get1num(input_stream);
+      } else if (keyIs("FIRST")) {
+        batchnumber = -2;
+      }
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 } // phaser_io

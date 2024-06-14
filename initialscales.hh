@@ -11,6 +11,7 @@
 #include "scalemodel.hh"
 #include "controls.hh"
 #include "Output.hh"
+#include "range.hh"
 
 
 typedef std::pair<float,float> FPair;
@@ -18,42 +19,65 @@ typedef std::pair<double,double> DPair;
 
 namespace scala {
 
-class InitialData 
-// Class to store initial scaling data, for FoxHolmes scaling
-{
-public:
-  InitialData();
-  InitialData(const clipper::Array2d<double>& AvI);
+  class RotationGap
+  // List of gaps in a run
+  {
+  public:
+    RotationGap(){}
+    RotationGap(const int& Irun, const IntRange& gaprotrange,
+		const Range& runphirange, const bool& gapallEmnpty)
+      : irun(Irun), gapindices(gaprotrange), phirange(runphirange),
+	allempty(gapallEmnpty) {}
 
-  int Npar() const {return np;}    // N valid rotation ranges 
-  int NparAll() const {return npall;} // total N rotation ranges
+    int runindex() const {return irun;}
+    IntRange gapIndices() const {return gapindices;}
+    Range phiRange() const {return phirange;}
+    bool allEmpty() const {return allempty;}
 
-  // return for each rotation range true if there are data, else false
-  std::vector<bool> validRanges() const {return validranges;}
+  private:
+    int irun;  // this run number
+    IntRange  gapindices;   // first and last rotation group in gap
+    Range phirange;
+    bool allempty;
+  };
 
-  // number of occupied resolution ranges for each rotation range
-  //  std::vector<int> rangeCount() const {return rangecount;}
+  class InitialData 
+  // Class to store initial scaling data, for FoxHolmes scaling
+  {
+  public:
+    InitialData();
+    InitialData(const clipper::Array2d<double>& AvI);
 
-  // Data are in 2D array AvI(rotation, resolution)
-  // For each resolution bin, we want to make all the <Irot> equal over
-  //   all rotation bins  ie <I(rot,reso)>/scales(rot)  constant for all "rot"
+    int Npar() const {return np;}    // N valid rotation ranges 
+    int NparAll() const {return npall;} // total N rotation ranges
 
-  // return one observation, I, sigma pair, length np
-  // Return false if end of data
-  bool ObsArray(std::vector<DPair>& obs) const;
+    // return for each rotation range true if there are data, else false
+    std::vector<bool> validRanges() const {return validranges;}
 
-private:
-  int npall;  // Number of parameters = nrotranges
-  int np;     // Number of active parameters <= nrotranges
-  // Data is a 2D array(nrotranges, nresbins)
-  const clipper::Array2d<double>*  avi;
-  std::vector<bool> validranges;
-  std::vector<int> rangecount; // number of occupied resolution ranges for each rotation range
-  mutable int next;
-};
+    // number of occupied resolution ranges for each rotation range
+    //  std::vector<int> rangeCount() const {return rangecount;}
+
+    // Data are in 2D array AvI(rotation, resolution)
+    // For each resolution bin, we want to make all the <Irot> equal over
+    //   all rotation bins  ie <I(rot,reso)>/scales(rot)  constant for all "rot"
+
+    // return one observation, I, sigma pair, length np
+    // Return false if end of data
+    bool ObsArray(std::vector<DPair>& obs) const;
+
+  private:
+    int npall;  // Number of parameters = nrotranges
+    int np;     // Number of active parameters <= nrotranges
+    // Data is a 2D array(nrotranges, nresbins)
+    const clipper::Array2d<double>*  avi;
+    std::vector<bool> validranges;
+    std::vector<int> rangecount; // number of occupied resolution ranges for each rotation range
+    mutable int next;
+  };
 
 
-  class InitialScales {
+  class InitialScales 
+  {
   public:
     InitialScales() : status(-1) {}
     // Get initial estimates of primary scales, from making intensity
@@ -68,11 +92,15 @@ private:
     bool enoughData(const double& minimum_overlap,
 		    const int& maximum_gap);
 
-    // Report overlap status information to XML
-    void reportOverlapXML(phaser_io::Output& output,
+    // Report overlap status information to XML and logfile
+    // Returns warning message
+    std::string reportOverlap(phaser_io::Output& output,
 			  const bool& allowgap) const;
 
     int numberofrotationranges() const {return nrotranges;}
+
+    std::string reportGaps(phaser_io::Output& output) const;
+    
 
   private:
     int nrotranges; // total number of ranges
@@ -90,8 +118,13 @@ private:
     // = -1, never called, = 0 no scales determined, > 0 n scales determined
     int status;
     bool enoughdata;  // enough data for safe scaling
+    int nemptyranges;  // number of ranges with interpolated scales
+    std::vector<int> idxrun; // index to 1st rotation range for each run
+    std::vector<int> runnumberbyrotrange;
+    std::vector<RotationGap> rotgaps;
+    std::vector<Run> runlist;
   };
-}
+}  // namespace scala
 
 
 #endif

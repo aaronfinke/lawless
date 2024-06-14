@@ -12,6 +12,7 @@
 #include "scala_util.hh"
 #include "restore.hh"
 #include "report_errors.hh"
+#include "median.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -75,9 +76,28 @@ namespace scala {
     }
 
     // Scale normalisation  ..............................
-    // FIXME set up scale normalisation flags from input if necessary
+    // set up scale normalisation flags from input if necessary
     scalenormrun = -1;
     bfacnormrun = -1;
+    bfacnormbatch = input.getBfacNormBatchNumber();
+    if (bfacnormbatch == -2) {
+      // Specified Run number only if FIRST batch
+      if (input.getBfacNormRunNumber() >= 0) {
+	bfacnormrun = input.getBfacNormRunNumber();
+	bool ok = false;
+	for (int irun=0;irun<nruns;irun++) {
+	  if (runlist[irun].RunNumber() == bfacnormrun) {
+	    ok = true;
+	    bfacnormrun = irun;  // run serial number
+	  }
+	}
+	if (!ok) {
+	  std::string runmessage = "BFACTOR RUN number "+
+	    StringUtil::itos(bfacnormrun)+" is not known";
+	  ReportErrors::printFatalError(runmessage);
+	}
+      }
+    }
     normalisebfac = true;
     nfreedom = -1; // no use of variance data
     parametersdusage = input.getUSESDPARAMETER(); // set use flag from input
@@ -115,17 +135,21 @@ namespace scala {
         // no Bfactor for this run, so no normalisation needed for any run
         normalisebfac = false;
       } else {
-      // Bfactors
-        if (bfacnormbatch >= 0) {
-          if (bfacnormrun < 0) {
+	// Bfactors
+        // if bfacnormbatch == -2, then use first one in specified run
+        // bfacnormrun may be -1 to use the first one
+        if (bfacnormbatch > 0) {  // specified batch
+	  // NB this does npt work and is disabled
+	  //  need to work out which rotation range contains the specified batch
+          if (bfacnormrun < 0) {  // should always be -1 if bfacnormbatch > 0
             // Normalisation batch specified, is it in this run?
             if (runlist[irun].IsInList(bfacnormbatch)) {
               // Yes, locate it (index j)
               std::vector<int> batchnums = runlist[irun].BatchList(true);
               for (size_t i=0;i<batchnums.size();++i) {
                 if (batchnums[i] == bfacnormbatch) {
-                  bfacnormbatch = i;
-                  bfacnormrun = irun;
+                  bfacnormbatchserial = i;   // batch serial
+                  bfacnormrun = irun;  // run serial
                   break;
                 }
               }
@@ -178,6 +202,7 @@ namespace scala {
   {
     scalenormbatch= -1; // batch number for scale  normalisation, -1 for 1st
     bfacnormbatch = -1;   // batch number for B-factor  normalisation, -1 for best
+    bfacnormbatchserial = 0; // for safety
     nruns = hkl_list.num_runs();
     std::vector<Run> runlist = hkl_list.RunList();
     std::vector<Dataset> datasets = hkl_list.AllDatasets();
@@ -882,6 +907,24 @@ namespace scala {
                       detector_scales[detector_scale_index_run.at(irun)].format());
       }
     }
+
+    if (bfacnormbatch == -1) {
+      // auto
+      output.logTab(0,LOGFILE,
+		    "\nB-factors will be 'normalised' to the 'best' (largest) relative B");
+    } else if (bfacnormbatch == -2) {
+      int irun = Max(0, bfacnormrun);
+      output.logTab(0,LOGFILE,
+		    "\nB-factors will be 'normalised' to the first range in run "+\
+		    StringUtil::itos(runnumbers[irun]));
+    } else {
+      // bfacnormbatch is batch number for normalisation batch
+      // NB this option is disabled
+      output.logTab(0,LOGFILE,
+		    "\nB-factors will be 'normalised' to batch "+ \
+		    StringUtil::itos(bfacnormbatch));
+    }
+
     // Assignment of secondary scales to runs
     if (nsecscales > 0 && runnumbers.size() > 1) {
       output.logTab(0,LOGFILE,
@@ -1933,41 +1976,59 @@ namespace scala {
     // B-factors
     if (normalisebfac) {  // only if all runs have variable B-factors
       double bfnorm = -1000000.;
-      if (bfacnormbatch >= 0) {
+      if (bfacnormbatch == -2) {
+	// first batch in specified run bfacnormrun or first run
+	int bfrun = bfacnormrun;
+	if (bfacnormrun < 0) {
+	  bfrun = 0;
+	}
+        bfnorm = relative_bfactors[bfrun].Bfactors()[0];
+      } else if (bfacnormbatch >= 0) {
         // Normalisation batch specified
-        bfnorm = relative_bfactors[bfacnormrun].Bfactors()[bfacnormbatch];
+        bfnorm = relative_bfactors[bfacnormrun].Bfactors()[bfacnormbatchserial];
       } else {
         // Find largest Bfactor
         for (int irun=0;irun<nruns;irun++) {
           //  B-factors for this run
           std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
+	  std::vector<int> nobspar = relative_bfactors[irun].Nobservations();
+	  ASSERT (bfacs.size() == nobspar.size());
           // Normalisation on "best" batch: if smoothed Bfactors && > 2, omit first & last
           int i1 = 0;
           int i2 = bfacs.size();
+	  int nthreshold = 0;
           if (!relative_bfactors[irun].IsBatchBfactor() &&
               i2 > 2) {
+	    // Also omit parameters with relatively few observations
+	    // This may help to limit the problems with big gaps in the data
+	    Median<int> medianNobs(nobspar);
+	    const double FRACTIONOFMEDIAN = 0.6;
+	    nthreshold = int(double(medianNobs.median())*FRACTIONOFMEDIAN);
             // ... but for smoothed values add in the mean of first & last pairs
+	    // Always include the first pair
             double bf = 0.5 * (bfacs[0] + bfacs[1]);
-            bfnorm = Max(bfnorm, bf);
+	    bfnorm = Max(bfnorm, bf);
             bf = 0.5 * (bfacs[i2-2] + bfacs[i2-1]);
-            bfnorm = Max(bfnorm, bf);
+	    if (nobspar[1] > nthreshold) {bfnorm = Max(bfnorm, bf);}
             i1 = 1;  // now omit 1st & last
             i2--;
           }
           for (int i=i1;i<i2;++i) {
-            bfnorm = Max(bfnorm, bfacs[i]);
+	    if (nobspar[i] > nthreshold) {
+	      bfnorm = Max(bfnorm, bfacs[i]);
+	    }
           }
         } // end loop runs
-        if (bfnorm > -999999.) {
-          for (int irun=0;irun<nruns;irun++) {
-            //  B-factors for this run
-            std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
-            for (size_t i=0;i<bfacs.size();++i) {
-              bfacs[i] -= bfnorm;
-            }
-            relative_bfactors[irun].StoreBfactors(bfacs);
-          }
-        }
+      }
+      if (bfnorm > -999999.) {
+	for (int irun=0;irun<nruns;irun++) {
+	  //  B-factors for this run
+	  std::vector<double> bfacs = relative_bfactors[irun].Bfactors();
+	  for (size_t i=0;i<bfacs.size();++i) {
+	    bfacs[i] -= bfnorm;
+	  }
+	  relative_bfactors[irun].StoreBfactors(bfacs);
+	}
       }
     } // bfactors
     // Fix up secondary scales if there is a negative scale for any observation

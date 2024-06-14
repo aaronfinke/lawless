@@ -909,6 +909,28 @@ namespace phaser_io {
     bool reject;  // true to reject ice rings from final data
 
   };
+  //--------------------------------------------------------------
+  class BFACTOR : public InputBase, virtual public CCP4base
+  {
+    // Choose batch to "normalise" relative Bfactors,
+    // overriding the default automatic choice
+    // Syntax: BFACTOR  [RUN <runnumber>] FIRST
+    //  Normalise the B-factors on first in run
+    //   run runnumber [default 1st one]
+    //     FIRST to use first batch in first run or <runnumber>
+  public:
+    BFACTOR();
+    virtual ~BFACTOR() {}
+    Token_value parse(std::istringstream&);
+    int getBfacNormRunNumber() const {return runnumber;}
+    int getBfacNormBatchNumber() const {return batchnumber;}
+
+    void analyse(){}
+
+  private:
+    int runnumber;    // -1 unset
+    int batchnumber;  // -1 unset, = -2 use first one
+  };
 } // phaser_io
 
 #endif
