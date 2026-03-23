@@ -3418,6 +3418,15 @@ namespace scala {
     //    DVect3 s2r0 = batches[ib].SrtoSr0(s2r, phi);
     //    std::cout << "s2(r0) = " << s2r0.format() << " " << sqrt(s2r0*s2r0) <<"\n";
     //^-
+    //  For Testing
+    //    Check that |s2| == +1.0
+    //    double s2l = MVutil::Modulus(s2);
+    //    if (!Close(s2l, 1.0, 0.01)) {
+    //      // too far from 1.0
+    //      std::string s = "Wrong |s2|, " + hkl_original.format() + ", |s2| = " + StringUtil::ftos(s2l);
+    //      ReportErrors::printWarning(s, "", false);
+    //    }
+    
     return s2.unit();  // unit vector along s2
 
     /*

@@ -1,4 +1,4 @@
-// halfdataset.hh
+// halfdataset.cpp
 
 #include "halfdataset.hh"
 #include "file_util.hh"
@@ -87,7 +87,7 @@ namespace scala {
     }
 
     // Calculate CC(1/2) from variances as in
-    //  Assam, Brehm & Diederichs, (2016), J.Appl.Cryst. 49, 1021-1028
+    //  Assman, Brehm & Diederichs, (2016), J.Appl.Cryst. 49, 1021-1028
     // For each resolution range we want:
     //  1) Var(<I>) = sigma(y)^2 (related to Var(Jtrue) - error)
     //  2) Mean Var(<Iobs>) = sigma(eps_all)^2 = 0.5 * sigma(eps_half)^2

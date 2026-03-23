@@ -43,7 +43,8 @@ namespace scala
   {
   public:
     LinearFit()
-      : sumw(0.0),sumwx(0.0),sumwy(0.0),sumwxx(0.0),sumwxy(0.0),np(0)
+      : sumw(0.0),sumwx(0.0),sumwy(0.0),sumwxx(0.0),sumwyy(0.0),
+	sumwxy(0.0),np(0)
     {maxy=0.0;miny=0.0;}
     void clear();
 

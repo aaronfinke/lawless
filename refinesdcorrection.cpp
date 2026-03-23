@@ -214,6 +214,10 @@ namespace scala {
                                  IntensityBin& irange)
   // Accumulate sums for SD correction refinement into SDanalysis object returned
   // anomalous   true to separate anomalous I+ & I- (usually true)
+  // Note::
+  //  delta2 = sqrt(n/n-1) (Ihl - <Ih>)/SD(Ihl)
+  //   where <Ih> is the average over all observations of reflection h,
+  //   including Ihl itself
   {
     int Ndatasets = hkl_list.num_datasets();
 

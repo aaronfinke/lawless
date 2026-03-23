@@ -1,85 +1,72 @@
+# Makefile for Pointless, Othercell & associate testing
 
-DIR = ${PWD}
+# Compilers
+#CC = cc
+#CXX= g++
 
-CC = ccclang
+CC=clang
 CXX=clang++
-LXX=clang++
 
-#CXX=g++
-#LXX=g++
-
-#OPT = -g -O0 -std=c++11 -Wreturn-type -Wno-deprecated-declarations
-OPT = -O2 -std=c++11 -Wreturn-type -Wno-deprecated-declarations
-#OPT = -g -Wall
+# Compiler flags
+#
+OPT = -std=c++11 -g -O0 -gdwarf-2 -Wreturn-type -Wno-deprecated-declarations  -Wno-deprecated-builtins
+#OPT = -std=c++11 -O2 -Wreturn-type  -Wno-deprecated-declarations  -Wno-deprecated-builtins
 #OPT = -O2 -Wall
+#OPT = -O
 
-CFLAGS= ${OPT} -fno-color-diagnostics
+CXXFLAGS=  ${OPT}  -fno-diagnostics-color
+CFLAGS= ${OPT}
+
+# Link flags
 LFLAGS= ${OPT}
-#LFLAGS= ${OPT} -static
-
 STATIC=
-#STATIC= -shared-libgcc
-#STATIC= -static-libgcc -lstdc++-static
-
 #STATIC=  -static-libgcc  -static-libstdc++
-#STATIC= -static-libgcc 
 
-# Point to source-build CCP4
-CCP4S=/usr/local/CCP4versions/Current7
-#CCP4=/usr/local/CCP4versions/Current
-#CCP4=/usr/local/CCP4versions/ccp4-6.3.0
+# Copied and saved library things, includes and dylibs
+CCP4L=/Users/pre/Projects/Xtal/CCP4-9
 
-CLIB=${CCP4S}/lib
-CLIBS=${CCP4S}/lib/libccp4
+#CCP4EXTRA=/usr/local/CCP4versions/ccp4-src-dev/checkout/libccp4/ccp4
 
-CCFLAGS = -I${CLIBS}
-
-XCPPFLAGS=
-#XCPPFLAGS= -falign-loops=16
-
-#XCPPFLAGS= -ftemplate-depth-120 -fcoalesce-templates -Wno-long-double
+# dylibs
+CLIB=${CCP4}/lib
+#CLIB=${CCP4L}/lib
 
 # CCTBX locations
-CCTBX=${CLIB}/cctbx
-CCTBX_sources=${CCTBX}/cctbx_sources
 
-# Clipper location
-CLPR=${CLIB}/clipper
-#CLPR=${Clipper}
+#  Version 1 = 2006
+#CCTBX_VERSION=2006
+#  Version 2 = 2007
+CCTBX_VERSION=2007
+
+XCPPFLAGS=  -DCCTBX_VERSION=${CCTBX_VERSION}
 
 # Includes
-ICCP4=-I${CLIBS}
+CINCL=${CCP4L}/include
 
-#ICLPR=-I${CLPR}
-#ICLPR=-I${CLPR}/clipper/ccp4
+# GEMMI  includes only
+IGEMMI=${CINCL}/gemmi
 
-ICLPR=-I${CCP4S}/include  -I${CCP4S}/../checkout/clipper/clipper/core
+# CCP4
+ICCP4=-I${CINCL}
 
 
-#*# version before 6.1.24
-#*#ITBX=\
-#*#-I${CCTBX_sources}/boost \
-#*#-I${CCP4S}/include \
-#*#-I${CCTBX_sources}/cctbx/include
-#*#-I${CCTBX_sources}/scitbx/include
+# cctbx
+ITBX=-I${CINCL}/cctbx
 
-# 6.4.0
-ITBX=\
--I${CCP4S}/include/cctbx
+INCLUDE=-I. -I${IGEMMI} ${ITBX} ${ICLPR} ${ICCP4}
 
-# 6.3.0
-#ITBX=\
-#-I${CCTBX_sources}/boost \
-#-I${CCP4S}/include \
-#-I${CCTBX_sources}/cctbx_project
+#<<<<< Libraries
+# CCP4
+LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4c -lmmdb2 -lm
+#LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4f -lccp4c -lmmdb2 -lm
 
 MINLIB = ./MinLib
 ILIB = -I${MINLIB}
 
 
 # TNT
-#TNT = /Users/pre/Projects/Xtal/src/TNT
-TNT = ${CCTBX_sources}/tntbx/include
+TNT = /Users/pre/Projects/Xtal/src/TNT
+#TNT = ${CCTBX_sources}/tntbx/include
 ITNT = -I${TNT}
 
 INCLUDE=-I. ${ILIB} ${ITBX} ${ICLPR} ${ICCP4} ${ITNT}
@@ -88,17 +75,18 @@ INCLUDE=-I. ${ILIB} ${ITBX} ${ICLPR} ${ICCP4} ${ITNT}
 #LMIN=${MINLIB}/*.o
 LMIN=${MINLIB}/libbfgs.a
 
-LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4f -lccp4c -lmmdb2 -lm
+LCCP4=-L${CLIB} -lrfftw -lfftw -lccp4c -lmmdb2 -lm
 
 LCLPR=-L${CLIB} -lclipper-ccp4 -lclipper-contrib -lclipper-minimol -lclipper-mmdb -lclipper-core 
 
-LTBX= -L${CLIB} -lcctbx 
+LTBX= -L${CCP4L}/lib -lcctbx 
 #LTBX= -L${CCTBX_build}/libtbx -L${CCTBX_sources}/libtbx -lcctbx  -lm
 
 #LDLIBS=${LMIN} ${LTBX} ${LCLPR} ${LCCP4}  ${STATIC}
 LDLIBS=  ${LMIN} ${LTBX} ${LCLPR} ${LCCP4}  ${STATIC}
 
 CPPFLAGS=${XCPPFLAGS}  ${INCLUDE}
+CCFLAGS = ${INCLUDE} 
 
 EXE = aimless
 
@@ -235,7 +223,7 @@ OBJECTS = ${EXE}.o ${OBJ} ${COBJ}
 MINLIBS = ${MINLIB}
 
 ${EXE}: ${OBJECTS} ${LMIN}
-	${LXX} ${LFLAGS} -o ${EXE} ${OBJECTS}  ${LDLIBS}
+	${CXX} ${LFLAGS} -o ${EXE} ${OBJECTS}  ${LDLIBS}
 
 ${LMIN}:
 	cd ${MINLIB}; make 
@@ -408,6 +396,7 @@ export:
 	cp ${CHDR} ../Export/
 	cp Makefile ../Export/Makefile.osx
 	cp aimless.html ../Export/
+	cp CMakeLists.txt ../Export/
 	cd ${MINLIB}; libtbx.clean_clutter; make export
 
 tar: export
