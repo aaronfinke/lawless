@@ -50,6 +50,7 @@ namespace scala {
     is_scale = false;
     is_sigscale = false;
     is_time = false;
+    is_lambda = false;
     is_latnum = false;
     is_lathkl = false;
     is_latinfo = false;
@@ -234,14 +235,15 @@ namespace scala {
                                      const int& Npart_in, const int& Ipart_in,
                                      const ObservationFlag& ObsFlag_in,
                                      const int& latnum_in,
-                                     const std::vector<LatticeIndexInfo>& lathkl_in)
+                                     const std::vector<LatticeIndexInfo>& lathkl_in,
+                                     const Rtype& lambda_in)
     :     hkl_(hkl_in),
           isym_(isym_in), batch_(batch_in),
           I_(I_in), sigI_(sigI_in),
           Ipr_(Ipr_in), sigIpr_(sigIpr_in),
           Xdet_(Xdet_in), Ydet_(Ydet_in), phi_(phi_in), time_(time_in),
           fraction_calc_(fraction_calc_in), width_(width_in),
-          LP_(LP_in),
+          LP_(LP_in), lambda_(lambda_in),
           Npart_(Npart_in), Ipart_(Ipart_in), ObsFlag_(ObsFlag_in),
           run_(1), latnum_(latnum_in), lathkl_(lathkl_in)
   {}
@@ -294,7 +296,7 @@ namespace scala {
       isym_(isym_in), run_(run_in), datasetIndex_(datasetIndex_in),
       Npart_(Npart_in), part1(part1_in), batch_(0),
       totalfraction(TotFrac), part_flag(partialstatus_in), obs_flag(obsflag_in),
-      gscale(1.0), vargscale(-1.0), latnum(latnum_in), lathkl_(lathkl_in)
+      gscale(1.0), vargscale(-1.0), lambda_(0.0), latnum(latnum_in), lathkl_(lathkl_in)
   {
     // By default here reject if any flag set
     // This observation may be accepted later if the flags pass a conditional test
@@ -411,6 +413,7 @@ namespace scala {
     phi_ = 0.0;
     time_ = 0.0;
     LP_ = 0.0;
+    lambda_ = 0.0;
 
     if (Npart_ == 1) {
       // Full
@@ -418,6 +421,7 @@ namespace scala {
       phi_ = get_part(0).phi();
       time_ = get_part(0).time();
       LP_ = get_part(0).LP();
+      lambda_ = get_part(0).lambda();
       batch_ = get_part(0).batch();
     } else {  // partial
       Rtype max_bit = -1.0;
@@ -429,6 +433,7 @@ namespace scala {
         phi_  += this_part.phi();
         time_  += this_part.time();
         LP_ += this_part.LP();
+        lambda_ += this_part.lambda();
         // find biggest bit to mark as central batch
         if (this_part.fraction_calc() > max_bit) {
           max_bit = this_part.fraction_calc();
@@ -438,6 +443,7 @@ namespace scala {
       phi_ = phi_/Npart_;  // average phi over all parts
       time_ = time_/Npart_;  // average time over all parts
       LP_ = LP_/Npart_;
+      lambda_ = lambda_/Npart_;
       Rtype sigItot = sqrt(varItot);
       if (part_flag == SCALE) {
         Itot /= totalfraction;
@@ -1279,7 +1285,8 @@ namespace scala {
                                     const int& Npart, const int& Ipart,
                                     const ObservationFlag& ObsFlag,
                                     const int& latnum,
-                                    const std::vector<LatticeIndexInfo>& lathkl)
+                                    const std::vector<LatticeIndexInfo>& lathkl,
+                                    const Rtype& lambda)
   {
     Rtype Phi = phi;
     Rtype Time = time;
@@ -1296,7 +1303,7 @@ namespace scala {
                                              Xdet, Ydet, Phi, Time,
                                              fraction_calc, width, LP,
                                              Npart, Ipart, ObsFlag,
-                                             latnum, lathkl));
+                                             latnum, lathkl, lambda));
     // Don't set pointer list obs_part_pointer until end (in close_part)
     // in case vector gets extended
     N_part_list++;

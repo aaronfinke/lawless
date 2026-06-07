@@ -1329,6 +1329,225 @@ namespace scala {
   }
   //--------------------------------------------------------------
   //--------------------------------------------------------------
+  // =================== WavelengthChebyshevScale ====================
+  //--------------------------------------------------------------
+  WavelengthChebyshevScale::WavelengthChebyshevScale(
+    const std::vector<WavelengthRange>& Ranges, const double& LambdaRef)
+    : lambda_ref(LambdaRef), f_ref(0.0)
+  {
+    ranges = Ranges;
+    ncoeffs = 0;
+    for (size_t i=0; i<ranges.size(); ++i) {
+      ranges[i].offset = ncoeffs;
+      ncoeffs += ranges[i].degree + 1;
+    }
+    // Log parameterisation: h(lambda) = sum_k a_k T_k(z)
+    // ws = exp(h(lambda) - h(lambda_ref))
+    // Initial: all a_k = 0 => h=0 everywhere => ws=1 (flat spectrum)
+    coeffs.assign(ncoeffs, 0.0);
+    ref_range = rangeIndex(lambda_ref);
+    f_ref = 0.0;  // h(lambda_ref) = 0 initially
+  }
+  //--------------------------------------------------------------
+  void WavelengthChebyshevScale::StoreCoefficients(const std::vector<double>& Coeffs)
+  {
+    if (int(Coeffs.size()) != ncoeffs) {
+      Message::message(Message_fatal
+        ("WavelengthChebyshevScale::StoreCoefficients: wrong number of coefficients"));
+    }
+    coeffs = Coeffs;
+    // recompute log_ref = h(lambda_ref) for log parameterisation
+    if (ref_range >= 0) {
+      f_ref = evalRange(lambda_ref, ref_range);  // f_ref stores h(lambda_ref) = log-poly at ref
+    } else {
+      f_ref = 0.0;
+    }
+  }
+  //--------------------------------------------------------------
+  double WavelengthChebyshevScale::chebeval(const std::vector<double>& c,
+                                             const double& z) const
+  // Clenshaw's algorithm: sum_{k=0}^{n} c[k] T_k(z)
+  {
+    int n = int(c.size()) - 1;
+    if (n < 0) return 0.0;
+    if (n == 0) return c[0];
+    double D = 0.0, DD = 0.0;
+    for (int j = n; j >= 1; --j) {
+      double sv = D;
+      D = 2.0*z*D - DD + c[j];
+      DD = sv;
+    }
+    return z*D - DD + c[0];
+  }
+  //--------------------------------------------------------------
+  void WavelengthChebyshevScale::chebbasis(const int& degree, const double& z,
+                                            std::vector<double>& T) const
+  // Chebyshev basis: T[k] = T_k(z) for k=0..degree
+  {
+    T.resize(degree+1);
+    T[0] = 1.0;
+    if (degree >= 1) T[1] = z;
+    for (int k=2; k<=degree; ++k) {
+      T[k] = 2.0*z*T[k-1] - T[k-2];
+    }
+  }
+  //--------------------------------------------------------------
+  int WavelengthChebyshevScale::rangeIndex(const double& lambda) const
+  // Return range index for lambda, -1 if outside all ranges
+  {
+    for (size_t i=0; i<ranges.size(); ++i) {
+      if (lambda >= ranges[i].lam_min && lambda <= ranges[i].lam_max) {
+        return int(i);
+      }
+    }
+    return -1;
+  }
+  //--------------------------------------------------------------
+  double WavelengthChebyshevScale::mapToZ(const double& lambda,
+                                           const int& irange) const
+  {
+    return (2.0*lambda - ranges[irange].lam_min - ranges[irange].lam_max)
+           / (ranges[irange].lam_max - ranges[irange].lam_min);
+  }
+  //--------------------------------------------------------------
+  double WavelengthChebyshevScale::evalRange(const double& lambda,
+                                              const int& irange) const
+  {
+    double z = mapToZ(lambda, irange);
+    int off = ranges[irange].offset;
+    int deg = ranges[irange].degree;
+    std::vector<double> c(coeffs.begin()+off, coeffs.begin()+off+deg+1);
+    return chebeval(c, z);
+  }
+  //--------------------------------------------------------------
+  double WavelengthChebyshevScale::Scale(const double& lambda) const
+  // Log parameterisation: coefficients represent h(lambda) = log(f(lambda))
+  // ws(lambda) = exp(h(lambda) - h(lambda_ref))
+  {
+    if (ncoeffs == 0) return 1.0;
+    int ir = rangeIndex(lambda);
+    if (ir < 0) return 1.0;  // out of range: no correction
+    double h = evalRange(lambda, ir);   // h(lambda) = log-polynomial value
+    return std::exp(h - f_ref);         // f_ref holds h(lambda_ref)
+  }
+  //--------------------------------------------------------------
+  double WavelengthChebyshevScale::ScaleDeriv(const double& lambda,
+                                               std::vector<double>& dgdp) const
+  // Log parameterisation: h(lambda) = sum_k a_k T_k(z)
+  // ws = exp(h(lambda) - h(lambda_ref))
+  // d(ws)/d(a_k) = ws * (T_k(z) - T_k(z_ref))
+  {
+    dgdp.assign(ncoeffs, 0.0);
+    if (ncoeffs == 0) return 1.0;
+
+    int ir = rangeIndex(lambda);
+    if (ir < 0) return 1.0;
+
+    double z = mapToZ(lambda, ir);
+    int off = ranges[ir].offset;
+    int deg = ranges[ir].degree;
+
+    double h = evalRange(lambda, ir);   // h(lambda)
+    double w = std::exp(h - f_ref);     // ws = exp(h - h_ref)
+
+    // Chebyshev basis at z
+    std::vector<double> Tz;
+    chebbasis(deg, z, Tz);
+
+    // Chebyshev basis at z_ref (same range)
+    std::vector<double> Tzref;
+    if (ref_range == ir) {
+      double zref = mapToZ(lambda_ref, ir);
+      chebbasis(deg, zref, Tzref);
+    } else {
+      Tzref.assign(deg+1, 0.0);
+    }
+
+    for (int k=0; k<=deg; ++k) {
+      dgdp[off+k] = w * (Tz[k] - Tzref[k]);
+    }
+    return w;
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthChebyshevScale::PrintNormalization(const int& npoints) const
+  {
+    if (!IsActive()) return "";
+    std::string s = "\n Wavelength normalization (Chebyshev)\n";
+    s += FormatOutput::logTabPrintf(1,
+           " Reference wavelength: %6.4f A\n", lambda_ref);
+    for (int ir = 0; ir < int(ranges.size()); ++ir) {
+      const WavelengthRange& r = ranges[ir];
+      s += FormatOutput::logTabPrintf(1,
+             "\n Range %d: %6.4f - %6.4f A   degree %d\n",
+             ir+1, r.lam_min, r.lam_max, r.degree);
+      s += FormatOutput::logTabPrintf(1, "   Log-coefficients:");
+      for (int k = 0; k <= r.degree; ++k) {
+        s += FormatOutput::logTabPrintf(0, " %9.5f", coeffs[r.offset + k]);
+      }
+      s += "\n";
+      s += FormatOutput::logTabPrintf(1,
+             "   %8s  %10s\n", "lambda", "w(lambda)");
+      double step = (r.lam_max - r.lam_min) / (npoints - 1);
+      for (int ip = 0; ip < npoints; ++ip) {
+        double lam = r.lam_min + ip * step;
+        double w = Scale(lam);
+        std::string marker = (std::abs(lam - lambda_ref) < 0.5 * step) ? " <- ref" : "";
+        s += FormatOutput::logTabPrintf(1,
+               "   %8.4f  %10.5f%s\n", lam, w, marker.c_str());
+      }
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthChebyshevScale::FormatSave() const
+  {
+    std::string s = "WavelengthChebyshevScale\n";
+    s += "Nranges " + clipper::String(int(ranges.size())) + "\n";
+    s += "LambdaRef " + clipper::String(lambda_ref) + "\n";
+    for (size_t i=0; i<ranges.size(); ++i) {
+      s += "Range " + clipper::String(int(i)) +
+           " LamMin " + clipper::String(ranges[i].lam_min) +
+           " LamMax " + clipper::String(ranges[i].lam_max) +
+           " Degree " + clipper::String(ranges[i].degree) + "\n";
+    }
+    s += "Ncoeffs " + clipper::String(ncoeffs) + "\n";
+    s += "Coefficients";
+    for (int i=0; i<ncoeffs; ++i) {
+      s += " " + clipper::String(coeffs[i]);
+    }
+    s += "\n";
+    s += "End\n";
+    return s;
+  }
+  //--------------------------------------------------------------
+  void WavelengthChebyshevScale::Restore(Fileread& FR)
+  {
+    FR.ReadTag("Nranges"); int nr = FR.Int();
+    FR.ReadTag("LambdaRef"); lambda_ref = FR.Double();
+    ranges.resize(nr);
+    ncoeffs = 0;
+    for (int i=0; i<nr; ++i) {
+      FR.ReadTag("Range"); FR.Int(); // index
+      FR.ReadTag("LamMin"); ranges[i].lam_min = FR.Double();
+      FR.ReadTag("LamMax"); ranges[i].lam_max = FR.Double();
+      FR.ReadTag("Degree"); ranges[i].degree = FR.Int();
+      ranges[i].offset = ncoeffs;
+      ncoeffs += ranges[i].degree + 1;
+    }
+    FR.ReadTag("Ncoeffs"); int nc = FR.Int();
+    if (nc != ncoeffs) {
+      Message::message(Message_fatal("WavelengthChebyshevScale::Restore: ncoeffs mismatch"));
+    }
+    FR.ReadTag("Coefficients"); coeffs = FR.DoubleVec(ncoeffs);
+    ref_range = rangeIndex(lambda_ref);
+    f_ref = (ref_range >= 0) ? evalRange(lambda_ref, ref_range) : 1.0;
+    if (!FR.CheckEnd()) {
+      Message::message(Message_warn
+        ("WavelengthChebyshevScale::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
+  //--------------------------------------------------------------
   void ScaleSpecification::SetConstant(const int& irun)
   // SCALES CONSTANT
   {

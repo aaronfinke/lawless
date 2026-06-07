@@ -44,7 +44,7 @@ namespace scala {
     bool is_h, is_k, is_l, is_misym, is_batch,
       is_I, is_sigI, is_Ipr, is_sigIpr, is_fractioncalc,
       is_Xdet, is_Ydet, is_Rot, is_Width, is_LP, is_Mpart,
-      is_ObsFlag, is_BgPkRatio, is_scale, is_sigscale, is_time,
+      is_ObsFlag, is_BgPkRatio, is_scale, is_sigscale, is_time, is_lambda,
     // is_latnum   if LATTNUM column present (ie multiple lattices)
     // is_lathkl   just H1, K1, L1 etc, ie Mosflm output
     // is_latinfo  LatticeIndexInfo present
@@ -159,7 +159,8 @@ namespace scala {
                      const ObservationFlag& ObsFlag_in,
 		     const int& latnum_in,
 		     const std::vector<LatticeIndexInfo>& lathkl_in=
- 		       std::vector<LatticeIndexInfo>());
+ 		       std::vector<LatticeIndexInfo>(),
+		     const Rtype& lambda_in=0.0);
 
     // Npart is number of parts, from input (MPART)
     //       = 1 for full, = -1 unknown but partial
@@ -198,6 +199,7 @@ namespace scala {
     inline  Rtype fraction_calc() const {return fraction_calc_;}
     inline  Rtype width() const {return width_;}
     inline  Rtype LP() const {return LP_;}   // divide by this to get raw intensity
+    inline  Rtype lambda() const {return lambda_;}
 
     inline  int isym() const {return isym_;}
     inline  int batch() const {return batch_;}
@@ -237,6 +239,7 @@ namespace scala {
     Rtype Ipr_, sigIpr_;           // from column Ipr (if present)
     Rtype Xdet_, Ydet_, phi_, time_;
     Rtype fraction_calc_, width_, LP_;
+    Rtype lambda_;
     int  Npart_, Ipart_;
     ObservationFlag ObsFlag_;
     int run_;
@@ -292,6 +295,7 @@ namespace scala {
 
     Rtype phi() const {return phi_;}  //!< return rotation angle "phi"
     Rtype time() const {return time_;} //!< return "time"
+    Rtype lambda() const {return lambda_;} //!< return wavelength
     int Isym() const {return isym_;}  //!< return symmetry number ISYM
     Rtype width() const;  //! return reflection width (degrees, from input)
     Rtype LP() const {return LP_;}
@@ -392,6 +396,7 @@ namespace scala {
     Rtype phi_;
     Rtype time_;
     Rtype LP_;
+    Rtype lambda_;
     ObservationStatus obs_status;
     Rtype thetap, phip;   // secondary beam direction polar angles
     FVect3 s_dif;             // diffraction vector at Phi setting, 1/A units
@@ -836,11 +841,12 @@ namespace scala {
 		    const Rtype& Xdet_in, const Rtype& Ydet_in,
 		    const Rtype& phi_in, const Rtype& time_in,
 		    const Rtype& fraction_calc_in, const Rtype& width_in,
-		    const Rtype& LP_in, 
+		    const Rtype& LP_in,
 		    const int& Npart_in, const int& Ipart_in,
 		    const ObservationFlag& ObsFlag_in,
 		    const int& latnum_in=0,
-		    const std::vector<LatticeIndexInfo>& lathkl_in=std::vector<LatticeIndexInfo>());
+		    const std::vector<LatticeIndexInfo>& lathkl_in=std::vector<LatticeIndexInfo>(),
+		    const Rtype& lambda_in=0.0);
     //! Add raw observation part (spots)
     void store_part(const observation_part& part);
     //! finish adding parts

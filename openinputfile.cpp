@@ -34,6 +34,7 @@ column_labels setup_columns()
   column_list.add("LP",OF_OPTIONAL);
   column_list.add("FLAG",OF_OPTIONAL);
   column_list.add("BGPKRATIOS",OF_OPTIONAL);
+  column_list.add("LAMBDA",OF_OPTIONAL);
 
   return column_list;
 }

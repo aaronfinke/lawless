@@ -20,12 +20,20 @@ public:
     : initialScale(true),
       roughScale(true),
       mainScale(true),
+      onlyLambda(false),
       sdcorrectionsinput(false) {}
 
   void SetOnlyMerge() { // No scaling
     initialScale = false;
     roughScale = false;
     mainScale = false;
+  }
+
+  void SetOnlyLambda() { // Wavelength normalization only, no other scaling/outliers
+    initialScale = false;  // unity initial scales (ps=bs=ss=ds=1)
+    roughScale = false;
+    mainScale = false;
+    onlyLambda = true;
   }
 
   void SetAllScales() { // normal scaling
@@ -39,12 +47,15 @@ public:
   void SetMainScale(const bool& flag) {mainScale = flag;}
 
   bool OnlyMerge() const { // true if no scaling
-    return !initialScale && !roughScale &&  !mainScale;
+    // onlyLambda still builds a (wavelength) scale model, so is not OnlyMerge
+    return !initialScale && !roughScale &&  !mainScale && !onlyLambda;
   }
+  bool OnlyLambda() const {return onlyLambda;} // true if wavelength-only mode
 
   bool initialScale;   // true to do initial scaling
   bool roughScale;     // true to do first pass scaling followed by outlier rejection
   bool mainScale;      // true to do main scaling
+  bool onlyLambda;     // true for wavelength-normalization-only mode
   bool restore;        // true to restore from dump file
   bool sdoptimise;      // true to optimise SD correction
   bool sdcorrectionsinput;  // true if SD correction parameters explicitly given

@@ -1114,6 +1114,22 @@ Token_value ONLYMERGE::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+LAMBDAONLY::LAMBDAONLY() : CCP4base(), InputBase()
+{
+  Add_Key("LAMBDAONLY");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+  lambdaonly = false;
+}
+//--------------------------------------------------------------
+Token_value LAMBDAONLY::parse(std::istringstream& input_stream)
+// Syntax: LAMBDAONLY
+{
+  lambdaonly = true;
+  return ENDLINE;
+}
+//--------------------------------------------------------------
 BLANK::BLANK() : CCP4base(), InputBase()
 {
   Add_Key("BLANK");
@@ -2229,6 +2245,44 @@ Token_value BFACTOR::parse(std::istringstream& input_stream)
         runnumber = get1num(input_stream);
       } else if (keyIs("FIRST")) {
         batchnumber = -2;
+      }
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
+LAUE::LAUE() : CCP4base(), InputBase(), islaue(false), lambda_ref(0.0)
+{
+  Add_Key("LAUE");
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value LAUE::parse(std::istringstream& input_stream)
+// LAUE
+//   NORMCHEBYSHEV <degree> <lam_min> <lam_max>
+//   NORMLAMREF <lambda_ref>
+{
+  islaue = true;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      // Both NORMCHEBYSHEV and NORMLAMREF share the first 4 chars ("NORM"),
+      // so keyIs("NORM...") matches both.  Disambiguate on character 5.
+      std::string sv = stoup(string_value);
+      if (sv.size() >= 5 && sv[4] == 'C' && keyIs("NORMCHEBYSHEV")) {
+        scala::WavelengthChebyshevScale::WavelengthRange range;
+        range.degree = Nint(get1num(input_stream));
+        range.lam_min = get1num(input_stream);
+        range.lam_max = get1num(input_stream);
+        range.offset = 0;  // set in WavelengthChebyshevScale constructor
+        if (int(ranges.size()) < scala::WavelengthChebyshevScale::MAXRANGES) {
+          ranges.push_back(range);
+        } else {
+          Message::message(Message_warn
+            ("LAUE NORMCHEBYSHEV: maximum number of ranges exceeded, ignored"));
+        }
+      } else if (sv.size() >= 5 && sv[4] == 'L' && keyIs("NORMLAMREF")) {
+        lambda_ref = get1num(input_stream);
       }
     }
   }

@@ -221,6 +221,7 @@ namespace MtzIO {
     col_scale = column_label_list.lookup_col("SCALE");
     col_sigscale = column_label_list.lookup_col("SIGSCALE");
     col_time = column_label_list.lookup_col("TIME");
+    col_lambda = column_label_list.lookup_col("LAMBDA");
 
     // Select profile-fitted (IPR) or integrated (I) column as required
     // Reset column selection if necessary:
@@ -285,6 +286,7 @@ namespace MtzIO {
     if (col_scale >= 0) flags.is_scale = true;
     if (col_sigscale >= 0) flags.is_sigscale = true;
     if (col_time >= 0) flags.is_time = true;
+    if (col_lambda >= 0) flags.is_lambda = true;
     if (col_latnum >= 0) {
       flags.is_latnum = true;
       flags.n_latinfo = nlatticecolumns;

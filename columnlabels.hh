@@ -146,7 +146,8 @@ namespace MtzIO {
     int col_h, col_k, col_l, col_misym, col_batch,
       col_I, col_sigI, col_Ipr, col_sigIpr, col_fractioncalc,
       col_Xdet, col_Ydet, col_Rot, col_Width, col_LP, col_Mpart,
-      col_ObsFlag, col_BgPkRatio, col_scale, col_sigscale, col_time;
+      col_ObsFlag, col_BgPkRatio, col_scale, col_sigscale, col_time,
+      col_lambda;
     int col_latnum;
     // extra hkl list for multiple lattice: index to 1st column of group
     std::vector<int> col_lathkl;

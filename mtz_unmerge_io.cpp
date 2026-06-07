@@ -833,7 +833,7 @@ namespace MtzIO
     int misym, batch;
     Rtype I, sigI, Ipr, sigIpr,
       fraction_calc, Xdet, Ydet, phi,
-      time, width, LP,  BgPkRatio;
+      time, width, LP, BgPkRatio, lambda;
     int Mpart, IObsFlag, Npart, Ipart;
 
     // Column buffers of correct length (as in file)
@@ -996,6 +996,13 @@ namespace MtzIO
       } else {
         time = check_column(cols, col_mnf, col_sel.col_time, StatusFlag);
       }
+
+      // wavelength: per-reflection LAMBDA column (Laue), or batch wavelength
+      if (col_sel.col_lambda >= 0) {
+        lambda = check_column(cols, col_mnf, col_sel.col_lambda, StatusFlag);
+      } else {
+        lambda = batches[batch_lookup.lookup(batch)].Wavelength();
+      }
       // Possible input scale
       sigscale = check_column(cols, col_mnf, col_sel.col_sigscale, StatusFlag);
       if (col_sel.col_scale >= 0) {
@@ -1123,7 +1130,7 @@ namespace MtzIO
                           Xdet, Ydet, phi, time,
                           fraction_calc, width, LP,
                           Npart, Ipart, ObservationFlag(IObsFlag, BgPkRatio),
-                          latnum, lathkl);
+                          latnum, lathkl, lambda);
       nread++;
     } // end loop read reflections
 

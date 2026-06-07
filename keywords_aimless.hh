@@ -375,6 +375,22 @@ namespace phaser_io {
     bool onlymerge;
   };
   //--------------------------------------------------------------
+  class LAMBDAONLY : public InputBase, virtual public CCP4base
+  {
+    // Syntax: LAMBDAONLY
+    //   Wavelength normalization only, no other scaling
+  public:
+    LAMBDAONLY();
+    virtual ~LAMBDAONLY() {}
+    Token_value parse(std::istringstream&);
+
+    bool Lambdaonly() const {return lambdaonly;}
+    void analyse(){}
+
+  private:
+    bool lambdaonly;
+  };
+  //--------------------------------------------------------------
   class BLANK : public InputBase, virtual public CCP4base
     //
     // Read parameters for detecting blank images
@@ -930,6 +946,30 @@ namespace phaser_io {
   private:
     int runnumber;    // -1 unset
     int batchnumber;  // -1 unset, = -2 use first one
+  };
+  //--------------------------------------------------------------
+  class LAUE : public InputBase, virtual public CCP4base
+  {
+    // Chebyshev wavelength normalization for Laue (and general) data
+    // Syntax: LAUE
+    //   NORMCHEBYSHEV <degree> <lam_min> <lam_max>  [repeat for each range]
+    //   NORMLAMREF <lambda_ref>
+  public:
+    LAUE();
+    virtual ~LAUE() {}
+    Token_value parse(std::istringstream&);
+
+    bool IsLaue() const {return islaue;}
+    std::vector<scala::WavelengthChebyshevScale::WavelengthRange>
+      getWavelengthRanges() const {return ranges;}
+    double getLambdaRef() const {return lambda_ref;}
+
+    void analyse(){}
+
+  private:
+    bool islaue;
+    std::vector<scala::WavelengthChebyshevScale::WavelengthRange> ranges;
+    double lambda_ref;
   };
 } // phaser_io
 

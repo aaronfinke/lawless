@@ -64,11 +64,11 @@ namespace scala {
   {
   public:
     // types of parameter
-    enum ScaleParameterType {NONE, SCALE, BFACTOR, SECONDARY, TILE};
+    enum ScaleParameterType {NONE, SCALE, BFACTOR, SECONDARY, TILE, WAVELENGTH};
     // String representation
     static std::string ScaleParameterTypeString(const ScaleParameterType& type);
 
-    ScaleModel():status(0){}
+    ScaleModel():status(0), nwavscale(0), idxwavscale(0), wavelength_only_mode_(false){}
     // Construct from input commands and reflection list
     //  All secondary beam direction in hkl_list will be calculated if needed
     ScaleModel(const phaser_io::InputAll& input,
@@ -190,6 +190,16 @@ namespace scala {
 		     const std::vector<double>& params,
 		     std::vector<double>& dRdpi,
 		     std::vector<TieHessian>& Htie);
+
+    // true if Laue wavelength normalization is active
+    bool HasWavelengthScale() const {return nwavscale > 0;}
+
+    // When true, ScaleFactorDeriv zeros derivatives for all non-WAVELENGTH parameters,
+    // so the refinement engine only moves Chebyshev coefficients
+    void SetWavelengthOnlyMode(const bool& flag) {wavelength_only_mode_ = flag;}
+
+    // Print wavelength normalization table and coefficients to log
+    void PrintWavelengthNormalization(phaser_io::Output& output) const;
 
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
@@ -423,6 +433,12 @@ namespace scala {
     // returns run indices for both ends of the link, first = -1 if not found
     std::pair<int,int> checkLink(const std::pair<int,int>& link,
 				 const std::vector<Run>& runlist) const;
+
+    // Wavelength (Chebyshev) normalization scale, shared across all runs
+    WavelengthChebyshevScale wavelength_scale;
+    int nwavscale;      // number of wavelength Chebyshev coefficients (0 if inactive)
+    int idxwavscale;    // index into global parameter vector for wavelength params
+    bool wavelength_only_mode_;  // when true, zero derivatives for non-wavelength params
 
     // list of run indices which share scale index sclidx
     std::vector<int> runsWithScaleIndex(const int& sclidx) const;

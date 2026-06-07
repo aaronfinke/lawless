@@ -20,6 +20,7 @@ namespace phaser_io {
     public REFINE,
     public TITLE,
     public ONLYMERGE,
+    public LAMBDAONLY,
     public BLANK,
     public SDCORRECTION,
     public INTENSITIES,
@@ -42,7 +43,8 @@ namespace phaser_io {
     public PLOT,
     public CELL,
     public ICERING,
-    public BFACTOR
+    public BFACTOR,
+    public LAUE
   {
   public:
     InputAll(Preprocessor&); 

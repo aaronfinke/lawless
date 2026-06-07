@@ -502,6 +502,96 @@ namespace scala {
     DetectorScale::DetectorScaleType detectorscaletype;
   };
   //--------------------------------------------------------------
+  class WavelengthChebyshevScale
+  // Chebyshev polynomial wavelength normalization for Laue data
+  // Scale w(lambda) = f(lambda) / f(lambda_ref) where
+  //   f(lambda) = sum_{k=0}^{degree} c_k T_k(z(lambda))
+  //   z(lambda) = (2*lambda - lam_min - lam_max) / (lam_max - lam_min)
+  // Supports up to MAXRANGES wavelength ranges, each with its own polynomial
+  {
+  public:
+    static const int MAXRANGES = 5;
+
+    struct WavelengthRange {
+      double lam_min, lam_max;
+      int degree;
+      int offset;  // offset into global coefficients vector
+    };
+
+    WavelengthChebyshevScale() : ncoeffs(0), lambda_ref(0.0), ref_range(-1) {}
+
+    // Construct from list of ranges and reference wavelength
+    WavelengthChebyshevScale(const std::vector<WavelengthRange>& Ranges,
+                              const double& LambdaRef);
+
+    // Number of Chebyshev coefficients (sum of degree+1 over all ranges)
+    int Number() const {return ncoeffs;}
+    // Number of ranges
+    int Nranges() const {return int(ranges.size());}
+
+    // Return reference wavelength
+    double LambdaRef() const {return lambda_ref;}
+
+    // Store all coefficients (length ncoeffs)
+    void StoreCoefficients(const std::vector<double>& Coeffs);
+    // Retrieve all coefficients
+    std::vector<double> Coefficients() const {return coeffs;}
+
+    // Return normalization scale for wavelength lambda
+    // Returns 1.0 if lambda is out of all ranges
+    double Scale(const double& lambda) const;
+
+    // Return scale and derivatives d(scale)/d(c_j) for all j
+    // Returns 1.0 and zero derivatives if lambda is out of range
+    double ScaleDeriv(const double& lambda, std::vector<double>& dgdp) const;
+
+    // Return true if any ranges are defined
+    bool IsActive() const {return (ncoeffs > 0);}
+
+    // Return range struct for range index ir
+    WavelengthRange Range(const int& ir) const {return ranges.at(ir);}
+
+    // Return true if parameter index idx_in_wav (0-based within wavelength block)
+    // is the c[0] (constant term) of any range — these need a positive lower bound
+    bool IsConstantTerm(const int& idx_in_wav) const {
+      for (int ir = 0; ir < int(ranges.size()); ++ir) {
+        if (idx_in_wav == ranges[ir].offset) return true;
+      }
+      return false;
+    }
+
+    // Format normalization table for log output: w(lambda) at npoints per range
+    std::string PrintNormalization(const int& npoints = 10) const;
+
+    // format for save/restore
+    std::string FormatSave() const;
+    void Restore(Fileread& FR);
+
+  private:
+    // Clenshaw evaluation: sum_{k=0}^{n} c[k] T_k(z)
+    double chebeval(const std::vector<double>& c, const double& z) const;
+
+    // Evaluate Chebyshev basis T_k(z) for k=0..degree into T
+    void chebbasis(const int& degree, const double& z,
+                   std::vector<double>& T) const;
+
+    // Return range index for wavelength, -1 if outside all ranges
+    int rangeIndex(const double& lambda) const;
+
+    // Map wavelength to z in [-1,1] for given range index
+    double mapToZ(const double& lambda, const int& irange) const;
+
+    // Evaluate f(lambda) using range irange
+    double evalRange(const double& lambda, const int& irange) const;
+
+    std::vector<WavelengthRange> ranges;
+    std::vector<double> coeffs;   // all coefficients, concatenated across ranges
+    int ncoeffs;
+    double lambda_ref;
+    int ref_range;  // range index for lambda_ref (-1 if not set)
+    double f_ref;   // f(lambda_ref), cached after StoreCoefficients
+  };
+  //--------------------------------------------------------------
   class LinkSpecs {
     // Links for SURFACE parameters
   public:

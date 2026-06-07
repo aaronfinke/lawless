@@ -36,6 +36,9 @@ namespace scala {
                          phaser_io::Output& output)
   // Construct from input commands and reflection list
   {
+    nwavscale = 0;
+    idxwavscale = 0;
+    wavelength_only_mode_ = false;
     init (input, hkl_list, controls, output);
   }
   //--------------------------------------------------------------
@@ -60,9 +63,32 @@ namespace scala {
       // set automatic TILE settings if appropriate
       autoTiles(scaleSpecs, hkl_list, output);
     }
+    nwavscale = 0;
+    idxwavscale = 0;
+    wavelength_only_mode_ = false;
     setup(scaleSpecs, linkspecs, hkl_list, output);
-    if (status < 0) {return;}
+    bool haveWavelength = input.IsLaue() && !input.getWavelengthRanges().empty();
+    if (status < 0) {
+      if (!haveWavelength) {return;}  // truly insufficient information
+      // Wavelength normalization requested but primary scaling has
+      // insufficient information (e.g. LAMBDAONLY without SCALES CONSTANT).
+      // Fall back to constant primary scaling so only the wavelength
+      // Chebyshev coefficients are refined.
+      output.logTab(0, phaser_io::LOGFILE,
+        "\nPrimary scaling has insufficient information; "
+        "using constant primary scale with wavelength normalization only\n");
+      SetConstant(hkl_list, output);
+    }
     status = +1;
+
+    // Wavelength (Chebyshev) normalization if LAUE keyword given
+    if (haveWavelength) {
+      wavelength_scale = WavelengthChebyshevScale(input.getWavelengthRanges(),
+                                                   input.getLambdaRef());
+      CountParameters();   // recount to include wavelength parameters
+      VC.resize(nparameters, nparameters, 0.0);
+      varpar.assign(nparameters, 0.0);
+    }
 
     std::vector<Run> runlist = hkl_list.RunList();
     // run number for each lattice number-1 (lattices are numbered from 1)
@@ -737,6 +763,8 @@ namespace scala {
       return "SECONDARY";
     case TILE:
       return "TILE";
+    case WAVELENGTH:
+      return "WAVELENGTH";
     default:
       return "UNKNOWN";
     }
@@ -1340,7 +1368,12 @@ namespace scala {
         nparameters += detector_scales[i].Number();
       }
     }
-    // Other things ...
+    // Wavelength (Chebyshev) normalization
+    nwavscale = wavelength_scale.Number();
+    if (nwavscale > 0) {
+      idxwavscale = nparameters;
+      nparameters += nwavscale;
+    }
   }
   //--------------------------------------------------------------
   std::vector<double> ScaleModel::GetParameters() const
@@ -1383,7 +1416,11 @@ namespace scala {
       //      std::cout <<  detector_scales[i].Number() << " " << params.size() << "\n";
     }
     ASSERT (int(params.size()) == nprimaryscale+nbfactors+nsecondaryscale+ntilescale);
-    // >>>>
+    // Wavelength (Chebyshev) normalization
+    if (nwavscale > 0) {
+      std::vector<double> wavpar = wavelength_scale.Coefficients();
+      params.insert(params.end(), wavpar.begin(), wavpar.end());
+    }
     // Just check numbers
     ASSERT (int(params.size()) == nparameters);
     return params;
@@ -1404,6 +1441,7 @@ namespace scala {
     for (int i=0;i<nbfactors;++i) {partype[++k] = ScaleModel::BFACTOR;}
     for (int i=0;i<nsecondaryscale;++i) {partype[++k] = ScaleModel::SECONDARY;}
     for (int i=0;i<ntilescale;++i) {partype[++k] = ScaleModel::TILE;}
+    for (int i=0;i<nwavscale;++i) {partype[++k] = ScaleModel::WAVELENGTH;}
     ASSERT (++k == nparameters);
     return partype;
   }
@@ -1426,6 +1464,9 @@ namespace scala {
     if (Ipar < nprimaryscale+nbfactors+nsecondaryscale) {return ScaleModel::SECONDARY;}
     if (Ipar < nprimaryscale+nbfactors+nsecondaryscale+ntilescale) {
       return ScaleModel::TILE;
+    }
+    if (Ipar < nprimaryscale+nbfactors+nsecondaryscale+ntilescale+nwavscale) {
+      return ScaleModel::WAVELENGTH;
     }
     return ScaleModel::NONE;
   }
@@ -1505,6 +1546,13 @@ namespace scala {
       posn2 = posn1 + detector_scales[i].Number();
       detector_scales[i].StoreNobservations(std::vector<int>(posn1, posn2));
       posn1 = posn2;
+    }
+    if (nwavscale > 0) {
+      // Wavelength (Chebyshev) normalization
+      pos2 = pos1 + nwavscale;
+      wavelength_scale.StoreCoefficients(std::vector<double>(pos1, pos2));
+      pos1 = pos2;
+      posn1 += nwavscale;  // no per-observation count for wavelength params
     }
     if (donormalise) {NormaliseParameters();}
   }
@@ -1608,7 +1656,7 @@ namespace scala {
   {
     if (status < 0) {return false;}  // insufficient information
     return (nprimaryscale > 1) || (nbfactors > 1) ||
-      (nsecondaryscale > 0) || (ntilescale > 0);
+      (nsecondaryscale > 0) || (ntilescale > 0) || (nwavscale > 0);
   }
   //--------------------------------------------------------------
   // return reason for being not refinable:
@@ -1812,12 +1860,17 @@ namespace scala {
         ds = detector_scales[detector_scale_index_run[jscale]].Scale(obs.XYdet());
       }
     }
-    g = ps*bs*ss*ds;
+    // Wavelength normalization
+    double ws = 1.0;
+    if (nwavscale > 0) {
+      ws = wavelength_scale.Scale(obs.lambda());
+    }
+    g = ps*bs*ss*ds*ws;
     //^^^
     ////    if (g <= 0.0) {
     if (g <= 1.0e-8) {
       std::cout <<"g too small "
-                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<" "<<ws<<"\n";
     }
     return g;
   }
@@ -1901,48 +1954,78 @@ namespace scala {
       }
     }
 
-    // dghl/dp = dg(primary)/dp * bs * ss * ds
+    // Wavelength normalization
+    double ws = 1.0;
+    std::vector<double> dgdw;  // derivatives for wavelength params
+    if (nwavscale > 0) {
+      ws = wavelength_scale.ScaleDeriv(obs.lambda(), dgdw);
+    }
+
+    // dghl/dp = dg(primary)/dp * bs * ss * ds * ws
     if (dgdpm.size() > 0) {
       for (size_t i=0;i<dgdpm.size();++i) {
-        dgdpm[i] *= bs * ss *ds;
+        dgdpm[i] *= bs * ss * ds * ws;
       }
       std::copy(dgdpm.begin(), dgdpm.end(),
                 dghldp.begin() + idxrun_primary_scales[jscale]);
     }
 
-    // dghl/dp = dg(B)/dp * ps * ss * ds
+    // dghl/dp = dg(B)/dp * ps * ss * ds * ws
     for (size_t i=0;i<dgdB.size();++i) {
-      dgdB[i] *= ps * ss * ds;
+      dgdB[i] *= ps * ss * ds * ws;
     }
     std::copy(dgdB.begin(), dgdB.end(),
               dghldp.begin()+idxrun_bfactors[jscale]);
 
     if (nsecscales > 0) {
-      // dghl/dp = dg(sec)/dp * ps * bs
+      // dghl/dp = dg(sec)/dp * ps * bs * ds * ws
       for (size_t i=0;i<dgds.size();++i) {
-        dgds[i] *= ps * bs * ds;
+        dgds[i] *= ps * bs * ds * ws;
       }
       int k = sec_scale_index_run[jscale];
       std::copy(dgds.begin(), dgds.end(), dghldp.begin()+idxrun_secondary[k]);
     }
 
     if (ndetscales > 0) {
-      // dghl/dp = dg(det)/dp * ps * bs *ss
+      // dghl/dp = dg(det)/dp * ps * bs * ss * ws
       for (size_t i=0;i<dgdd.size();++i) {
-        dgdd[i] *= ps * bs * ss;
+        dgdd[i] *= ps * bs * ss * ws;
       }
       int k = detector_scale_index_run[jscale];
       std::copy(dgdd.begin(), dgdd.end(), dghldp.begin()+idxrun_detector[k]);
     }
-    double g = ps*bs*ss*ds;
+
+    if (nwavscale > 0) {
+      // dghl/dp = dg(wav)/dp * ps * bs * ss * ds
+      for (size_t i=0;i<dgdw.size();++i) {
+        dgdw[i] *= ps * bs * ss * ds;
+      }
+      std::copy(dgdw.begin(), dgdw.end(), dghldp.begin()+idxwavscale);
+    }
+
+    // In wavelength-only mode, zero all non-wavelength derivatives so the
+    // least-squares engine moves only the Chebyshev coefficients
+    if (wavelength_only_mode_) {
+      for (int i = 0; i < nparameters; ++i) {
+        if (GetParameterType(i) != WAVELENGTH) dghldp[i] = 0.0;
+      }
+    }
+
+    double g = ps*bs*ss*ds*ws;
     //^^^
     ////    if (g <= 0.0) {
     if (g <= 1.0e-8) {
       std::cout <<"g too small "
-                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<"\n";
+                << g <<" "<< ps<<" "<<bs<<" "<<ss<<" "<<ds<<" "<<ws<<"\n";
     }
     obs.SetGscale(g);
     return g;
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::PrintWavelengthNormalization(phaser_io::Output& output) const
+  {
+    if (!HasWavelengthScale()) return;
+    output.logTab(0, LOGFILE, wavelength_scale.PrintNormalization(12));
   }
   //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()
@@ -1954,6 +2037,7 @@ namespace scala {
   //   4. detector (ntilescale)
   //   5. ..
   {
+    if (nprimaryscale == 0) return;  // nothing to normalise
     // Scales for normalisation run
     ASSERT (scalenormbatch >= 0);
     if (nprimaryscale > 0) {
@@ -2123,6 +2207,9 @@ namespace scala {
         std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
         return detector_scales[idxpar.first].LowerBound(idxpar.second, Lower);
       }
+    case ScaleModel::WAVELENGTH:
+      // Log parameterisation: a_k are unbounded (exp ensures positivity)
+      return false;
     default:
       return false;
     }
@@ -2174,6 +2261,8 @@ namespace scala {
         std::pair<int,int> idxpar = DetectorParameterNumber(Ipar);
         return detector_scales[idxpar.first].LargeShift(idxpar.second);
       }
+    case ScaleModel::WAVELENGTH:
+      return 0.5;
     default:
       return 0.0;
     }

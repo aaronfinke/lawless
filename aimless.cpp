@@ -180,6 +180,7 @@ int main(int argc, char* argv[])
     if (controls.refinecontrol.Ncyc1() <= 0) FC.SetRoughScale(false);
     if (controls.refinecontrol.Ncycles() <= 0) FC.SetMainScale(false);
     if (input.Onlymerge()) FC.SetOnlyMerge();  // No scaling option ONLYMERGE
+    if (input.Lambdaonly()) FC.SetOnlyLambda();  // Wavelength-only LAMBDAONLY
 
     if (input.InitialUnity()) {
       FC.SetInitialScale(false);  // INITIAL UNITY, no initial scaling
@@ -249,6 +250,11 @@ int main(int argc, char* argv[])
     } else {
       controls.outlierScale = input.GetOutlierControlsScale();
       controls.outlierMerge = input.GetOutlierControlsMerge();
+    }
+    if (FC.OnlyLambda()) {
+      // Wavelength-only mode: apply no outlier rejection at any stage
+      controls.outlierScale.SetNoreject();
+      controls.outlierMerge.SetNoreject();
     }
 
     // Controls on acceptable observation flags, for merging only
@@ -422,6 +428,9 @@ int main(int argc, char* argv[])
     FC.sdoptimise = true;
     if (FC.OnlyMerge() && !input.SDC_RefineSet()) {
       FC.sdoptimise = false;  // normally optimise SD correction unless onlymerge
+    }
+    if (FC.OnlyLambda() && !input.SDC_RefineSet()) {
+      FC.sdoptimise = false;  // no SD correction refinement in wavelength-only mode
     }
     // Print outlier information
     PrintOutlierSettings(controls, output);
@@ -738,6 +747,45 @@ int main(int argc, char* argv[])
 
 
     bool anomOn = false;  // no anomalous for scaling
+
+    // ----- Laue wavelength pre-normalisation (before any other scaling)
+    // Refine only the Chebyshev wavelength coefficients with all other
+    // parameters held at their initial values.  This decorrelates the
+    // wavelength normalization from the primary scale before the main loop.
+    if (AllScales.HasWavelengthScale()) {
+      timer.Start();
+      output.logTabPrintf(0, LOGFILE,
+          "\n========= Laue wavelength pre-normalisation =========\n");
+      double IovSDmin = controls.refinecontrol.IovSDmin();
+      Normalise NormResDummy;
+      SelectScalingReflections(hkl_list, SD_model, AllScales, IovSDmin,
+                               NormResDummy, -1.0, -1.0);
+      AllScales.SetWavelengthOnlyMode(true);
+      // In ONLYLAMBDA mode run the full requested cycle count to converge
+      const int NWAV_CYCLES = FC.OnlyLambda() ?
+        controls.refinecontrol.Ncycles() : 5;
+      if (controls.refinecontrol.BFGS() || controls.refinecontrol.Reference()) {
+        ScaleRefine(hkl_list, hklreflist, AllScales, SD_model, controls,
+                    NWAV_CYCLES, false, output);
+      } else {
+        ScaleRefineFH(hkl_list, AllScales, controls, NWAV_CYCLES, output);
+      }
+      AllScales.SetWavelengthOnlyMode(false);
+      AllScales.PrintWavelengthNormalization(output);
+      output.logTab(0, LOGFILE,
+                    "\nTime for wavelength pre-normalisation: "+timer.format(true));
+
+      // ONLYLAMBDA: apply wavelength scale only (ps=bs=ss=ds=1, no outlier
+      // rejection) and skip all further scaling so the unmerged output
+      // contains intensities corrected purely by the wavelength normalization.
+      if (FC.OnlyLambda()) {
+        hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
+        applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+        overallmeankI = applyscales.meanI();
+      }
+      output.logFlush();
+    }
+
     // ----- first rough scaling
     WriteRogues DummyRogues;
     if (FC.roughScale) {
