@@ -1,0 +1,28 @@
+# Build output
+build/
+.claude/
+
+CLAUDE.md
+
+
+# Test data (MTZ files, logs, aimless output files)
+test_data/
+
+# Aimless runtime output files (written to working directory)
+SCALES
+ROGUES
+ROGUEPLOT
+CORRELPLOT
+ANOMPLOT
+NORMPLOT
+*.plt
+*.xmgr
+*.sca
+*.xml
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+CLAUDE.md

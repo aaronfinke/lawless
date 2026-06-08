@@ -1,0 +1,148 @@
+// fileread.cpp
+
+#include "fileread.hh"
+#include "report_errors.hh"
+
+// Clipper
+#include <clipper/clipper.h>
+
+//--------------------------------------------------------------
+Fileread::Fileread(std::ifstream& File,
+                   const std::string& Filename,
+                   const std::string& Label)
+  : label(Label), file(File)
+{
+  if (!file) {
+    filename = Filename;
+    ReportErrors::printFatalError("Failed to open "+label+" file "+filename);
+  }
+}
+//--------------------------------------------------------------
+std::string Fileread::GetTag() const
+// read tag
+{
+  file >> s;
+  if (file.eof()) {EOFerror("");}
+  return s;
+}
+//--------------------------------------------------------------
+void Fileread::ReadTag(const std::string& tag) const
+// throws exception if next field != tag
+{
+  GetTag();
+  if (s == tag) return;
+  ReportErrors::printFatalError
+    (label+" tag error: "+s+" != "+tag);
+}
+//--------------------------------------------------------------
+void Fileread::Skip() const
+//! skip to after next "{"
+{
+  while (GetTag() != "{") {}
+}
+//--------------------------------------------------------------
+void Fileread::SkipToTag(const std::string& tag) const
+//! skip to after next <tag>
+{
+  while (GetTag() != tag) {}
+}
+//--------------------------------------------------------------
+bool Fileread::CheckEnd() const
+//! True if next tag is "}", position after that
+{
+  std::string tag = GetTag();
+  if (tag == "}") return true; // "}" found
+  while (GetTag() != "}") {}  // skip
+  return false;
+}
+//--------------------------------------------------------------
+int Fileread::SkipSection(const int& level) const
+//! skip over "{}" block, nested if necessary
+{
+  std::string tag;
+  int lev = level;
+  while (true) {
+    tag = GetTag();
+    if (tag == "{") {
+      // new inner block found
+      lev++;
+      if (lev > 1) {
+        lev = SkipSection(lev);
+      }
+    } else if (tag == "}") {
+      return lev-1;
+    }
+  }
+}
+//--------------------------------------------------------------
+int Fileread::Int() const
+// read one integer
+{
+  int i;
+  file >> i;
+  if (file.eof()) {EOFerror("");}
+  return i;
+}
+//--------------------------------------------------------------
+double Fileread::Double() const
+// read one double
+{
+  double d;
+  file >> d;
+  if (file.eof()) {EOFerror("");}
+  return d;
+}
+//--------------------------------------------------------------
+//! read integer vector length N
+std::vector<int> Fileread::IntVec(const int& N) const
+{
+  std::vector<int> v;
+  for (int i=0;i<N;++i) {
+    v.push_back(Int());
+  }
+  return v;
+}
+//--------------------------------------------------------------
+//! read double vector length N
+std::vector<double> Fileread::DoubleVec(const int& N) const
+{
+  std::vector<double> v;
+  for (int i=0;i<N;++i) {
+    v.push_back(Double());
+  }
+  return v;
+}
+//--------------------------------------------------------------
+//! read Array2d Nrows, Ncols, each row delimited by "{}"
+clipper::Array2d<double> Fileread::Array2d(const int& Nrows,
+                                           const int& Ncols) const
+{
+  clipper::Array2d<double> A(Nrows, Ncols);
+  for (int i=0;i<Nrows;++i) {
+    Skip();  // skip "{"
+    for (int j=0;j<Ncols;++j) {
+      A(i,j) = Double();
+    }
+    if (!CheckEnd()) {
+      ReportErrors::printFatalError
+        ("FILEREAD::Array2d error: wrong length line");
+    }
+  }
+  return A;
+}
+//--------------------------------------------------------------
+std::string Fileread::Label() const
+// read one string (space terminated)
+{
+  std::string s;
+  file >> s;
+  if (file.eof()) {EOFerror("");}
+  return s;
+}
+//--------------------------------------------------------------
+void Fileread::EOFerror(const std::string& tag) const
+{
+  ReportErrors::printFatalError
+    ("FILEREAD error:"+label+" end of file when looking for "+tag);
+}
+//--------------------------------------------------------------

@@ -1,0 +1,202 @@
+// printing.hh
+
+#ifndef PRINTING_HEADER
+#define PRINTING_HEADER
+
+// Routines for printing stuff
+
+#include "aimless.hh"
+#include "scalemodel.hh"
+#include "score_datatypes.hh"
+#include "resolutionlimit.hh"
+#include "halfdataset.hh"
+#include "intensitybin.hh"
+#include "summarystatistics.hh"
+#include "anisotropy.hh"
+#include "batchgroup.hh"
+
+
+using namespace scala;
+
+//--------------------------------------------------------------
+void PrintTitle(phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintFileInfoToXML(const std::string& StreamName,
+			const std::string& FileName,
+			const Scell& cell,
+			const std::string& SpaceGroupName,
+			const std::vector<std::string>& columnlabels,
+			phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintOutlierSettings(const all_controls& controls, phaser_io::Output& output);
+//--------------------------------------------------------------
+  // Fit straight line to B factors within each run
+
+class FitBfactorLines {
+
+public:
+  FitBfactorLines (){}
+
+  FitBfactorLines(const std::vector<Batch>& batches,
+		  const Batchgroup& batchgroup,
+		  const std::vector<Run>& RunList,
+		  const int& datasetIndex,
+		  const std::vector<float>& bfacbatch,
+		  const std::vector<int>& nbfacrun);
+
+  std::vector<float> DecayBatch() const {return bfdecaybatch;}  // for each batch
+
+  // Bfactor slope for run
+  float Slope(const int& irun) const {return scales.at(irun)*bsloperun.at(irun);}
+
+private:
+  std::vector<float> bfdecaybatch;  // for each batch
+  std::vector<float> bsloperun;     // for each run
+  std::vector<float> b0run;         // for each run
+  std::vector<float> scales;        // for each run
+};
+//--------------------------------------------------------------
+void PrintScalesByBatch(const PxdName& dataset_pxd,
+			const std::vector<Batch>& batches,
+			const Batchgroup& batchgroup,
+			const std::vector<Run>& RunList,
+			const int& datasetIndex,
+			const std::vector<float>& scale0batch,
+			const std::vector<float>& bfacbatch,
+			const std::vector<int>& nbfacrun,
+			const std::vector<MeanSD>& scalebatch,
+			phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintDeviationsByBatch(const PxdName& dataset_pxd,
+			    const std::vector<Batch>& batches,
+			    const Batchgroup& batchgroup,
+			    const int& datasetIndex,
+			    const std::vector<MeanSD>& imeanbatch,
+			    const std::vector<MeanSD>& rmsDbatch,
+			    const std::vector<Rfactor>& rmergebatch,
+			    const std::vector<Rfactor>& rmergebatchsmoothed,
+			    const std::vector<int>& rejectedbatch,
+			    const std::vector<float>& batchcompleteness,
+			    const std::vector<float>& batchanomcompleteness,
+			    const std::vector<float>& batchmultiplicity,
+			    const std::vector<double>& maxresbatch,
+			    const std::vector<double>& maxresbatchsmoothed,
+			    const std::vector<MeanSD>&  meanChiSqBatch,
+			    const std::vector<MeanSD>&  meanChiSqBatch2,
+			    const double& MinimumIoverSigma,
+			    const int& nbatchsmooth,
+			    const ResoRange& ResRange,
+			    const RejectFlags& rejflags,
+			    phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintComparisonToReferenceByBatch(const PxdName& dataset_pxd,
+				       const std::vector<Batch>& batches,
+				       const Batchgroup& batchgroup,
+				       const int& datasetIndex,
+				       const int& nbatchsmooth,
+				       const std::vector<Rfactor>& rreferencebatch,
+				       const std::vector<MeanValue>& ccreferencebatch,
+				       const std::vector<int>& numberinCC,
+				       const std::vector<Rfactor>& rreferencebatchsmoothed,
+				       const std::vector<MeanValue>& ccreferencebatchsmoothed,
+				       const std::vector<MeanValue>& meanIrefbatch,
+				       const std::vector<MeanValue>& meanIobsbatch,
+				       phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintComparisonToReferenceByReso(const PxdName& dataset_pxd,
+				      const ResoRange& ResRange,
+				      const std::vector<Rfactor>& rreferencereso,
+				      std::vector<std::vector<correl_coeff> > ccreferencebatch,
+				      const std::vector<MeanValue>& meanIrefreso,
+				      const std::vector<MeanValue>& meanIobsreso,
+				      phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintDeviationsByResolution(const PxdName& dataset_pxd,
+				 const ResoRange& ResRange, const bool& Anom,
+				 const std::vector<Rfactor>& rmergeRes,
+				 const std::vector<Rfactor>& rmergeResFull,
+				 const std::vector<Rfactor>& rmeasRes,
+				 const std::vector<Rfactor>& rpimRes,
+				 const std::vector<MeanSD>&  imeanRes,
+				 const std::vector<MeanSD>&  rmsDRes,
+				 const std::vector<MeanSD>&  avSdRes,
+				 const std::vector<MeanSD>&  mnIsdRes,
+				 const std::vector<MeanSD>&  biasRes,
+				 const std::vector<MeanSD>&  biasIRes,
+				 const std::vector<MeanSD>&  meanChiSqRes,
+				 const std::vector<MeanSD>&  meanChiSqRes2,
+				 const double& MinimumIoverSigma,
+				 SummaryStatistics& summarystatistics,
+				 const RejectFlags& rejflags,
+				 phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintDeviationsByRun(const PxdName& dataset_pxd,
+			  const ResoRange& ResRange,
+			  const std::vector<Run>& runlist,
+			  std::vector<std::vector<Rfactor> >& rmeasRun,
+			  phaser_io::Output& output);
+//--------------------------------------------------------------
+// Statistics against overall mean I+- (only if ANOMALOUS ON)
+void PrintDeviationsByResolutionOv(const PxdName& dataset_pxd,
+				   const ResoRange& ResRange,
+				   const std::vector<Rfactor>& rmergeRes,
+				   const std::vector<Rfactor>& rmeasRes,
+				   const std::vector<Rfactor>& rpimRes,
+				   const std::vector<Rfactor>& rmergeResOv,
+				   const std::vector<Rfactor>& rmeasResOv,
+				   const std::vector<Rfactor>& rpimResOv,
+				   SummaryStatistics& summarystatistics,
+				   phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintDeviationsByIntensity(const PxdName& dataset_pxd,
+				 const IntensityBin& Irange, const bool& Anom,
+				 const std::vector<Rfactor>& rmergeInt,
+				 const std::vector<Rfactor>& rmeasInt,
+				 const std::vector<Rfactor>& rpimInt,
+				 const std::vector<MeanSD>&  imeanInt,
+				 const std::vector<MeanSD>&  rmsDInt,
+				 const std::vector<MeanSD>&  avSdInt,
+				 const std::vector<MeanSD>&  mnIsdInt,
+				 const std::vector<MeanSD>&  biasInt,
+				 const std::vector<MeanSD>&  biasIInt,
+				phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintCompletenessMultiplicity(const PxdName& dataset_pxd,
+				   const ResoRange& ResRange,
+				   const hkl_symmetry& symmetry,
+				   const Scell& cell,
+				   std::vector<int>& NumRef,
+				   std::vector<int>& NumObs,
+				   std::vector<int>& NumRefSphere,
+				   std::vector<int>& NumCentric,
+				   std::vector<int>& NumACentric,
+				   std::vector<int>& NumAnom,
+				   std::vector<int>& NumAnomSphere,
+				   std::vector<double>& SNumAnomPairs,
+				   SummaryStatistics& summarystatistics,
+				   phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintHalfDatasetCorrelations(const PxdName& dataset_pxd,
+				  const ResoRange& ResRange,
+				  const HalfDataset& halfDatasetScores,
+				  SummaryStatistics& summarystatistics,
+				  phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintAnisotropyAnalysis(const PxdName& dataset_pxd,
+			     const ResoRange& ResRange,
+			     const HalfDataset& halfDatasetScores,
+			     const std::vector<std::vector<MeanSD> >& mnIsdResCone,
+			     const AnisotropicAnalysis& anisoanal,
+			     const double& MinimumIoverSigma,
+			     SummaryStatistics& summarystatistics,
+			     phaser_io::Output& output);
+//--------------------------------------------------------------
+void PrintUnmergedHeaderStuff(const scala::hkl_unmerge_list& hkl_list,
+			      phaser_io::Output& output,
+			      const int& verbose);
+//--------------------------------------------------------------
+// Print counts of partials rejected etc, also to XML
+void PrintPartialCounts(const scala::hkl_unmerge_list& hkl_list,
+			const all_controls& controls,
+			phaser_io::Output& output);
+#endif

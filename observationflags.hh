@@ -1,0 +1,290 @@
+// observationflags.hh
+
+// Classes for handling observation flags & status
+
+//  1) Mosflm reflection flags ObsFlag
+//     Information as read from file & stored as is
+//
+//     Classes:
+//        ObservationFlag          stores an ObsFlag for an
+//                                 observation or observation_part
+//        ObservationFlagControl   controls whether flagged
+//                                 observations are accepted
+// 
+//  2) volatile status flags (Status)
+//
+//      Classes
+//        ObservationStatus          stores status for an observation
+//        ObservationStatusSet       sets status flags depending on control
+//
+//
+#ifndef OBSERVATIONFLAGS_HEADER
+#define OBSERVATIONFLAGS_HEADER
+
+#include <string>
+
+namespace scala
+{
+  //--------------------------------------------------------------
+  float PackFlagValues(const float& BGratio,
+		       const float& PKratio, const float& Gradient);
+  //--------------------------------------------------------------
+  class ObservationFlag
+  // Flags & status for an observation, or part
+  // 
+  // (1)  Observation flag ObsFlag
+  // Bit lmflag       packed flag
+  //  0     1         BGRATIO too large                      FLAG_BGRATIO
+  //  1     2         PKRATIO too large                      FLAG_PKRATIO
+  //  2     4         Negative > 5*sigma                     FLAG_TOONEGATIVE
+  //  3     8         Gradient too high                      FLAG_GRADIENT
+  //  4    16         Profile fitted overload                FLAG_OVERLOAD
+  //  5    32         Profile fitted "edge" reflection       FLAG_EDGE
+  //  6    64         XDS MISFIT ie outlier                  FLAG_MISFIT
+  //
+  // (2) bgpk       packed BG/PK ratios
+  //   packed as 
+  //    bgpk = int(Float(Nint(PkRatio * 100.)*100) +
+  //               Min(BgRatio*10.,99.)) + Min(Gradient, 0.99)
+  {
+  public:
+    ObservationFlag() : bitflags(0), bgpk(0.0) {}
+    ObservationFlag(const int& ObsFlag, const float& bgpkratio=0.0)
+      : bitflags(ObsFlag), bgpk(bgpkratio){}
+    ObservationFlag(const ObservationFlag& flag);
+
+    // Combine with another flags
+    void AddFlag(const ObservationFlag& other);
+        
+    // true if no flags set
+    bool OK() const {return (bitflags == 0);}
+    
+    // Return complete packed flags
+    unsigned int Flags() const {return bitflags;}
+    float BgPk() const {return bgpk;}
+
+    // Return unpacked values of BGratio, PKratio, gradient
+    void BgPkValues(float& BGratio, float& PKratio, float& Gradient) const;
+
+    // Return individual bit flags
+    //  true if bit set
+    bool TestBGratio() const {return (bitflags & FLAG_BGRATIO) != 0;}
+    bool TestPKratio() const {return (bitflags & FLAG_PKRATIO) != 0;}
+    bool TestTooNeg() const {return (bitflags & FLAG_TOONEGATIVE) != 0;}
+    bool TestGradient() const {return (bitflags & FLAG_GRADIENT) != 0;}
+    bool TestOverload() const {return (bitflags & FLAG_OVERLOAD) != 0;}
+    bool TestEdge() const {return (bitflags & FLAG_EDGE) != 0;}
+    bool TestMisfit() const {return (bitflags & FLAG_MISFIT) != 0;}
+
+    //! return brief formatted version of which flags are set
+    std::string format() const;
+
+    static const int FLAG_BGRATIO;     //      1
+    static const int FLAG_PKRATIO;     //      2
+    static const int FLAG_TOONEGATIVE; //      4
+    static const int FLAG_GRADIENT;    //      8
+    static const int FLAG_OVERLOAD;    //     16
+    static const int FLAG_EDGE;        //     32
+    static const int FLAG_MISFIT;      //     64
+    
+  private:
+    unsigned int bitflags;
+    float bgpk;
+  };
+  //--------------------------------------------------------------
+  class ObservationFlagControl
+  // Control of observation flags for all observations
+  // Tests for acceptance
+  // Counts of numbers 
+  {
+  public:
+    ObservationFlagControl();
+
+    // Construct setting flags
+    //  BGrlim, PKrlim, Gradlim < 0.0
+    //       means always reject if bit flag set
+    //       > 0.0 accept if bit flag set and value < limit
+    //  AcceptOverload
+    ObservationFlagControl(const float& BGrlim,  const float& PKrlim,
+		   const float& Gradlim,
+		   const bool& AcceptOverload, const bool& AcceptEdge);
+
+    void SetBGRlimit(const float& BGrlim);
+    void SetPKRlimit(const float& PKrlim);
+    void SetGradlimit(const float& Gradlim);
+    void SetAcceptOverload();
+    void SetAcceptEdge();
+    void SetAcceptMisfit();
+
+    // Returns true is observation accepted, & count them
+    bool IsAccepted(const ObservationFlag& flag);
+
+    // Initialise to defaults (no acceptances & clear counts)
+    void Init();
+    // Clear counts
+    void Clear();
+    
+    std::string PrintCounts() const;
+
+    std::string asXML() const;
+
+    int NumAccOverload() const {return Naccoverload;}
+
+  private:
+    float bgrlim;  // maximum on BGratio   < 0.0 for no test
+    float pkrlim;  // maximum on PKratio   < 0.0 for no test
+    float grdlim;  // maximum on gradient  < 0.0 for no test
+    bool acceptoverload; // true to accept overloads
+    bool acceptedge;     // true to accept edge reflections
+    bool acceptmisfit;   // true to accept XDS misfits (outliers)
+    
+    int NBGratio;    // count of BGratio flags
+    int NPKratio;    // count of PKratio flags
+    int NTooNeg;      // count of too negative flags
+    int NGradient;   // count of gradient flags
+    int Noverload;   // count of overload flags
+    int Nedge;       // count of edge flags
+    int Nmisfit;     // count of misfit flags
+    
+    int NaccBGratio;    // count of BGratio acceptances
+    int NaccPKratio;    // count of PKratio acceptances
+    int NaccTooNeg;     // count of Too Negative acceptances
+    int NaccGradient;   // count of gradient acceptances
+    int Naccoverload;   // count of overload acceptances
+    int Naccedge;       // count of edge acceptances
+    int Naccmisfit;     // count of misfit acceptances
+
+    float MaxBGratio;    // Maximum BGratio
+    float MaxPKratio;    // Maximum PKratio 
+    float MaxGradient;   // Maximum gradient
+
+    float MaxAccBGratio;    // Maximum accepted BGratio
+    float MaxAccPKratio;    // Maximum accepted PKratio 
+    float MaxAccGradient;   // Maximum accepted gradient
+
+    std::string XMLset(const int& nflagged, const int& naccepted,
+		       const float& maximumvalue=-10000.,
+		       const float& maxaccepted=-10000.) const;
+
+  };
+  // --------------------------------------------------------------
+  class ObservationStatus
+  //  Volatile status
+  // Bit  
+  //  0     1     rejected based on ObsFlag
+  //  1     2     outside (possibly volatile) resolution limits eg within run
+  //  2     4     outlier (deviation too large): within I+ or I- set
+  //  3     8     outlier (deviation too large): between I+ & I- sets
+  //  4    16     > Emax limit, rejected
+  //  5    32     > Emax limit, kept
+  //  6    64     too strong for scaling   (also Emax)			 
+  //  7   128     too weak for scaling     (Emin)			 
+  //  8   256     overlapped multiple spot to be excluded		 
+  //  9   512     rejected by run					 
+  // 10  1024     rejected by batch					 
+  // 11  2048	  discrepant outlier not rejected (just two observations)
+  {
+  public:
+    enum ObsStatusFlag {OBSSTAT_FLAG=1, OBSSTAT_RESOLUTION=2, OBSSTAT_OUTLIER=4,
+			OBSSTAT_OUTLIERANOM=8,
+			OBSSTAT_EMAX=16, OBSSTAT_EMAX_OK=32,
+			OBSSTAT_STRONG=64, OBSSTAT_WEAK=128, OBSSTAT_OVERLAP=256,
+			OBSSTAT_RUN=512, OBSSTAT_BATCH=1024, OBSSTAT_DEVIANT=2048};
+
+    ObservationStatus() :bitflags(0){}
+    ObservationStatus(const unsigned int& flags) :bitflags(flags){}
+
+    void Clear() {bitflags = 0;}
+    // Status access
+    //  accepted if no status bits are set (except DEVIANT)
+    bool IsAccepted() const;
+    // Clear all flags except ObsFlag & resolution flag, run & batch rejections
+    void ResetStatus(); // {bitflags &= 3;}
+
+    // Clear all flags except ObsFlag
+    void ResetStatusAll(); // {bitflags &= 3;}
+
+    // true is OK or outlier or > Emax or strong or weak (ie suitable for Rogues file)
+    bool IsOKforRogues() const;
+
+    unsigned int Bitflags() const {return bitflags;}
+
+    // add in status
+    ObservationStatus mergestatus(const ObservationStatus& status) const;
+
+    // ObsFlag acceptance
+    void SetObsFlag() {bitflags |= OBSSTAT_FLAG;}  // set
+    void UnsetObsFlag() {bitflags &= (wordmask-OBSSTAT_FLAG);}  // unset
+    //  true if bit set
+    bool TestObsFlag() const {return (bitflags & OBSSTAT_FLAG) != 0;} // test
+
+    // Outside (run) resolution limits 
+    void SetResolution() {bitflags |= OBSSTAT_RESOLUTION;}
+    void UnSetResolution() {bitflags &= (wordmask-OBSSTAT_RESOLUTION);}
+    bool TestResolution() const {return (bitflags & OBSSTAT_RESOLUTION) != 0;}
+
+    // Outlier within I+ or I-
+    void SetOutlier() {bitflags |= OBSSTAT_OUTLIER;}
+    void UnsetOutlier() {bitflags &= (wordmask-OBSSTAT_OUTLIER);}
+    bool TestOutlier() const {return (bitflags & OBSSTAT_OUTLIER) != 0;}
+
+    // Outlier between I+ or I-
+    void SetOutlierAnom() {bitflags |= OBSSTAT_OUTLIERANOM;}
+    void UnsetOutlierAnom() {bitflags &= (wordmask-OBSSTAT_OUTLIERANOM);}
+    bool TestOutlierAnom() const {return (bitflags & OBSSTAT_OUTLIERANOM) != 0;}
+
+    // Too large, E > Emax, rejected
+    void SetEmax() {bitflags |= OBSSTAT_EMAX;}
+    void UnsetEmax() {bitflags &= (wordmask-OBSSTAT_EMAX);}
+    bool TestEmax() const {return (bitflags & OBSSTAT_EMAX) != 0;}
+
+    // Too large, E > Emax, kept
+    void SetEmaxOK() {bitflags |= OBSSTAT_EMAX_OK;}
+    void UnsetEmaxOK() {bitflags &= (wordmask-OBSSTAT_EMAX_OK);}
+    bool TestEmaxOK() const {return (bitflags & OBSSTAT_EMAX_OK) != 0;}
+
+    // Too strong for scaling
+    void SetTooStrong() {bitflags |= OBSSTAT_STRONG;}
+    void UnsetTooStrong() {bitflags &= (wordmask-OBSSTAT_STRONG);}
+    bool TestTooStrong() const {return (bitflags & OBSSTAT_STRONG) != 0;}
+
+    // Too weak for scaling
+    void SetTooWeak() {bitflags |= OBSSTAT_WEAK;}
+    void UnsetTooWeak() {bitflags &= (wordmask-OBSSTAT_WEAK);}
+    bool TestTooWeak() const {return (bitflags & OBSSTAT_WEAK) != 0;}
+
+    // Overlapped multiple lattice observation, to be excluded
+    void SetRejectOverlap() {bitflags |= OBSSTAT_OVERLAP;}
+    void UnsetRejectOverlap() {bitflags &= (wordmask-OBSSTAT_OVERLAP);}
+    bool TestRejectOverlap() const {return (bitflags & OBSSTAT_OVERLAP) != 0;}
+
+    // Rejected by run
+    void SetRejectRun() {bitflags |= OBSSTAT_RUN;}
+    void UnsetRejectRun() {bitflags &= (wordmask-OBSSTAT_RUN);}
+    bool TestRejectRun() const {return (bitflags & OBSSTAT_RUN) != 0;}
+    
+    // Rejected by batch
+    void SetRejectBatch() {bitflags |= OBSSTAT_BATCH;}
+    void UnsetRejectBatch() {bitflags &= (wordmask-OBSSTAT_BATCH);}
+    bool TestRejectBatch() const {return (bitflags & OBSSTAT_BATCH) != 0;}
+
+    // Deviant but kept
+    void SetDeviant() {bitflags |= OBSSTAT_DEVIANT;}
+    void UnsetDeviant() {bitflags &= (wordmask-OBSSTAT_DEVIANT);}
+    bool TestDeviant() const {return (bitflags & OBSSTAT_DEVIANT) != 0;}
+
+    // Format for debugging
+    std::string format() const;
+
+  private:
+    unsigned int bitflags;
+    static const unsigned int wordmask = 0xFFFF;
+  };
+  //--------------------------------------------------------------
+  class ObservationStatusSet
+  // Control of volatile status for an observation
+  {
+  };
+}
+
+#endif
