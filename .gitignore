@@ -1,5 +1,9 @@
 # Build output
 build/
+.claude/
+
+CLAUDE.md
+
 
 # Test data (MTZ files, logs, aimless output files)
 test_data/
