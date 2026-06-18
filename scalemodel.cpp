@@ -39,6 +39,7 @@ namespace scala {
     nwavscale = 0;
     idxwavscale = 0;
     wavelength_only_mode_ = false;
+    gpr_requested = false;
     init (input, hkl_list, controls, output);
   }
   //--------------------------------------------------------------
@@ -66,8 +67,12 @@ namespace scala {
     nwavscale = 0;
     idxwavscale = 0;
     wavelength_only_mode_ = false;
+    gpr_requested = input.HasGPR();
+    gpr_lambda_ref = input.getLambdaRef();
+    if (gpr_requested) gpr_control = input.getGPRControl();
     setup(scaleSpecs, linkspecs, hkl_list, output);
-    bool haveWavelength = input.IsLaue() && !input.getWavelengthRanges().empty();
+    bool haveWavelength = input.IsLaue() &&
+      (!input.getWavelengthRanges().empty() || gpr_requested);
     if (status < 0) {
       if (!haveWavelength) {return;}  // truly insufficient information
       // Wavelength normalization requested but primary scaling has
@@ -1860,10 +1865,13 @@ namespace scala {
         ds = detector_scales[detector_scale_index_run[jscale]].Scale(obs.XYdet());
       }
     }
-    // Wavelength normalization
+    // Wavelength normalization (Chebyshev refinable * GPR fixed correction)
     double ws = 1.0;
     if (nwavscale > 0) {
       ws = wavelength_scale.Scale(obs.lambda());
+    }
+    if (gpr_scale.IsActive()) {
+      ws *= gpr_scale.Scale(obs.lambda());
     }
     g = ps*bs*ss*ds*ws;
     //^^^
@@ -1954,12 +1962,16 @@ namespace scala {
       }
     }
 
-    // Wavelength normalization
+    // Wavelength normalization.  ws = (Chebyshev refinable) * (GPR fixed).
+    // The GPR factor has no refinable parameters; it multiplies every scale
+    // component (and the Chebyshev derivatives) just like a constant.
     double ws = 1.0;
     std::vector<double> dgdw;  // derivatives for wavelength params
     if (nwavscale > 0) {
       ws = wavelength_scale.ScaleDeriv(obs.lambda(), dgdw);
     }
+    double wsgpr = gpr_scale.IsActive() ? gpr_scale.Scale(obs.lambda()) : 1.0;
+    ws *= wsgpr;
 
     // dghl/dp = dg(primary)/dp * bs * ss * ds * ws
     if (dgdpm.size() > 0) {
@@ -1996,9 +2008,10 @@ namespace scala {
     }
 
     if (nwavscale > 0) {
-      // dghl/dp = dg(wav)/dp * ps * bs * ss * ds
+      // dghl/dp = dg(wav)/dp * ps * bs * ss * ds * wsgpr
+      // (wsgpr is the fixed GPR factor; 1.0 when GPR inactive)
       for (size_t i=0;i<dgdw.size();++i) {
-        dgdw[i] *= ps * bs * ss * ds;
+        dgdw[i] *= ps * bs * ss * ds * wsgpr;
       }
       std::copy(dgdw.begin(), dgdw.end(), dghldp.begin()+idxwavscale);
     }
@@ -2026,6 +2039,30 @@ namespace scala {
   {
     if (!HasWavelengthScale()) return;
     output.logTab(0, LOGFILE, wavelength_scale.PrintNormalization(12));
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::FitGPRWavelength(const std::vector<double>& lambdas,
+                                    const std::vector<double>& logratios,
+                                    const std::vector<double>& weights,
+                                    phaser_io::Output& output)
+  // Fit the GP wavelength normalization from per-observation samples and
+  // store it as a fixed multiplicative correction (applied in ScaleFactor).
+  {
+    if (!gpr_requested) return;
+    std::string fitlog;
+    int nb = gpr_scale.Fit(lambdas, logratios, weights,
+                           gpr_control, gpr_lambda_ref, fitlog);
+    output.logTab(0, LOGFILE, fitlog);
+    if (nb == 0) {
+      output.logTab(0, LOGFILE,
+        "GPR wavelength normalization fit failed; no correction applied\n");
+    }
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::PrintGPRWavelengthNormalization(phaser_io::Output& output) const
+  {
+    if (!gpr_scale.IsActive()) return;
+    output.logTab(0, LOGFILE, gpr_scale.PrintNormalization(12));
   }
   //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()

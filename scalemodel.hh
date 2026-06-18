@@ -201,6 +201,22 @@ namespace scala {
     // Print wavelength normalization table and coefficients to log
     void PrintWavelengthNormalization(phaser_io::Output& output) const;
 
+    // true if a Gaussian-process wavelength normalization was requested
+    bool HasGPRWavelengthScale() const {return gpr_requested;}
+    // true once the GP fit has succeeded and is being applied
+    bool GPRWavelengthActive() const {return gpr_scale.IsActive();}
+    // Fit the GP wavelength normalization from per-observation samples
+    //   lambdas[i]   wavelength of observation i
+    //   logratios[i] log(I_i / <I>_symmetry-mates)
+    //   weights[i]   weight (1/sigma^2)
+    // The fitted correction is then applied as a fixed factor in ScaleFactor.
+    void FitGPRWavelength(const std::vector<double>& lambdas,
+                          const std::vector<double>& logratios,
+                          const std::vector<double>& weights,
+                          phaser_io::Output& output);
+    // Print the GP wavelength normalization table to log
+    void PrintGPRWavelengthNormalization(phaser_io::Output& output) const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters
@@ -439,6 +455,14 @@ namespace scala {
     int nwavscale;      // number of wavelength Chebyshev coefficients (0 if inactive)
     int idxwavscale;    // index into global parameter vector for wavelength params
     bool wavelength_only_mode_;  // when true, zero derivatives for non-wavelength params
+
+    // Gaussian-process wavelength normalization, shared across all runs.
+    // Fitted in a pre-pass and applied as a FIXED multiplicative correction
+    // (no refinable parameters, zero derivatives in ScaleFactorDeriv).
+    WavelengthGPRScale gpr_scale;
+    WavelengthGPRScale::GPRControl gpr_control; // user controls from LAUE NORMGPR
+    bool gpr_requested;  // true if LAUE NORMGPR was given
+    double gpr_lambda_ref;  // reference wavelength (NORMLAMREF) for GPR normalization
 
     // list of run indices which share scale index sclidx
     std::vector<int> runsWithScaleIndex(const int& sclidx) const;

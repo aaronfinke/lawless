@@ -10,6 +10,12 @@
 #include <assert.h>
 #define ASSERT assert
 
+#include <cmath>
+#include <limits>
+#include <algorithm>
+// Eigen3 (header-only) for the GPR Cholesky solve
+#include <Eigen/Dense>
+
 // Clipper
 #include <clipper/clipper.h>
 using clipper::Message;
@@ -1544,6 +1550,277 @@ namespace scala {
     if (!FR.CheckEnd()) {
       Message::message(Message_warn
         ("WavelengthChebyshevScale::Restore unexpected tag "+FR.Tag()));
+    }
+  }
+  //--------------------------------------------------------------
+  // =================== WavelengthGPRScale =========================
+  //--------------------------------------------------------------
+  double WavelengthGPRScale::kernelValue(const double& la,
+                                          const double& lb) const
+  // Covariance between two wavelengths, using the stored hyperparameters
+  {
+    double sigf2 = sigf * sigf;
+    double r = (la - lb) / lengthscale;
+    if (kernel == MATERN32) {
+      double d = std::sqrt(3.0) * std::fabs(r);
+      return sigf2 * (1.0 + d) * std::exp(-d);
+    }
+    // squared-exponential (default)
+    return sigf2 * std::exp(-0.5 * r * r);
+  }
+  //--------------------------------------------------------------
+  int WavelengthGPRScale::Fit(const std::vector<double>& lambdas,
+                               const std::vector<double>& logratios,
+                               const std::vector<double>& weights,
+                               const GPRControl& ctrl,
+                               const double& LambdaRef,
+                               std::string& fitlog)
+  // Fit the GP and build the lookup table. Returns number of training bins.
+  {
+    active = false;
+    grid_g.clear();
+    ntrain = 0;
+    kernel = ctrl.kernel;
+    lambda_ref = LambdaRef;
+
+    const int Nsamp = int(lambdas.size());
+    if (Nsamp < 20) {
+      fitlog += " GPR wavelength fit: too few samples ("
+        + clipper::String(Nsamp) + "); no correction applied\n";
+      return 0;
+    }
+
+    // ----- wavelength range
+    lam_min = ctrl.lam_min;
+    lam_max = ctrl.lam_max;
+    if (lam_min <= 0.0 || lam_max <= 0.0 || lam_max <= lam_min) {
+      lam_min =  std::numeric_limits<double>::max();
+      lam_max = -std::numeric_limits<double>::max();
+      for (int n = 0; n < Nsamp; ++n) {
+        lam_min = std::min(lam_min, lambdas[n]);
+        lam_max = std::max(lam_max, lambdas[n]);
+      }
+    }
+    double range = lam_max - lam_min;
+    if (range <= 0.0) {
+      fitlog += " GPR wavelength fit: degenerate wavelength range; skipped\n";
+      return 0;
+    }
+
+    // ----- bin the log-ratios by wavelength (weighted)
+    int nbins = (ctrl.nbins > 0) ? ctrl.nbins : 50;
+    double binw = range / nbins;
+    std::vector<double> sumw(nbins, 0.0), sumwy(nbins, 0.0), sumwy2(nbins, 0.0);
+    std::vector<int>    cnt(nbins, 0);
+    for (int n = 0; n < Nsamp; ++n) {
+      double lam = lambdas[n];
+      if (lam < lam_min || lam > lam_max) continue;
+      int b = int((lam - lam_min) / binw);
+      if (b < 0) b = 0;
+      if (b >= nbins) b = nbins - 1;
+      double w = weights[n];
+      if (w <= 0.0) w = 1.0;
+      double y = logratios[n];
+      sumw[b]   += w;
+      sumwy[b]  += w * y;
+      sumwy2[b] += w * y * y;
+      cnt[b]    += 1;
+    }
+
+    // ----- training points: bin centre, weighted mean, SEM^2 (heteroscedastic noise)
+    const int MINCOUNT = 3;
+    std::vector<double> tl, ty, tn;   // lambda, target, noise variance
+    for (int b = 0; b < nbins; ++b) {
+      if (cnt[b] < MINCOUNT || sumw[b] <= 0.0) continue;
+      double mean = sumwy[b] / sumw[b];
+      double var  = sumwy2[b] / sumw[b] - mean * mean;
+      if (var < 0.0) var = 0.0;
+      double nvar = var / double(cnt[b]);              // SEM^2
+      tl.push_back(lam_min + (b + 0.5) * binw);
+      ty.push_back(mean);
+      tn.push_back(nvar);
+    }
+    int B = int(tl.size());
+    if (B < 3) {
+      fitlog += " GPR wavelength fit: too few populated bins ("
+        + clipper::String(B) + "); no correction applied\n";
+      return 0;
+    }
+
+    // ----- noise floor: median of the SEM^2 values, scaled down
+    std::vector<double> tnsort = tn;
+    std::sort(tnsort.begin(), tnsort.end());
+    double nmedian = tnsort[tnsort.size()/2];
+    double nfloor = std::max(1.0e-6, 0.01 * nmedian);
+    for (int i = 0; i < B; ++i) tn[i] = std::max(tn[i], nfloor);
+
+    // ----- signal variance from the spread of the targets
+    double ymean = 0.0;
+    for (int i = 0; i < B; ++i) ymean += ty[i];
+    ymean /= B;
+    double yvar = 0.0;
+    for (int i = 0; i < B; ++i) yvar += (ty[i]-ymean)*(ty[i]-ymean);
+    yvar = (B > 1) ? yvar / (B - 1) : 1.0e-4;
+    sigf = std::sqrt(std::max(yvar, 1.0e-4));
+
+    Eigen::VectorXd Y(B);
+    for (int i = 0; i < B; ++i) Y(i) = ty[i];
+
+    // ----- candidate length scales (user-fixed or marginal-likelihood search)
+    std::vector<double> ellcand;
+    if (ctrl.lengthscale > 0.0) {
+      ellcand.push_back(ctrl.lengthscale);
+    } else {
+      const int NELL = 12;
+      double lo = 0.03 * range, hi = 0.6 * range;
+      for (int k = 0; k < NELL; ++k) {
+        double f = double(k) / (NELL - 1);
+        ellcand.push_back(lo * std::pow(hi / lo, f));  // log-spaced
+      }
+    }
+
+    const double jitter = 1.0e-9;
+    double bestlml = -std::numeric_limits<double>::max();
+    double bestell = ellcand[0];
+    Eigen::VectorXd bestalpha;
+    for (size_t e = 0; e < ellcand.size(); ++e) {
+      lengthscale = ellcand[e];   // kernelValue() reads lengthscale & sigf
+      Eigen::MatrixXd A(B, B);
+      for (int i = 0; i < B; ++i) {
+        for (int j = 0; j < B; ++j) {
+          A(i, j) = kernelValue(tl[i], tl[j]);
+        }
+        A(i, i) += tn[i] + jitter;
+      }
+      Eigen::LLT<Eigen::MatrixXd> llt(A);
+      if (llt.info() != Eigen::Success) continue;
+      Eigen::VectorXd alpha = llt.solve(Y);
+      // log marginal likelihood = -0.5 Y^T alpha - sum log L_ii - 0.5 B log(2pi)
+      double logdet = 0.0;
+      Eigen::MatrixXd L = llt.matrixL();
+      for (int i = 0; i < B; ++i) logdet += std::log(L(i, i));
+      double lml = -0.5 * Y.dot(alpha) - logdet
+                   - 0.5 * B * std::log(2.0 * M_PI);
+      if (lml > bestlml) {
+        bestlml = lml;
+        bestell = ellcand[e];
+        bestalpha = alpha;
+      }
+    }
+    if (bestalpha.size() == 0) {
+      fitlog += " GPR wavelength fit: Cholesky factorisation failed; skipped\n";
+      return 0;
+    }
+    lengthscale = bestell;
+
+    // mean training noise (for reporting)
+    double nsum = 0.0;
+    for (int i = 0; i < B; ++i) nsum += std::sqrt(tn[i]);
+    signoise = nsum / B;
+
+    // ----- evaluate posterior mean on a dense lookup grid
+    ngrid = std::max(200, 4 * nbins);
+    grid_step = range / (ngrid - 1);
+    grid_g.assign(ngrid, 0.0);
+    for (int m = 0; m < ngrid; ++m) {
+      double lam = lam_min + m * grid_step;
+      double g = 0.0;
+      for (int i = 0; i < B; ++i) g += kernelValue(lam, tl[i]) * bestalpha(i);
+      grid_g[m] = g;
+    }
+
+    // ----- reference value g(lambda_ref)
+    if (lambda_ref >= lam_min && lambda_ref <= lam_max) {
+      double g = 0.0;
+      for (int i = 0; i < B; ++i) g += kernelValue(lambda_ref, tl[i]) * bestalpha(i);
+      g_ref = g;
+    } else {
+      g_ref = 0.0;
+    }
+
+    ntrain = B;
+    active = true;
+    fitlog += " GPR wavelength fit: " + clipper::String(B)
+      + " bins, length scale " + clipper::String(lengthscale, 6, 4)
+      + " A, sigma_f " + clipper::String(sigf, 6, 4)
+      + ", log marginal likelihood " + clipper::String(bestlml, 8, 3) + "\n";
+    return B;
+  }
+  //--------------------------------------------------------------
+  double WavelengthGPRScale::Scale(const double& lambda) const
+  // ws(lambda) = exp(g(lambda) - g(lambda_ref)); 1.0 if inactive or out of range
+  {
+    if (!active || ngrid < 2) return 1.0;
+    if (lambda < lam_min || lambda > lam_max) return 1.0;
+    double x = (lambda - lam_min) / grid_step;
+    int i = int(x);
+    if (i < 0) i = 0;
+    if (i >= ngrid - 1) i = ngrid - 2;
+    double f = x - i;
+    double g = grid_g[i] * (1.0 - f) + grid_g[i + 1] * f;
+    return std::exp(g - g_ref);
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthGPRScale::PrintNormalization(const int& npoints) const
+  {
+    if (!IsActive()) return "";
+    std::string s = "\n Wavelength normalization (Gaussian process)\n";
+    s += FormatOutput::logTabPrintf(1,
+           " Reference wavelength: %6.4f A\n", lambda_ref);
+    s += FormatOutput::logTabPrintf(1,
+           " Range: %6.4f - %6.4f A   kernel: %s\n",
+           lam_min, lam_max, (kernel == MATERN32) ? "Matern-3/2" : "squared-exp");
+    s += FormatOutput::logTabPrintf(1,
+           " Length scale: %7.4f A   sigma_f: %7.4f   training bins: %d\n",
+           lengthscale, sigf, ntrain);
+    s += FormatOutput::logTabPrintf(1, "   %8s  %10s\n", "lambda", "w(lambda)");
+    double step = (lam_max - lam_min) / (npoints - 1);
+    for (int ip = 0; ip < npoints; ++ip) {
+      double lam = lam_min + ip * step;
+      double w = Scale(lam);
+      std::string marker = (std::fabs(lam - lambda_ref) < 0.5 * step) ? " <- ref" : "";
+      s += FormatOutput::logTabPrintf(1,
+             "   %8.4f  %10.5f%s\n", lam, w, marker.c_str());
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthGPRScale::FormatSave() const
+  {
+    std::string s = "WavelengthGPRScale\n";
+    s += "Active " + clipper::String(active ? 1 : 0) + "\n";
+    s += "LamMin " + clipper::String(lam_min) +
+         " LamMax " + clipper::String(lam_max) +
+         " LambdaRef " + clipper::String(lambda_ref) +
+         " Gref " + clipper::String(g_ref) + "\n";
+    s += "Kernel " + clipper::String(int(kernel)) +
+         " Lengthscale " + clipper::String(lengthscale) +
+         " Sigf " + clipper::String(sigf) +
+         " Ntrain " + clipper::String(ntrain) + "\n";
+    s += "Ngrid " + clipper::String(ngrid) +
+         " GridStep " + clipper::String(grid_step) + "\n";
+    s += "GridG\n" + StringUtil::FormatSaveVector(grid_g);
+    s += "End\n";
+    return s;
+  }
+  //--------------------------------------------------------------
+  void WavelengthGPRScale::Restore(Fileread& FR)
+  {
+    FR.ReadTag("Active"); active = (FR.Int() != 0);
+    FR.ReadTag("LamMin"); lam_min = FR.Double();
+    FR.ReadTag("LamMax"); lam_max = FR.Double();
+    FR.ReadTag("LambdaRef"); lambda_ref = FR.Double();
+    FR.ReadTag("Gref"); g_ref = FR.Double();
+    FR.ReadTag("Kernel"); kernel = KernelType(FR.Int());
+    FR.ReadTag("Lengthscale"); lengthscale = FR.Double();
+    FR.ReadTag("Sigf"); sigf = FR.Double();
+    FR.ReadTag("Ntrain"); ntrain = FR.Int();
+    FR.ReadTag("Ngrid"); ngrid = FR.Int();
+    FR.ReadTag("GridStep"); grid_step = FR.Double();
+    FR.ReadTag("GridG"); grid_g = FR.DoubleVec(ngrid);
+    if (!FR.CheckEnd()) {
+      Message::message(Message_warn
+        ("WavelengthGPRScale::Restore unexpected tag "+FR.Tag()));
     }
   }
   //--------------------------------------------------------------

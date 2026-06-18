@@ -950,10 +950,14 @@ namespace phaser_io {
   //--------------------------------------------------------------
   class LAUE : public InputBase, virtual public CCP4base
   {
-    // Chebyshev wavelength normalization for Laue (and general) data
+    // Wavelength normalization for Laue (and general) data
     // Syntax: LAUE
     //   NORMCHEBYSHEV <degree> <lam_min> <lam_max>  [repeat for each range]
     //   NORMLAMREF <lambda_ref>
+    //   NORMGPR <lam_min> <lam_max>     [Gaussian-process normalization]
+    //   NORMGPRLENGTH <lengthscale>     [optional GP length scale, A]
+    //   NORMGPRBINS <nbins>             [optional number of training bins]
+    //   NORMGPRMATERN                   [use Matern-3/2 kernel (default sq-exp)]
   public:
     LAUE();
     virtual ~LAUE() {}
@@ -963,6 +967,8 @@ namespace phaser_io {
     std::vector<scala::WavelengthChebyshevScale::WavelengthRange>
       getWavelengthRanges() const {return ranges;}
     double getLambdaRef() const {return lambda_ref;}
+    scala::WavelengthGPRScale::GPRControl getGPRControl() const {return gprcontrol;}
+    bool HasGPR() const {return gprcontrol.enabled;}
 
     void analyse(){}
 
@@ -970,6 +976,7 @@ namespace phaser_io {
     bool islaue;
     std::vector<scala::WavelengthChebyshevScale::WavelengthRange> ranges;
     double lambda_ref;
+    scala::WavelengthGPRScale::GPRControl gprcontrol;
   };
 } // phaser_io
 
