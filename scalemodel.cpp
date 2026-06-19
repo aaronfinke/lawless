@@ -2028,6 +2028,12 @@ namespace scala {
     output.logTab(0, LOGFILE, wavelength_scale.PrintNormalization(12));
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::WavelengthNormalizationXML() const
+  {
+    if (!HasWavelengthScale()) return "";
+    return wavelength_scale.asXML();
+  }
+  //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()
   // Normalise scales & B-factors
   // Order of parameters:

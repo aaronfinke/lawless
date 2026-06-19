@@ -1495,7 +1495,112 @@ namespace scala {
         s += FormatOutput::logTabPrintf(1,
                "   %8.4f  %10.5f%s\n", lam, w, marker.c_str());
       }
+      s += AsciiPlot(ir);
     }
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthChebyshevScale::AsciiPlot(const int& irange,
+                                                  const int& width,
+                                                  const int& height) const
+  // ASCII line plot of w(lambda) over one range.  The '*' trace shows the
+  // normalization curve; the reference wavelength is marked with a ':' column.
+  {
+    const WavelengthRange& r = ranges[irange];
+    if (r.lam_max <= r.lam_min || width < 2 || height < 2) return "";
+
+    // Sample w(lambda) across the range
+    std::vector<double> w(width);
+    double wmin = 1.0e30, wmax = -1.0e30;
+    for (int col = 0; col < width; ++col) {
+      double lam = r.lam_min + (r.lam_max - r.lam_min) * col / double(width - 1);
+      w[col] = Scale(lam);
+      wmin = std::min(wmin, w[col]);
+      wmax = std::max(wmax, w[col]);
+    }
+    if (wmax - wmin < 1.0e-6) {  // flat curve: pad so it sits mid-plot
+      double mid = 0.5 * (wmin + wmax);
+      wmin = mid - 0.5;
+      wmax = mid + 0.5;
+    }
+
+    // Column of the reference wavelength, -1 if outside this range
+    int refcol = -1;
+    if (lambda_ref >= r.lam_min && lambda_ref <= r.lam_max) {
+      refcol = int((lambda_ref - r.lam_min) / (r.lam_max - r.lam_min)
+                   * (width - 1) + 0.5);
+    }
+
+    // Build grid (height rows top=wmax, bottom=wmin)
+    std::vector<std::string> grid(height, std::string(width, ' '));
+    if (refcol >= 0) {
+      for (int row = 0; row < height; ++row) grid[row][refcol] = ':';
+    }
+    for (int col = 0; col < width; ++col) {
+      int row = int((wmax - w[col]) / (wmax - wmin) * (height - 1) + 0.5);
+      if (row < 0) row = 0;
+      if (row >= height) row = height - 1;
+      grid[row][col] = '*';
+    }
+
+    std::string s = FormatOutput::logTabPrintf(1, "   w(lambda):\n");
+    for (int row = 0; row < height; ++row) {
+      double wlabel = wmax - (wmax - wmin) * row / double(height - 1);
+      s += FormatOutput::logTabPrintf(1, "   %8.4f |%s\n",
+                                      wlabel, grid[row].c_str());
+    }
+    // x-axis
+    s += FormatOutput::logTabPrintf(1, "            +%s\n",
+                                    std::string(width, '-').c_str());
+    std::string lo = clipper::String(r.lam_min, 6, 3).trim();
+    std::string hi = clipper::String(r.lam_max, 6, 3).trim();
+    std::string axis(width, ' ');
+    for (size_t i = 0; i < lo.size() && i < axis.size(); ++i) axis[i] = lo[i];
+    int hipos = width - int(hi.size());
+    if (hipos < 0) hipos = 0;
+    for (size_t i = 0; hipos + i < axis.size() && i < hi.size(); ++i)
+      axis[hipos + i] = hi[i];
+    s += FormatOutput::logTabPrintf(1, "            %s  lambda (A)\n",
+                                    axis.c_str());
+    if (refcol >= 0) {
+      s += FormatOutput::logTabPrintf(1,
+             "            (':' marks reference wavelength %6.4f A)\n",
+             lambda_ref);
+    }
+    return s;
+  }
+  //--------------------------------------------------------------
+  std::string WavelengthChebyshevScale::asXML() const
+  {
+    if (!IsActive()) return "";
+    std::string s = "<WavelengthNormalisation>\n";
+    s += "  " + StringUtil::MakeXMLtag("ReferenceWavelength", lambda_ref, 8, 4);
+    s += "\n";
+    const int npoints = 21;
+    for (int ir = 0; ir < int(ranges.size()); ++ir) {
+      const WavelengthRange& r = ranges[ir];
+      s += "  <Range number=\"" + clipper::String(ir + 1).trim() + "\">\n";
+      s += "    " + StringUtil::MakeXMLtag("LambdaMin", r.lam_min, 8, 4);
+      s += StringUtil::MakeXMLtag("LambdaMax", r.lam_max, 8, 4);
+      s += StringUtil::MakeXMLtag("Degree", r.degree, 4) + "\n";
+      std::string coefstr;
+      for (int k = 0; k <= r.degree; ++k) {
+        coefstr += clipper::String(coeffs[r.offset + k], 12, 6);
+      }
+      s += "    " + StringUtil::MakeXMLtag("LogCoefficients", coefstr) + "\n";
+      s += "    <Normalisation>\n";
+      double step = (r.lam_max - r.lam_min) / (npoints - 1);
+      for (int ip = 0; ip < npoints; ++ip) {
+        double lam = r.lam_min + ip * step;
+        s += "      <point>";
+        s += StringUtil::MakeXMLtag("lambda", lam, 8, 4);
+        s += StringUtil::MakeXMLtag("w", Scale(lam), 10, 5);
+        s += " </point>\n";
+      }
+      s += "    </Normalisation>\n";
+      s += "  </Range>\n";
+    }
+    s += "</WavelengthNormalisation>\n";
     return s;
   }
   //--------------------------------------------------------------

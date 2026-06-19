@@ -201,6 +201,9 @@ namespace scala {
     // Print wavelength normalization table and coefficients to log
     void PrintWavelengthNormalization(phaser_io::Output& output) const;
 
+    // XML of the wavelength normalization fit ("" if no wavelength scale)
+    std::string WavelengthNormalizationXML() const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters

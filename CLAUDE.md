@@ -113,6 +113,17 @@ The log shows, for each range:
 - Log-coefficients `a_k`
 - Table of `w(λ)` at 12 sample points across the range
 - Reference wavelength marked with `<- ref`
+- An ASCII line plot of `w(λ)` (via `WavelengthChebyshevScale::AsciiPlot`),
+  with the reference wavelength drawn as a `:` column
+
+### Wavelength normalisation XML output
+
+`WavelengthChebyshevScale::asXML()` (surfaced through
+`ScaleModel::WavelengthNormalizationXML()`) emits a `<WavelengthNormalisation>`
+block to the XMLOUT file, written from `aimless.cpp` right after the log table.
+It contains `<ReferenceWavelength>` and, per `<Range>`, the `<LambdaMin>`,
+`<LambdaMax>`, `<Degree>`, `<LogCoefficients>`, and a `<Normalisation>` table of
+21 `<point>` (`<lambda>`,`<w>`) samples.
 
 ### Complete scaling workflow (Laue)
 

@@ -563,6 +563,9 @@ namespace scala {
     // Format normalization table for log output: w(lambda) at npoints per range
     std::string PrintNormalization(const int& npoints = 10) const;
 
+    // XML representation of the fit: ranges, coefficients, sampled w(lambda)
+    std::string asXML() const;
+
     // format for save/restore
     std::string FormatSave() const;
     void Restore(Fileread& FR);
@@ -583,6 +586,10 @@ namespace scala {
 
     // Evaluate f(lambda) using range irange
     double evalRange(const double& lambda, const int& irange) const;
+
+    // ASCII line plot of w(lambda) over range irange (for log output)
+    std::string AsciiPlot(const int& irange, const int& width = 60,
+                          const int& height = 15) const;
 
     std::vector<WavelengthRange> ranges;
     std::vector<double> coeffs;   // all coefficients, concatenated across ranges
