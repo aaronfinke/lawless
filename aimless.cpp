@@ -836,6 +836,7 @@ int main(int argc, char* argv[])
 
       AllScales.FitGPRWavelength(gpr_lam, gpr_logr, gpr_wt, output);
       AllScales.PrintGPRWavelengthNormalization(output);
+      output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
       output.logTab(0, LOGFILE,
                     "\nTime for wavelength GP normalisation: "+timer.format(true));
 

@@ -217,6 +217,9 @@ namespace scala {
     // Print the GP wavelength normalization table to log
     void PrintGPRWavelengthNormalization(phaser_io::Output& output) const;
 
+    // XML of the GP wavelength normalization fit ("" if no GP scale)
+    std::string GPRWavelengthNormalizationXML() const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters

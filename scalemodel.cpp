@@ -2065,6 +2065,12 @@ namespace scala {
     output.logTab(0, LOGFILE, gpr_scale.PrintNormalization(12));
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::GPRWavelengthNormalizationXML() const
+  {
+    if (!gpr_scale.IsActive()) return "";
+    return gpr_scale.asXML();
+  }
+  //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()
   // Normalise scales & B-factors
   // Order of parameters:

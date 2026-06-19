@@ -145,6 +145,22 @@ the fit was skipped (too few samples/bins).
   requested, so the constant-primary fallback (LAMBDAONLY without
   `SCALES CONSTANT`) works for GPR too.
 
+### Log & XML output
+
+`WavelengthGPRScale::PrintNormalization` (via
+`ScaleModel::PrintGPRWavelengthNormalization`) writes to the log: the reference
+wavelength, range, kernel, length scale, `σ_f`, training-bin count, a `w(λ)`
+sample table, and an ASCII line plot of `w(λ)` (`WavelengthGPRScale::AsciiPlot`,
+reference wavelength drawn as a `:` column).
+
+`WavelengthGPRScale::asXML()` (via `ScaleModel::GPRWavelengthNormalizationXML()`,
+emitted from `aimless.cpp` after the log table) writes a
+`<WavelengthNormalisationGPR>` block to XMLOUT: `<ReferenceWavelength>`,
+`<LambdaMin>`/`<LambdaMax>`, `<Kernel>`, `<LengthScale>`, `<SigmaF>`,
+`<TrainingBins>`, and a `<Normalisation>` table of 21 `<point>`
+(`<lambda>`,`<w>`) samples. Mirrors the Chebyshev `<WavelengthNormalisation>`
+block on the `lawless` branch.
+
 Advantage over Chebyshev: adapts to variable data density via the
 heteroscedastic noise model and avoids polynomial runaway at sparse wavelength
 extremes (outside the range it returns a flat `ws = 1`, never a divergent tail).

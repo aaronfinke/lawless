@@ -647,12 +647,18 @@ namespace scala {
     // Format normalization table for log output
     std::string PrintNormalization(const int& npoints = 12) const;
 
+    // XML representation of the fit: range, hyperparameters, sampled w(lambda)
+    std::string asXML() const;
+
     // format for save/restore
     std::string FormatSave() const;
     void Restore(Fileread& FR);
 
   private:
     double kernelValue(const double& la, const double& lb) const;
+
+    // ASCII line plot of w(lambda) over the fitted range (for log output)
+    std::string AsciiPlot(const int& width = 60, const int& height = 15) const;
 
     bool active;
     double lam_min, lam_max;   // fitted wavelength range
