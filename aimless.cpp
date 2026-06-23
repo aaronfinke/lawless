@@ -778,7 +778,7 @@ int main(int argc, char* argv[])
 
       // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
       {
-        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION + " (lawless)";
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
         if (!lnscript.empty()) {
           const std::string lnfile = "LAMBDANORM";
@@ -864,7 +864,7 @@ int main(int argc, char* argv[])
 
       // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
       {
-        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION + " (lawless)";
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.GPRWavelengthGnuplot(runTitle, lnver);
         if (!lnscript.empty()) {
           const std::string lnfile = "LAMBDANORM";

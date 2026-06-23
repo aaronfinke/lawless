@@ -57,14 +57,20 @@ void PrintTitle( phaser_io::Output& output)
   output.logTabPrintf(0,LOGFILE,
           "        *                                                    *\n");
   output.logTabPrintf(0,LOGFILE,
-          "        *                      AIMLESS                       *\n");
+          "        *                      LAWLESS                       *\n");
+  output.logTabPrintf(0,LOGFILE,
+          "        *           (it's AIMLESS for Laue data)             *\n");
   output.logTab(0,LOGFILE, line);
   output.logTabPrintf(0,LOGFILE,
           "        *                                                    *\n");
   output.logTabPrintf(0,LOGFILE,
           "        *     Scaling & analysis of unmerged intensities     *\n");
   output.logTabPrintf(0,LOGFILE,
+          "        *          (now with wavelength normalization!)      *\n");
+  output.logTabPrintf(0,LOGFILE,
           "        *     Phil Evans MRC LMB, Cambridge                  *\n");
+  output.logTabPrintf(0,LOGFILE,
+          "        * (with tiny contribs from Aaron Finke, ESS, DK)     *\n");
   output.logTabPrintf(0,LOGFILE,
           "        *                                                    *\n");
   output.logTabPrintf(0,LOGFILE,
