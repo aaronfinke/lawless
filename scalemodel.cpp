@@ -2041,6 +2041,12 @@ namespace scala {
     output.logTab(0, LOGFILE, wavelength_scale.PrintNormalization(12));
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::WavelengthNormalizationXML() const
+  {
+    if (!HasWavelengthScale()) return "";
+    return wavelength_scale.asXML();
+  }
+  //--------------------------------------------------------------
   void ScaleModel::FitGPRWavelength(const std::vector<double>& lambdas,
                                     const std::vector<double>& logratios,
                                     const std::vector<double>& weights,

@@ -563,6 +563,9 @@ namespace scala {
     // Format normalization table for log output: w(lambda) at npoints per range
     std::string PrintNormalization(const int& npoints = 10) const;
 
+    // XML representation of the fit: ranges, coefficients, sampled w(lambda)
+    std::string asXML() const;
+
     // format for save/restore
     std::string FormatSave() const;
     void Restore(Fileread& FR);
@@ -570,6 +573,10 @@ namespace scala {
   private:
     // Clenshaw evaluation: sum_{k=0}^{n} c[k] T_k(z)
     double chebeval(const std::vector<double>& c, const double& z) const;
+
+    // ASCII line plot of w(lambda) over range irange (for log output)
+    std::string AsciiPlot(const int& irange, const int& width = 60,
+                          const int& height = 15) const;
 
     // Evaluate Chebyshev basis T_k(z) for k=0..degree into T
     void chebbasis(const int& degree, const double& z,

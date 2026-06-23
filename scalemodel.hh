@@ -201,6 +201,9 @@ namespace scala {
     // Print wavelength normalization table and coefficients to log
     void PrintWavelengthNormalization(phaser_io::Output& output) const;
 
+    // XML of the wavelength normalization fit ("" if no wavelength scale)
+    std::string WavelengthNormalizationXML() const;
+
     // true if a Gaussian-process wavelength normalization was requested
     bool HasGPRWavelengthScale() const {return gpr_requested;}
     // true once the GP fit has succeeded and is being applied

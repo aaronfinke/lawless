@@ -772,6 +772,7 @@ int main(int argc, char* argv[])
       }
       AllScales.SetWavelengthOnlyMode(false);
       AllScales.PrintWavelengthNormalization(output);
+      output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
       output.logTab(0, LOGFILE,
                     "\nTime for wavelength pre-normalisation: "+timer.format(true));
 
