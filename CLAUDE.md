@@ -158,8 +158,26 @@ emitted from `aimless.cpp` after the log table) writes a
 `<WavelengthNormalisationGPR>` block to XMLOUT: `<ReferenceWavelength>`,
 `<LambdaMin>`/`<LambdaMax>`, `<Kernel>`, `<LengthScale>`, `<SigmaF>`,
 `<TrainingBins>`, and a `<Normalisation>` table of 21 `<point>`
-(`<lambda>`,`<w>`) samples. Mirrors the Chebyshev `<WavelengthNormalisation>`
-block on the `lawless` branch.
+(`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
+`<WavelengthNormalisation>` block on the `lawless` branch.
+
+### LAMBDANORM gnuplot file + uncertainties
+
+The GP fit also produces a **posterior SD** (`grid_sd`, computed in `Fit()` from
+the Cholesky factor: `var = k(λ,λ) − v·v`, `v = L⁻¹k_*`).
+`WavelengthGPRScale::Uncertainty(λ)` interpolates it; in log space this is the
+relative (fractional) uncertainty of `ws(λ)`. It appears as `<uncertainty>` in
+the XML and as column 3 of the LAMBDANORM file.
+
+`WavelengthGPRScale::GnuplotScript(title, version)` (via
+`ScaleModel::GPRWavelengthGnuplot()`) returns a **self-contained gnuplot script**
+written by `aimless.cpp` to a file named **`LAMBDANORM`** (in the GP pre-pass).
+It has a header comment (program/version from `version.hh`, run title, and the
+`gnuplot -p LAMBDANORM` open instruction), an inline `$LAMBDANORM` datablock
+(columns: `λ  w  rel_uncertainty  w_lo  w_hi`), and a `plot` of the `w(λ)` line
+over a 1σ `filledcurves` band. Gnuplot (≥5.0) is preferred over the deprecated
+loggraph plot files (ROGUES/SCALES/ANOMPLOT/CORRELPLOT). GPR-only; the
+Chebyshev model writes no LAMBDANORM.
 
 Advantage over Chebyshev: adapts to variable data density via the
 heteroscedastic noise model and avoids polynomial runaway at sparse wavelength

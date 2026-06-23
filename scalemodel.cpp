@@ -2077,6 +2077,13 @@ namespace scala {
     return gpr_scale.asXML();
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::GPRWavelengthGnuplot(const std::string& title,
+                                               const std::string& version) const
+  {
+    if (!gpr_scale.IsActive()) return "";
+    return gpr_scale.GnuplotScript(title, version);
+  }
+  //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()
   // Normalise scales & B-factors
   // Order of parameters:

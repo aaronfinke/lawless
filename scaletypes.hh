@@ -651,11 +651,20 @@ namespace scala {
     // Normalization scale ws(lambda); returns 1.0 if inactive or out of range
     double Scale(const double& lambda) const;
 
+    // Relative (fractional) uncertainty of ws(lambda): the GP posterior SD in
+    // log space, which to first order equals sigma(ws)/ws.  0 if inactive/out of range.
+    double Uncertainty(const double& lambda) const;
+
     // Format normalization table for log output
     std::string PrintNormalization(const int& npoints = 12) const;
 
     // XML representation of the fit: range, hyperparameters, sampled w(lambda)
     std::string asXML() const;
+
+    // Self-contained gnuplot script (the LAMBDANORM file): w(lambda) curve with
+    // a 1-sigma uncertainty band.  title/version are embedded in the header.
+    std::string GnuplotScript(const std::string& title,
+                              const std::string& version) const;
 
     // format for save/restore
     std::string FormatSave() const;
@@ -673,6 +682,7 @@ namespace scala {
     double grid_step;          // uniform spacing of the lookup grid
     int ngrid;                 // number of lookup points
     std::vector<double> grid_g; // posterior-mean log-scale on the grid
+    std::vector<double> grid_sd; // posterior SD (log space) on the grid
     KernelType kernel;         // kernel used (for reporting)
     double lengthscale;        // fitted/used length scale (for reporting)
     double sigf;               // signal sdev (for reporting)

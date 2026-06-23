@@ -223,6 +223,11 @@ namespace scala {
     // XML of the GP wavelength normalization fit ("" if no GP scale)
     std::string GPRWavelengthNormalizationXML() const;
 
+    // gnuplot script (LAMBDANORM file content) for the GP wavelength
+    // normalization curve with 1-sigma band; "" if no GP scale
+    std::string GPRWavelengthGnuplot(const std::string& title,
+                                     const std::string& version) const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters
