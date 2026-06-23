@@ -44,37 +44,30 @@ float FractionN(const float& scale, const double& num, const int& den)
 //--------------------------------------------------------------
 void PrintTitle( phaser_io::Output& output)
 {
-  // Make version line
-  int sp = 52; // number of spaces in line
-  int n1 = (sp - PROGRAM_VERSION.size())/2;
-  int n2 = sp - PROGRAM_VERSION.size() - n1;
-  std::string pad1(n1,' ');
-  std::string pad2(n2,' ');
-  std::string line = "        *"+pad1+PROGRAM_VERSION+pad2+"*\n";
+  const int sp = 52; // interior width of the box (chars between the '*' borders)
+  // centre a string within the box interior, return the full bordered line
+  auto boxline = [&](const std::string& text) {
+    int len = int(text.size());
+    if (len > sp) len = sp;
+    int n1 = (sp - len)/2;
+    int n2 = sp - len - n1;
+    return std::string("        *") + std::string(n1,' ')
+         + text.substr(0,len) + std::string(n2,' ') + "*\n";
+  };
+  std::string border = "        " + std::string(sp+2,'*') + "\n";
 
-  output.logTabPrintf(0,LOGFILE,
-          "\n        ******************************************************\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                      LAWLESS                       *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *           (it's AIMLESS for Laue data)             *\n");
-  output.logTab(0,LOGFILE, line);
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *     Scaling & analysis of unmerged intensities     *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *          (now with wavelength normalization!)      *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *     Phil Evans MRC LMB, Cambridge                  *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        * (with tiny contribs from Aaron Finke, ESS, DK)     *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        ******************************************************\n\n");
+  output.logTab(0,LOGFILE, "\n"+border);
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, boxline("LAWLESS"));
+  output.logTab(0,LOGFILE, boxline("(it's AIMLESS for Laue data)"));
+  output.logTab(0,LOGFILE, boxline(PROGRAM_VERSION));
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, boxline("Scaling & analysis of unmerged intensities"));
+  output.logTab(0,LOGFILE, boxline("(now with wavelength normalization!)"));
+  output.logTab(0,LOGFILE, boxline("Phil Evans MRC LMB, Cambridge"));
+  output.logTab(0,LOGFILE, boxline("(with tiny contribs from Aaron Finke, ESS, DK)"));
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, border+"\n");
 }
 //--------------------------------------------------------------
 void PrintFileInfoToXML(const std::string& StreamName,
