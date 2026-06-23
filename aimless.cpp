@@ -48,6 +48,8 @@
 #include "version.hh"
 #include "ccp4/ccp4_program.h"
 
+#include <fstream>
+
 using namespace scala;
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -800,6 +802,91 @@ int main(int argc, char* argv[])
       // ONLYLAMBDA: apply wavelength scale only (ps=bs=ss=ds=1, no outlier
       // rejection) and skip all further scaling so the unmerged output
       // contains intensities corrected purely by the wavelength normalization.
+      if (FC.OnlyLambda()) {
+        hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
+        applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+        overallmeankI = applyscales.meanI();
+      }
+      output.logFlush();
+    }
+
+    // ----- Laue wavelength GP (Gaussian process) normalisation
+    // Non-parametric alternative to the Chebyshev pre-pass.  We build an
+    // empirical wavelength response directly from the data: for each reflection
+    // with >=2 accepted observations, the leave-one-out log-ratio
+    // log(I_obs / <I>_other-mates) at each observation's wavelength is a sample
+    // of the spectral response.  A Gaussian process fitted to the binned
+    // samples gives a smooth ws(lambda) which is then applied as a FIXED
+    // multiplicative correction (no refinable parameters) for all later scaling.
+    if (AllScales.HasGPRWavelengthScale()) {
+      timer.Start();
+      output.logTabPrintf(0, LOGFILE,
+          "\n========= Laue wavelength GP normalisation =========\n");
+      double IovSDmin = controls.refinecontrol.IovSDmin();
+
+      std::vector<double> gpr_lam, gpr_logr, gpr_wt;
+      reflection this_refl;
+      for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+        this_refl = hkl_list.get_reflection(jref);
+        int nobs = this_refl.num_observations();
+        if (nobs < 2) continue;
+        // collect accepted observations passing the I/sigma cut
+        std::vector<double> oI, oL, oW;
+        double sumw = 0.0, sumwi = 0.0;
+        for (int i=0; i<nobs; ++i) {
+          observation obs = this_refl.get_observation(i);
+          if (!obs.IsAccepted()) continue;
+          double I = obs.I();
+          double s = obs.sigI();
+          if (s <= 0.0 || I <= 0.0) continue;
+          if (I/s < IovSDmin) continue;
+          double w = 1.0/(s*s);
+          oI.push_back(I); oL.push_back(obs.lambda()); oW.push_back(w);
+          sumw += w; sumwi += w*I;
+        }
+        if (oI.size() < 2 || sumw <= 0.0) continue;
+        // leave-one-out weighted mean avoids self-bias of the log-ratio
+        for (size_t i=0; i<oI.size(); ++i) {
+          double sw  = sumw  - oW[i];
+          double swi = sumwi - oW[i]*oI[i];
+          if (sw <= 0.0) continue;
+          double mean_i = swi/sw;
+          if (mean_i <= 0.0) continue;
+          gpr_lam.push_back(oL[i]);
+          gpr_logr.push_back(std::log(oI[i]/mean_i));
+          gpr_wt.push_back(oW[i]);
+        }
+      }
+
+      AllScales.FitGPRWavelength(gpr_lam, gpr_logr, gpr_wt, output);
+      AllScales.PrintGPRWavelengthNormalization(output);
+      output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
+
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
+      {
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION + " (lawless)";
+        std::string lnscript = AllScales.GPRWavelengthGnuplot(runTitle, lnver);
+        if (!lnscript.empty()) {
+          const std::string lnfile = "LAMBDANORM";
+          std::ofstream lns(lnfile.c_str());
+          if (lns) {
+            lns << lnscript;
+            lns.close();
+            output.logTabPrintf(0, LOGFILE,
+              "\nWavelength normalization curve written to %s"
+              " (gnuplot format; open with: gnuplot -p %s)\n",
+              lnfile.c_str(), lnfile.c_str());
+          } else {
+            output.logTabPrintf(0, LOGFILE,
+              "\nWarning: could not open %s for writing\n", lnfile.c_str());
+          }
+        }
+      }
+      output.logTab(0, LOGFILE,
+                    "\nTime for wavelength GP normalisation: "+timer.format(true));
+
+      // ONLYLAMBDA: apply wavelength scale only (ps=bs=ss=ds=1, no outlier
+      // rejection) and skip all further scaling.
       if (FC.OnlyLambda()) {
         hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
         applyscales.scale(AllScales, hkl_list, onlyUseSingletons);

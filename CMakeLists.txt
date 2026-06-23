@@ -32,6 +32,8 @@ include_directories(${SRC}/clipper)
 include_directories(${SRC}/libccp4)
 include_directories(${SRC}/boost_1_74_0)
 include_directories(${SRC}/cctbx-packages/tntbx/include)
+# Eigen3 (header-only) for GPR wavelength normalisation
+include_directories(${SRC}/eigen-3.4.0)
 # cctbx/scitbx headers from conda cctbx env (complete, arm64-compiled set)
 include_directories(${CCTBX}/include)
 include_directories(${CCTBX}/lib/python3.12/site-packages)

@@ -2270,6 +2270,11 @@ Token_value LAUE::parse(std::istringstream& input_stream)
       // so keyIs("NORM...") matches both.  Disambiguate on character 5.
       std::string sv = stoup(string_value);
       if (sv.size() >= 5 && sv[4] == 'C' && keyIs("NORMCHEBYSHEV")) {
+        if (gprcontrol.enabled) {
+          Message::message(Message_fatal
+            ("LAUE NORMCHEBYSHEV and NORMGPR are mutually exclusive; "
+             "use only one wavelength normalization method"));
+        }
         scala::WavelengthChebyshevScale::WavelengthRange range;
         range.degree = Nint(get1num(input_stream));
         range.lam_min = get1num(input_stream);
@@ -2283,6 +2288,25 @@ Token_value LAUE::parse(std::istringstream& input_stream)
         }
       } else if (sv.size() >= 5 && sv[4] == 'L' && keyIs("NORMLAMREF")) {
         lambda_ref = get1num(input_stream);
+      } else if (sv.size() >= 5 && sv[4] == 'G') {
+        // GPR (Gaussian-process) normalization sub-keywords.  keyIs() only
+        // compares 4 chars ("NORM"), so disambiguate on the full token here.
+        if (sv == "NORMGPR") {
+          if (!ranges.empty()) {
+            Message::message(Message_fatal
+              ("LAUE NORMGPR and NORMCHEBYSHEV are mutually exclusive; "
+               "use only one wavelength normalization method"));
+          }
+          gprcontrol.enabled = true;
+          gprcontrol.lam_min = get1num(input_stream);
+          gprcontrol.lam_max = get1num(input_stream);
+        } else if (sv == "NORMGPRLENGTH") {
+          gprcontrol.lengthscale = get1num(input_stream);
+        } else if (sv == "NORMGPRBINS") {
+          gprcontrol.nbins = Nint(get1num(input_stream));
+        } else if (sv == "NORMGPRMATERN") {
+          gprcontrol.kernel = scala::WavelengthGPRScale::MATERN32;
+        }
       }
     }
   }

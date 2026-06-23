@@ -93,6 +93,101 @@ std::string PrintNormalization(int npoints=12) const; // log table for output fi
 
 ---
 
+## Gaussian-process (GPR) wavelength normalisation
+
+Non-parametric alternative to the Chebyshev model. Selected with `LAUE NORMGPR`.
+**Mutually exclusive with `NORMCHEBYSHEV`** — the parser raises a fatal error if
+both are given (in either order). Use one method or the other.
+
+### Key difference from Chebyshev: it is NOT refined in BFGS
+
+The GP is fitted **once** in a dedicated pre-pass directly from the data, then
+applied as a **fixed multiplicative correction** (a precomputed lookup table).
+It contributes **zero parameters** to the scale-model parameter vector and has
+**zero derivatives** in `ScaleFactorDeriv`. So none of the parameter-management
+machinery (`CountParameters`, `GetParameters/SetParameters`, `GetParameterType`,
+`GetLargeShift`) is touched — much simpler than the Chebyshev integration.
+
+### Algorithm (`WavelengthGPRScale::Fit`, `scaletypes.cpp`)
+
+1. **Empirical response** (built in `aimless.cpp`, not via BFGS): for each
+   reflection with ≥2 accepted observations passing the I/σ cut, form the
+   **leave-one-out** log-ratio `y = log(I_obs / <I>_other-mates)` at each
+   observation's wavelength. Leave-one-out avoids the self-bias that a plain
+   mean would introduce at low multiplicity.
+2. **Bin** the `(λ, y, w=1/σ²)` samples into `nbins` wavelength bins; each
+   populated bin (≥3 obs) becomes one training point `(λ_b, mean_b, SEM²_b)`
+   — a **heteroscedastic** noise model.
+3. **Fit** a zero-mean GP in **log space** with a squared-exponential (default)
+   or Matérn-3/2 kernel. The length scale is chosen by maximising the **log
+   marginal likelihood** over a log-spaced grid (unless fixed by the user);
+   `σ_f²` is set from the spread of the bin targets. Solved via Eigen `LLT`
+   (Cholesky) of `K + diag(SEM²) + jitter`.
+4. **Lookup table**: evaluate the posterior mean `g(λ)` on a dense uniform grid.
+
+`Scale(λ) = exp(g(λ) − g(λ_ref))` — log space guarantees `ws > 0`; reference
+normalisation makes `ws(λ_ref) = 1`. Returns `1.0` outside `[λmin, λmax]` or if
+the fit was skipped (too few samples/bins).
+
+### Integration in `ScaleModel`
+
+- Members `WavelengthGPRScale gpr_scale`, `GPRControl gpr_control`,
+  `bool gpr_requested`, `double gpr_lambda_ref`.
+- `HasGPRWavelengthScale()` — triggers the GP pre-pass (parallel to
+  `HasWavelengthScale()` for Chebyshev).
+- `FitGPRWavelength(lambdas, logratios, weights, output)` — driver called from
+  the pre-pass; forwards to `gpr_scale.Fit`.
+- In `ScaleFactor`/`ScaleFactorDeriv`: `ws *= gpr_scale.Scale(obs.lambda())`.
+  In the deriv path the fixed factor `wsgpr` also scales the Chebyshev
+  derivative block (defensive: keeps the two correct if ever combined, though
+  the parser forbids that — they are mutually exclusive keywords).
+- `haveWavelength` in `init` is true when **either** Chebyshev ranges or GPR is
+  requested, so the constant-primary fallback (LAMBDAONLY without
+  `SCALES CONSTANT`) works for GPR too.
+
+### Log & XML output
+
+`WavelengthGPRScale::PrintNormalization` (via
+`ScaleModel::PrintGPRWavelengthNormalization`) writes to the log: the reference
+wavelength, range, kernel, length scale, `σ_f`, training-bin count, a `w(λ)`
+sample table, and an ASCII line plot of `w(λ)` (`WavelengthGPRScale::AsciiPlot`,
+reference wavelength drawn as a `:` column).
+
+`WavelengthGPRScale::asXML()` (via `ScaleModel::GPRWavelengthNormalizationXML()`,
+emitted from `aimless.cpp` after the log table) writes a
+`<WavelengthNormalisationGPR>` block to XMLOUT: `<ReferenceWavelength>`,
+`<LambdaMin>`/`<LambdaMax>`, `<Kernel>`, `<LengthScale>`, `<SigmaF>`,
+`<TrainingBins>`, and a `<Normalisation>` table of 21 `<point>`
+(`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
+`<WavelengthNormalisation>` block on the `lawless` branch.
+
+### LAMBDANORM gnuplot file + uncertainties
+
+The GP fit also produces a **posterior SD** (`grid_sd`, computed in `Fit()` from
+the Cholesky factor: `var = k(λ,λ) − v·v`, `v = L⁻¹k_*`).
+`WavelengthGPRScale::Uncertainty(λ)` interpolates it; in log space this is the
+relative (fractional) uncertainty of `ws(λ)`. It appears as `<uncertainty>` in
+the XML and as column 3 of the LAMBDANORM file.
+
+`WavelengthGPRScale::GnuplotScript(title, version)` (via
+`ScaleModel::GPRWavelengthGnuplot()`) returns a **self-contained gnuplot script**
+written by `aimless.cpp` to a file named **`LAMBDANORM`** (in the GP pre-pass).
+It has a header comment (program/version from `version.hh`, run title, and the
+`gnuplot -p LAMBDANORM` open instruction), an inline `$LAMBDANORM` datablock
+(columns: `λ  w  rel_uncertainty  w_lo  w_hi`), and a `plot` of the `w(λ)` line
+over a 1σ `filledcurves` band. Gnuplot (≥5.0) is preferred over the deprecated
+loggraph plot files (ROGUES/SCALES/ANOMPLOT/CORRELPLOT). GPR-only; the
+Chebyshev model writes no LAMBDANORM.
+
+Advantage over Chebyshev: adapts to variable data density via the
+heteroscedastic noise model and avoids polynomial runaway at sparse wavelength
+extremes (outside the range it returns a flat `ws = 1`, never a divergent tail).
+
+Eigen3 lives at `${SRC}/eigen-3.4.0` and is added to `include_directories` in
+`CMakeLists.txt`; the dependency is confined to `scaletypes.cpp`.
+
+---
+
 ## Workflow for Laue data
 
 ### Wavelength pre-normalisation pass
@@ -186,6 +281,32 @@ LAUE NORMLAMREF <lambda_ref>
 
 **Note:** both sub-keywords start with "NORM", but `keyIs()` only compares 4 characters. The parser disambiguates on character 5 (`C` vs `L`).
 
+#### GPR (Gaussian-process) alternative
+
+```
+LAUE NORMGPR <lam_min> <lam_max>   # enable GP normalisation over this range
+LAUE NORMGPRLENGTH <lengthscale>   # optional: fix GP length scale (Å); default auto
+LAUE NORMGPRBINS <nbins>           # optional: number of training bins; default 50
+LAUE NORMGPRMATERN                 # optional: Matérn-3/2 kernel; default squared-exp
+LAUE NORMLAMREF <lambda_ref>       # shared with Chebyshev
+```
+
+The `NORMGPR*` sub-keywords share the 4-char key `NORM` with `keyIs()`, so the
+parser disambiguates on character 5 (`G`) and then on the **full token string**
+(`NORMGPR` vs `NORMGPRLENGTH` vs `NORMGPRBINS` vs `NORMGPRMATERN`), since
+`keyIs("NORMGPR")` would also match the longer variants. One range only (the GP
+spans the whole `[lam_min, lam_max]`); no `degree`. Without an explicit length
+scale, it is chosen by log-marginal-likelihood. See the GPR section above.
+
+Typical GPR-only config:
+
+```
+LAMBDAONLY
+LAUE NORMGPR 0.780 6.300
+LAUE NORMLAMREF 1.0
+OUTPUT UNMERGED
+```
+
 ### Typical Laue configuration
 
 ```
@@ -250,10 +371,10 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 
 | File | Role |
 |------|------|
-| `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` class; log-Chebyshev algorithm |
-| `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management |
-| `aimless.cpp` | Laue pre-normalisation pass (before `FC.roughScale`); `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
-| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF disambiguation; `LAMBDAONLY` keyword |
+| `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` (log-Chebyshev); `WavelengthGPRScale` (Eigen GP fit, fixed lookup) |
+| `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management; GPR fit driver + fixed-correction application |
+| `aimless.cpp` | Laue Chebyshev pre-pass + GP pre-pass (leave-one-out log-ratio sampling) before `FC.roughScale`; `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
+| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword |
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
@@ -278,4 +399,6 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 
 ## To do
 
-- **GPR wavelength normalisation** — replace or supplement the Chebyshev pre-pass with a Gaussian Process smoother. Eigen3 (already in include path) provides the required Cholesky decomposition. Intended as a non-parametric pre-pass: bin reflections by λ, compute normalised bin means, fit GP with squared-exponential or Matérn-3/2 kernel, apply correction as a fixed lookup table before iterative scaling. Hyperparameter selection via marginal likelihood or heuristic length-scale. Advantage over Chebyshev: naturally adapts to variable data density and avoids polynomial runaway at sparse wavelength extremes.
+- **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
+
+- **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). Possible follow-ups: optimise `σ_f` (and noise scale) jointly with the length scale rather than fixing `σ_f` from the target spread; full marginal-likelihood gradient optimisation instead of the length-scale grid search; compare merging statistics (R-merge, CC½) against the Chebyshev model on real Laue data.

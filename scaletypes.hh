@@ -580,6 +580,10 @@ namespace scala {
     // Clenshaw evaluation: sum_{k=0}^{n} c[k] T_k(z)
     double chebeval(const std::vector<double>& c, const double& z) const;
 
+    // ASCII line plot of w(lambda) over range irange (for log output)
+    std::string AsciiPlot(const int& irange, const int& width = 60,
+                          const int& height = 15) const;
+
     // Evaluate Chebyshev basis T_k(z) for k=0..degree into T
     void chebbasis(const int& degree, const double& z,
                    std::vector<double>& T) const;
@@ -593,10 +597,6 @@ namespace scala {
     // Evaluate f(lambda) using range irange
     double evalRange(const double& lambda, const int& irange) const;
 
-    // ASCII line plot of w(lambda) over range irange (for log output)
-    std::string AsciiPlot(const int& irange, const int& width = 60,
-                          const int& height = 15) const;
-
     std::vector<WavelengthRange> ranges;
     std::vector<double> coeffs;   // all coefficients, concatenated across ranges
     int ncoeffs;
@@ -604,6 +604,97 @@ namespace scala {
     int ref_range;  // range index for lambda_ref (-1 if not set)
     double f_ref;   // f(lambda_ref), cached after StoreCoefficients
   };
+  //--------------------------------------------------------------
+  class WavelengthGPRScale
+  // Gaussian-process wavelength normalization for Laue data.
+  //
+  // Non-parametric alternative to WavelengthChebyshevScale. Unlike the
+  // Chebyshev model this is NOT refined inside the BFGS scaling loop: it is
+  // fitted once as a pre-pass and applied thereafter as a fixed multiplicative
+  // correction (a precomputed lookup table), so it contributes no parameters to
+  // the scale-model parameter vector and has zero derivatives.
+  //
+  // Fit procedure (see Fit()):
+  //   1) bin per-observation log-ratios  y = log(I_obs / <I>_symmetry)  by wavelength
+  //   2) form a heteroscedastic training set (bin centre, bin-mean, SEM^2)
+  //   3) fit a zero-mean Gaussian process in LOG space with a squared-exponential
+  //      (or Matern-3/2) kernel; the length scale is chosen by maximising the
+  //      log marginal likelihood (unless fixed by the user)
+  //   4) evaluate the posterior mean g(lambda) on a dense uniform grid (lookup table)
+  // Scale:  ws(lambda) = exp(g(lambda) - g(lambda_ref))   (>0 by construction)
+  {
+  public:
+    enum KernelType {SQEXP, MATERN32};
+
+    // User-supplied controls (from LAUE NORMGPR keyword)
+    struct GPRControl {
+      bool enabled;
+      double lam_min, lam_max; // wavelength range; <=0 => take limits from data
+      double lengthscale;      // GP length scale; <=0 => optimise by marginal likelihood
+      int nbins;               // number of wavelength bins for the training set
+      KernelType kernel;
+      GPRControl() : enabled(false), lam_min(0.0), lam_max(0.0),
+                     lengthscale(0.0), nbins(50), kernel(SQEXP) {}
+    };
+
+    WavelengthGPRScale() : active(false), lam_min(0.0), lam_max(0.0),
+                           lambda_ref(0.0), g_ref(0.0), grid_step(0.0),
+                           ngrid(0), kernel(SQEXP), lengthscale(0.0),
+                           sigf(0.0), signoise(0.0), ntrain(0) {}
+
+    // Fit the GP from per-observation samples; returns number of training bins
+    // used (0 => fit failed / inactive). Diagnostic text appended to fitlog.
+    int Fit(const std::vector<double>& lambdas,
+            const std::vector<double>& logratios,
+            const std::vector<double>& weights,
+            const GPRControl& ctrl, const double& LambdaRef,
+            std::string& fitlog);
+
+    bool IsActive() const {return active;}
+
+    double LambdaRef() const {return lambda_ref;}
+
+    // Normalization scale ws(lambda); returns 1.0 if inactive or out of range
+    double Scale(const double& lambda) const;
+
+    // Relative (fractional) uncertainty of ws(lambda): the GP posterior SD in
+    // log space, which to first order equals sigma(ws)/ws.  0 if inactive/out of range.
+    double Uncertainty(const double& lambda) const;
+
+    // Format normalization table for log output
+    std::string PrintNormalization(const int& npoints = 12) const;
+
+    // XML representation of the fit: range, hyperparameters, sampled w(lambda)
+    std::string asXML() const;
+
+    // Self-contained gnuplot script (the LAMBDANORM file): w(lambda) curve with
+    // a 1-sigma uncertainty band.  title/version are embedded in the header.
+    std::string GnuplotScript(const std::string& title,
+                              const std::string& version) const;
+
+    // format for save/restore
+    std::string FormatSave() const;
+    void Restore(Fileread& FR);
+
+  private:
+    double kernelValue(const double& la, const double& lb) const;
+
+    // ASCII line plot of w(lambda) over the fitted range (for log output)
+    std::string AsciiPlot(const int& width = 60, const int& height = 15) const;
+
+    bool active;
+    double lam_min, lam_max;   // fitted wavelength range
+    double lambda_ref, g_ref;  // reference wavelength and g(lambda_ref)
+    double grid_step;          // uniform spacing of the lookup grid
+    int ngrid;                 // number of lookup points
+    std::vector<double> grid_g; // posterior-mean log-scale on the grid
+    std::vector<double> grid_sd; // posterior SD (log space) on the grid
+    KernelType kernel;         // kernel used (for reporting)
+    double lengthscale;        // fitted/used length scale (for reporting)
+    double sigf;               // signal sdev (for reporting)
+    double signoise;           // mean training noise sdev (for reporting)
+    int ntrain;                // number of training bins used (for reporting)
+  };  // class WavelengthGPRScale
   //--------------------------------------------------------------
   class LinkSpecs {
     // Links for SURFACE parameters
