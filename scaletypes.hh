@@ -566,6 +566,12 @@ namespace scala {
     // XML representation of the fit: ranges, coefficients, sampled w(lambda)
     std::string asXML() const;
 
+    // Self-contained gnuplot script (the LAMBDANORM file): w(lambda) curve, one
+    // line segment per range.  title/version are embedded in the header.
+    // (No uncertainty band: the Chebyshev fit carries no posterior covariance.)
+    std::string GnuplotScript(const std::string& title,
+                              const std::string& version) const;
+
     // format for save/restore
     std::string FormatSave() const;
     void Restore(Fileread& FR);

@@ -204,6 +204,11 @@ namespace scala {
     // XML of the wavelength normalization fit ("" if no wavelength scale)
     std::string WavelengthNormalizationXML() const;
 
+    // gnuplot script (LAMBDANORM file content) for the Chebyshev wavelength
+    // normalization curve; "" if no wavelength scale
+    std::string WavelengthGnuplot(const std::string& title,
+                                  const std::string& version) const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters

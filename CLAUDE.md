@@ -125,6 +125,25 @@ It contains `<ReferenceWavelength>` and, per `<Range>`, the `<LambdaMin>`,
 `<LambdaMax>`, `<Degree>`, `<LogCoefficients>`, and a `<Normalisation>` table of
 21 `<point>` (`<lambda>`,`<w>`) samples.
 
+### Wavelength normalisation gnuplot file (LAMBDANORM)
+
+`WavelengthChebyshevScale::GnuplotScript(title, version)` (via
+`ScaleModel::WavelengthGnuplot()`) returns a self-contained gnuplot script
+written by `aimless.cpp` to a file named **`LAMBDANORM`** in the wavelength
+pre-pass. Header comment (program/version, run title, `gnuplot -p LAMBDANORM`
+hint), explicit `set xrange`/`set yrange`, then per-range datablocks and a
+`plot`. Each range is drawn **in full across the whole domain in its own
+colour**, using that range's own polynomial (`evalRange`): **solid** within the
+range's interval (`$LNs<ir>`, the used part) and **dashed** where the polynomial
+is extrapolated outside its interval (`$LNd<ir>`, not used). `yrange` is taken
+from the used portions only, so divergent extrapolations run off-screen and are
+clipped; non-finite extrapolated points are skipped. A single range collapses to
+one solid `w(λ)` line.
+**No uncertainty band** — the Chebyshev fit carries no posterior covariance
+(unlike the GP, whose LAMBDANORM has a 1σ band). Both methods write to the same
+`LAMBDANORM` filename, but `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive
+so only one path runs.
+
 ### Complete scaling workflow (Laue)
 
 ```

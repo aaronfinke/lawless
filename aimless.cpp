@@ -773,6 +773,27 @@ int main(int argc, char* argv[])
       AllScales.SetWavelengthOnlyMode(false);
       AllScales.PrintWavelengthNormalization(output);
       output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
+
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
+      {
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION + " (lawless)";
+        std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
+        if (!lnscript.empty()) {
+          const std::string lnfile = "LAMBDANORM";
+          std::ofstream lns(lnfile.c_str());
+          if (lns) {
+            lns << lnscript;
+            lns.close();
+            output.logTabPrintf(0, LOGFILE,
+              "\nWavelength normalization curve written to %s"
+              " (gnuplot format; open with: gnuplot -p %s)\n",
+              lnfile.c_str(), lnfile.c_str());
+          } else {
+            output.logTabPrintf(0, LOGFILE,
+              "\nWarning: could not open %s for writing\n", lnfile.c_str());
+          }
+        }
+      }
       output.logTab(0, LOGFILE,
                     "\nTime for wavelength pre-normalisation: "+timer.format(true));
 

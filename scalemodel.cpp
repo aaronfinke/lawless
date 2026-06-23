@@ -2034,6 +2034,13 @@ namespace scala {
     return wavelength_scale.asXML();
   }
   //--------------------------------------------------------------
+  std::string ScaleModel::WavelengthGnuplot(const std::string& title,
+                                            const std::string& version) const
+  {
+    if (!HasWavelengthScale()) return "";
+    return wavelength_scale.GnuplotScript(title, version);
+  }
+  //--------------------------------------------------------------
   void ScaleModel::NormaliseParameters()
   // Normalise scales & B-factors
   // Order of parameters:
