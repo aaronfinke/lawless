@@ -64,6 +64,7 @@ void PrintTitle( phaser_io::Output& output)
   output.logTab(0,LOGFILE, boxline(""));
   output.logTab(0,LOGFILE, boxline("Scaling & analysis of unmerged intensities"));
   output.logTab(0,LOGFILE, boxline("(now with wavelength normalization!)"));
+  output.logTab(0,LOGFILE, boxline(""));
   output.logTab(0,LOGFILE, boxline("Phil Evans MRC LMB, Cambridge"));
   output.logTab(0,LOGFILE, boxline("(with tiny contribs from Aaron Finke, ESS, DK)"));
   output.logTab(0,LOGFILE, boxline(""));
