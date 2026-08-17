@@ -813,52 +813,76 @@ int main(int argc, char* argv[])
     // ----- Laue wavelength GP (Gaussian process) normalisation
     // Non-parametric alternative to the Chebyshev pre-pass.  We build an
     // empirical wavelength response directly from the data: for each reflection
-    // with >=2 accepted observations, the leave-one-out log-ratio
-    // log(I_obs / <I>_other-mates) at each observation's wavelength is a sample
-    // of the spectral response.  A Gaussian process fitted to the binned
-    // samples gives a smooth ws(lambda) which is then applied as a FIXED
-    // multiplicative correction (no refinable parameters) for all later scaling.
+    // with >=2 accepted observations, the leave-one-out ratio
+    // I_obs / <I>_other-mates at each observation's wavelength is a sample of
+    // the spectral response.  A Gaussian process fitted to the binned samples
+    // gives a smooth ws(lambda) which is then applied as a FIXED multiplicative
+    // correction (no refinable parameters) for all later scaling.
+    //
+    // The estimate is ITERATED.  On the first pass the mates' mean carries the
+    // wavelength response of the wavelengths at which the mates happen to have
+    // been measured, so the raw ratio measures the response only relative to
+    // that (wavelength-dependent) mixture.  Dividing the mates by the current
+    // ws(lambda) before averaging removes that contamination, and the iteration
+    // converges on the fixed point where the corrected mates are consistent --
+    // the same condition the Chebyshev refinement reaches by least squares.
     if (AllScales.HasGPRWavelengthScale()) {
       timer.Start();
       output.logTabPrintf(0, LOGFILE,
           "\n========= Laue wavelength GP normalisation =========\n");
       double IovSDmin = controls.refinecontrol.IovSDmin();
 
-      std::vector<double> gpr_lam, gpr_logr, gpr_wt;
-      reflection this_refl;
-      for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
-        this_refl = hkl_list.get_reflection(jref);
-        int nobs = this_refl.num_observations();
-        if (nobs < 2) continue;
-        // collect accepted observations passing the I/sigma cut
-        std::vector<double> oI, oL, oW;
-        double sumw = 0.0, sumwi = 0.0;
-        for (int i=0; i<nobs; ++i) {
-          observation obs = this_refl.get_observation(i);
-          if (!obs.IsAccepted()) continue;
-          double I = obs.I();
-          double s = obs.sigI();
-          if (s <= 0.0 || I <= 0.0) continue;
-          if (I/s < IovSDmin) continue;
-          double w = 1.0/(s*s);
-          oI.push_back(I); oL.push_back(obs.lambda()); oW.push_back(w);
-          sumw += w; sumwi += w*I;
+      const int NGPRITER = 3;
+      std::vector<double> gpr_lam, gpr_ratio, gpr_wt;
+      for (int iter = 0; iter < NGPRITER; ++iter) {
+        gpr_lam.clear(); gpr_ratio.clear(); gpr_wt.clear();
+        reflection this_refl;
+        for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+          this_refl = hkl_list.get_reflection(jref);
+          int nobs = this_refl.num_observations();
+          if (nobs < 2) continue;
+          // accepted observations passing the I/sigma cut.  Weak and negative
+          // intensities are kept: the ratio estimator in the fit handles them,
+          // and cutting them out biases the response at the spectrum edges.
+          std::vector<double> oI, oIc, oL, oW;
+          double sumw = 0.0, sumwi = 0.0;
+          for (int i=0; i<nobs; ++i) {
+            observation obs = this_refl.get_observation(i);
+            if (!obs.IsAccepted()) continue;
+            double I = obs.I();
+            double s = obs.sigI();
+            if (s <= 0.0) continue;
+            if (I/s < IovSDmin) continue;
+            double lam = obs.lambda();
+            double w = 1.0/(s*s);
+            // remove the wavelength response already established (identity on
+            // the first pass) so the mates' mean is wavelength-free
+            double ws = AllScales.GPRWavelengthScaleAt(lam);
+            if (!(ws > 0.0)) ws = 1.0;
+            double Ic = I/ws;
+            oI.push_back(I); oIc.push_back(Ic); oL.push_back(lam); oW.push_back(w);
+            sumw += w; sumwi += w*Ic;
+          }
+          if (oI.size() < 2 || sumw <= 0.0) continue;
+          // leave-one-out weighted mean avoids self-bias of the ratio
+          for (size_t i=0; i<oI.size(); ++i) {
+            double sw  = sumw  - oW[i];
+            double swi = sumwi - oW[i]*oIc[i];
+            if (sw <= 0.0) continue;
+            double mean_i = swi/sw;
+            if (mean_i <= 0.0) continue;
+            gpr_lam.push_back(oL[i]);
+            gpr_ratio.push_back(oI[i]/mean_i);
+            // weight appropriate to the ratio I/M:  var(I/M) = sigma^2/M^2,
+            // and the ratio estimator sums u*rho with u = M/sigma^2
+            gpr_wt.push_back(mean_i*oW[i]);
+          }
         }
-        if (oI.size() < 2 || sumw <= 0.0) continue;
-        // leave-one-out weighted mean avoids self-bias of the log-ratio
-        for (size_t i=0; i<oI.size(); ++i) {
-          double sw  = sumw  - oW[i];
-          double swi = sumwi - oW[i]*oI[i];
-          if (sw <= 0.0) continue;
-          double mean_i = swi/sw;
-          if (mean_i <= 0.0) continue;
-          gpr_lam.push_back(oL[i]);
-          gpr_logr.push_back(std::log(oI[i]/mean_i));
-          gpr_wt.push_back(oW[i]);
-        }
+        output.logTabPrintf(0, LOGFILE, "\n Fit cycle %d of %d:\n",
+                            iter+1, NGPRITER);
+        AllScales.FitGPRWavelength(gpr_lam, gpr_ratio, gpr_wt, output);
+        if (!AllScales.GPRWavelengthActive()) break;  // fit failed; stop here
       }
-
-      AllScales.FitGPRWavelength(gpr_lam, gpr_logr, gpr_wt, output);
       AllScales.PrintGPRWavelengthNormalization(output);
       output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
 

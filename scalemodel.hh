@@ -214,14 +214,19 @@ namespace scala {
     // true once the GP fit has succeeded and is being applied
     bool GPRWavelengthActive() const {return gpr_scale.IsActive();}
     // Fit the GP wavelength normalization from per-observation samples
-    //   lambdas[i]   wavelength of observation i
-    //   logratios[i] log(I_i / <I>_symmetry-mates)
-    //   weights[i]   weight (1/sigma^2)
+    //   lambdas[i]  wavelength of observation i
+    //   ratios[i]   I_i / <I>_symmetry-mates          (linear space)
+    //   weights[i]  <I>_symmetry-mates / sigma_i^2    (weight for the ratio)
     // The fitted correction is then applied as a fixed factor in ScaleFactor.
     void FitGPRWavelength(const std::vector<double>& lambdas,
-                          const std::vector<double>& logratios,
+                          const std::vector<double>& ratios,
                           const std::vector<double>& weights,
                           phaser_io::Output& output);
+
+    // Current GP wavelength scale ws(lambda); 1.0 if no GP fit yet.
+    // Used to iterate the empirical response estimate.
+    double GPRWavelengthScaleAt(const double& lambda) const
+    {return gpr_scale.Scale(lambda);}
     // Print the GP wavelength normalization table to log
     void PrintGPRWavelengthNormalization(phaser_io::Output& output) const;
 

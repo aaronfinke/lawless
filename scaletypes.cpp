@@ -1809,12 +1809,13 @@ namespace scala {
   //--------------------------------------------------------------
   // =================== WavelengthGPRScale =========================
   //--------------------------------------------------------------
-  double WavelengthGPRScale::kernelValue(const double& la,
-                                          const double& lb) const
-  // Covariance between two wavelengths, using the stored hyperparameters
+  double WavelengthGPRScale::kernelValue(const double& xa,
+                                          const double& xb) const
+  // Covariance between two points in the warped coordinate x = log(lambda),
+  // using the stored hyperparameters
   {
     double sigf2 = sigf * sigf;
-    double r = (la - lb) / lengthscale;
+    double r = (xa - xb) / lengthscale;
     if (kernel == MATERN32) {
       double d = std::sqrt(3.0) * std::fabs(r);
       return sigf2 * (1.0 + d) * std::exp(-d);
@@ -1823,8 +1824,19 @@ namespace scala {
     return sigf2 * std::exp(-0.5 * r * r);
   }
   //--------------------------------------------------------------
+  namespace {
+    // one per-observation sample for the GP training set
+    struct GPRSample {
+      double lam;   // wavelength
+      double rho;   // I_obs / <I>_mates
+      double u;     // weight for rho: <I>_mates / sigma^2
+    };
+    bool GPRSampleByLambda(const GPRSample& a, const GPRSample& b)
+    {return a.lam < b.lam;}
+  }
+  //--------------------------------------------------------------
   int WavelengthGPRScale::Fit(const std::vector<double>& lambdas,
-                               const std::vector<double>& logratios,
+                               const std::vector<double>& ratios,
                                const std::vector<double>& weights,
                                const GPRControl& ctrl,
                                const double& LambdaRef,
@@ -1833,12 +1845,18 @@ namespace scala {
   {
     active = false;
     grid_g.clear();
+    grid_sd.clear();
+    train_lam.clear();
+    train_h.clear();
+    train_hsd.clear();
     ntrain = 0;
+    gmean = 0.0;
+    noisescale = 1.0;
     kernel = ctrl.kernel;
     lambda_ref = LambdaRef;
 
     const int Nsamp = int(lambdas.size());
-    if (Nsamp < 20) {
+    if (Nsamp < 50) {
       fitlog += " GPR wavelength fit: too few samples ("
         + clipper::String(Nsamp) + "); no correction applied\n";
       return 0;
@@ -1856,109 +1874,229 @@ namespace scala {
       }
     }
     double range = lam_max - lam_min;
-    if (range <= 0.0) {
+    if (range <= 0.0 || lam_min <= 0.0) {
       fitlog += " GPR wavelength fit: degenerate wavelength range; skipped\n";
       return 0;
     }
 
-    // ----- bin the log-ratios by wavelength (weighted)
-    int nbins = (ctrl.nbins > 0) ? ctrl.nbins : 50;
-    double binw = range / nbins;
-    std::vector<double> sumw(nbins, 0.0), sumwy(nbins, 0.0), sumwy2(nbins, 0.0);
-    std::vector<int>    cnt(nbins, 0);
+    // ----- usable samples, sorted by wavelength (for equal-count binning)
+    std::vector<GPRSample> smp;
+    smp.reserve(Nsamp);
     for (int n = 0; n < Nsamp; ++n) {
       double lam = lambdas[n];
       if (lam < lam_min || lam > lam_max) continue;
-      int b = int((lam - lam_min) / binw);
-      if (b < 0) b = 0;
-      if (b >= nbins) b = nbins - 1;
-      double w = weights[n];
-      if (w <= 0.0) w = 1.0;
-      double y = logratios[n];
-      sumw[b]   += w;
-      sumwy[b]  += w * y;
-      sumwy2[b] += w * y * y;
-      cnt[b]    += 1;
+      double u = weights[n];
+      double rho = ratios[n];
+      if (!(u > 0.0) || !std::isfinite(u) || !std::isfinite(rho)) continue;
+      GPRSample s;
+      s.lam = lam; s.rho = rho; s.u = u;
+      smp.push_back(s);
+    }
+    const int N = int(smp.size());
+    if (N < 50) {
+      fitlog += " GPR wavelength fit: too few usable samples ("
+        + clipper::String(N) + "); no correction applied\n";
+      return 0;
+    }
+    std::sort(smp.begin(), smp.end(), GPRSampleByLambda);
+
+    // ----- Binning: EQUAL-COUNT, with a cap on the bin width in log(lambda).
+    // Uniform-width bins give wildly unequal precision across the spectrum (a
+    // Laue dataset has orders of magnitude more observations near the peak of
+    // the spectrum than in its tails), and the resulting noisy tail bins are
+    // what makes an unconstrained GP oscillate.  Purely equal-count bins fix
+    // that but collapse the sparse tail into one very wide bin whose centroid
+    // sits far from the end of the range, leaving the GP to extrapolate (and
+    // run away) over the last stretch.  Closing a bin on whichever limit is
+    // reached first keeps training points spread over the whole range while
+    // still giving each one usable precision.
+    const int MINCOUNT = 20;
+    int nbins = (ctrl.nbins > 0) ? ctrl.nbins : 50;
+    if (nbins > N / MINCOUNT) nbins = N / MINCOUNT;
+    if (nbins < 4) {
+      fitlog += " GPR wavelength fit: too few samples for binning ("
+        + clipper::String(N) + "); no correction applied\n";
+      return 0;
+    }
+    const double xspan = std::log(smp[N-1].lam) - std::log(smp[0].lam);
+    const double target = double(N) / nbins;            // nominal bin population
+    const double wcap = 4.0 * xspan / nbins;            // max bin width, log(lambda)
+    const int mincnt = std::max(MINCOUNT, int(0.25 * target));
+    std::vector<int> bstart, bend;
+    {
+      int i0 = 0;
+      while (i0 < N) {
+        double x0 = std::log(smp[i0].lam);
+        int i1 = i0 + 1;
+        while (i1 < N) {
+          int cnt = i1 - i0;
+          if (cnt >= mincnt &&
+              (cnt >= target || std::log(smp[i1-1].lam) - x0 >= wcap)) break;
+          ++i1;
+        }
+        if (N - i1 < mincnt) i1 = N;   // absorb a short trailing bin
+        bstart.push_back(i0);
+        bend.push_back(i1);
+        i0 = i1;
+      }
     }
 
-    // ----- training points: bin centre, weighted mean, SEM^2 (heteroscedastic noise)
-    const int MINCOUNT = 3;
-    std::vector<double> tl, ty, tn;   // lambda, target, noise variance
-    for (int b = 0; b < nbins; ++b) {
-      if (cnt[b] < MINCOUNT || sumw[b] <= 0.0) continue;
-      double mean = sumwy[b] / sumw[b];
-      double var  = sumwy2[b] / sumw[b] - mean * mean;
-      if (var < 0.0) var = 0.0;
-      double nvar = var / double(cnt[b]);              // SEM^2
-      tl.push_back(lam_min + (b + 0.5) * binw);
-      ty.push_back(mean);
-      tn.push_back(nvar);
+    // ----- one training point per bin, by the linear-space ratio estimator
+    //   r  = sum(u rho) / sum(u)              (unbiased, tolerates rho <= 0)
+    //   var(r) = sum(u^2 (rho-r)^2) / (sum u)^2     (sandwich/ratio variance)
+    //   target h = log(r),  var(h) = var(r)/r^2
+    // A mean of per-observation log-ratios (the previous estimator) is badly
+    // biased and heavy-tailed for weak observations, and its "SEM^2" used the
+    // raw bin count even though 1/sigma^2 weights make the effective sample
+    // size several times smaller -- so the noise was underestimated by a large
+    // factor and the marginal likelihood drove the length scale to its floor.
+    std::vector<double> tl, ty, tn;   // wavelength, target, noise variance
+    for (size_t b = 0; b < bstart.size(); ++b) {
+      int i0 = bstart[b];
+      int i1 = bend[b];
+      if (i1 - i0 < MINCOUNT) continue;
+      double su = 0.0, sur = 0.0, sul = 0.0;
+      for (int i = i0; i < i1; ++i) {
+        su  += smp[i].u;
+        sur += smp[i].u * smp[i].rho;
+        sul += smp[i].u * smp[i].lam;
+      }
+      if (!(su > 0.0)) continue;
+      double r = sur / su;
+      if (!(r > 0.0)) continue;      // cannot take a log of a non-positive mean
+      double sv = 0.0;
+      for (int i = i0; i < i1; ++i) {
+        double e = smp[i].u * (smp[i].rho - r);
+        sv += e * e;
+      }
+      double varr = sv / (su * su);
+      double varh = varr / (r * r);
+      if (!std::isfinite(varh)) continue;
+      tl.push_back(sul / su);        // weighted-mean wavelength in the bin
+      ty.push_back(std::log(r));
+      tn.push_back(varh);
     }
     int B = int(tl.size());
-    if (B < 3) {
-      fitlog += " GPR wavelength fit: too few populated bins ("
+    if (B < 4) {
+      fitlog += " GPR wavelength fit: too few usable bins ("
         + clipper::String(B) + "); no correction applied\n";
       return 0;
     }
 
-    // ----- noise floor: median of the SEM^2 values, scaled down
+    // ----- noise floor, relative to the median bin variance
     std::vector<double> tnsort = tn;
     std::sort(tnsort.begin(), tnsort.end());
     double nmedian = tnsort[tnsort.size()/2];
     double nfloor = std::max(1.0e-6, 0.01 * nmedian);
     for (int i = 0; i < B; ++i) tn[i] = std::max(tn[i], nfloor);
 
-    // ----- signal variance from the spread of the targets
-    double ymean = 0.0;
-    for (int i = 0; i < B; ++i) ymean += ty[i];
-    ymean /= B;
-    double yvar = 0.0;
-    for (int i = 0; i < B; ++i) yvar += (ty[i]-ymean)*(ty[i]-ymean);
-    yvar = (B > 1) ? yvar / (B - 1) : 1.0e-4;
-    sigf = std::sqrt(std::max(yvar, 1.0e-4));
+    // ----- WARPED abscissa x = log(lambda).  A white-beam spectrum varies
+    // rapidly over a narrow interval at short wavelength and slowly over a wide
+    // interval at long wavelength; in log(lambda) a single stationary length
+    // scale describes both, so the fit no longer has to choose between
+    // following the short-wavelength rise and smoothing the long-wavelength
+    // tail (the compromise that produced the spurious oscillations).
+    std::vector<double> tx(B);
+    for (int i = 0; i < B; ++i) tx[i] = std::log(tl[i]);
+    double xmin = tx[0], xmax = tx[0];
+    for (int i = 1; i < B; ++i) {
+      xmin = std::min(xmin, tx[i]);
+      xmax = std::max(xmax, tx[i]);
+    }
+    double xrange = xmax - xmin;
+    if (xrange <= 0.0) {
+      fitlog += " GPR wavelength fit: degenerate training range; skipped\n";
+      return 0;
+    }
+    std::vector<double> dxs;
+    for (int i = 1; i < B; ++i) dxs.push_back(std::fabs(tx[i] - tx[i-1]));
+    std::sort(dxs.begin(), dxs.end());
+    double dxmed = dxs[dxs.size()/2];
 
+    // ----- constant GP mean.  Away from the data the posterior reverts to this
+    // level rather than to zero, so sparsely sampled wavelengths get the mean
+    // response instead of an artificial dip towards ws = exp(-g_ref).
+    double swm = 0.0, swmy = 0.0;
+    for (int i = 0; i < B; ++i) {
+      double wi = 1.0 / tn[i];
+      swm += wi; swmy += wi * ty[i];
+    }
+    gmean = swmy / swm;
     Eigen::VectorXd Y(B);
-    for (int i = 0; i < B; ++i) Y(i) = ty[i];
+    for (int i = 0; i < B; ++i) Y(i) = ty[i] - gmean;
 
-    // ----- candidate length scales (user-fixed or marginal-likelihood search)
+    // ----- hyperparameter candidates.  sigma_f and a noise-inflation factor
+    // are searched jointly with the length scale: fixing sigma_f at the raw
+    // spread of the bin targets (which includes the noise) biased the fit
+    // towards explaining noise as signal.
+    double yvar = 0.0, nmean = 0.0;
+    for (int i = 0; i < B; ++i) {
+      yvar += Y(i) * Y(i);
+      nmean += tn[i];
+    }
+    yvar /= B; nmean /= B;
+    double sig0 = std::sqrt(std::max(yvar - nmean, 1.0e-4));
+
     std::vector<double> ellcand;
-    if (ctrl.lengthscale > 0.0) {
-      ellcand.push_back(ctrl.lengthscale);
+    double elllo = std::max(2.0 * dxmed, 0.02 * xrange);
+    double ellhi = 1.5 * xrange;
+    bool ellfixed = (ctrl.lengthscale > 0.0);
+    if (ellfixed) {
+      // user length scale is given in Angstrom; convert to log(lambda) units
+      // at the reference wavelength (dx = dlambda/lambda)
+      double lscale = (lambda_ref > 0.0) ? lambda_ref : std::sqrt(lam_min*lam_max);
+      ellcand.push_back(ctrl.lengthscale / lscale);
     } else {
-      const int NELL = 12;
-      double lo = 0.03 * range, hi = 0.6 * range;
+      const int NELL = 16;
       for (int k = 0; k < NELL; ++k) {
         double f = double(k) / (NELL - 1);
-        ellcand.push_back(lo * std::pow(hi / lo, f));  // log-spaced
+        ellcand.push_back(elllo * std::pow(ellhi / elllo, f));  // log-spaced
       }
     }
+    std::vector<double> sigcand;
+    const int NSIGF = 9;
+    for (int k = 0; k < NSIGF; ++k) {
+      double f = -0.7 + 1.4 * double(k) / (NSIGF - 1);
+      sigcand.push_back(sig0 * std::pow(10.0, f));
+    }
+    std::vector<double> alfcand;
+    const int NALF = 8;
+    for (int k = 0; k < NALF; ++k) {
+      double f = -0.3 + 1.5 * double(k) / (NALF - 1);
+      alfcand.push_back(std::pow(10.0, f));
+    }
 
-    const double jitter = 1.0e-9;
+    const double jitter = 1.0e-10;
     double bestlml = -std::numeric_limits<double>::max();
-    double bestell = ellcand[0];
+    double bestell = ellcand[0], bestsig = sigcand[0], bestalf = alfcand[0];
     Eigen::VectorXd bestalpha;
+    Eigen::MatrixXd K0(B, B);
     for (size_t e = 0; e < ellcand.size(); ++e) {
-      lengthscale = ellcand[e];   // kernelValue() reads lengthscale & sigf
-      Eigen::MatrixXd A(B, B);
-      for (int i = 0; i < B; ++i) {
-        for (int j = 0; j < B; ++j) {
-          A(i, j) = kernelValue(tl[i], tl[j]);
+      lengthscale = ellcand[e];
+      sigf = 1.0;                     // unit-amplitude kernel, scaled below
+      for (int i = 0; i < B; ++i)
+        for (int j = 0; j < B; ++j) K0(i, j) = kernelValue(tx[i], tx[j]);
+      for (size_t sgi = 0; sgi < sigcand.size(); ++sgi) {
+        double sf2 = sigcand[sgi] * sigcand[sgi];
+        for (size_t ai = 0; ai < alfcand.size(); ++ai) {
+          Eigen::MatrixXd A = sf2 * K0;
+          for (int i = 0; i < B; ++i) A(i, i) += alfcand[ai] * tn[i] + jitter;
+          Eigen::LLT<Eigen::MatrixXd> llt(A);
+          if (llt.info() != Eigen::Success) continue;
+          Eigen::VectorXd alpha = llt.solve(Y);
+          double logdet = 0.0;
+          Eigen::MatrixXd L = llt.matrixL();
+          for (int i = 0; i < B; ++i) logdet += std::log(L(i, i));
+          double lml = -0.5 * Y.dot(alpha) - logdet
+                       - 0.5 * B * std::log(2.0 * M_PI);
+          if (lml > bestlml) {
+            bestlml = lml;
+            bestell = ellcand[e];
+            bestsig = sigcand[sgi];
+            bestalf = alfcand[ai];
+            bestalpha = alpha;
+          }
         }
-        A(i, i) += tn[i] + jitter;
-      }
-      Eigen::LLT<Eigen::MatrixXd> llt(A);
-      if (llt.info() != Eigen::Success) continue;
-      Eigen::VectorXd alpha = llt.solve(Y);
-      // log marginal likelihood = -0.5 Y^T alpha - sum log L_ii - 0.5 B log(2pi)
-      double logdet = 0.0;
-      Eigen::MatrixXd L = llt.matrixL();
-      for (int i = 0; i < B; ++i) logdet += std::log(L(i, i));
-      double lml = -0.5 * Y.dot(alpha) - logdet
-                   - 0.5 * B * std::log(2.0 * M_PI);
-      if (lml > bestlml) {
-        bestlml = lml;
-        bestell = ellcand[e];
-        bestalpha = alpha;
       }
     }
     if (bestalpha.size() == 0) {
@@ -1966,41 +2104,49 @@ namespace scala {
       return 0;
     }
     lengthscale = bestell;
+    sigf = bestsig;
+    noisescale = bestalf;
 
     // mean training noise (for reporting)
     double nsum = 0.0;
-    for (int i = 0; i < B; ++i) nsum += std::sqrt(tn[i]);
+    for (int i = 0; i < B; ++i) nsum += std::sqrt(noisescale * tn[i]);
     signoise = nsum / B;
 
-    // ----- refactorise at the chosen length scale (for the posterior variance)
+    // ----- refactorise at the chosen hyperparameters (for the posterior variance)
     Eigen::LLT<Eigen::MatrixXd> bestllt;
     {
       Eigen::MatrixXd A(B, B);
       for (int i = 0; i < B; ++i) {
-        for (int j = 0; j < B; ++j) A(i, j) = kernelValue(tl[i], tl[j]);
-        A(i, i) += tn[i] + jitter;
+        for (int j = 0; j < B; ++j) A(i, j) = kernelValue(tx[i], tx[j]);
+        A(i, i) += noisescale * tn[i] + jitter;
       }
       bestllt.compute(A);
     }
 
-    // ----- evaluate posterior mean and SD on a dense lookup grid
-    //   mean g(lam)  = k_*^T alpha
-    //   var  g(lam)  = k(lam,lam) - v^T v,  v = L^{-1} k_*
+    // ----- evaluate posterior mean and SD on a dense lookup grid, uniform in
+    // lambda (so Scale() stays a cheap linear interpolation)
+    //   mean g(lam)  = gmean + k_*^T alpha
+    //   var  g(lam)  = k(x,x) - v^T v,  v = L^{-1} k_*
+    // Beyond the outermost training points the mean is HELD CONSTANT at the
+    // edge value.  There the posterior is driven by the local gradient of the
+    // last bins, which is exactly the runaway extrapolation that makes a
+    // polynomial fit diverge at the sparse ends of the spectrum.  The SD is
+    // still evaluated at the true wavelength, so the widening band continues to
+    // show that the extremes are unsupported by data.
+    const double xlim_lo = tx[0], xlim_hi = tx[B-1];
     ngrid = std::max(200, 4 * nbins);
     grid_step = range / (ngrid - 1);
     grid_g.assign(ngrid, 0.0);
     grid_sd.assign(ngrid, 0.0);
     Eigen::VectorXd kstar(B);
     for (int m = 0; m < ngrid; ++m) {
-      double lam = lam_min + m * grid_step;
+      double x = std::log(lam_min + m * grid_step);
+      double xg = std::min(std::max(x, xlim_lo), xlim_hi);
       double g = 0.0;
-      for (int i = 0; i < B; ++i) {
-        double k = kernelValue(lam, tl[i]);
-        kstar(i) = k;
-        g += k * bestalpha(i);
-      }
-      grid_g[m] = g;
-      double kss = kernelValue(lam, lam);
+      for (int i = 0; i < B; ++i) g += kernelValue(xg, tx[i]) * bestalpha(i);
+      grid_g[m] = gmean + g;
+      for (int i = 0; i < B; ++i) kstar(i) = kernelValue(x, tx[i]);
+      double kss = kernelValue(x, x);
       Eigen::VectorXd v = bestllt.matrixL().solve(kstar);
       double var = kss - v.dot(v);
       if (var < 0.0) var = 0.0;   // guard against round-off
@@ -2009,19 +2155,39 @@ namespace scala {
 
     // ----- reference value g(lambda_ref)
     if (lambda_ref >= lam_min && lambda_ref <= lam_max) {
+      double xref = std::min(std::max(std::log(lambda_ref), xlim_lo), xlim_hi);
       double g = 0.0;
-      for (int i = 0; i < B; ++i) g += kernelValue(lambda_ref, tl[i]) * bestalpha(i);
-      g_ref = g;
+      for (int i = 0; i < B; ++i) g += kernelValue(xref, tx[i]) * bestalpha(i);
+      g_ref = gmean + g;
     } else {
-      g_ref = 0.0;
+      g_ref = gmean;
     }
+
+    train_lam = tl;
+    train_h   = ty;
+    train_hsd.resize(B);
+    for (int i = 0; i < B; ++i) train_hsd[i] = std::sqrt(noisescale * tn[i]);
 
     ntrain = B;
     active = true;
     fitlog += " GPR wavelength fit: " + clipper::String(B)
-      + " bins, length scale " + clipper::String(lengthscale, 6, 4)
-      + " A, sigma_f " + clipper::String(sigf, 6, 4)
-      + ", log marginal likelihood " + clipper::String(bestlml, 8, 3) + "\n";
+      + " bins from " + clipper::String(N)
+      + " observations (nominally " + clipper::String(int(target)) + " per bin)\n"
+      + "   length scale " + clipper::String(lengthscale, 6, 4)
+      + " in log(lambda) (" + clipper::String(lengthscale * lambda_ref, 6, 4)
+      + " A at the reference wavelength), sigma_f "
+      + clipper::String(sigf, 6, 4)
+      + ", noise inflation " + clipper::String(noisescale, 6, 2) + "\n"
+      + "   log marginal likelihood " + clipper::String(bestlml, 8, 3) + "\n";
+    if (!ellfixed) {
+      if (lengthscale < 1.01 * elllo) {
+        fitlog += "   WARNING: length scale is at the lower search limit; the fit"
+                  " may be following noise -- consider fewer NORMGPRBINS\n";
+      } else if (lengthscale > 0.99 * ellhi) {
+        fitlog += "   WARNING: length scale is at the upper search limit; the fit"
+                  " is nearly featureless\n";
+      }
+    }
     return B;
   }
   //--------------------------------------------------------------
@@ -2062,8 +2228,11 @@ namespace scala {
            " Range: %6.4f - %6.4f A   kernel: %s\n",
            lam_min, lam_max, (kernel == MATERN32) ? "Matern-3/2" : "squared-exp");
     s += FormatOutput::logTabPrintf(1,
-           " Length scale: %7.4f A   sigma_f: %7.4f   training bins: %d\n",
-           lengthscale, sigf, ntrain);
+           " Length scale: %7.4f in log(lambda) (%7.4f A at lambda_ref)\n",
+           lengthscale, lengthscale * lambda_ref);
+    s += FormatOutput::logTabPrintf(1,
+           " sigma_f: %7.4f   noise inflation: %6.2f   training bins: %d\n",
+           sigf, noisescale, ntrain);
     s += FormatOutput::logTabPrintf(1, "   %8s  %10s\n", "lambda", "w(lambda)");
     double step = (lam_max - lam_min) / (npoints - 1);
     for (int ip = 0; ip < npoints; ++ip) {
@@ -2156,8 +2325,10 @@ namespace scala {
     s += "  " + StringUtil::MakeXMLtag("Kernel",
            std::string((kernel == MATERN32) ? "Matern-3/2" : "squared-exp"));
     s += "\n";
+    // length scale is in log(lambda) units (the kernel abscissa)
     s += "  " + StringUtil::MakeXMLtag("LengthScale", lengthscale, 8, 4);
     s += StringUtil::MakeXMLtag("SigmaF", sigf, 8, 4);
+    s += StringUtil::MakeXMLtag("NoiseInflation", noisescale, 8, 3);
     s += StringUtil::MakeXMLtag("TrainingBins", ntrain, 4) + "\n";
     s += "  <Normalisation>\n";
     const int npoints = 21;
@@ -2207,6 +2378,10 @@ namespace scala {
     s += "#   3 rel_uncertainty   GP posterior SD in log space (fractional error on w)\n";
     s += "#   4 w_lo = w*(1-rel)  lower 1-sigma\n";
     s += "#   5 w_hi = w*(1+rel)  upper 1-sigma\n";
+    s += "#\n";
+    s += "# $LAMBDABINS holds the binned observations the GP was fitted to\n";
+    s += "# (lambda, w_bin, sigma(w_bin)); the curve should follow them without\n";
+    s += "# chasing individual points.\n";
     s += "\n";
     s += "set title \"Laue wavelength normalization (GP)";
     if (!t.empty()) s += "\\n" + t;
@@ -2215,6 +2390,8 @@ namespace scala {
     s += "set ylabel \"Normalization w({/Symbol l})\"\n";
     s += "set grid\n";
     s += "set key top right\n";
+    s += "set xrange [" + clipper::String(lam_min, 8, 4).trim() + ":"
+         + clipper::String(lam_max, 8, 4).trim() + "]\n";
     s += "set style fill transparent solid 0.30 noborder\n";
     s += "set arrow from " + lref + ", graph 0 to " + lref
          + ", graph 1 nohead dashtype 2 lc rgb \"#888888\"\n";
@@ -2234,9 +2411,20 @@ namespace scala {
     }
     s += "EOD\n";
     s += "\n";
+    s += "$LAMBDABINS << EOD\n";
+    for (size_t ib = 0; ib < train_lam.size(); ++ib) {
+      double wb = std::exp(train_h[ib] - g_ref);
+      s += clipper::String(train_lam[ib], 10, 4) + " "
+         + clipper::String(wb, 11, 5) + " "
+         + clipper::String(wb * train_hsd[ib], 11, 5) + "\n";
+    }
+    s += "EOD\n";
+    s += "\n";
     s += "plot \\\n";
     s += "  $LAMBDANORM using 1:4:5 with filledcurves lc rgb \"#9ec3e8\" "
          "title \"1{/Symbol s} band\", \\\n";
+    s += "  $LAMBDABINS using 1:2:3 with yerrorbars pt 7 ps 0.5 "
+         "lc rgb \"#999999\" title \"binned data\", \\\n";
     s += "  $LAMBDANORM using 1:2 with lines lw 2 lc rgb \"#1f4e96\" "
          "title \"w({/Symbol l})\"\n";
     return s;
@@ -2253,6 +2441,8 @@ namespace scala {
     s += "Kernel " + clipper::String(int(kernel)) +
          " Lengthscale " + clipper::String(lengthscale) +
          " Sigf " + clipper::String(sigf) +
+         " Gmean " + clipper::String(gmean) +
+         " Noisescale " + clipper::String(noisescale) +
          " Ntrain " + clipper::String(ntrain) + "\n";
     s += "Ngrid " + clipper::String(ngrid) +
          " GridStep " + clipper::String(grid_step) + "\n";
@@ -2272,6 +2462,8 @@ namespace scala {
     FR.ReadTag("Kernel"); kernel = KernelType(FR.Int());
     FR.ReadTag("Lengthscale"); lengthscale = FR.Double();
     FR.ReadTag("Sigf"); sigf = FR.Double();
+    FR.ReadTag("Gmean"); gmean = FR.Double();
+    FR.ReadTag("Noisescale"); noisescale = FR.Double();
     FR.ReadTag("Ntrain"); ntrain = FR.Int();
     FR.ReadTag("Ngrid"); ngrid = FR.Int();
     FR.ReadTag("GridStep"); grid_step = FR.Double();

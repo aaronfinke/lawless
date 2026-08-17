@@ -2055,7 +2055,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   void ScaleModel::FitGPRWavelength(const std::vector<double>& lambdas,
-                                    const std::vector<double>& logratios,
+                                    const std::vector<double>& ratios,
                                     const std::vector<double>& weights,
                                     phaser_io::Output& output)
   // Fit the GP wavelength normalization from per-observation samples and
@@ -2063,7 +2063,7 @@ namespace scala {
   {
     if (!gpr_requested) return;
     std::string fitlog;
-    int nb = gpr_scale.Fit(lambdas, logratios, weights,
+    int nb = gpr_scale.Fit(lambdas, ratios, weights,
                            gpr_control, gpr_lambda_ref, fitlog);
     output.logTab(0, LOGFILE, fitlog);
     if (nb == 0) {

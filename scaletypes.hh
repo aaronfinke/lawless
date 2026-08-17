@@ -615,11 +615,22 @@ namespace scala {
   // the scale-model parameter vector and has zero derivatives.
   //
   // Fit procedure (see Fit()):
-  //   1) bin per-observation log-ratios  y = log(I_obs / <I>_symmetry)  by wavelength
-  //   2) form a heteroscedastic training set (bin centre, bin-mean, SEM^2)
-  //   3) fit a zero-mean Gaussian process in LOG space with a squared-exponential
-  //      (or Matern-3/2) kernel; the length scale is chosen by maximising the
-  //      log marginal likelihood (unless fixed by the user)
+  //   1) sort the per-observation ratios rho = I_obs / <I>_mates by wavelength and
+  //      split them into EQUAL-COUNT bins, so sparsely populated wavelengths get
+  //      wide bins instead of noisy narrow ones
+  //   2) each bin gives one training point by the linear-space RATIO estimator
+  //         r_b = sum(u_i rho_i) / sum(u_i),  u_i = <I>_mates / sigma_i^2
+  //      with the sandwich (ratio-estimator) variance.  Working in linear space
+  //      avoids the strong bias and heavy tails of a mean of per-observation
+  //      log-ratios, and tolerates weak or negative intensities.
+  //      Training target is h_b = log(r_b) with variance var(r_b)/r_b^2.
+  //   3) fit a Gaussian process to h_b in LOG-INTENSITY space, with a CONSTANT
+  //      mean and the kernel evaluated in the WARPED coordinate x = log(lambda).
+  //      The warp makes the response near-stationary: a Laue/white-beam spectrum
+  //      has fine structure at short wavelengths and is broad and flat at long
+  //      wavelengths, which a single length scale in lambda cannot represent.
+  //      Length scale, signal sdev and a noise-inflation factor are chosen
+  //      together by maximising the log marginal likelihood.
   //   4) evaluate the posterior mean g(lambda) on a dense uniform grid (lookup table)
   // Scale:  ws(lambda) = exp(g(lambda) - g(lambda_ref))   (>0 by construction)
   {
@@ -640,12 +651,15 @@ namespace scala {
     WavelengthGPRScale() : active(false), lam_min(0.0), lam_max(0.0),
                            lambda_ref(0.0), g_ref(0.0), grid_step(0.0),
                            ngrid(0), kernel(SQEXP), lengthscale(0.0),
-                           sigf(0.0), signoise(0.0), ntrain(0) {}
+                           sigf(0.0), signoise(0.0), gmean(0.0),
+                           noisescale(1.0), ntrain(0) {}
 
     // Fit the GP from per-observation samples; returns number of training bins
     // used (0 => fit failed / inactive). Diagnostic text appended to fitlog.
+    //   ratios[n]  = I_obs / <I>_other-mates   (linear space, may be <= 0)
+    //   weights[n] = <I>_other-mates / sigma^2 (weight appropriate to the ratio)
     int Fit(const std::vector<double>& lambdas,
-            const std::vector<double>& logratios,
+            const std::vector<double>& ratios,
             const std::vector<double>& weights,
             const GPRControl& ctrl, const double& LambdaRef,
             std::string& fitlog);
@@ -677,7 +691,8 @@ namespace scala {
     void Restore(Fileread& FR);
 
   private:
-    double kernelValue(const double& la, const double& lb) const;
+    // Kernel between two points in the WARPED coordinate x = log(lambda)
+    double kernelValue(const double& xa, const double& xb) const;
 
     // ASCII line plot of w(lambda) over the fitted range (for log output)
     std::string AsciiPlot(const int& width = 60, const int& height = 15) const;
@@ -690,10 +705,16 @@ namespace scala {
     std::vector<double> grid_g; // posterior-mean log-scale on the grid
     std::vector<double> grid_sd; // posterior SD (log space) on the grid
     KernelType kernel;         // kernel used (for reporting)
-    double lengthscale;        // fitted/used length scale (for reporting)
+    double lengthscale;        // fitted/used length scale, in log(lambda) units
     double sigf;               // signal sdev (for reporting)
     double signoise;           // mean training noise sdev (for reporting)
+    double gmean;              // constant GP mean (the level the fit reverts to)
+    double noisescale;         // fitted inflation factor on the bin variances
     int ntrain;                // number of training bins used (for reporting)
+    // training points, kept for the log/gnuplot output only
+    std::vector<double> train_lam;  // bin weighted-mean wavelength
+    std::vector<double> train_h;    // bin log-response
+    std::vector<double> train_hsd;  // bin log-response sdev
   };  // class WavelengthGPRScale
   //--------------------------------------------------------------
   class LinkSpecs {

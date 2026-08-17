@@ -112,22 +112,69 @@ machinery (`CountParameters`, `GetParameters/SetParameters`, `GetParameterType`,
 
 1. **Empirical response** (built in `aimless.cpp`, not via BFGS): for each
    reflection with ≥2 accepted observations passing the I/σ cut, form the
-   **leave-one-out** log-ratio `y = log(I_obs / <I>_other-mates)` at each
-   observation's wavelength. Leave-one-out avoids the self-bias that a plain
-   mean would introduce at low multiplicity.
-2. **Bin** the `(λ, y, w=1/σ²)` samples into `nbins` wavelength bins; each
-   populated bin (≥3 obs) becomes one training point `(λ_b, mean_b, SEM²_b)`
-   — a **heteroscedastic** noise model.
-3. **Fit** a zero-mean GP in **log space** with a squared-exponential (default)
-   or Matérn-3/2 kernel. The length scale is chosen by maximising the **log
-   marginal likelihood** over a log-spaced grid (unless fixed by the user);
-   `σ_f²` is set from the spread of the bin targets. Solved via Eigen `LLT`
-   (Cholesky) of `K + diag(SEM²) + jitter`.
-4. **Lookup table**: evaluate the posterior mean `g(λ)` on a dense uniform grid.
+   **leave-one-out** ratio `ρ = I_obs / <I>_other-mates` at each observation's
+   wavelength, with weight `u = <I>_other-mates / σ²`. Leave-one-out avoids the
+   self-bias that a plain mean would introduce at low multiplicity. Weak and
+   negative intensities are kept — the ratio estimator handles them, and
+   cutting them biases the response at the spectrum edges.
+   The whole sample-building step is **iterated 3×**: each pass divides the
+   mates by the current `ws(λ)` before averaging, so the mates' mean is free of
+   wavelength response. Without this the raw ratio measures the response only
+   relative to the (wavelength-dependent) mixture of wavelengths at which the
+   mates happen to have been measured. The iteration converges on the same
+   consistency condition the Chebyshev refinement reaches by least squares
+   (typically converged by pass 2).
+2. **Bin** the sorted `(λ, ρ, u)` samples into **equal-count** bins, closing a
+   bin at whichever comes first: the nominal population `N/nbins`, or a cap of
+   `4·(log-λ span)/nbins` on the bin's width in `log λ`. Equal count alone
+   gives every training point comparable precision (uniform-width bins do not —
+   a Laue dataset has orders of magnitude more observations at the peak of the
+   spectrum than in its tails); the width cap stops the sparse tail collapsing
+   into one very wide bin whose centroid sits far from the end of the range.
+   Each bin gives one training point by the linear-space **ratio estimator**
+   `r = Σuρ/Σu` with the sandwich variance `Σu²(ρ−r)²/(Σu)²`; the target is
+   `h = log r`, `var(h) = var(r)/r²`. A mean of per-observation *log*-ratios
+   (the original estimator) is badly biased and heavy-tailed for weak data.
+3. **Fit** a GP to `h_b` in log-intensity space with a squared-exponential
+   (default) or Matérn-3/2 kernel, **a constant mean**, and the kernel
+   evaluated in the **warped coordinate `x = log λ`**. Length scale `ℓ`,
+   signal sdev `σ_f` and a **noise-inflation factor `α`** (multiplying the bin
+   variances) are chosen *together* by maximising the **log marginal
+   likelihood** over a grid. Solved via Eigen `LLT` (Cholesky) of
+   `σ_f²K + diag(α·var) + jitter`.
+4. **Lookup table**: evaluate the posterior mean `g(λ)` on a dense uniform grid,
+   **held constant outside the outermost training points** so the fit can never
+   run away where there is no data. The posterior SD is still evaluated at the
+   true λ, so the widening band keeps showing that the extremes are unsupported.
 
 `Scale(λ) = exp(g(λ) − g(λ_ref))` — log space guarantees `ws > 0`; reference
 normalisation makes `ws(λ_ref) = 1`. Returns `1.0` outside `[λmin, λmax]` or if
 the fit was skipped (too few samples/bins).
+
+#### Why these choices (measured, not assumed)
+
+The first implementation produced strongly oscillatory `w(λ)`. Diagnosis on
+`test_data/ca_thio`: the marginal likelihood pinned `ℓ` at the **lower** end of
+its search grid on nearly every trial, i.e. the GP was interpolating bin means.
+Two causes, both fixed above:
+
+- **Noise underestimated.** `SEM² = var/count` ignored that `1/σ²` weights make
+  the *effective* sample size several times smaller than the count (Kish
+  `n_eff = (Σw)²/Σw²` was as low as 5 for a 151-observation bin) — a noise
+  variance too small by up to ~25×.
+- **A single stationary kernel in λ cannot fit both ends.** The spectrum rises
+  steeply over a narrow interval at short λ and is broad and flat at long λ;
+  short `ℓ` was the only way to follow the rise, and it made everything else
+  wiggle. `x = log λ` makes the response near-stationary.
+
+Held-out cross-validation (fit on a random half of the observations, score
+against bins from the other half) gives **χ²/n = 4.34 for the original fit vs
+2.22 for the current one** — the oscillations did not reproduce on independent
+data. Note that the original fit gives a slightly *lower* Rmerge (0.218 vs
+0.226), which is what overfitting looks like: R-factors reward a curve that
+absorbs random variation. On the same test the current GP matches the Chebyshev
+model (Rmerge 0.226 vs 0.224, Rmeas 0.276 both, `<I/σ>` 14.6 vs 14.5) while
+staying smooth and flat where the Chebyshev diverges at long λ.
 
 ### Integration in `ScaleModel`
 
@@ -149,16 +196,20 @@ the fit was skipped (too few samples/bins).
 
 `WavelengthGPRScale::PrintNormalization` (via
 `ScaleModel::PrintGPRWavelengthNormalization`) writes to the log: the reference
-wavelength, range, kernel, length scale, `σ_f`, training-bin count, a `w(λ)`
-sample table, and an ASCII line plot of `w(λ)` (`WavelengthGPRScale::AsciiPlot`,
-reference wavelength drawn as a `:` column).
+wavelength, range, kernel, length scale (in `log λ` units **and** its Å
+equivalent at `λ_ref`), `σ_f`, noise-inflation factor, training-bin count, a
+`w(λ)` sample table, and an ASCII line plot of `w(λ)`
+(`WavelengthGPRScale::AsciiPlot`, reference wavelength drawn as a `:` column).
+Each of the 3 fit passes logs its own one-line summary, plus a warning if the
+length scale lands on either end of its search grid (a sign the fit is
+following noise, or is featureless).
 
 `WavelengthGPRScale::asXML()` (via `ScaleModel::GPRWavelengthNormalizationXML()`,
 emitted from `aimless.cpp` after the log table) writes a
 `<WavelengthNormalisationGPR>` block to XMLOUT: `<ReferenceWavelength>`,
 `<LambdaMin>`/`<LambdaMax>`, `<Kernel>`, `<LengthScale>`, `<SigmaF>`,
-`<TrainingBins>`, and a `<Normalisation>` table of 21 `<point>`
-(`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
+`<NoiseInflation>`, `<TrainingBins>`, and a `<Normalisation>` table of 21
+`<point>` (`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
 `<WavelengthNormalisation>` block on the `lawless` branch.
 
 ### LAMBDANORM gnuplot file + uncertainties
@@ -174,8 +225,12 @@ the XML and as column 3 of the LAMBDANORM file.
 written by `aimless.cpp` to a file named **`LAMBDANORM`** (in the GP pre-pass).
 It has a header comment (program/version from `version.hh`, run title, and the
 `gnuplot -p LAMBDANORM` open instruction), an inline `$LAMBDANORM` datablock
-(columns: `λ  w  rel_uncertainty  w_lo  w_hi`), and a `plot` of the `w(λ)` line
-over a 1σ `filledcurves` band. Gnuplot (≥5.0) is preferred over the deprecated
+(columns: `λ  w  rel_uncertainty  w_lo  w_hi`), a `$LAMBDABINS` datablock with
+the **binned observations the GP was fitted to** (`λ  w_bin  σ(w_bin)`), and a
+`plot` of the `w(λ)` line over a 1σ `filledcurves` band with the bins as
+error-bar points. The bins are the diagnostic that matters: the curve should
+follow them without chasing individual points.
+Gnuplot (≥5.0) is preferred over the deprecated
 loggraph plot files (ROGUES/SCALES/ANOMPLOT/CORRELPLOT). GPR-only; the
 Chebyshev model writes no LAMBDANORM.
 
@@ -291,6 +346,12 @@ LAUE NORMGPRMATERN                 # optional: Matérn-3/2 kernel; default squar
 LAUE NORMLAMREF <lambda_ref>       # shared with Chebyshev
 ```
 
+`NORMGPRBINS` is the *nominal* bin count — the width cap can add a few bins in
+sparse regions, so the reported "training bins" may slightly exceed it. Fewer
+bins is the lever if a fit still looks too free.
+`NORMGPRLENGTH` is given in Å but the kernel works in `log λ`, so the value is
+converted as `ℓ_x = ℓ / λ_ref`; the log reports both forms.
+
 The `NORMGPR*` sub-keywords share the 4-char key `NORM` with `keyIs()`, so the
 parser disambiguates on character 5 (`G`) and then on the **full token string**
 (`NORMGPR` vs `NORMGPRLENGTH` vs `NORMGPRBINS` vs `NORMGPRMATERN`), since
@@ -363,7 +424,38 @@ same 4-char key `ONLY` and dispatch to whichever class is inherited first in
 
 ### LAMBDA MTZ column
 
-aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflection inherits its batch wavelength via `Batch::Wavelength()`. With LAMBDA present, `obs.lambda()` returns the per-reflection wavelength used throughout the scale model.
+aimless reads a per-reflection wavelength column (type R) as an optional column.
+Three labels are accepted, tried **in this order of preference** and each matched
+**without regard to case**:
+
+| order | label |
+|-------|-------|
+| 1 | `LAMBDA` |
+| 2 | `LAM` |
+| 3 | `WAVELENGTH` |
+
+The first one present in the file is used; the others are ignored even if also
+present. So a file carrying both `Lambda` and `wavelength` uses `Lambda`.
+
+If none is present, each reflection inherits its batch wavelength via
+`Batch::Wavelength()`. When one is present, `obs.lambda()` returns the
+per-reflection wavelength used throughout the scale model.
+
+The chosen column is reported in the log:
+
+```
+Per-reflection wavelength taken from column Lambda
+```
+
+**Implementation** (`mtz_unmerge_io.cpp`): the logical column name stays
+`LAMBDA` throughout the program — only the file-to-program mapping in
+`MtzUnmrgFile::get_col_lookup` is affected. `CMtz::MtzColLookup` is still tried
+first (exact match); only if that fails does the alias list
+`WavelengthColumnAliases` get scanned via the local helper `ColLookupNoCase`,
+which walks every column of every dataset comparing `StringUtil::ToUpper`
+forms. On a hit, `CNL.label` is set to the actual file label so the log and
+`column_labels::Label("LAMBDA")` report what was really used. No other column
+gets alias treatment.
 
 ---
 
@@ -378,7 +470,7 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
-| `mtz_unmerge_io.cpp` | Reads LAMBDA column; batch-wavelength fallback |
+| `mtz_unmerge_io.cpp` | Reads wavelength column (LAMBDA/LAM/WAVELENGTH, case-insensitive); batch-wavelength fallback |
 | `columnlabels.hh/.cpp` | `col_lambda` column index; `is_lambda` flag in `DataFlags` |
 | `openinputfile.cpp` | Registers LAMBDA as optional MTZ column |
 | `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs |
@@ -401,4 +493,4 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 
 - **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
 
-- **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). Possible follow-ups: optimise `σ_f` (and noise scale) jointly with the length scale rather than fixing `σ_f` from the target spread; full marginal-likelihood gradient optimisation instead of the length-scale grid search; compare merging statistics (R-merge, CC½) against the Chebyshev model on real Laue data.
+- **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). `σ_f` and a noise-inflation factor are now optimised jointly with the length scale, and merging statistics have been compared against the Chebyshev model on `ca_thio` (they agree). Possible follow-ups: full marginal-likelihood *gradient* optimisation instead of the 3-D grid search; a proper CC½/half-dataset comparison; the held-out χ²/n is still ~2, suggesting the bin variances remain slightly optimistic (samples from the same reflection are correlated across bins) — a per-reflection random effect would tighten this.
