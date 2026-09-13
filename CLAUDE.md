@@ -30,7 +30,7 @@ g = ps × bs × ss × ds × ws
 | B-factor | `bs` | Isotropic B via `exp(-B·s²)` |
 | Secondary beam | `ss` | Angular correction |
 | Detector/tiling | `ds` | Detector gain correction |
-| **Wavelength** | `ws` | Chebyshev normalisation (Laue only) |
+| **Wavelength** | `ws` | Chebyshev *or* GP normalisation, optionally times a per-run residual (Laue only) |
 
 `ws = 1.0` when Laue mode is inactive (monochromatic data; backward-compatible).
 
@@ -179,18 +179,64 @@ staying smooth and flat where the Chebyshev diverges at long λ.
 ### Integration in `ScaleModel`
 
 - Members `WavelengthGPRScale gpr_scale`, `GPRControl gpr_control`,
-  `bool gpr_requested`, `double gpr_lambda_ref`.
+  `bool gpr_requested`, `double gpr_lambda_ref`, and for the per-run option
+  `std::vector<WavelengthGPRScale> gpr_run_scales`, `bool gpr_perrun`.
 - `HasGPRWavelengthScale()` — triggers the GP pre-pass (parallel to
   `HasWavelengthScale()` for Chebyshev).
 - `FitGPRWavelength(lambdas, logratios, weights, output)` — driver called from
   the pre-pass; forwards to `gpr_scale.Fit`.
-- In `ScaleFactor`/`ScaleFactorDeriv`: `ws *= gpr_scale.Scale(obs.lambda())`.
+- In `ScaleFactor`/`ScaleFactorDeriv`: `ws *= gpr_scale.Scale(obs.lambda())`,
+  then `*= gpr_run_scales[jscale].Scale(obs.lambda())` when the per-run residual
+  is active (`jscale` is the run index — see `GPRRunActive`).
   In the deriv path the fixed factor `wsgpr` also scales the Chebyshev
   derivative block (defensive: keeps the two correct if ever combined, though
   the parser forbids that — they are mutually exclusive keywords).
 - `haveWavelength` in `init` is true when **either** Chebyshev ranges or GPR is
   requested, so the constant-primary fallback (LAMBDAONLY without
   `SCALES CONSTANT`) works for GPR too.
+
+### Per-run residual normalisation (`LAUE NORMGPRPERRUN`)
+
+A single global `w(λ)` is a compromise if the incident spectrum drifts between
+runs. `NORMGPRPERRUN` fits each run an **additional residual** curve, so the
+total correction is
+
+```
+ws(λ, run) = w_global(λ) × w_run(λ)
+```
+
+Fitting a residual rather than a full per-run spectrum is what keeps this well
+conditioned: the global curve carries the (large) spectral shape using all the
+data, and each run only has to explain its departure from it. A run with no
+departure fits flat at 1.0 and changes nothing; a run with too few samples
+degrades to the global curve rather than to noise.
+
+The residual samples are the same leave-one-out ratios as the global fit, with
+one change: **both the observation and its mates are first divided by the total
+correction already in force** (`ScaleModel::GPRWavelengthScaleAt(irun, λ)`).
+Samples are assigned to the run of the *observation*, while the mates may come
+from any run — that is what makes the residual relative to the common
+consensus rather than to the run itself. Two iterations (the global fit uses
+three).
+
+Because the GP contributes **no parameters** to the refinement vector, this
+needed no parameter-management changes at all — only the vector of
+`WavelengthGPRScale` indexed by run and the extra factor in the two scale
+paths.
+
+- `HasPerRunGPRWavelength()`, `GPRRunActive(irun)`, `NumberGPRRuns()`
+- `FitGPRWavelengthRun(irun, lambdas, ratios, weights, output)` — per-run driver
+- `PrintGPRPerRunNormalization(output)` — logs each run's residual table
+- The per-run loop lives in `aimless.cpp`, after the global GP loop, and only
+  runs if the global fit succeeded.
+
+**Diagnosing a null result:** compare the per-run `sigma_f` in the log against
+the global one. A per-run `sigma_f` two or more orders of magnitude smaller
+means the GP is reporting that there is no per-run drift to correct — which is
+a real answer, not a failed fit. Note also that this corrects *means*: a
+per-run wavelength effect that is an increase in **scatter** rather than a
+systematic shift will fit flat, and no wavelength normalisation of any kind can
+absorb it (only the SD correction can).
 
 ### Log & XML output
 
@@ -240,6 +286,50 @@ extremes (outside the range it returns a flat `ws = 1`, never a divergent tail).
 
 Eigen3 lives at `${SRC}/eigen-3.4.0` and is added to `include_directories` in
 `CMakeLists.txt`; the dependency is confined to `scaletypes.cpp`.
+
+---
+
+## Secondary-beam / absorption geometry for Laue
+
+The secondary beam is `ŝ_out = ŝ_in + λ·q`, so the **wavelength sets the
+scattering angle**. `Batch::HtoSr0` used to form the diffraction vector from
+`batchinfo.alambd`, the batch wavelength — exact for monochromatic data, where
+every observation in the batch shares it, and wrong for Laue. Over a 2.10–3.90 Å
+band that misdirects the secondary beam by a **median 6.4°**, a quarter of
+observations by more than 10°, worst case 18°. The azimuth about the beam is
+unaffected; the whole error is in 2θ and is systematic in λ.
+
+`HtoSr0`, `CalcSecondaryBeam` and `CalcSecondaryBeamPolar` now take an optional
+wavelength, defaulting to `-1` meaning "use the batch wavelength", so every
+existing call is unchanged. The single caller, `CalcSecondaryBeams`, already
+holds the observation and passes `observation::lambda()` — which itself falls
+back to the batch wavelength when the file has no LAMBDA column, so
+monochromatic behaviour is preserved twice over.
+
+Each of those three functions has exactly one call site; the values they produce
+are consumed only by `obs.GetS2()` → the secondary/absorption scale in
+`scalemodel.cpp`, and `obs.GetS()` → the axes of the ROGUES plot.
+
+### What the batch header needs before any of this works
+
+`Batch::init` rejects orientation data if `det(U) <= 0.9` or `U == I`, and
+`ScaleModel` then refuses `SECONDARY`/`ABSORPTION` with "can't use Secondary
+Scale unless we have valid orientation information". To supply it:
+
+- `UMAT` is **column-major** (`MVutil::SetCMat33` reads `m[0],m[3],m[6]` as the
+  first row), and must satisfy `U·B = UB` with `B` exactly as `Scell::Bmat`
+  builds it from the **symmetry-constrained** cell — pointless constrains batch
+  cells on output, so a `U` paired with an unconstrained cell will not survive.
+- `SOURCE` is **anti-parallel to the beam**, `E1` is the principal rotation
+  axis. `MakePermutationMatrix(SOURCE, E1)` builds the Cambridge frame from
+  those two, putting z exactly on `E1` and x in the beam/`E1` plane, so the
+  header frame need not be canonical — it only has to be self-consistent and
+  to name the beam and the axis correctly.
+- **A `ROT` column is mandatory.** `mtz_unmerge_io.cpp` has
+  `if (col_sel.col_Rot < 0) {phi = batch;}` — with no ROT column aimless uses
+  the *batch number* as φ and back-rotates the source vector by hundreds of
+  degrees. For stills whose exposure-to-exposure rotation is carried in `U` and
+  `SOURCE`, write `ROT = 0`.
 
 ---
 
@@ -343,6 +433,7 @@ LAUE NORMGPR <lam_min> <lam_max>   # enable GP normalisation over this range
 LAUE NORMGPRLENGTH <lengthscale>   # optional: fix GP length scale (Å); default auto
 LAUE NORMGPRBINS <nbins>           # optional: number of training bins; default 50
 LAUE NORMGPRMATERN                 # optional: Matérn-3/2 kernel; default squared-exp
+LAUE NORMGPRPERRUN                 # optional: residual w(λ) per run, on top of the global curve
 LAUE NORMLAMREF <lambda_ref>       # shared with Chebyshev
 ```
 
@@ -354,7 +445,8 @@ converted as `ℓ_x = ℓ / λ_ref`; the log reports both forms.
 
 The `NORMGPR*` sub-keywords share the 4-char key `NORM` with `keyIs()`, so the
 parser disambiguates on character 5 (`G`) and then on the **full token string**
-(`NORMGPR` vs `NORMGPRLENGTH` vs `NORMGPRBINS` vs `NORMGPRMATERN`), since
+(`NORMGPR` vs `NORMGPRLENGTH` vs `NORMGPRBINS` vs `NORMGPRMATERN` vs
+`NORMGPRPERRUN`), since
 `keyIs("NORMGPR")` would also match the longer variants. One range only (the GP
 spans the whole `[lam_min, lam_max]`); no `degree`. Without an explicit length
 scale, it is chosen by log-marginal-likelihood. See the GPR section above.
@@ -397,9 +489,9 @@ OUTPUT UNMERGED
 
 `LAMBDAONLY` runs **only** the wavelength normalization and nothing else — no
 primary/B-factor/secondary/detector scaling, and no outlier rejection at any
-stage. The unmerged output contains the original intensities with `SCALEUSED`
-set purely from the wavelength scale `ws(λ)`; the full observation count is
-preserved (zero rejections).
+stage. `SCALEUSED` in the unmerged output is then purely the wavelength scale
+`ws(λ)` (see the note below on what that column means); the full observation
+count is preserved (zero rejections).
 
 Flow when active:
 
@@ -421,6 +513,28 @@ coefficients refine. (Supplying `SCALES CONSTANT` explicitly also works.)
 keyword must **not** collide with `ONLYMERGE` — both `ONLY…` forms map to the
 same 4-char key `ONLY` and dispatch to whichever class is inherited first in
 `InputAll`. This is why the keyword is `LAMBDAONLY` (`LAMB`), not `ONLYLAMBDA`.
+
+### The unmerged output file
+
+`writeunmerged.cpp` writes the **scaled** intensities, not the raw ones:
+
+```cpp
+data[ic++] = this_obs.kI();      // kI() = I_/gscale   -> the SCALED intensity
+float g = this_obs.Gscale();
+if (g != 0.0) g = 1.0f/g;
+data[ic++] = g;                  // SCALEUSED = 1/gscale
+```
+
+so `I_out = I_in × SCALEUSED`. `SCALEUSED` records the factor that **was
+applied**, not one still to apply — dividing by it a second time before
+computing merging statistics roughly doubles R-merge.
+
+`LAMBDA` is written back out whenever it was read in (`data_flags::is_lambda`),
+as an optional column immediately after `TIME` in the column list and in both
+the raw and summed-partials data paths. Without it, scaled Laue data could not
+be re-scaled or analysed against wavelength without going back to the input file
+and matching on `(h, k, l, M/ISYM, batch)`. The raw path's `ic == NumCol`
+assertion guards the column/data ordering if further columns are added.
 
 ### LAMBDA MTZ column
 
@@ -470,7 +584,10 @@ gets alias treatment.
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
-| `mtz_unmerge_io.cpp` | Reads wavelength column (LAMBDA/LAM/WAVELENGTH, case-insensitive); batch-wavelength fallback |
+| `mtz_unmerge_io.cpp` | Reads wavelength column (LAMBDA/LAM/WAVELENGTH, case-insensitive); batch-wavelength fallback; substitutes the batch number for φ if there is no ROT column |
+| `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
+| `hkl_datatypes.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue |
+| `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
 | `columnlabels.hh/.cpp` | `col_lambda` column index; `is_lambda` flag in `DataFlags` |
 | `openinputfile.cpp` | Registers LAMBDA as optional MTZ column |
 | `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs |
@@ -494,3 +611,18 @@ gets alias treatment.
 - **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
 
 - **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). `σ_f` and a noise-inflation factor are now optimised jointly with the length scale, and merging statistics have been compared against the Chebyshev model on `ca_thio` (they agree). Possible follow-ups: full marginal-likelihood *gradient* optimisation instead of the 3-D grid search; a proper CC½/half-dataset comparison; the held-out χ²/n is still ~2, suggesting the bin variances remain slightly optimistic (samples from the same reflection are correlated across bins) — a per-reflection random effect would tighten this.
+
+- **Wavelength-dependent SD correction** — `SDCORRECTION` fits
+  `σ' = SdFac·√(σ² + SdB·I + (SdAdd·I)²)`, all functions of intensity only. On
+  MaNDi CuZnSOD the per-observation χ² has an independent **wavelength**
+  dependence that also varies run to run (later runs noisier at long λ), and it
+  is a *variance*, not a bias — `NORMGPRPERRUN` correctly fits a flat residual
+  against it, because a scale model corrects means. A λ- (or λ-and-run-)
+  dependent SD term is the right shape for that residual. Worth testing on other
+  Laue datasets before adding a keyword.
+
+- **Per-run GPR on a dataset that actually drifts** — `NORMGPRPERRUN` is
+  implemented and regression-clean, but the only dataset it has been run on
+  (CuZnSOD, 10 packs) has no per-run spectral drift: per-run `σ_f` comes out at
+  0.002–0.018 in log space against 1.66 for the global fit. It has therefore
+  never been exercised against a real non-flat residual.
