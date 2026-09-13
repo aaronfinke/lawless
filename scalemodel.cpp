@@ -40,6 +40,7 @@ namespace scala {
     idxwavscale = 0;
     wavelength_only_mode_ = false;
     gpr_requested = false;
+    gpr_perrun = false;
     init (input, hkl_list, controls, output);
   }
   //--------------------------------------------------------------
@@ -68,6 +69,7 @@ namespace scala {
     idxwavscale = 0;
     wavelength_only_mode_ = false;
     gpr_requested = input.HasGPR();
+    gpr_perrun = input.HasGPRPerRun() && gpr_requested;
     gpr_lambda_ref = input.getLambdaRef();
     if (gpr_requested) gpr_control = input.getGPRControl();
     setup(scaleSpecs, linkspecs, hkl_list, output);
@@ -1873,6 +1875,10 @@ namespace scala {
     if (gpr_scale.IsActive()) {
       ws *= gpr_scale.Scale(obs.lambda());
     }
+    // per-run residual wavelength response, on top of the global curve
+    if (GPRRunActive(jscale)) {
+      ws *= gpr_run_scales[jscale].Scale(obs.lambda());
+    }
     g = ps*bs*ss*ds*ws;
     //^^^
     ////    if (g <= 0.0) {
@@ -1971,6 +1977,7 @@ namespace scala {
       ws = wavelength_scale.ScaleDeriv(obs.lambda(), dgdw);
     }
     double wsgpr = gpr_scale.IsActive() ? gpr_scale.Scale(obs.lambda()) : 1.0;
+    if (GPRRunActive(jscale)) {wsgpr *= gpr_run_scales[jscale].Scale(obs.lambda());}
     ws *= wsgpr;
 
     // dghl/dp = dg(primary)/dp * bs * ss * ds * ws
@@ -2069,6 +2076,47 @@ namespace scala {
     if (nb == 0) {
       output.logTab(0, LOGFILE,
         "GPR wavelength normalization fit failed; no correction applied\n");
+    }
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::FitGPRWavelengthRun(const int& irun,
+                                       const std::vector<double>& lambdas,
+                                       const std::vector<double>& ratios,
+                                       const std::vector<double>& weights,
+                                       phaser_io::Output& output)
+  // Fit run irun's RESIDUAL wavelength response, ie the correction still needed
+  // on top of the global curve.  The samples passed in must already have been
+  // divided by the global w(lambda), so a run whose spectrum matches the global
+  // one fits a flat curve at 1.0 and changes nothing.
+  {
+    if (!gpr_perrun) return;
+    if (irun < 0) return;
+    if (int(gpr_run_scales.size()) <= irun) {gpr_run_scales.resize(irun+1);}
+    std::string fitlog;
+    int nb = gpr_run_scales[irun].Fit(lambdas, ratios, weights,
+                                      gpr_control, gpr_lambda_ref, fitlog);
+    output.logTab(0, LOGFILE, fitlog);
+    if (nb == 0) {
+      output.logTabPrintf(0, LOGFILE,
+        "  run %d: residual wavelength fit failed, global curve used unchanged\n",
+        irun+1);
+    }
+  }
+  //--------------------------------------------------------------
+  void ScaleModel::PrintGPRPerRunNormalization(phaser_io::Output& output) const
+  {
+    if (!gpr_perrun) return;
+    output.logTabPrintf(0, LOGFILE,
+      "\n Per-run residual wavelength response w_run(lambda)\n"
+      "   (multiplies the global curve; 1.0 everywhere = no drift from it)\n");
+    for (size_t ir=0; ir<gpr_run_scales.size(); ++ir) {
+      if (!gpr_run_scales[ir].IsActive()) {
+        output.logTabPrintf(0, LOGFILE, "\n Run %d: flat (no residual fitted)\n",
+                            int(ir)+1);
+        continue;
+      }
+      output.logTabPrintf(0, LOGFILE, "\n Run %d:\n", int(ir)+1);
+      output.logTab(0, LOGFILE, gpr_run_scales[ir].PrintNormalization(8));
     }
   }
   //--------------------------------------------------------------

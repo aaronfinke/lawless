@@ -884,6 +884,79 @@ int main(int argc, char* argv[])
         if (!AllScales.GPRWavelengthActive()) break;  // fit failed; stop here
       }
       AllScales.PrintGPRWavelengthNormalization(output);
+
+      // ----- per-run residual wavelength response (LAUE NORMGPRPERRUN)
+      // The global curve above is a compromise if the incident spectrum drifts
+      // between runs.  Fit each run a RESIDUAL curve: exactly the same
+      // leave-one-out ratio, except that both the observation and its mates are
+      // first divided by the total correction already in force, so a run whose
+      // spectrum matches the global one fits flat at 1.0 and changes nothing.
+      // Samples are assigned to the run of the observation, but the mates may
+      // come from any run - that is what makes the residual relative to the
+      // common consensus rather than to the run itself.
+      if (AllScales.HasPerRunGPRWavelength() && AllScales.GPRWavelengthActive()) {
+        int nrunsgpr = hkl_list.num_runs();
+        output.logTabPrintf(0, LOGFILE,
+          "\n----- Per-run residual wavelength response, %d runs -----\n",
+          nrunsgpr);
+        const int NGPRRUNITER = 2;
+        for (int iter = 0; iter < NGPRRUNITER; ++iter) {
+          std::vector<std::vector<double> > rlam(nrunsgpr), rratio(nrunsgpr),
+                                            rwt(nrunsgpr);
+          reflection this_refl;
+          for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+            this_refl = hkl_list.get_reflection(jref);
+            int nobs = this_refl.num_observations();
+            if (nobs < 2) continue;
+            std::vector<double> oI, oIc, oL, oW;
+            std::vector<int> oR;
+            double sumw = 0.0, sumwi = 0.0;
+            for (int i=0; i<nobs; ++i) {
+              observation obs = this_refl.get_observation(i);
+              if (!obs.IsAccepted()) continue;
+              double I = obs.I();
+              double s = obs.sigI();
+              if (s <= 0.0) continue;
+              if (I/s < IovSDmin) continue;
+              double lam = obs.lambda();
+              int ir = obs.run();
+              double w = 1.0/(s*s);
+              // total correction in force for THIS observation's run
+              double ws = AllScales.GPRWavelengthScaleAt(ir, lam);
+              if (!(ws > 0.0)) ws = 1.0;
+              double Ic = I/ws;
+              oI.push_back(I); oIc.push_back(Ic); oL.push_back(lam);
+              oW.push_back(w); oR.push_back(ir);
+              sumw += w; sumwi += w*Ic;
+            }
+            if (oI.size() < 2 || sumw <= 0.0) continue;
+            for (size_t i=0; i<oI.size(); ++i) {
+              int ir = oR[i];
+              if (ir < 0 || ir >= nrunsgpr) continue;
+              double sw  = sumw  - oW[i];
+              double swi = sumwi - oW[i]*oIc[i];
+              if (sw <= 0.0) continue;
+              double mean_i = swi/sw;
+              if (mean_i <= 0.0) continue;
+              // ratio of the ALREADY-CORRECTED observation to the corrected
+              // mates: unity if the global curve is right for this run
+              rlam[ir].push_back(oL[i]);
+              rratio[ir].push_back(oIc[i]/mean_i);
+              rwt[ir].push_back(mean_i*oW[i]);
+            }
+          }
+          output.logTabPrintf(0, LOGFILE, "\n Residual cycle %d of %d:\n",
+                              iter+1, NGPRRUNITER);
+          for (int ir=0; ir<nrunsgpr; ++ir) {
+            output.logTabPrintf(0, LOGFILE, "  run %d: %d samples\n",
+                                ir+1, int(rlam[ir].size()));
+            AllScales.FitGPRWavelengthRun(ir, rlam[ir], rratio[ir], rwt[ir],
+                                          output);
+          }
+        }
+        AllScales.PrintGPRPerRunNormalization(output);
+      }
+
       output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
 
       // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)

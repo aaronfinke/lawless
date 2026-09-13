@@ -958,6 +958,7 @@ namespace phaser_io {
     //   NORMGPRLENGTH <lengthscale>     [optional GP length scale, A]
     //   NORMGPRBINS <nbins>             [optional number of training bins]
     //   NORMGPRMATERN                   [use Matern-3/2 kernel (default sq-exp)]
+    //   NORMGPRPERRUN                   [fit a residual w(lambda) for each run]
   public:
     LAUE();
     virtual ~LAUE() {}
@@ -969,6 +970,7 @@ namespace phaser_io {
     double getLambdaRef() const {return lambda_ref;}
     scala::WavelengthGPRScale::GPRControl getGPRControl() const {return gprcontrol;}
     bool HasGPR() const {return gprcontrol.enabled;}
+    bool HasGPRPerRun() const {return gprperrun;}
 
     void analyse(){}
 
@@ -977,6 +979,7 @@ namespace phaser_io {
     std::vector<scala::WavelengthChebyshevScale::WavelengthRange> ranges;
     double lambda_ref;
     scala::WavelengthGPRScale::GPRControl gprcontrol;
+    bool gprperrun;   // LAUE NORMGPRPERRUN
   };
 } // phaser_io
 

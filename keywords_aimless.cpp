@@ -2251,7 +2251,8 @@ Token_value BFACTOR::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
-LAUE::LAUE() : CCP4base(), InputBase(), islaue(false), lambda_ref(0.0)
+LAUE::LAUE() : CCP4base(), InputBase(), islaue(false), lambda_ref(0.0),
+               gprperrun(false)
 {
   Add_Key("LAUE");
   inputPtr iPtr(this);
@@ -2304,6 +2305,8 @@ Token_value LAUE::parse(std::istringstream& input_stream)
           gprcontrol.lengthscale = get1num(input_stream);
         } else if (sv == "NORMGPRBINS") {
           gprcontrol.nbins = Nint(get1num(input_stream));
+        } else if (sv == "NORMGPRPERRUN") {
+          gprperrun = true;
         } else if (sv == "NORMGPRMATERN") {
           gprcontrol.kernel = scala::WavelengthGPRScale::MATERN32;
         }

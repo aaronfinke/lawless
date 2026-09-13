@@ -211,6 +211,14 @@ namespace scala {
 
     // true if a Gaussian-process wavelength normalization was requested
     bool HasGPRWavelengthScale() const {return gpr_requested;}
+    //! true if a separate residual w(lambda) is wanted for each run
+    bool HasPerRunGPRWavelength() const {return gpr_perrun;}
+    //! number of runs (size of the per-run residual list)
+    int NumberGPRRuns() const {return int(gpr_run_scales.size());}
+    //! true if run irun has a fitted residual curve
+    bool GPRRunActive(const int& irun) const {
+      return (irun >= 0 && irun < int(gpr_run_scales.size())
+              && gpr_run_scales[irun].IsActive());}
     // true once the GP fit has succeeded and is being applied
     bool GPRWavelengthActive() const {return gpr_scale.IsActive();}
     // Fit the GP wavelength normalization from per-observation samples
@@ -227,6 +235,19 @@ namespace scala {
     // Used to iterate the empirical response estimate.
     double GPRWavelengthScaleAt(const double& lambda) const
     {return gpr_scale.Scale(lambda);}
+    //! global w(lambda) times run irun's residual, ie the total GP correction
+    double GPRWavelengthScaleAt(const int& irun, const double& lambda) const {
+      double w = gpr_scale.Scale(lambda);
+      if (GPRRunActive(irun)) {w *= gpr_run_scales[irun].Scale(lambda);}
+      return w;}
+    //! fit the residual curve for one run
+    void FitGPRWavelengthRun(const int& irun,
+                             const std::vector<double>& lambdas,
+                             const std::vector<double>& ratios,
+                             const std::vector<double>& weights,
+                             phaser_io::Output& output);
+    //! log the per-run residual curves
+    void PrintGPRPerRunNormalization(phaser_io::Output& output) const;
     // Print the GP wavelength normalization table to log
     void PrintGPRWavelengthNormalization(phaser_io::Output& output) const;
 
@@ -481,6 +502,9 @@ namespace scala {
     // Fitted in a pre-pass and applied as a FIXED multiplicative correction
     // (no refinable parameters, zero derivatives in ScaleFactorDeriv).
     WavelengthGPRScale gpr_scale;
+    // per-run residual curves: total ws(lambda) = gpr_scale * gpr_run_scales[irun]
+    std::vector<WavelengthGPRScale> gpr_run_scales;
+    bool gpr_perrun;     // true if LAUE NORMGPRPERRUN was given
     WavelengthGPRScale::GPRControl gpr_control; // user controls from LAUE NORMGPR
     bool gpr_requested;  // true if LAUE NORMGPR was given
     double gpr_lambda_ref;  // reference wavelength (NORMLAMREF) for GPR normalization
