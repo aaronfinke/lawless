@@ -732,7 +732,12 @@ namespace scala
     //! reciprocal lattice index h -> s(r) = [R][D][U][B]h camera frame
     DVect3 HtoSr(const Hkl& hkl, const float& phi) const;
     //! reciprocal lattice index h -> s(r0) = [D][U][B]h zero rotation angle frame
-    DVect3 HtoSr0(const Hkl& hkl) const;
+    /*! lambda is the wavelength at which this reflection was actually measured.
+      The default (< 0) falls back to the batch wavelength, which is exact for
+      monochromatic data; for Laue data the caller must pass the per-observation
+      wavelength or the secondary beam direction is wrong by the amount that
+      lambda differs from the batch mean. */
+    DVect3 HtoSr0(const Hkl& hkl, const double& lambda = -1.0) const;
     //! camera frame s(r) -> s(r0) = [R]^-1 s(r) zero rotation angle frame
     DVect3 SrtoSr0(const DVect3& sr, const float& phi) const;
     //! zero rotation angle frame s(r0) -> polar orthogonalised crystal frame

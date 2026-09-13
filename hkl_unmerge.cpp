@@ -3332,7 +3332,7 @@ namespace scala {
         int batchNum = this_obs.Batch();
         std::pair<float,float> thphi =
           CalcSecondaryBeamPolar(batchNum, this_obs.hkl_original(),
-                                 this_obs.phi(), sPhi);
+                                 this_obs.phi(), sPhi, this_obs.lambda());
         this_obs.StoreS2(thphi.first, thphi.second);
         for (int i=0;i<3;++i) {fsPhi[i] = sPhi[i];}  // float not double for storage
         this_obs.StoreS(fsPhi);   // rlu
@@ -3344,7 +3344,7 @@ namespace scala {
   //--------------------------------------------------------------
   std::pair<float, float> hkl_unmerge_list::CalcSecondaryBeamPolar
   (const int& batchNum, const Hkl& hkl_original, const float& phi,
-   DVect3& sPhi) const
+   DVect3& sPhi, const double& lambda) const
   // Calculate secondary beam directions
   //
   // On entry
@@ -3356,7 +3356,7 @@ namespace scala {
   //  sPhi      diffraction vector at actual phi position (rlu)
   //  pair(thetap, phip)   secondary beam directions, radians
   {
-    DVect3 s2 = CalcSecondaryBeam(batchNum, hkl_original, phi, sPhi);
+    DVect3 s2 = CalcSecondaryBeam(batchNum, hkl_original, phi, sPhi, lambda);
     // z is polar axis
     double r = sqrt(s2[0]*s2[0] + s2[1]*s2[1]);
     // thetap in range 0 -> pi
@@ -3371,7 +3371,7 @@ namespace scala {
   //--------------------------------------------------------------
   DVect3 hkl_unmerge_list::CalcSecondaryBeam
   (const int& batchNum, const Hkl& hkl_original, const float& phi,
-   DVect3& sPhi) const
+   DVect3& sPhi, const double& lambda) const
   //
   // Calculate secondary beam directions
   //
@@ -3401,7 +3401,7 @@ namespace scala {
     int ib = batch_lookup.lookup(batchNum);  // batch serial
     // diffraction vector at phi = 0  zero rotation angle frame
     //    s(r0) = DUB h (dimensionless reciprocal lattice units)
-    DVect3 sr0 = batches[ib].HtoSr0(hkl_original);
+    DVect3 sr0 = batches[ib].HtoSr0(hkl_original, lambda);
     // Source vector in zero rotation angle frame (unit vector)
     DVect3 s0r0 = batches[ib].SrtoSr0(batches[ib].Source(), phi);
     // secondary beam s2(r0) = s(r0) - s0(r0) in zero rotation angle frame
