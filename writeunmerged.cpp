@@ -203,6 +203,9 @@ namespace MtzIO
       OptAddCol(col_sel.is_BgPkRatio, col, ic, mtzout, baseset, "BGPKRATIOS", "R");
     }
     OptAddCol(col_sel.is_time, col, ic, mtzout, baseset, "TIME", "R");
+    // Per-reflection wavelength: written back out if it was read in, so that
+    // Laue data round-trips (aimless reads LAMBDA/LAM/WAVELENGTH on input)
+    OptAddCol(col_sel.is_lambda, col, ic, mtzout, baseset, "LAMBDA", "R");
     if (!summedpartials) {  // only for raw output
       OptAddCol(col_sel.is_scale, col, ic, mtzout, baseset, "SCALE", "R");
       OptAddCol(col_sel.is_sigscale, col, ic, mtzout, baseset, "SIGSCALE", "R");
@@ -453,6 +456,7 @@ namespace MtzIO
       if (col_sel.is_ObsFlag) data[ic++] = part.ObsFlag().Flags();
       if (col_sel.is_BgPkRatio) data[ic++] = part.ObsFlag().BgPk();
       if (col_sel.is_time) data[ic++] = part.time();
+      if (col_sel.is_lambda) data[ic++] = part.lambda();
       // Optional scale: dummy for now
       if (col_sel.is_scale) data[ic++] = 1.0;
       if (col_sel.is_sigscale) data[ic++] = 0.0;
@@ -536,6 +540,7 @@ namespace MtzIO
           if (col_sel.is_Width) data[ic++] = this_obs.width();
           if (col_sel.is_LP) data[ic++] = this_obs.LP();
           if (col_sel.is_time) data[ic++] = this_obs.time();
+          if (col_sel.is_lambda) data[ic++] = this_obs.lambda();
 
           if (col_sel.is_latnum) {
             data[ic++] = this_obs.MainLatticeNumber();
