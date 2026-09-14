@@ -635,7 +635,7 @@ SDmodel CreateSDmodel(const std::vector<Run>& runlist,
         double w = 1.0/(sg*sg);
         oi.push_back(obs.kI()); ow.push_back(w); ol.push_back(obs.lambda());
         orun.push_back(obs.run());
-        sumw += w; sumwi += w*obs.I();
+        sumw += w; sumwi += w*obs.kI();   // scaled, as oi[] is
       }
       if (oi.size() < 2 || sumw <= 0.0) continue;
       int irs = int((this_refl.invresolsq() - smin)/dsr);
