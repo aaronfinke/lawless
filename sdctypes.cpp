@@ -21,13 +21,15 @@ namespace scala {
   const int SDcorrection::NPARALL;               // number of parameters = 3
 
   //--------------------------------------------------------------
-  SDcorrection::SDcorrection() : sdfac(1.0), sdb(0.0), sdadd(0.0) {ResetRange();}
+  SDcorrection::SDcorrection() : sdlam(0.0), lamref(0.0),
+                                 sdfac(1.0), sdb(0.0), sdadd(0.0) {ResetRange();}
   // Reset minimum & maximum
   //--------------------------------------------------------------
   SDcorrection::SDcorrection(const double& SDfac,
                              const double& SDb, const double& SDadd,
                              const bool& fixSDb)
-    : sdfac(SDfac), sdb(SDb), sdadd(SDadd), fixsdb(fixSDb),
+    : sdlam(0.0), lamref(0.0),
+      sdfac(SDfac), sdb(SDb), sdadd(SDadd), fixsdb(fixSDb),
       weights(std::vector<double>(3,0.0))
   {
     sdadd2 = sdadd * sdadd;
@@ -62,6 +64,20 @@ namespace scala {
     return Max(sdfac, MINSDFAC) * sqrt(ssc);
   }
   //--------------------------------------------------------------
+  double SDcorrection::LambdaFactor(const double& lambda) const
+  // (lambda/lambda_ref)^SDlam, 1.0 if the term is not in use
+  {
+    if (sdlam == 0.0 || lamref <= 0.0 || lambda <= 0.0) return 1.0;
+    return std::pow(lambda/lamref, sdlam);
+  }
+  //--------------------------------------------------------------
+  std::string SDcorrection::formatLambda() const
+  {
+    if (sdlam == 0.0) return "";
+    return "  SdLam " + clipper::String(sdlam, 8, 4) +
+           " (lambda_ref " + clipper::String(lamref, 8, 3) + ")";
+  }
+  //--------------------------------------------------------------
   float SDcorrection::Correct(observation& Observation, const float& Iav) const
   // in-place correction, using Iav as intensity
   // returns original uncorrected but scaled sd(I)
@@ -69,6 +85,8 @@ namespace scala {
     float sig0 = Observation.ksigI();  // scaled sigI
     // sd' on Ihl scale
     double sd = SigmaPrime(Observation.sigI(), Observation.Gscale(), Iav);
+    // Laue: wavelength-dependent part of the correction, needs the observation
+    sd *= LambdaFactor(Observation.lambda());
     double corr = sd/Observation.sigI();
     mincorr = Min(corr, mincorr);
     maxcorr = Max(corr, maxcorr);

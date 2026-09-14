@@ -3,6 +3,7 @@
 #define ASSERT assert
 #include <assert.h>
 
+#include <cmath>
 #include "sdmodel.hh"
 #include "selectedobservations.hh"
 #include "string_util.hh"
@@ -560,6 +561,161 @@ SDmodel CreateSDmodel(const std::vector<Run>& runlist,
       sdc_full_run[ir].SetSDadd(SDadd);
       sdc_partial_run[ir].SetSDadd(SDadd);
     }
+  }
+//-------------------------------------------------------------
+  int SDmodel::FitLambdaSDcorrection(hkl_unmerge_list& hkl_list,
+                                     const double& LambdaRef,
+                                     const int& nbins,
+                                     phaser_io::Output& output,
+                                     const double& scale)
+  // Fit one wavelength exponent per run: sigma' *= (lambda/lambda_ref)^SDlam
+  //
+  // chi^2(lambda) is the ratio of the observed scatter to the scatter the
+  // sigmas predict.  Scaling sigma by F(lambda) divides chi^2 by F^2, so to
+  // flatten it we need F^2 = chi^2, i.e. with chi^2 ~ (lambda/lref)^m the
+  // exponent is SDlam = m/2.  The constant part of chi^2 is left to SdFac.
+  {
+    int nruns = Nruns();
+    if (nruns < 1) return 0;
+    double lref = (LambdaRef > 0.0) ? LambdaRef : 1.0;
+
+    // Accumulate per (run, resolution bin, wavelength bin).  The resolution
+    // split is essential: in Laue data lambda and resolution are correlated,
+    // and chi^2 has a strong resolution trend of its own, so a raw slope
+    // against lambda silently absorbs part of it.  Fitting within resolution
+    // bins and pooling the centred residuals isolates the wavelength term.
+    const int NRESBIN = 6;
+    typedef std::vector<std::vector<std::vector<double> > > Cube;
+    typedef std::vector<std::vector<std::vector<int> > > CubeI;
+    Cube sumd2(nruns, std::vector<std::vector<double> >(NRESBIN,
+               std::vector<double>(nbins, 0.0)));
+    Cube suml(nruns, std::vector<std::vector<double> >(NRESBIN,
+              std::vector<double>(nbins, 0.0)));
+    CubeI num(nruns, std::vector<std::vector<int> >(NRESBIN,
+              std::vector<int>(nbins, 0)));
+    double smin = +1.0e10, smax = -1.0e10;
+
+    double lmin = +1.0e10, lmax = -1.0e10;
+    reflection this_refl;
+    for (int jr = 0; jr < hkl_list.num_reflections(); ++jr) {
+      this_refl = hkl_list.get_reflection(jr);
+      for (int i = 0; i < this_refl.num_observations(); ++i) {
+        observation obs = this_refl.get_observation(i);
+        if (!obs.IsAccepted()) continue;
+        double lam = obs.lambda();
+        if (lam > 0.0) {lmin = Min(lmin, lam); lmax = Max(lmax, lam);}
+      }
+      double sr = this_refl.invresolsq();
+      smin = Min(smin, sr); smax = Max(smax, sr);
+    }
+    if (!(lmax > lmin) || lmin <= 0.0) return 0;
+    double dsr = (smax - smin)/double(NRESBIN);
+    if (!(dsr > 0.0)) return 0;
+    double xlo = std::log(lmin), xhi = std::log(lmax);
+    double dx = (xhi - xlo) / double(nbins);
+    if (dx <= 0.0) return 0;
+
+    for (int jr = 0; jr < hkl_list.num_reflections(); ++jr) {
+      this_refl = hkl_list.get_reflection(jr);
+      int nobs = this_refl.num_observations();
+      if (nobs < 2) continue;
+      // leave-one-out weighted mean, so the deviation is of the observation
+      // from its mates rather than from a mean it helped to define
+      double sumw = 0.0, sumwi = 0.0;
+      std::vector<double> oi, ow, ol;
+      std::vector<int> orun;
+      for (int i = 0; i < nobs; ++i) {
+        observation obs = this_refl.get_observation(i);
+        if (!obs.IsAccepted()) continue;
+        // SCALED intensity and sigma: for Laue the scale is itself a strong
+        // function of wavelength, so comparing raw intensities across mates
+        // would put the whole of w(lambda) into the scatter
+        double sg = obs.ksigI();
+        if (sg <= 0.0) continue;
+        double w = 1.0/(sg*sg);
+        oi.push_back(obs.kI()); ow.push_back(w); ol.push_back(obs.lambda());
+        orun.push_back(obs.run());
+        sumw += w; sumwi += w*obs.I();
+      }
+      if (oi.size() < 2 || sumw <= 0.0) continue;
+      int irs = int((this_refl.invresolsq() - smin)/dsr);
+      irs = Max(0, Min(NRESBIN-1, irs));
+      for (size_t i = 0; i < oi.size(); ++i) {
+        double sw = sumw - ow[i];
+        if (sw <= 0.0) continue;
+        double mean_i = (sumwi - ow[i]*oi[i]) / sw;
+        double var = 1.0/ow[i] + 1.0/sw;
+        if (var <= 0.0) continue;
+        double delta2 = (oi[i]-mean_i)*(oi[i]-mean_i)/var;
+        if (delta2 > 25.0) continue;   // same 5 sigma filter as Chi^2c
+        int ir = orun[i];
+        if (ir < 0 || ir >= nruns) continue;
+        if (!(ol[i] > 0.0)) continue;
+        int ib = int((std::log(ol[i]) - xlo)/dx);
+        ib = Max(0, Min(nbins-1, ib));
+        sumd2[ir][irs][ib] += delta2;
+        suml[ir][irs][ib]  += std::log(ol[i]/lref);
+        num[ir][irs][ib]   += 1;
+      }
+    }
+
+    output.logTabPrintf(0, LOGFILE,
+      "\n Laue wavelength term in the SD correction: sigma' *= (lambda/%.3f)^SdLam\n"
+      "   fitted from chi^2 against wavelength, %d bins, one exponent per run\n\n"
+      "    Run   bins   SdLam   chi2(short lam)  chi2(long lam)\n", lref, nbins);
+
+    int nfit = 0;
+    for (int ir = 0; ir < nruns; ++ir) {
+      // weighted least squares of log(chi^2_b) on x_b = log(lambda_b/lref);
+      // var(log chi^2) ~ 2/n for n observations in the bin, so weight = n/2
+      double Sw=0.0, Sx=0.0, Sy=0.0, Sxx=0.0, Sxy=0.0;
+      int nb = 0;  double c_first=0.0, c_last=0.0;
+      double n_first=0.0, n_last=0.0;
+      for (int irs = 0; irs < NRESBIN; ++irs) {
+        // centre within the resolution bin, so only the wavelength dependence
+        // survives into the pooled fit
+        double swr=0.0, sxr=0.0, syr=0.0;
+        std::vector<double> xs, ys, ws;
+        for (int ib = 0; ib < nbins; ++ib) {
+          if (num[ir][irs][ib] < 20) continue;
+          double chi2 = sumd2[ir][irs][ib]/double(num[ir][irs][ib]);
+          if (!(chi2 > 0.0)) continue;
+          double x = suml[ir][irs][ib]/double(num[ir][irs][ib]);
+          double y = std::log(chi2);
+          double w = 0.5*double(num[ir][irs][ib]);
+          xs.push_back(x); ys.push_back(y); ws.push_back(w);
+          swr += w; sxr += w*x; syr += w*y;
+          if (ib < nbins/2) {c_first += chi2*w; n_first += w;}
+          else              {c_last  += chi2*w; n_last  += w;}
+        }
+        if (xs.size() < 3 || swr <= 0.0) continue;
+        double xbar = sxr/swr, ybar = syr/swr;
+        for (size_t k = 0; k < xs.size(); ++k) {
+          double x = xs[k]-xbar, y = ys[k]-ybar, w = ws[k];
+          Sw+=w; Sx+=w*x; Sy+=w*y; Sxx+=w*x*x; Sxy+=w*x*y;
+          ++nb;
+        }
+      }
+      if (n_first > 0.0) c_first /= n_first;
+      if (n_last  > 0.0) c_last  /= n_last;
+      double den = Sw*Sxx - Sx*Sx;
+      if (nb < 4 || std::abs(den) < 1.0e-12) {
+        output.logTabPrintf(0, LOGFILE,
+          "   %4d   %4d       -    (too few bins, no wavelength term)\n", ir+1, nb);
+        continue;
+      }
+      double slope = (Sw*Sxy - Sx*Sy)/den;
+      double sdlam = 0.5*slope*scale;
+      // a runaway exponent means the fit is following something else
+      sdlam = Max(-2.0, Min(2.0, sdlam));
+      sdc_full_run[ir].SetLambdaPower(sdlam, lref);
+      sdc_partial_run[ir].SetLambdaPower(sdlam, lref);
+      ++nfit;
+      output.logTabPrintf(0, LOGFILE, "   %4d   %4d  %7.4f       %7.3f        %7.3f\n",
+                          ir+1, nb, sdlam, c_first, c_last);
+    }
+    output.logTabPrintf(0, LOGFILE, "\n");
+    return nfit;
   }
 //-------------------------------------------------------------
   std::vector<float> SDmodel::CorrectReflection(reflection& Ref) const

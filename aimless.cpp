@@ -1186,6 +1186,18 @@ int main(int argc, char* argv[])
       //                 = +1    same, after first analysis
       //                 = -1 only one analysis expected (onlymerge) ie first & last
       AnalyseSD(SD_model, hkl_list, controls, NormRes, firstSDanalysis, output);
+      // Laue: an additional wavelength exponent per run, fitted from chi^2
+      // against wavelength.  SdFac/SdB/SdAdd are all functions of intensity,
+      // and the residual this attacks is not.
+      if (input.SDC_Lambda()) {
+        double lamref = input.getLambdaRef();
+        if (!(lamref > 0.0)) lamref = 1.0;
+        // SD corrections are applied lazily by every consumer (merging,
+        // rejection, anomalous analysis), each reading SD_model, so setting
+        // the exponent here is enough - nothing needs re-applying.
+        SD_model.FitLambdaSDcorrection(hkl_list, lamref, 12, output,
+                                       input.SDC_LambdaScale());
+      }
       output.logFlush();
     } else {
       // No optimisation

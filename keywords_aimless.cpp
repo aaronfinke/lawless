@@ -1181,6 +1181,9 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   refine_set = false;
   allsame = true;
   fixsdb = false;
+  sdlambda = false;
+  sdlamscale = 1.0;
+  sdlamnext = false;
   sdinput.clear();
   runnumbers.clear();
   damp = -1.0;
@@ -1260,6 +1263,13 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         allsame = true;
       } else if (keyIs("FIXSDB")) {
         fixsdb = true;
+      } else if (keyIs("SDLAMBDA")) {
+        // SDLAMBDA [<scale>]: optional multiplier on the fitted exponent.
+        // The loop's own NUMBER branch would consume a following number as an
+        // SD parameter, so take it here; if the next token is not a number the
+        // flag below leaves it for the normal path.
+        sdlambda = true;
+        sdlamnext = true;
       } else if (keyIs("RUN")) {
         expectingNumber = +1;
         irun = 0;
@@ -1326,6 +1336,9 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         ReportSyntaxError
           (keywords, "unrecognised keyword");
       }
+    } else if (tokenIs(1,NUMBER) && sdlamnext) {
+      sdlamscale = number_value;   // SDLAMBDA <scale>
+      sdlamnext = false;
     } else if (tokenIs(1,NUMBER)) {
       if (expectingNumber == 0) {ReportSyntaxError
           (keywords, "SDCORRECTION: not expecting number"+

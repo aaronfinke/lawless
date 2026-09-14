@@ -422,7 +422,7 @@ namespace phaser_io {
     //
     // Read parameters for SD correction
     // Syntax:
-    //   SDCORRECTION [[NO]REFINE] [INDIVIDUAL|SAME] [FIXSDB]
+    //   SDCORRECTION [[NO]REFINE] [INDIVIDUAL|SAME] [FIXSDB] [SDLAMBDA]
     //     [RUN <RunNumber>] [FULL | PARTIAL] <SdFac> [<SdB>] <SdAdd>
     //     DAMP <dampfactor>
     //     TIE [<parameter> <value> <sd>] | NOTIE
@@ -453,6 +453,10 @@ namespace phaser_io {
     bool SDC_AllRunsSame() const {return allsame;}
     //! return true if fixed SdB = 0.0
     bool SDC_NoSDb() const {return fixsdb;}
+    //! true if a Laue wavelength term is wanted in the SD correction
+    bool SDC_Lambda() const {return sdlambda;}
+    //! multiplier on the fitted wavelength exponent (default 1)
+    double SDC_LambdaScale() const {return sdlamscale;}
 
     //! return number of input corrections, = 0 none, = -1 overall
     int SDC_NumberInput() const;
@@ -486,6 +490,9 @@ namespace phaser_io {
     bool refine_set; // true if explicit refine flag set
     bool allsame; // true for all runs the same
     bool fixsdb;  // true for fixed SdB = 0.0
+    bool sdlambda; // true for SDCORRECTION SDLAMBDA (Laue)
+    double sdlamscale;    // multiplier on the fitted exponent
+    bool sdlamnext;       // next number, if any, is SDLAMBDA's
     // list of given SD corrections (full, partial)
     std::vector<std::pair<scala::SDcorrection,scala::SDcorrection> > sdinput;
     std::vector<int> runnumbers;       // corresponding run numbers, = -1 all  
