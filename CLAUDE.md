@@ -333,6 +333,79 @@ Scale unless we have valid orientation information". To supply it:
 
 ---
 
+## Wavelength term in the SD correction (`SDCORRECTION SDLAMBDA`)
+
+`SDCORRECTION` fits `sigma' = SdFac*sqrt(sigma^2 + SdB*I + (SdAdd*I)^2)` — three
+terms, all functions of **intensity**. Laue data can carry a variance component
+that depends on **wavelength** instead, which none of them can represent.
+
+It is a variance, not a bias, so no wavelength normalisation can absorb it
+either: `LAUE NORMGPRPERRUN` correctly fits a flat residual against it, because
+a scale model corrects means. Giving the intensity-only model its own copy per
+run does not help either — `SDCORRECTION REFINE INDIVIDUAL` sends SdFac to
+0.46–1.77 and SdAdd to 0.10–0.61 in opposition (they trade off directly, since
+SdFac multiplies the SdAdd term) and trebles the pack-to-pack chi^2 spread. The
+missing ingredient is the *shape*, not the granularity.
+
+```
+SDCORRECTION ... SDLAMBDA [<scale>]     ->   sigma' *= (lambda/lambda_ref)^SdLam
+```
+
+One exponent per run, from `SDmodel::FitLambdaSDcorrection`. chi^2 is a variance
+ratio, so scaling sigma by F divides it by F^2; with `chi^2 ~ (lambda/lref)^m`
+the exponent is `m/2`, and the constant part is left to SdFac. `lambda_ref` is
+`LAUE NORMLAMREF`. The optional `<scale>` multiplies the fitted exponent and
+defaults to 1 — it is a manual damping knob, not normally needed.
+
+### Four things the fit has to get right
+
+These were all found the hard way; three of them produce a *plausible-looking*
+wrong answer rather than an obvious failure.
+
+1. **Scaled intensities.** Use `obs.kI()` / `obs.ksigI()` throughout, including
+   the leave-one-out mean. Mixing scaled and unscaled is wrong anywhere, but for
+   Laue it is wrong in a specifically wavelength-correlated way, because the
+   scale is itself a strong function of wavelength — it manufactures exactly
+   the trend the term then "corrects".
+2. **Fit within resolution bins.** lambda and resolution are correlated in Laue
+   data (`lambda = 2d sin(theta)`) and chi^2 has a strong resolution trend of
+   its own, so a raw slope against lambda silently absorbs part of it. The fit
+   bins by (resolution x lambda) and pools residuals centred within each
+   resolution bin.
+3. **Fit late.** It runs after the merge-stage outlier rejection in
+   `aimless.cpp`, not inside `AnalyseSD`. The residual before final scaling and
+   rejection is not the residual in the delivered data.
+4. **Leave-one-out.** The deviation is of an observation from the mean of its
+   *mates*, not from a mean it helped define.
+
+With 1 and 3 wrong the correction was not self-limiting: on a dataset with a
+flat residual it fitted exponents of -0.3 to -0.65 and *created* a wavelength
+trend.
+
+### Checking it on new data
+
+It should be a no-op when there is nothing to correct. Verified on two datasets:
+
+| dataset | residual | fitted exponents | outcome |
+|---|---|---|---|
+| dMPro-KB5 (C2, 15 packs, mult 3.4) | flat | -0.04 to +0.11 | chi^2 vs lambda unchanged to 2 dp |
+| CuZnSOD (P6522, 10 packs, mult 11.5) | +0.23 across the band | 0.12 to 0.35 | chi^2 vs lambda flattened to -0.02 |
+
+Merging statistics barely move either way — sigma enters the merged mean only
+through the weights. The value is error estimates that mean what they say, for
+refinement weights and resolution cuts, not better R-factors.
+
+**Before trusting it on a new dataset, check the residual is a variance and not
+a bias**: plot mean `I/<mates>` against lambda alongside chi^2 against lambda.
+If the *means* trend, the scaling is at fault and inflating sigma would hide it.
+Only if the means are flat and chi^2 trends does the error model own it.
+
+A single power law cannot represent a non-monotone wavelength dependence (a
+detector edge, a bandpass edge). If one turns up, `WavelengthGPRScale` is the
+natural generalisation — the same fit applied to log sigma instead of log I.
+
+---
+
 ## Workflow for Laue data
 
 ### Wavelength pre-normalisation pass
@@ -588,6 +661,8 @@ gets alias treatment.
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
 | `hkl_datatypes.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
+| `sdctypes.hh/.cpp` | `SDcorrection` — the `(lambda/lambda_ref)^SdLam` factor, applied in `Correct(observation&, Iav)` |
+| `sdmodel.hh/.cpp` | `SDmodel::FitLambdaSDcorrection` — per-run wavelength exponent from binned chi^2 |
 | `columnlabels.hh/.cpp` | `col_lambda` column index; `is_lambda` flag in `DataFlags` |
 | `openinputfile.cpp` | Registers LAMBDA as optional MTZ column |
 | `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs |
@@ -612,14 +687,11 @@ gets alias treatment.
 
 - **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). `σ_f` and a noise-inflation factor are now optimised jointly with the length scale, and merging statistics have been compared against the Chebyshev model on `ca_thio` (they agree). Possible follow-ups: full marginal-likelihood *gradient* optimisation instead of the 3-D grid search; a proper CC½/half-dataset comparison; the held-out χ²/n is still ~2, suggesting the bin variances remain slightly optimistic (samples from the same reflection are correlated across bins) — a per-reflection random effect would tighten this.
 
-- **Wavelength-dependent SD correction** — `SDCORRECTION` fits
-  `σ' = SdFac·√(σ² + SdB·I + (SdAdd·I)²)`, all functions of intensity only. On
-  MaNDi CuZnSOD the per-observation χ² has an independent **wavelength**
-  dependence that also varies run to run (later runs noisier at long λ), and it
-  is a *variance*, not a bias — `NORMGPRPERRUN` correctly fits a flat residual
-  against it, because a scale model corrects means. A λ- (or λ-and-run-)
-  dependent SD term is the right shape for that residual. Worth testing on other
-  Laue datasets before adding a keyword.
+- **Fit SDLAMBDA after rebuilding, on more datasets** — the wavelength term in
+  the SD correction (`SDCORRECTION SDLAMBDA`) is self-limiting on the two
+  datasets it has been run on (one with a wavelength residual, one without),
+  but both are MaNDi. A non-monotone residual would defeat the single power
+  law; see the SDLAMBDA section for what to check first.
 
 - **Per-run GPR on a dataset that actually drifts** — `NORMGPRPERRUN` is
   implemented and regression-clean, but the only dataset it has been run on
