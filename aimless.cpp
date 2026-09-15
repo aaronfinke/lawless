@@ -352,8 +352,8 @@ int main(int argc, char* argv[])
         if (bats[i].Ldtype() != 3) {nnonlaue++;}
       }
       if (nnonlaue > 0) {
-        w += "   * " + clipper::String(nnonlaue) + " of " +
-          clipper::String(int(bats.size())) +
+        w += "   * " + StringUtil::itos(nnonlaue) + " of " +
+          StringUtil::itos(int(bats.size())) +
           " batches do not have LDTYPE = 3 (Laue) in the batch header\n";
       }
       if (Probe::IsQuasiLaue()) {
