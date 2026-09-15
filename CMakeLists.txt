@@ -51,7 +51,7 @@ set(AIMLESS_SOURCES
     fracdevanal.cpp globalcontrols_aimless.cpp halfdataset.cpp
     initialscales.cpp intensitybin.cpp keywords_aimless.cpp
     mergedlist.cpp normalprobanal.cpp normprobfunc.cpp optimisesdcorr.cpp
-    plotfiles.cpp printing.cpp refinescale.cpp refinesdcorrection.cpp
+    plotfiles.cpp printing.cpp probe.cpp refinescale.cpp refinesdcorrection.cpp
     reject.cpp resolutionlimit.cpp samplegaussian.cpp scalemodel.cpp
     scalerefine.cpp scalerefinefh.cpp scaletypes.cpp sdanalysis.cpp
     sdctypes.cpp sdmodel.cpp selectedobservations.cpp

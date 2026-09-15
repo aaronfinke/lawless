@@ -691,6 +691,8 @@ namespace scala
     bool Accepted() const {return accepted;}  //!< return accepted flag
     void SetAccept(const bool& accept) {accepted = accept;} //!< set accepted flag
 
+    //! return MTZ batch LDTYPE: 1 oscillation, 2 area detector, 3 Laue
+    int Ldtype() const {return batchinfo.ldtype;}
     Scell cell() const {return bcell;} //!< return cell
     float Mosaicity() const {return batchinfo.crydat[0];} //!< return mosaicity
     float Wavelength() const {return batchinfo.alambd;} //!< return wavelength

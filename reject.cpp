@@ -9,6 +9,7 @@
 #include "observationstatuscontrol.hh"
 #include "string_util.hh"
 #include "weighttype.hh"
+#include "probe.hh"
 
 #include <assert.h>
 #define ASSERT assert
@@ -189,6 +190,51 @@ namespace scala {
     }
   }
   // ------------------------------------------------------------
+  std::vector<int> RejectAngleStats::nobs;
+  std::vector<int> RejectAngleStats::nrej;
+
+  bool RejectAngleStats::Active() {return Probe::IsNeutron();}
+
+  void RejectAngleStats::Clear()
+  {
+    nobs.assign(NBIN, 0);
+    nrej.assign(NBIN, 0);
+  }
+
+  void RejectAngleStats::Add(const double& twotheta, const bool& rejected)
+  {
+    if (int(nobs.size()) != NBIN) Clear();
+    int bin = int(twotheta) / BINWIDTH;
+    if (bin < 0) bin = 0;
+    if (bin >= NBIN) bin = NBIN - 1;  // everything above the top into the last bin
+    nobs[bin]++;
+    if (rejected) nrej[bin]++;
+  }
+
+  std::string RejectAngleStats::format()
+  {
+    if (int(nobs.size()) != NBIN) return "";
+    int total = 0;
+    for (int i=0;i<NBIN;++i) {total += nobs[i];}
+    if (total == 0) return "";
+
+    std::string s =
+      std::string("\nOutlier rejections against scattering angle\n")+
+      "------------------------------------------\n"+
+      "An uneven rate here means REJECT is removing observations preferentially\n"+
+      "at one end of the angular range, which biases what survives.\n\n"+
+      "   2theta      Nobs     Nrej   rejected\n";
+    for (int i=0;i<NBIN;++i) {
+      if (nobs[i] == 0) continue;
+      s += StringUtil::itos(i*BINWIDTH, 5) + " -" +
+        StringUtil::itos((i+1)*BINWIDTH, 4) +
+        StringUtil::itos(nobs[i], 10) +
+        StringUtil::itos(nrej[i], 9) +
+        StringUtil::ftos(100.0*double(nrej[i])/double(nobs[i]), 10, 2) + " %\n";
+    }
+    return s;
+  }
+  // ------------------------------------------------------------
   // ------------------------------------------------------------
   void RejectOutlier(hkl_unmerge_list& hkl_list,
                      const SDmodel& SDM,
@@ -287,6 +333,27 @@ namespace scala {
         if (RoguesList.Open()) {
           SDM.CorrectAllReflection(this_refl);
           RoguesList.RogueReflection(this_refl, rejlist.Deviations(), NormRes);
+        }
+      }
+      if (RejectAngleStats::Active()) {
+        // Count every observation, and the rejected ones, against 2-theta.
+        // Resolution is fixed within a reflection, so 2-theta here varies
+        // only with the wavelength of each observation
+        std::vector<bool> isrej(this_refl.num_observations(), false);
+        for (size_t i=0;i<rejected.size();++i) {
+          // negative entries are deviant but not rejected
+          if (rejected[i] >= 0 && rejected[i] < int(isrej.size())) {
+            isrej[rejected[i]] = true;
+          }
+        }
+        double halfsstar = 0.5 * std::sqrt(this_refl.invresolsq());
+        for (int i=0;i<this_refl.num_observations();++i) {
+          // sin(theta) = lambda/(2d)
+          double sintheta = this_refl.get_observation(i).lambda() * halfsstar;
+          if (sintheta > 0.0 && sintheta < 1.0) {
+            RejectAngleStats::Add(2.0 * std::asin(sintheta) * 180.0 / M_PI,
+                                  isrej[i]);
+          }
         }
       }
     } // end loop reflections

@@ -56,6 +56,42 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+PROBE::PROBE() : CCP4base(), InputBase(),
+                 radiation(scala::Probe::XRAY),
+                 instrument(scala::Probe::TOF), given(false)
+{
+  Add_Key("PROB");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value PROBE::parse(std::istringstream& input_stream)
+// PROBE NEUTRON | XRAY [TOF | QUASILAUE]
+{
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      // keyIs() compares four characters and requires at least four, so
+      // compare the token directly: TOF is shorter than that
+      std::string sv = stoup(string_value);
+      if (sv.compare(0,4,"NEUT") == 0) {
+        radiation = scala::Probe::NEUTRON;
+      } else if (sv.compare(0,4,"XRAY") == 0) {
+        radiation = scala::Probe::XRAY;
+      } else if (sv == "TOF") {
+        instrument = scala::Probe::TOF;
+      } else if (sv.compare(0,4,"QUAS") == 0) {
+        instrument = scala::Probe::QUASILAUE;
+      } else {
+        ReportSyntaxError
+          (keywords, "key not NEUTRON, XRAY, TOF or QUASILAUE");
+      }
+      given = true;
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 SCALES::SCALES() : CCP4base(), InputBase()
 {
   Add_Key("SCAL");
@@ -270,6 +306,19 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   }
   nspecs = specs.size();
   return ENDLINE;
+}
+//--------------------------------------------------------------
+bool SCALES::setDefaultBatchMode()
+// Switch the default specification to batch mode.  specs[0] is the default
+// one; SCALES::parse() clears isdefault when it replaces it, so an explicit
+// SCALES command always wins.
+{
+  if (specs.empty()) return false;
+  if (!specs[0].isdefault) return false;  // explicit SCALES given, leave alone
+  if (specs[0].batch) return false;       // already batch mode
+  specs[0].batch = true;
+  specs[0].nscales = -1;
+  return true;
 }
 //--------------------------------------------------------------
 RUNSET::RUNSET() : CCP4base(), InputBase()

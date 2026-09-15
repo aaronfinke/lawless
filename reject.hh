@@ -25,6 +25,38 @@
 
 namespace scala {
   // ------------------------------------------------------------
+  class RejectAngleStats
+  // Outlier rejections counted against scattering angle
+  //
+  // REJECT tests each observation against the weighted mean of its symmetry
+  // mates, and for Laue data the weights vary systematically with wavelength
+  // and resolution, ie with 2-theta.  The rejection rate is then a function
+  // of 2-theta, which biases the surviving data.  Under PROBE NEUTRON this is
+  // counted and reported so that the asymmetry is visible.
+  //
+  // Static, like SelectI, so that the accumulation can sit inside the
+  // reflection loop in RejectOutlier without changing its signature.
+  {
+  public:
+    RejectAngleStats(){}
+
+    static const int NBIN = 8;      // bins of 15 degrees
+    static const int BINWIDTH = 15; //   ... covering 0 to 120 degrees
+
+    //! true if accumulation is wanted, ie PROBE NEUTRON
+    static bool Active();
+    //! reset counts, call before each rejection pass
+    static void Clear();
+    //! add one observation: 2-theta in degrees, rejected or not
+    static void Add(const double& twotheta, const bool& rejected);
+    //! formatted table, empty string if nothing was accumulated
+    static std::string format();
+
+  private:
+    static std::vector<int> nobs;
+    static std::vector<int> nrej;
+  };
+  // ------------------------------------------------------------
   class WriteRogues
   // Write rogues entry
   {

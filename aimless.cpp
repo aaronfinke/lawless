@@ -35,6 +35,7 @@
 #include "report_errors.hh"
 #include "secondaryscalestats.hh"
 #include "comparetoreference.hh"
+#include "probe.hh"
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -226,6 +227,49 @@ int main(int argc, char* argv[])
     // True if "Anomalous" command given
     controls.anomalouscontrol.FlagInput = input.AnomalousFlagInput();
 
+    // PROBE NEUTRON | XRAY  [TOF | QUASILAUE]
+    // Radiation type & instrument class. This changes defaults, guards and
+    // reporting only: everything it switches can be set back by its own
+    // keyword, and every change is listed in the log below.
+    Probe::Set(input.getProbe(), input.getInstrument());
+    if (Probe::IsNeutron()) {
+      std::vector<std::string> probechanges;
+      // Nuclear scattering has no anomalous signal outside a short list of
+      // isotopes (113Cd, Sm, Gd, 10B, 6Li, In). Without this, aimless turns
+      // anomalous on by itself whenever it thinks it sees a signal
+      if (!controls.anomalouscontrol.FlagInput) {
+        controls.anomalouscontrol.Anomalous = false;
+        controls.anomalouscontrol.FlagInput = true;  // treat as an explicit OFF
+        probechanges.push_back
+          ("ANOMALOUS OFF, and not switched on automatically."
+           " Give ANOMALOUS ON to override");
+      }
+      // fP = 1 for neutrons, as LSCALE had it (LSM POL_Type neutron)
+      controls.polarizationcontrol.setFraction(0.0);
+      probechanges.push_back
+        ("polarization factor set to zero:"
+         " there is no polarization factor for neutrons");
+      // Laue exposures are stationary, so phi is not a scaling variable and
+      // rotation-based smoothing has nothing to smooth over
+      if (input.setDefaultBatchMode()) {
+        probechanges.push_back
+          ("SCALES BATCH by default: exposures are stationary,"
+           " so rotation smoothing is meaningless");
+      }
+      std::string s = "\n\nRadiation type: " + Probe::Name() + "\n";
+      s += "----------------------------------------\n";
+      if (probechanges.empty()) {
+        s += "No defaults changed.\n";
+      } else {
+        s += "The following defaults have been changed."
+          " Each can be set back by its own keyword:\n";
+        for (size_t i=0;i<probechanges.size();++i) {
+          s += "   * " + probechanges[i] + "\n";
+        }
+      }
+      output.logTab(0,LOGFILE, s);
+    }
+
     controls.partials = partial_controls(input.getFracLimMin(),
                                          input.getFracLimMax(),
                                          input.getSclMinLim(),
@@ -292,6 +336,36 @@ int main(int argc, char* argv[])
                   "\nTime for reading HKLIN: "+timer.format(true));
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);
+
+    if (Probe::IsNeutron()) {
+      // Checks which can only be made once the file has been read
+      std::string w;
+      if (!hkl_list.DataFlags().is_lambda) {
+        w += std::string("   * there is no LAMBDA column in HKLIN, so the wavelength of\n")+
+          "     every observation is taken from its batch header. For Laue data\n"+
+          "     the wavelength varies within a batch, and the wavelength\n"+
+          "     normalisation cannot work without it\n";
+      }
+      std::vector<Batch> bats = hkl_list.Batches();
+      int nnonlaue = 0;
+      for (size_t i=0;i<bats.size();++i) {
+        if (bats[i].Ldtype() != 3) {nnonlaue++;}
+      }
+      if (nnonlaue > 0) {
+        w += "   * " + clipper::String(nnonlaue) + " of " +
+          clipper::String(int(bats.size())) +
+          " batches do not have LDTYPE = 3 (Laue) in the batch header\n";
+      }
+      if (Probe::IsQuasiLaue()) {
+        w += std::string("   * PROBE NEUTRON QUASILAUE: diffraction orders are not separated\n")+
+          "     in time on a reactor instrument, and harmonic deconvolution is\n"+
+          "     not implemented in this program\n";
+      }
+      if (!w.empty()) {
+        output.logWarning(LOGFILE,
+                          "\nWARNING: neutron Laue checks\n" + w);
+      }
+    }
 
     // Do we need to change symmetry?
     if (SpaceGroup != "" || GC.IsReindexSet()) {
@@ -1357,6 +1431,7 @@ int main(int argc, char* argv[])
                              controls.outlierMerge,
                              controls.plotcontrol.xmgraceoutput);
       //  hkl_list is updated for status, but SDs are not changed
+      RejectAngleStats::Clear();
       RejectOutlier(hkl_list, SD_model, NormRes,
                     controls.anomalouscontrol.Anomalous,
                     controls.outlierMerge, RoguesList);
@@ -1373,6 +1448,9 @@ int main(int argc, char* argv[])
                           "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
                           nrejs[0], nrejs[1], nrejs[2]);
       output.logTab(0,LXML,CountOutliersXML(nrejs));
+      if (RejectAngleStats::Active()) {
+        output.logTab(0,LOGFILE, RejectAngleStats::format());
+      }
       output.logFlush();
       if (doRoguePlot) {
         // ROGUEPLOT to XML

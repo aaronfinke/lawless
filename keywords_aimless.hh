@@ -12,6 +12,7 @@
 #include "globalcontrols.hh"
 #include "scaletypes.hh"
 #include "weighttype.hh"
+#include "probe.hh"
 
 using scala::ResoRange;
 
@@ -41,6 +42,30 @@ namespace phaser_io {
     bool given;      // true if ON or OFF were given
   };
   //--------------------------------------------------------------
+  class PROBE: public InputBase, virtual public CCP4base
+    // Radiation type and instrument class
+    //  PROBE NEUTRON | XRAY  [TOF | QUASILAUE]
+    // Default XRAY; for NEUTRON the instrument class defaults to TOF.
+    // See probe.hh: this changes defaults and reporting only.
+  {
+  public:
+    PROBE();
+    virtual ~PROBE() {}
+    Token_value parse(std::istringstream&);
+
+    void analyse(){}
+
+    scala::Probe::Radiation  getProbe() const {return radiation;}
+    scala::Probe::Instrument getInstrument() const {return instrument;}
+    // return true if the PROBE keyword was given
+    bool ProbeGiven() const {return given;}
+
+  private:
+    scala::Probe::Radiation  radiation;
+    scala::Probe::Instrument instrument;
+    bool given;
+  };
+  //--------------------------------------------------------------
   class SCALES: public InputBase, virtual public CCP4base
     // SCALES [RUN <irun>]
     // [BATCH || ROTATION [<nscales> || SPACING <spacing>]
@@ -61,7 +86,13 @@ namespace phaser_io {
     {return specs;}
 
     bool noTile() const {return notile;}  // true if explicit NOTILE is given
-    
+
+    // Switch the default specification to batch mode, unless an explicit
+    // SCALES command has already replaced it (PROBE NEUTRON: stationary
+    // exposures, so rotation-based smoothing is meaningless)
+    // returns true if anything was changed
+    bool setDefaultBatchMode();
+
   private:
     int nspecs;
     // 1st specification is always the default one (run -1)

@@ -10,6 +10,7 @@
 #include "Output.hh"
 #include "tablegraph.hh"
 #include "string_util.hh"
+#include "probe.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -113,9 +114,13 @@ namespace scala {
    phaser_io::Output& output) const
   // batchcompleteness  for each batch group
   {
+    // Neutrons do not damage the crystal; the same statistic is still a
+    // useful measure of whether the data are stable over the run
+    std::string heading = Probe::IsNeutron() ?
+      std::string("Cumulative stability analysis") :
+      std::string("Cumulative radiation damage analysis");
     std::string s =
-      std::string("\nCumulative radiation damage analysis\n")+
-      "====================================\n\n"+
+      "\n" + heading + "\n" + std::string(heading.size(), '=') + "\n\n"+
       "At present this analysis is done only if there is a single run\n"+
       "Note that this analysis will not be useful if the multiplicity is low\n"+
 
@@ -126,7 +131,8 @@ namespace scala {
     s =
       std::string("\n")+
       "         Rcp(k) = Sum(||Ii - Ij||)/Sum(0.5*(Ii + Ij))\n"+
-      " where i & j are the batch numbers (proxy for radiation dose) and"+
+      " where i & j are the batch numbers" +
+      (Probe::IsNeutron() ? std::string("") : std::string(" (proxy for radiation dose)")) + " and"+
       " k = Max(i, j)\n"+
       " ie a pairwise R-factor up to batch k\n"+
       "\nCmPoss is cumulative completeness";
@@ -140,7 +146,9 @@ namespace scala {
       " degrees";
     output.logTab(0,LOGFILE, s);
 
-    std::string title = "Radiation damage analysis for run "+
+    std::string title = (Probe::IsNeutron() ?
+                         std::string("Stability analysis for run ") :
+                         std::string("Radiation damage analysis for run ")) +
       StringUtil::itos(runnum,3);
 
     TableGraph table(title);
@@ -159,9 +167,12 @@ namespace scala {
     int nc0 = 3;
 
     TableGraphPlot graph("Rcp v. batch");
+    std::string cause = Probe::IsNeutron() ?
+      std::string("the data are not stable over the run") :
+      std::string("radiation damage");
     std::string description =
-      "Rcp is cumulative pairwise residual; an increase may indicate radiation damage. ";
-    description += "Cumulative completeness may help to choose a suitable cut-off point in case of damage";
+      "Rcp is cumulative pairwise residual; an increase may indicate "+cause+". ";
+    description += "Cumulative completeness may help to choose a suitable cut-off point in that case";
     graph.SetDescription(description);
 
     graph.AddLine(TableGraphPlotline(2,nc,"blue","",0,false,"Solid",1));  // R
