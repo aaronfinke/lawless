@@ -30,5 +30,23 @@ python twotheta_sim2.py   unmerged.mtz "label" [chebyshev_degree]
 Measured on CuZnSOD, dMPro-KB5 and hCAII-Cu (MaNDi, SNS), these found a
 reproducible 2-theta systematic of about 9 % peak to peak which the
 crystal-frame `SECONDARY` harmonics cannot absorb, and which a post-hoc
-correction cannot fix — it has to be refined inside the scale model.  That is
-the case for `SCALES ... TWOTHETA`.
+correction cannot fix.
+
+**No angular correction is implemented, and none is planned.** A refinable
+scattering-angle term was written and tested, and it was dropped.  It reduced
+R-merge and raised CC(1/2) on two of the three datasets and was demonstrably
+not fitting noise, but no physical generator could be named for it: the Lorentz
+factor cannot be the explanation (`lambda^4/(2 sin^2 theta) = 2 lambda^2 d^2`
+factorises, so its wavelength half is absorbed by the wavelength curve and its
+resolution half cancels within a reflection and has zero gradient), and the
+remaining candidates -- peak integration, residual detector calibration, an
+imperfect upstream absorption correction -- were not separable on three
+datasets from one instrument with stationary exposures.  An empirical curve
+fitted in a direction nothing else spans is not a correction; it is a place to
+hide.
+
+These scripts remain useful as diagnostics.  If the question is reopened, a
+cylindrical image-plate instrument (LADI at the ILL) is the test that would
+settle it: a much larger angular range, and a crystal that rotates between
+exposures, which separates the lab frame from the crystal frame in a way
+stationary packs do not.
