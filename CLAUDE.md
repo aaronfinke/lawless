@@ -646,6 +646,81 @@ gets alias treatment.
 
 ---
 
+## Radiation type (`PROBE NEUTRON | XRAY`)
+
+lawless exists because LSCALE did, and LSCALE was for neutron Laue as much as
+X-ray. Its entire neutron provision was one switch, `POL_Type neutron`, whose
+whole effect (`Daresbury_laue/doc/lsm.txt` §2.3) is `fP = 1.0`.
+
+```
+PROBE  NEUTRON | XRAY            (default XRAY)
+PROBE  NEUTRON TOF | QUASILAUE   (default TOF)
+```
+
+The second axis is the **instrument**, not the radiation: time-of-flight
+separates diffraction orders in time, so there is nothing to deconvolute; a
+reactor quasi-Laue instrument does not, and would need the harmonic machinery
+LAUENORM has and this program does not.
+
+`PROBE` changes **defaults, guards and reporting only**. It never applies a
+correction that cannot be seen in the log or overridden by another keyword,
+everything it switches stays independently settable, and the log prints a block
+naming every default it changed. With `PROBE XRAY` (the default) the output is
+byte-identical to the same build without the keyword.
+
+### What `PROBE NEUTRON` changes
+
+| | Why |
+|---|---|
+| `ANOMALOUS OFF`, and not switched on automatically | Nuclear scattering has no anomalous signal outside a short list of isotopes (¹¹³Cd, Sm, Gd, ¹⁰B, ⁶Li, In). Without this, aimless turns anomalous on by itself whenever it thinks it sees one. `ANOMALOUS ON` overrides |
+| polarization factor set to zero | `fP = 1` for neutrons. (`UpdatePolarizationCorrections` is not called from aimless, so this is defensive) |
+| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. An explicit `SCALES` command wins — the hook is `SCALES::setDefaultBatchMode()`, which only touches `specs[0]` while `isdefault` is still set |
+| radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
+| outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
+
+### Warnings issued after HKLIN is read
+
+- no `LAMBDA` column, so every observation takes its wavelength from the batch
+  header — fatal to wavelength normalisation, though not an error here
+- batches whose `LDTYPE` is not 3 (Laue)
+- `QUASILAUE`, because harmonic deconvolution is not implemented
+
+### Implementation
+
+`Probe` (`probe.hh/.cpp`) is a **static** class, like `SelectI` in
+`hkl_unmerge.hh`, so that reporting code deep in `printing.cpp` and
+`radiationdamageanalysis.cpp` can ask what the radiation is without threading a
+control object through every signature. It is set once in `aimless.cpp`
+immediately after the `ANOMALOUS` controls, and every guard is gated on
+`Probe::IsNeutron()`.
+
+### Why an angle term is the next thing (`tools/`)
+
+The four scripts in `tools/` are the measurement `PROBE` was built on. For
+every unique reflection with ≥3 observations they compare each observation with
+the leave-one-out mean of its symmetry mates; resolution is fixed within a
+reflection, so a purely resolution-dependent error cancels and what survives is
+a genuine systematic.
+
+On CuZnSOD, dMPro-KB5 and hCAII-Cu the residual bias is a reproducible function
+of **scattering angle**, about 9 % peak to peak, ~10σ against the null model in
+`null_test.py`. A cubic in 2θ explains 53 %, 53 % and 24 % of the weighted bias
+variance where a cubic in λ explains 31 %, 13 % and 33 %, and adding 2θ on top
+of λ takes all three to 63–74 %. `SECONDARY 6` with real UB matrices moves the
+high-angle deficit only from −9.2 % to −7.6 %: the spherical harmonics are in
+the **crystal** frame, and a stationary exposure maps a lab-frame 2θ effect onto
+a different part of that surface in every pack.
+
+A post-hoc `g(2θ)` applied to already-scaled data makes R-merge *worse* by
+0.5–1 % at every Chebyshev degree tried, because the batch scales, relative
+B-factors and λ curve were fitted with the systematic present and have partly
+compensated for it. The term has to be refined **jointly, inside the scale
+model**, and judged on χ²/CC½/maps rather than R-merge.
+
+Run `null_test.py` before believing any of the others.
+
+---
+
 ## Key files
 
 | File | Role |
@@ -653,13 +728,17 @@ gets alias treatment.
 | `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` (log-Chebyshev); `WavelengthGPRScale` (Eigen GP fit, fixed lookup) |
 | `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management; GPR fit driver + fixed-correction application |
 | `aimless.cpp` | Laue Chebyshev pre-pass + GP pre-pass (leave-one-out log-ratio sampling) before `FC.roughScale`; `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
-| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword |
+| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
+| `probe.hh/.cpp` | `Probe` — static radiation type and instrument class, from `PROBE NEUTRON\|XRAY [TOF\|QUASILAUE]` |
+| `reject.hh/.cpp` | `RejectAngleStats` — outlier rejections counted against 2θ, active under `PROBE NEUTRON` |
+| `printing.cpp`, `radiationdamageanalysis.cpp` | Radiation-damage wording becomes stability wording under `PROBE NEUTRON` |
+| `tools/` | Leave-one-out bias diagnostics: `twotheta_probe.py`, `separability.py`, `null_test.py`, `twotheta_sim2.py` |
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
 | `mtz_unmerge_io.cpp` | Reads wavelength column (LAMBDA/LAM/WAVELENGTH, case-insensitive); batch-wavelength fallback; substitutes the batch number for φ if there is no ROT column |
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
-| `hkl_datatypes.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue |
+| `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
 | `sdctypes.hh/.cpp` | `SDcorrection` — the `(lambda/lambda_ref)^SdLam` factor, applied in `Correct(observation&, Iav)` |
 | `sdmodel.hh/.cpp` | `SDmodel::FitLambdaSDcorrection` — per-run wavelength exponent from binned chi^2 |
@@ -682,6 +761,28 @@ gets alias treatment.
 ---
 
 ## To do
+
+- **A scattering-angle scale term (`SCALES ... TWOTHETA <n>`)** — the next
+  phase, and the one the measurement in `tools/` argues for. A Chebyshev in
+  `cos 2θ` per run, entering the product in `ScaleModel::ScaleFactor`
+  (`scalemodel.cpp`) as one more factor; `2θ = 2 asin(λ/2d)` and both are
+  already per-observation, so no new MTZ column is needed. Offer the
+  one-parameter LSM obliquity form `exp(u/cos 2θ)` alongside it for comparison,
+  though the measured residual is humped (−1 % at 25°, +5 % at 45°, −5 % past
+  75°) and both LSM forms are monotone. Risk: correlation with the λ curve and
+  the relative B-factor, all three of which reach 2θ through *d* — normalise
+  `⟨ln g⟩ = 0` over the observed range and tie toward flat, as `SECONDARY` does.
+
+- **`SECONDARY` on by default under `PROBE NEUTRON` when UB is present** — for a
+  1 mm crystal in D₂O the attenuation is μ ≈ 0.195 mm⁻¹ hydrogenous, 0.071 mm⁻¹
+  perdeuterated, dominated by the incoherent cross section of hydrogen
+  (80.3 barn against 0.33 barn for absorption). That is a 13 % (5 %)
+  transmission spread across orientation, which is real and is `SECONDARY`'s
+  job. It needs a guard that refuses to fit 48 coefficients when the batch
+  headers carry an identity UMAT. Note the *wavelength dependence* of that
+  absorption is negligible — the 1/v term is ~1 % of μ and transmission changes
+  0.2 % across a 2.1–3.9 Å band — so a λ-dependent secondary surface is not
+  worth building.
 
 - **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
 
