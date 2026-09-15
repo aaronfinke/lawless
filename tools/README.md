@@ -36,9 +36,10 @@ correction cannot fix.
 scattering-angle term was written and tested, and it was dropped.  It reduced
 R-merge and raised CC(1/2) on two of the three datasets and was demonstrably
 not fitting noise, but no physical generator could be named for it: the Lorentz
-factor cannot be the explanation (`lambda^4/(2 sin^2 theta) = 2 lambda^2 d^2`
-factorises, so its wavelength half is absorbed by the wavelength curve and its
-resolution half cancels within a reflection and has zero gradient), and the
+factor cannot be the explanation (it is applied at integration, and in any case
+`lambda^4/(2 sin^2 theta) = 2 lambda^2 d^2` is a monomial, so its logarithm --
+and any error in its exponents -- is additive in ln lambda and ln d; an
+interaction needs a non-separable function), and the
 remaining candidates -- peak integration, residual detector calibration, an
 imperfect upstream absorption correction -- were not separable on three
 datasets from one instrument with stationary exposures.  An empirical curve
