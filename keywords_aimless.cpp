@@ -145,12 +145,14 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec != 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & ROTATION)");}
         spec.batch = true;
+        spec.scalemodegiven = true;
         batch_spec = -1;
         expectingNumber = 0;
       } else if (keyIs("ROTATION")) {
         if (batch_spec < 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & ROTATION)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         batch_spec = +1;
         expectingNumber = -1;
       } else if (keyIs("SPACING") &&  bfac_spec == 0) {
@@ -159,6 +161,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec == +2) {ReportSyntaxError
             (keywords, "SCALES: can't have ROTATION number & SPACING)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         batch_spec = +3;
         expectingNumber = +1;
       } else if (keyIs("BFACTOR")) {
@@ -176,12 +179,14 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec < 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & BROTATION)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         bfac_spec = +1;
         expectingNumber = -1;
       } else if (keyIs("SPACING")  &&  bfac_spec > 0) {
         if (bfac_spec == +2) {ReportSyntaxError
             (keywords, "SCALES: can't have BROTATION number & SPACING)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         bfac_spec = +3;
         expectingNumber = +1;
       } else if (keyIs("SECONDARY")) {
@@ -309,16 +314,23 @@ Token_value SCALES::parse(std::istringstream& input_stream)
 }
 //--------------------------------------------------------------
 bool SCALES::setDefaultBatchMode()
-// Switch the default specification to batch mode.  specs[0] is the default
-// one; SCALES::parse() clears isdefault when it replaces it, so an explicit
-// SCALES command always wins.
+// Switch to batch mode any specification which did not choose a primary scale
+// mode for itself.  An explicit BATCH, ROTATION, SPACING, BROTATION or
+// CONSTANT always wins, and sets scalemodegiven.
+//
+// Without this, "SCALES BFACTOR ON" on stationary Laue exposures falls back to
+// rotation-smoothed scaling over a phi range which does not exist, and the
+// refinement aborts in samplemean().
 {
-  if (specs.empty()) return false;
-  if (!specs[0].isdefault) return false;  // explicit SCALES given, leave alone
-  if (specs[0].batch) return false;       // already batch mode
-  specs[0].batch = true;
-  specs[0].nscales = -1;
-  return true;
+  bool changed = false;
+  for (size_t i=0;i<specs.size();++i) {
+    if (specs[i].scalemodegiven) continue;  // user chose, leave alone
+    if (specs[i].batch) continue;           // already batch mode
+    specs[i].batch = true;
+    specs[i].nscales = -1;
+    changed = true;
+  }
+  return changed;
 }
 //--------------------------------------------------------------
 RUNSET::RUNSET() : CCP4base(), InputBase()

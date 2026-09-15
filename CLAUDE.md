@@ -674,7 +674,7 @@ byte-identical to the same build without the keyword.
 |---|---|
 | `ANOMALOUS OFF`, and not switched on automatically | Nuclear scattering has no anomalous signal outside a short list of isotopes (¹¹³Cd, Sm, Gd, ¹⁰B, ⁶Li, In). Without this, aimless turns anomalous on by itself whenever it thinks it sees one. `ANOMALOUS ON` overrides |
 | polarization factor set to zero | `fP = 1` for neutrons. (`UpdatePolarizationCorrections` is not called from aimless, so this is defensive) |
-| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. An explicit `SCALES` command wins — the hook is `SCALES::setDefaultBatchMode()`, which only touches `specs[0]` while `isdefault` is still set |
+| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. The hook is `SCALES::setDefaultBatchMode()`, which switches any specification that did not choose a mode for itself; an explicit `BATCH`, `ROTATION`, `SPACING`, `BROTATION` or `CONSTANT` sets `ScaleSpecification::scalemodegiven` and always wins. This also turns a pre-existing abort into a working default: `SCALES BFACTOR ON` with no mode falls back to rotation smoothing over a φ range that does not exist, and the refinement dies in `samplemean()` |
 | radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
 | outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
 
@@ -684,6 +684,17 @@ byte-identical to the same build without the keyword.
   header — fatal to wavelength normalisation, though not an error here
 - batches whose `LDTYPE` is not 3 (Laue)
 - `QUASILAUE`, because harmonic deconvolution is not implemented
+
+### Regression
+
+Adding `PROBE NEUTRON` to the established configuration for CuZnSOD, dMPro-KB5
+and hCAII-Cu gives byte-identical merged and unmerged MTZs, because those decks
+already set `SCALES BATCH`/`CONSTANT` and `ANOMALOUS OFF` explicitly. Dropping
+those explicit keywords and relying on the `PROBE NEUTRON` defaults reproduces
+the same files again on all three. With `PROBE XRAY` (the default) every output
+— MTZs, log, `SCALES`, `LAMBDANORM`, `ROGUES`, `NORMPLOT`, `CORRELPLOT`,
+`ANOMPLOT` — is byte-identical to the build without the keyword, once the MTZ
+run timestamps are masked.
 
 ### Implementation
 

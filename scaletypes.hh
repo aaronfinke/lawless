@@ -469,7 +469,7 @@ namespace scala {
   // The specification from one SCALES command (in case of multiple runs)
   {
   public:
-    ScaleSpecification() : run(-1), isdefault(true),
+    ScaleSpecification() : run(-1), isdefault(true), scalemodegiven(false),
 			   batch(false), nscales(-1), spacing(5.0),
 			   nbfac(-1), bspacing(20.0),
 			   sec_abs(scala::SecondaryScale::SECONDARY),
@@ -485,6 +485,10 @@ namespace scala {
 
     int run;     // Run number for this specification, = -1 for all runs
     bool isdefault; // true if this is the default, ie not explicit  
+    // true if the primary scale mode was chosen explicitly, ie one of
+    // BATCH, ROTATION, SPACING, BROTATION or CONSTANT was given.
+    // PROBE NEUTRON only switches the mode when it was not
+    bool scalemodegiven;
 
     bool batch;  // true for batch mode
     int nscales; // Number of scales, = -1 for spacing specified

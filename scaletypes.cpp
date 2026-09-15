@@ -2480,6 +2480,7 @@ namespace scala {
   // SCALES CONSTANT
   {
     run = irun;
+    scalemodegiven = true;
     batch = false;
     nscales = 1;
     spacing = 0.0;
