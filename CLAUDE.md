@@ -676,7 +676,31 @@ byte-identical to the same build without the keyword.
 | polarization factor set to zero | `fP = 1` for neutrons. (`UpdatePolarizationCorrections` is not called from aimless, so this is defensive) |
 | `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. The hook is `SCALES::setDefaultBatchMode()`, which switches any specification that did not choose a mode for itself; an explicit `BATCH`, `ROTATION`, `SPACING`, `BROTATION` or `CONSTANT` sets `ScaleSpecification::scalemodegiven` and always wins. This also turns a pre-existing abort into a working default: `SCALES BFACTOR ON` with no mode falls back to rotation smoothing over a φ range that does not exist, and the refinement dies in `samplemean()` |
 | radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
+| the "significant anomalous signal" warning is reworded, not suppressed | Nuclear scattering lengths are real except for a few resonant isotopes (¹¹³Cd, ¹⁵⁷Gd, ¹⁴⁹Sm, ¹⁵¹Eu, ¹⁰B, ⁶Li, ¹¹³In), so it is almost never anomalous scattering — but Friedel mates that disagree still mean something. See below |
 | outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
+
+### Friedel mates are a wavelength-normalisation diagnostic, not an anomalous signal
+
+Unlike X-rays, neutron scattering lengths are **real** for all but a handful of
+resonant isotopes — ¹¹³Cd, ¹⁵⁷Gd, ¹⁴⁹Sm, ¹⁵¹Eu, ¹⁰B, ⁶Li, ¹¹³In. For everything
+else `b''` is negligible and essentially flat across a thermal band, so there is
+no edge to exploit and no anomalous signal to find. Cu and Zn, for instance,
+have no usable imaginary part.
+
+So aimless reporting "a significant anomalous signal" on neutron data is
+reporting something real about the *data* and mislabelling its cause. Under
+`PROBE NEUTRON` the message is therefore **reworded rather than suppressed**:
+
+> Friedel mates differ by more than their sigmas explain. For neutrons this is
+> unlikely to be an anomalous signal … read it as a scaling diagnostic.
+
+The reason it is worth keeping is specific to Laue. `h` and `-h` satisfy the
+Laue condition at **different wavelengths**, and usually in different exposures,
+so the I+/I− difference is the statistic most exposed to an error in the
+wavelength normalisation — and after that to uncorrected absorption, since the
+two are recorded along different paths through the crystal. A neutron dataset
+showing "anomalous signal" is telling you the λ curve or the absorption
+correction is wrong, unless a resonant isotope is present.
 
 ### Checks after HKLIN is read
 

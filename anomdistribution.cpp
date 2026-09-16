@@ -7,6 +7,7 @@
 #include "tablegraph.hh"
 #include "jiffy.hh"
 #include "string_util.hh"
+#include "probe.hh"
 
 #ifdef _MSC_VER
 #include <ciso646>
@@ -585,8 +586,26 @@ namespace scala {
     if (anomalousstatus == AnomalousStatus::ANOMALOUS_ON_FOUND) {
       s = "Anomalous flag switched ON in input, strong anomalous signal found";
     } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_OFF_FOUND) {
-      s = std::string("WARNING WARNING\n")+
-        "Anomalous flag switched OFF in input but there appears to be a significant anomalous signal";
+      if (Probe::IsNeutron()) {
+        // Nuclear scattering lengths are real except for a few resonant
+        // isotopes, so this is almost never an anomalous signal.  It is still
+        // worth reporting: Friedel mates that disagree are a scaling
+        // diagnostic, and in Laue they are the pair most exposed to an error
+        // in the wavelength normalisation, because h and -h are generally
+        // recorded at different wavelengths and often in different exposures
+        s = std::string("WARNING WARNING\n")+
+          "Friedel mates differ by more than their sigmas explain.\n"+
+          "For neutrons this is unlikely to be an anomalous signal: nuclear\n"+
+          "scattering lengths are real except for a few resonant isotopes\n"+
+          "(113Cd, 157Gd, 149Sm, 151Eu, 10B, 6Li, 113In). Unless one of those is\n"+
+          "present, read it as a scaling diagnostic. In Laue, h and -h are\n"+
+          "generally recorded at different wavelengths and often in different\n"+
+          "exposures, so this is the statistic most exposed to an error in the\n"+
+          "wavelength normalisation, and after that to uncorrected absorption";
+      } else {
+        s = std::string("WARNING WARNING\n")+
+          "Anomalous flag switched OFF in input but there appears to be a significant anomalous signal";
+      }
     } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_FOUND) {
       s = "There appears to be a significant anomalous signal so anomalous flag was switched ON";
     } else if (anomalousstatus == AnomalousStatus::ANOMALOUS_ON_ABSENT) {
