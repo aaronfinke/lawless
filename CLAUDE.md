@@ -801,7 +801,7 @@ Run `null_test.py` before believing any of the others.
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
-| `mtz_unmerge_io.cpp` | Reads the `LAMBDA` column (that exact logical name, registered in `openinputfile.cpp`; there are no aliases); falls back to the batch `ALAMBD` when it is absent, which `aimless.cpp` now makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
+| `mtz_unmerge_io.cpp` | Reads the wavelength column, accepting `LAMBDA`, `LAM` or `WAVELENGTH`, case-insensitively and in that order of preference (`WavelengthColumnAliases` / `ColLookupNoCase` in `get_col_lookup`); falls back to the batch `ALAMBD` when none is present, which `aimless.cpp` makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
 | `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |

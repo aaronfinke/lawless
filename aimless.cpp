@@ -348,12 +348,13 @@ int main(int argc, char* argv[])
         // run it fails silently: NORMGPR completes and returns badly scaled
         // data, NORMCHEBYSHEV aborts much later inside applyscales.  Stop here
         ReportErrors::printFatalError(std::string(
-          "LAUE requires a wavelength for every observation, but there is no\n")+
-          "LAMBDA column in HKLIN.\n\n"+
-          "Without it each observation takes the wavelength of its batch header\n"+
+          "LAUE requires a wavelength for every observation, but HKLIN has no\n")+
+          "wavelength column. Accepted labels are LAMBDA, LAM or WAVELENGTH,\n"+
+          "matched without regard to case.\n\n"+
+          "Without one, each observation takes the wavelength of its batch header\n"+
           "(ALAMBD), so all observations in a batch share one wavelength and the\n"+
           "wavelength normalisation has nothing to fit.\n\n"+
-          "Either add a LAMBDA column to HKLIN, or remove the LAUE keyword to\n"+
+          "Either add a wavelength column to HKLIN, or remove the LAUE keyword to\n"+
           "scale these data monochromatically.");
       }
       // LDTYPE = 3 marks Laue data in the MTZ batch header.  A warning only:
