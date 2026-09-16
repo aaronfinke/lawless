@@ -678,12 +678,25 @@ byte-identical to the same build without the keyword.
 | radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
 | outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
 
-### Warnings issued after HKLIN is read
+### Checks after HKLIN is read
 
-- no `LAMBDA` column, so every observation takes its wavelength from the batch
-  header — fatal to wavelength normalisation, though not an error here
-- batches whose `LDTYPE` is not 3 (Laue)
-- `QUASILAUE`, because harmonic deconvolution is not implemented
+These are gated on **`LAUE`, not on `PROBE`** — monochromatic neutron data is
+perfectly scalable and must not trip them.
+
+- **No `LAMBDA` column with a `LAUE` keyword is a fatal error.** Without it
+  `mtz_unmerge_io.cpp:1009` falls back to the batch header wavelength
+  (`ALAMBD`), so every observation in a batch shares one wavelength and the
+  normalisation has nothing to fit. Left to run it fails in two different bad
+  ways: `NORMGPR` completes and hands back badly scaled data (R-merge 0.316
+  against 0.223 on CuZnSOD) with only a misleading "length scale is at the lower
+  search limit" note, and `NORMCHEBYSHEV` aborts much later on
+  `assert(sigI > 0.0)` in `applyscales.cpp:72`. Stopping at the point of
+  diagnosis is the only sane behaviour.
+- Batches whose `LDTYPE` is not 3 (Laue) — a warning; the header may simply be
+  unset.
+
+Separately, `PROBE NEUTRON QUASILAUE` warns that harmonic deconvolution is not
+implemented.
 
 ### Regression
 
@@ -747,7 +760,7 @@ Run `null_test.py` before believing any of the others.
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
-| `mtz_unmerge_io.cpp` | Reads wavelength column (LAMBDA/LAM/WAVELENGTH, case-insensitive); batch-wavelength fallback; substitutes the batch number for φ if there is no ROT column |
+| `mtz_unmerge_io.cpp` | Reads the `LAMBDA` column (that exact logical name, registered in `openinputfile.cpp`; there are no aliases); falls back to the batch `ALAMBD` when it is absent, which `aimless.cpp` now makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
 | `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |

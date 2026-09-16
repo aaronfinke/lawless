@@ -337,34 +337,45 @@ int main(int argc, char* argv[])
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);
 
-    if (Probe::IsNeutron()) {
-      // Checks which can only be made once the file has been read
-      std::string w;
+    // Checks which can only be made once the file has been read.
+    // These are gated on LAUE, not on PROBE: monochromatic neutron data is
+    // perfectly scalable and must not trip them
+    if (input.IsLaue()) {
       if (!hkl_list.DataFlags().is_lambda) {
-        w += std::string("   * there is no LAMBDA column in HKLIN, so the wavelength of\n")+
-          "     every observation is taken from its batch header. For Laue data\n"+
-          "     the wavelength varies within a batch, and the wavelength\n"+
-          "     normalisation cannot work without it\n";
+        // Without a LAMBDA column mtz_unmerge_io falls back to the batch
+        // header wavelength (ALAMBD), so every observation in a batch gets the
+        // same one and the normalisation has almost nothing to fit.  Left to
+        // run it fails silently: NORMGPR completes and returns badly scaled
+        // data, NORMCHEBYSHEV aborts much later inside applyscales.  Stop here
+        ReportErrors::printFatalError(std::string(
+          "LAUE requires a wavelength for every observation, but there is no\n")+
+          "LAMBDA column in HKLIN.\n\n"+
+          "Without it each observation takes the wavelength of its batch header\n"+
+          "(ALAMBD), so all observations in a batch share one wavelength and the\n"+
+          "wavelength normalisation has nothing to fit.\n\n"+
+          "Either add a LAMBDA column to HKLIN, or remove the LAUE keyword to\n"+
+          "scale these data monochromatically.");
       }
+      // LDTYPE = 3 marks Laue data in the MTZ batch header.  A warning only:
+      // the data may be fine and the header merely unset
       std::vector<Batch> bats = hkl_list.Batches();
       int nnonlaue = 0;
       for (size_t i=0;i<bats.size();++i) {
         if (bats[i].Ldtype() != 3) {nnonlaue++;}
       }
       if (nnonlaue > 0) {
-        w += "   * " + StringUtil::itos(nnonlaue) + " of " +
-          StringUtil::itos(int(bats.size())) +
-          " batches do not have LDTYPE = 3 (Laue) in the batch header\n";
-      }
-      if (Probe::IsQuasiLaue()) {
-        w += std::string("   * PROBE NEUTRON QUASILAUE: diffraction orders are not separated\n")+
-          "     in time on a reactor instrument, and harmonic deconvolution is\n"+
-          "     not implemented in this program\n";
-      }
-      if (!w.empty()) {
         output.logWarning(LOGFILE,
-                          "\nWARNING: neutron Laue checks\n" + w);
+          "\nWARNING: " + StringUtil::itos(nnonlaue) + " of " +
+          StringUtil::itos(int(bats.size())) +
+          " batches do not have LDTYPE = 3 (Laue) in the batch header\n");
       }
+    }
+
+    if (Probe::IsQuasiLaue()) {
+      output.logWarning(LOGFILE, std::string(
+        "\nWARNING: PROBE NEUTRON QUASILAUE: diffraction orders are not separated\n")+
+        "         in time on a reactor instrument, and harmonic deconvolution is\n"+
+        "         not implemented in this program\n");
     }
 
     // Do we need to change symmetry?
