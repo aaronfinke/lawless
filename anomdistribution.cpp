@@ -595,13 +595,11 @@ namespace scala {
         // recorded at different wavelengths and often in different exposures
         s = std::string("WARNING WARNING\n")+
           "Friedel mates differ by more than their sigmas explain.\n"+
-          "For neutrons this is unlikely to be an anomalous signal: nuclear\n"+
-          "scattering lengths are real except for a few resonant isotopes\n"+
-          "(113Cd, 157Gd, 149Sm, 151Eu, 10B, 6Li, 113In). Unless one of those is\n"+
-          "present, read it as a scaling diagnostic. In Laue, h and -h are\n"+
-          "generally recorded at different wavelengths and often in different\n"+
-          "exposures, so this is the statistic most exposed to an error in the\n"+
-          "wavelength normalisation, and after that to uncorrected absorption";
+          "For neutrons this is unlikely to be an anomalous signal. Nuclear\n"+
+          "scattering lengths have no imaginary component except for a few\n"+
+          "isotopes with nuclear resonance near thermal energies (113Cd,\n"+
+          "157Gd, 149Sm, 151Eu, 10B, 6Li, 113In). Unless one of those is\n"+
+          "present, this should be read as a scaling diagnostic.";
       } else {
         s = std::string("WARNING WARNING\n")+
           "Anomalous flag switched OFF in input but there appears to be a significant anomalous signal";

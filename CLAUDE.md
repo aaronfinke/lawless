@@ -689,18 +689,35 @@ have no usable imaginary part.
 
 So aimless reporting "a significant anomalous signal" on neutron data is
 reporting something real about the *data* and mislabelling its cause. Under
-`PROBE NEUTRON` the message is therefore **reworded rather than suppressed**:
+`PROBE NEUTRON` the message (`anomdistribution.cpp`, `ANOMALOUS_OFF_FOUND`) is
+therefore **reworded rather than suppressed**: it says the difference is real,
+that it is unlikely to be anomalous scattering, and that it should be read as a
+scaling diagnostic.
 
-> Friedel mates differ by more than their sigmas explain. For neutrons this is
-> unlikely to be an anomalous signal … read it as a scaling diagnostic.
+**Why it is worth printing at all, rather than suppressing, is specific to
+Laue** — and this is deliberately not in the log, which stays terse.
 
-The reason it is worth keeping is specific to Laue. `h` and `-h` satisfy the
-Laue condition at **different wavelengths**, and usually in different exposures,
-so the I+/I− difference is the statistic most exposed to an error in the
-wavelength normalisation — and after that to uncorrected absorption, since the
-two are recorded along different paths through the crystal. A neutron dataset
-showing "anomalous signal" is telling you the λ curve or the absorption
-correction is wrong, unless a resonant isotope is present.
+In a stationary Laue exposure `h` and `−h` essentially never both diffract: the
+reciprocal lattice point sits on the wrong side of the Ewald construction. So
+in a non-centrosymmetric group they come from **different exposures**, and each
+satisfies the Laue condition at **its own wavelength**. That stacks three
+independent error channels onto one statistic:
+
+1. the wavelength normalisation, evaluated at two different λ;
+2. absorption, along two different paths through the crystal;
+3. inter-pack scale and B-factor error on top.
+
+This inverts the X-ray rotation case, where Friedel mates are usually recorded
+at the same wavelength minutes apart and a false anomalous signal points almost
+exclusively at absorption. **For neutron Laue the wavelength curve is the first
+suspect, not absorption.** That makes this arguably the sharpest single test of
+the wavelength normalisation the program already computes — a neutron dataset
+showing "anomalous signal", with no resonant isotope present, is telling you the
+λ curve is wrong.
+
+One consequence worth knowing: `ANOMALOUS OFF` merges I+ and I−, so the merged
+data hide the discrepancy — but the analysis still runs and still reports it.
+The diagnostic survives without keeping the split.
 
 ### Checks after HKLIN is read
 
