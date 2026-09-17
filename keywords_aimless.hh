@@ -42,6 +42,30 @@ namespace phaser_io {
     bool given;      // true if ON or OFF were given
   };
   //--------------------------------------------------------------
+  class LORENTZ: public InputBase, virtual public CCP4base
+    // Laue Lorentz correction applied to the intensities on input
+    //   LORENTZ [LAUE | TOF | POWER <p>]
+    // LAUE  (default if the keyword is given bare)  I *= sin^2(theta)
+    // TOF                                           I *= sin^2(theta)/lambda^4
+    // POWER <p>                                     I *= sin^2(theta)/lambda^p
+    // Absent, no correction is made.  See hkl_controls.hh.
+  {
+  public:
+    LORENTZ();
+    virtual ~LORENTZ() {}
+    Token_value parse(std::istringstream&);
+
+    void analyse(){}
+
+    bool getLORENTZ() const {return lorentz;}
+    double getLorentzPower() const {return power;}
+
+  private:
+    bool lorentz;
+    double power;
+    bool powernext;   // true if a POWER value is expected
+  };
+  //--------------------------------------------------------------
   class PROBE: public InputBase, virtual public CCP4base
     // Radiation type and instrument class
     //  PROBE NEUTRON | XRAY  [TOF | QUASILAUE]

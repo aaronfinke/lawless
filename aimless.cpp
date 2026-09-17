@@ -217,6 +217,28 @@ int main(int argc, char* argv[])
     // File selection flags (resolution, datasets, batches etc)
     file_select file_sel(input,0);
 
+    // LORENTZ: Laue Lorentz correction on input, off unless asked for.
+    // Deliberately not defaulted from PROBE: whether the integration program
+    // already applied it is a property of the data, not of the radiation.
+    if (input.getLORENTZ()) {
+      double p = input.getLorentzPower();
+      file_sel.SetLorentz(true, p);
+      std::string s = "\n\nLorentz correction applied to the input intensities\n";
+      s += "---------------------------------------------------\n";
+      s += "   I' = I * sin^2(theta)";
+      if (p != 0.0) {
+        s += " / lambda^" + StringUtil::ftos(p, 5, 1);
+      }
+      s += "\n";
+      if (p == 0.0) {
+        s += "   geometric Laue factor, for a stationary crystal in a white beam\n";
+      } else if (p == 4.0) {
+        s += "   time-of-flight Laue: the flight-time bin width adds lambda^4\n";
+      }
+      s += "   Apply this only if the integration program has not already done so.\n";
+      output.logTab(0,LOGFILE, s);
+    }
+
     // Explicit run definition, if present
     controls.runs.StoreRunBatchSelection(input.Runsetselection());
     // Store input resolution ranges by run, if any set

@@ -56,6 +56,43 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+LORENTZ::LORENTZ() : CCP4base(), InputBase(),
+                     lorentz(false), power(0.0), powernext(false)
+{
+  Add_Key("LORE");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value LORENTZ::parse(std::istringstream& input_stream)
+// LORENTZ [LAUE | TOF | POWER <p>]
+{
+  lorentz = true;          // the bare keyword means the geometric Laue factor
+  power = 0.0;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      std::string sv = stoup(string_value);
+      if (sv.compare(0,4,"LAUE") == 0) {
+        power = 0.0;
+      } else if (sv == "TOF") {
+        power = 4.0;       // flight-time bin width adds lambda^4
+      } else if (sv.compare(0,4,"POWE") == 0) {
+        powernext = true;
+      } else if (sv.compare(0,4,"NONE") == 0 || sv.compare(0,3,"OFF") == 0) {
+        lorentz = false;
+      } else {
+        ReportSyntaxError
+          (keywords, "key not LAUE, TOF, POWER or NONE");
+      }
+    } else if (tokenIs(1,NUMBER) && powernext) {
+      power = number_value;
+      powernext = false;
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 PROBE::PROBE() : CCP4base(), InputBase(),
                  radiation(scala::Probe::XRAY),
                  instrument(scala::Probe::TOF), given(false)

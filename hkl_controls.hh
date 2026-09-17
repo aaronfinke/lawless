@@ -51,6 +51,19 @@ namespace scala
     float  InputScale() const {return inputscale;}  //!< get scale to be applied on input
     float& InputScale() {return inputscale;}        //!< set scale to be applied on input
 
+    //! Laue Lorentz correction applied on input, see the LORENTZ keyword.
+    //! Off unless explicitly asked for: integration programs differ over
+    //! whether they have already applied it, and applying it twice is
+    //! as wrong as not applying it at all.
+    //!   I' = I * sin^2(theta) / lambda^power
+    //! power = 0 for a stationary crystal in a white beam (the geometric Laue
+    //! factor, as LAUEGEN/LAUENORM and LSM use it), power = 4 for
+    //! time-of-flight Laue, where the flight-time bin width adds lambda^4.
+    bool  Lorentz() const {return lorentz;}
+    void  SetLorentz(const bool& on, const double& power)
+      {lorentz = on; lorentzpower = power;}
+    double LorentzPower() const {return lorentzpower;}
+
     //! Test for blank batches: get fraction of maximum resolution to use
     float NullResFrac() const {return nullResolutionfraction;} // get
     //! Test for blank batches: set fraction of maximum resolution to use
@@ -67,6 +80,8 @@ namespace scala
     BatchSelection batchexclude;  // List/ranges of batches to exclude
     BatchSelection batchinclude;  // List/ranges of batches to include (from RUN)
     float inputscale;             // scale factor to apply on input
+    bool lorentz;        // LORENTZ keyword given
+    double lorentzpower; // power of lambda in the correction
     // fraction of maximum resolution to use in test for blank batches
     float nullResolutionfraction;
     // Threshold on proportion of negative reflections

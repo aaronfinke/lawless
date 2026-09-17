@@ -406,6 +406,61 @@ natural generalisation — the same fit applied to log sigma instead of log I.
 
 ---
 
+## Lorentz correction on input (`LORENTZ`)
+
+```
+LORENTZ                  geometric Laue factor:  I' = I * sin^2(theta)
+LORENTZ LAUE             the same, said explicitly
+LORENTZ TOF              I' = I * sin^2(theta) / lambda^4
+LORENTZ POWER <p>        I' = I * sin^2(theta) / lambda^p
+LORENTZ NONE             off (the default)
+```
+
+**Off unless asked for.** Integration programs differ over whether they have
+already applied it — LAUEGEN has not, LSCALE has, the MaNDi pipeline applies it
+at integration — and applying it twice is as wrong as not applying it at all.
+Nothing infers it, including `PROBE`: whether the correction is already in the
+data is a property of the file, not of the radiation.
+
+`sin(theta) = lambda/2d`, so `sin^2(theta) = lambda^2/4d^2`. The `lambda^4` in
+the TOF form is the flight-time bin width; a reactor quasi-Laue instrument does
+not have it.
+
+Applied in `MtzUnmrgFile::get_refs` (`mtz_unmerge_io.cpp`) immediately before the
+input-scale block, to `I`, `sigI` and the profile-fitted pair, so it precedes
+every other step. `s = hkl.invresolsq()` and `lambda` are both already in scope
+there. Observations with no usable wavelength or resolution are counted and
+reported. The control lives on `file_select` (`hkl_controls.hh`) alongside
+`InputScale`, which is the same kind of on-read transformation.
+
+### What it does and does not change
+
+The factor is a **monomial** in lambda and d, so:
+
+- its wavelength part is indistinguishable from the wavelength normalisation
+  curve, which will absorb it;
+- its resolution part is constant within a reflection, so it cancels from every
+  per-shell merging statistic.
+
+It therefore does **not** change the internal consistency of the scaling. What it
+does change is the scale the merged intensities come out on — which is the point
+— and the **weighting of the resolution shells in the overall statistics**, which
+can be dramatic. On LADI the correction spans a factor of ~250 from 28 A to
+1.8 A, and overall R-merge moves 0.444 -> 0.829 while the per-shell values stay
+put. Do not read that as the correction making the data worse.
+
+### Verification
+
+lawless's `LORENTZ LAUE` reproduces the same correction applied by hand in the
+converter: identical summary statistics to three decimals, and merged
+intensities agreeing to better than 1e-6 for 98.9 % of reflections. The four
+that differ by more than 1e-4 have median I/sigma = 0.00 — float32 round-off on
+near-zero denominators — and the signed mean offset is -9e-07, so there is no
+bias. With the keyword absent, output is byte-identical to the build without the
+feature.
+
+---
+
 ## What the input MTZ must contain
 
 Laue data arriving from outside CCP4 routinely lacks things aimless assumes.
@@ -878,6 +933,7 @@ without information. Check the merged I/sigma of whatever a change adds.
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
 | `mtz_unmerge_io.cpp` | Reads the wavelength column, accepting `LAMBDA`, `LAM` or `WAVELENGTH`, case-insensitively and in that order of preference (`WavelengthColumnAliases` / `ColLookupNoCase` in `get_col_lookup`); falls back to the batch `ALAMBD` when none is present, which `aimless.cpp` makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
+| `hkl_controls.hh/.cpp` | `file_select` — the `LORENTZ` control, next to `InputScale` |
 | `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
 | `sdctypes.hh/.cpp` | `SDcorrection` — the `(lambda/lambda_ref)^SdLam` factor, applied in `Correct(observation&, Iav)` |
