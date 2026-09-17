@@ -406,6 +406,29 @@ natural generalisation — the same fit applied to log sigma instead of log I.
 
 ---
 
+## What the input MTZ must contain
+
+Laue data arriving from outside CCP4 routinely lacks things aimless assumes.
+Three separate failures were hit feeding LAUEGEN `.mtz1` and laue-dials
+`integrated.mtz` to POINTLESS and lawless, none of which give an obvious error:
+
+| missing | symptom |
+|---|---|
+| `M/ISYM` column | POINTLESS reads the file as **merged**, collapses it (122 779 observations to 22 213) and silently drops the extra columns. This is what marks a file unmerged — `BATCH` alone is not enough. Write it as 1 throughout for unreduced indices. |
+| batch headers | POINTLESS reports one batch regardless of the `BATCH` column. Records must exist, with `LDTYPE = 3`, a cell, and a non-zero `PHIRANGE` so `Batch::valid_phi` passes. |
+| `HKL_base` dataset | reciprocalspaceship writes every column into dataset 0 with no base dataset; POINTLESS dies with `Dataset::pxdname, setid not found`. Base columns belong in dataset 0, data in dataset >= 1, and the batch `LBSETID` must point at the latter. |
+
+Converters that get all of this right: `/Volumes/Finke_NMX/Mandi/CuZnSOD/aaron/lauenorm2mtz.py`
+(LAUENORM ascii), and under `/Users/aaronfinke/LADI_files/TIM_2020/aaron/`,
+`mtz1tomtz.py` (LAUEGEN `.mtz1`) and `addbatches.py` (laue-dials).
+
+Also: **use a POINTLESS newer than 1.13.6**. The build shipped with CCP4 9 does
+not pass the wavelength column through to its output, which makes `LAUE` fatal
+downstream. 1.16.1 keeps it and says `Additional unrecognised columns passed
+unchanged to output file`.
+
+---
+
 ## Workflow for Laue data
 
 ### Wavelength pre-normalisation pass
@@ -719,6 +742,20 @@ One consequence worth knowing: `ANOMALOUS OFF` merges I+ and I−, so the merged
 data hide the discrepancy — but the analysis still runs and still reports it.
 The diagnostic survives without keeping the split.
 
+### Instruments this has been run on
+
+| instrument | geometry | datasets | notes |
+|---|---|---|---|
+| MaNDi, SNS | TOF Laue, stationary exposures, spherical Anger-camera array | CuZnSOD, dMPro-KB5, hCAII-Cu | `PROBE NEUTRON TOF`; 2.1-3.9 A band |
+| LADI-III, ILL | reactor quasi-Laue, **rotating crystal**, cylindrical image plate | TIM 2020 | `PROBE NEUTRON QUASILAUE`; 2.8-3.8 A band; C 1 2 1 |
+
+LADI is the useful counterpart to MaNDi: the crystal rotates between exposures,
+so the lab and crystal frames genuinely decouple, which the stationary MaNDi
+packs never do. That makes it the right dataset for anything involving
+`SECONDARY` or orientation.
+
+---
+
 ### Checks after HKLIN is read
 
 These are gated on **`LAUE`, not on `PROBE`** — monochromatic neutron data is
@@ -786,6 +823,44 @@ Run `null_test.py` before believing any of the others.
 
 ---
 
+## Comparing runs, and comparing with other programs
+
+Statistics from different programs are not comparable, and neither are runs with
+different error-model treatment. To compare anything with anything:
+
+1. scale each candidate however it wants, writing `UNMERGEDOUT`;
+2. re-merge **every** candidate's unmerged output through one identical pass —
+   `ONLYMERGE` at a fixed `RESOLUTION` — and read the statistics from that.
+
+For another program, get *its* unmerged output and put it through the same pass.
+SCALA will do this with `OUTPUT AVERAGE UNMERGED`. Scripts:
+`/Users/aaronfinke/LADI_files/TIM_2020/aaron/score_at.sh` and `stats.py`.
+
+Three traps, each of which produced a wrong conclusion before being caught:
+
+- **Mean(I)/sd(I) only compares between runs with the same SD treatment**, and
+  it does *not* rescale by sqrt(chi^2). The same data gave 12.4 at chi^2 1.78
+  unrefined and 4.0 at chi^2 0.89 refined — "corrected" values of 9.3 and 4.2,
+  which should agree and do not. `SdB` and `SdAdd` are intensity-dependent, so
+  refinement changes the *shape* of the error model, not just its scale. Compare
+  on R-pim and CC(1/2).
+- **Do not chase chi^2 = 1.** On LADI it could not be reached by any SD setting
+  (`REFINE`, `FIXSDB`, `TIE SDB` all give 0.70 identically — `SdB` and `SdFac`
+  are degenerate), and loosening `REJECT` to get there collapsed CC(1/2) from
+  0.889 to 0.627. A sub-1 chi^2 is the expected signature of 4-sigma rejection
+  truncating the deviation distribution at low multiplicity.
+- **Overall R-merge is not comparable between files on different Lorentz
+  scales.** A Lorentz factor is a monomial in lambda and d, so it cancels within
+  a reflection and leaves per-shell statistics alone — but it re-weights the
+  shells, and so moves the overall figure. Applying `sin^2(theta)` to the LADI
+  data moved overall R-merge 0.109 -> 0.135 while every shell stayed put.
+
+And a warning about completeness: on LADI, keeping all the weak data added 2 818
+unique reflections whose **median merged I/sigma was -0.20**. Completeness
+without information. Check the merged I/sigma of whatever a change adds.
+
+---
+
 ## Key files
 
 | File | Role |
@@ -827,16 +902,16 @@ Run `null_test.py` before believing any of the others.
 
 ## To do
 
-- **A scattering-angle scale term (`SCALES ... TWOTHETA <n>`)** — the next
-  phase, and the one the measurement in `tools/` argues for. A Chebyshev in
-  `cos 2θ` per run, entering the product in `ScaleModel::ScaleFactor`
-  (`scalemodel.cpp`) as one more factor; `2θ = 2 asin(λ/2d)` and both are
-  already per-observation, so no new MTZ column is needed. Offer the
-  one-parameter LSM obliquity form `exp(u/cos 2θ)` alongside it for comparison,
-  though the measured residual is humped (−1 % at 25°, +5 % at 45°, −5 % past
-  75°) and both LSM forms are monotone. Risk: correlation with the λ curve and
-  the relative B-factor, all three of which reach 2θ through *d* — normalise
-  `⟨ln g⟩ = 0` over the observed range and tie toward flat, as `SECONDARY` does.
+- **No angular correction is implemented, and this is settled.** `SCALES ...
+  TWOTHETA` was written, tested on all three MaNDi datasets and reverted. It
+  reduced R-merge and raised CC(1/2) on two of three and was demonstrably not
+  fitting noise (null control 4-6 % against 39-55 % real), but no physical
+  generator could be named: the Lorentz factor is a monomial so no error in it
+  can make a lambda x d interaction, thermal diffuse scattering is a function of
+  sin(theta)/lambda and cancels, detector efficiency is wavelength only, and
+  crystal absorption is `SECONDARY`'s frame. The implementation is on the tag
+  `twotheta-abandoned` (local only). Reopen only on an instrument whose crystal
+  rotates.
 
 - **`SECONDARY` on by default under `PROBE NEUTRON` when UB is present** — for a
   1 mm crystal in D₂O the attenuation is μ ≈ 0.195 mm⁻¹ hydrogenous, 0.071 mm⁻¹
@@ -864,3 +939,32 @@ Run `null_test.py` before believing any of the others.
   (CuZnSOD, 10 packs) has no per-run spectral drift: per-run `σ_f` comes out at
   0.002–0.018 in log space against 1.66 for the global fit. It has therefore
   never been exercised against a real non-flat residual.
+
+- **The LADI internal-consistency gap is unexplained.** On the TIM 2020 data,
+  lawless from raw LAUEGEN matches LSCALE+SCALA per resolution shell and leads
+  on completeness and multiplicity, but trails on R-pim and CC(1/2) overall
+  (0.199 / 0.915 against 0.091 / 0.982 at 2.53 A, SD refined both sides). Two
+  candidates were tested and cleared: nothing is lost in conversion (the
+  permissive file contains 100 % of LSCALE's observations), and the wavelength
+  model is not the difference (GP and a 10-coefficient Chebyshev agree to 5 %).
+  Absorption remains untested — see below.
+
+- **`SECONDARY` on LADI needs the orientation problem solved first.** `U` fits
+  per image from the Laue condition to machine precision, but `lambda =
+  -2(s0.q)/|q|^2` is invariant under rotation about the beam, so each image's
+  azimuth is undetermined and a per-image `U` would put every exposure in a
+  different crystal frame. Tying the images through the `.ldm` SPINDLE angles
+  did not converge (median |dlambda| 0.51 A against 0.000 free). The proper fix
+  is to use the `XF`/`YF` spot positions with the cylinder geometry (`CTOF`,
+  `TWIST/TILT/BULGE`) to break the degeneracy. Converter work, not a lawless
+  change.
+
+- **A detector-position systematic is present on LADI and is not the flat-panel
+  approximation** (branch `lawless_cylinder`, plan only, no commits). Leave-one-
+  out bias against the cylinder-axis coordinate is a symmetric arch peaked at
+  the centre: rms 8.1 % for laue-dials (85 flat panels) and **16.6 % for LAUEGEN
+  with true cylindrical support**, against null controls of 1.3 %. So the
+  approximation is not the cost. The shape points at obliquity — LSM's
+  `fOb = exp(ut/cos 2theta)`, which neither pipeline applied. If built, the term
+  wanted is a low-order curve in the height coordinate pinned at the centre, not
+  a general 2D surface.
