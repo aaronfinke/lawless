@@ -26,3 +26,9 @@ NORMPLOT
 # Editor
 .vscode/
 CLAUDE.md
+
+# Documentation intermediates: generated from lawless.md / aimless.html,
+# rebuilt on demand rather than version-controlled
+lawless_only.md
+lawless_aimless.md
+lawless_inherited_draft.md
