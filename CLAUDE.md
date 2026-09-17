@@ -422,9 +422,19 @@ at integration — and applying it twice is as wrong as not applying it at all.
 Nothing infers it, including `PROBE`: whether the correction is already in the
 data is a property of the file, not of the radiation.
 
-`sin(theta) = lambda/2d`, so `sin^2(theta) = lambda^2/4d^2`. The `lambda^4` in
-the TOF form is the flight-time bin width; a reactor quasi-Laue instrument does
-not have it.
+`sin(theta) = lambda/2d`, so `sin^2(theta) = lambda^2/4d^2`.
+
+**`LAUE` and `TOF` are the same physics booked differently, not two different
+corrections.** For a Laue spot
+`I ∝ Phi(lambda) * lambda^4 * |F|^2 / (2 sin^2 theta)`; LAUEGEN and LSCALE fold
+the `lambda^4` into the wavelength normalisation curve and correct only the
+geometric `sin^2(theta)`, while the TOF convention separates it out because the
+spectrum is measured independently. Since `lambda^4` is a pure function of
+wavelength the curve absorbs whichever is left in, so **the choice barely
+matters**: on LADI the two give R-merge 0.829 and 0.828, and the fitted curve
+tilts to compensate (0.136 -> 0.137 across the band with `LAUE`, 0.254 -> 0.079
+with `TOF`). What the keyword really supplies is `sin^2(theta)`, the only
+resolution dependence, which no other term can absorb.
 
 Applied in `MtzUnmrgFile::get_refs` (`mtz_unmerge_io.cpp`) immediately before the
 input-scale block, to `I`, `sigI` and the profile-fitted pair, so it precedes

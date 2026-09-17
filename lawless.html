@@ -29,6 +29,7 @@
       <tr><td>scale model</td><td><tt>primary × B-factor × secondary × detector</tt></td><td><tt>… × wavelength normalisation</tt></td></tr>
       <tr><td>error model</td><td><tt>SdFac √(σ² + SdB·I + (SdAdd·I)²)</tt></td><td>optional wavelength term on top</td></tr>
       <tr><td>radiation</td><td>X-ray assumed throughout</td><td><tt>PROBE NEUTRON</tt> changes defaults, guards and reporting</td></tr>
+      <tr><td>Lorentz</td><td>assumed already applied</td><td>optional <tt>LORENTZ</tt> correction on input, for data where it is not</td></tr>
       <tr><td>output</td><td>unmerged MTZ</td><td>unmerged MTZ now carries <tt>LAMBDA</tt>; adds <tt>LAMBDANORM</tt></td></tr>
     </table>
     <h3>Requirements for the input file</h3>
@@ -65,7 +66,7 @@ w(λ)  = exp( h(λ) − h(λ_ref) )</pre>
     <p>See the <a href="#probe">PROBE</a> keyword below for the full list.</p>
     <h3>Workflow for Laue data</h3>
     <ol>
-      <li><b>Integrate</b>, applying the Lorentz factor and any absorption correction at that stage, as usual. lawless does not apply a Lorentz factor.</li>
+      <li><b>Integrate</b>, applying any absorption correction at that stage. If the integration program applied the Lorentz factor, nothing more is needed; if it did not, give lawless the <tt>LORENTZ</tt> keyword (see below). Check which — the programs differ, and applying it twice is as wrong as not applying it at all.</li>
       <li><b>Sort and set symmetry with POINTLESS</b>, supplying <tt>LAUEGROUP</tt> and <tt>CHOOSE SPACEGROUP</tt> explicitly (see above). Check that the wavelength column survives into the sorted file — older versions of POINTLESS drop it, and lawless will then refuse to run. See <a href="#requirements-for-the-input-file">Requirements for the input file</a>.</li>
       <li><b>Scale with lawless.</b> A reasonable starting point for a neutron time-of-flight Laue dataset:</li>
     </ol>
@@ -117,6 +118,23 @@ LAUE NORMGPRPERRUN</pre>
     </table>
     <p><tt>NORMCHEBYSHEV</tt> and <tt>NORMGPR</tt> are mutually exclusive keywords; giving both is a fatal error.</p>
     <p><b>A per-observation wavelength column in HKLIN is required</b> — <tt>LAMBDA</tt>, <tt>LAM</tt> or <tt>WAVELENGTH</tt>, case-insensitive. See <a href="#requirements-on-the-input-file">Requirements on the input file</a>.</p>
+    <h3>LORENTZ</h3>
+    <pre>LORENTZ                  I' = I * sin^2(theta)             geometric Laue factor
+LORENTZ LAUE             the same, stated explicitly
+LORENTZ TOF              I' = I * sin^2(theta) / lambda^4  time-of-flight convention
+LORENTZ POWER &lt;p&gt;        I' = I * sin^2(theta) / lambda^p
+LORENTZ NONE             no correction (the default)</pre>
+    <p>Applies the Laue Lorentz correction to the intensities <b>on input, before anything else is done with them</b>.</p>
+    <p><b>Off unless you ask for it, and nothing infers it</b> — not even <tt>PROBE</tt>. Integration programs differ over whether they have already applied it (LAUEGEN has not; LSCALE has; some TOF pipelines apply it at integration), and applying it twice is as wrong as not applying it at all. Whether the correction is already present is a property of the file, not of the radiation, so you have to say.</p>
+    <p><tt>sin(theta) = lambda/2d</tt>, so <tt>sin^2(theta) = lambda^2/4d^2</tt>.</p>
+    <p><b>Choosing between <tt>LAUE</tt> and <tt>TOF</tt> matters less than it looks.</b> Both describe the same physics — for a Laue spot, <tt>I ∝ Phi(lambda) * lambda^4 * |F|^2 / (2 sin^2 theta)</tt> — and differ only in where the <tt>lambda^4</tt> is booked. LAUEGEN and LSCALE fold it into the wavelength normalisation curve and correct only the geometric <tt>sin^2(theta)</tt>; the time-of-flight convention separates it out because the incident spectrum is measured independently. Since <tt>lambda^4</tt> is a pure function of wavelength, the normalisation curve absorbs whichever you leave in: on LADI-III the two settings give R-merge 0.829 and 0.828, and the fitted curve simply tilts to compensate (0.136 → 0.137 across the band with <tt>LAUE</tt>, 0.254 → 0.079 with <tt>TOF</tt>).</p>
+    <p>What the correction really supplies is the <b><tt>sin^2(theta)</tt> part</b>, which carries the only resolution dependence and which no other term in the scale model can absorb — the relative B-factor has the wrong functional form.</p>
+    <p>Two consequences worth expecting:</p>
+    <ul>
+      <li>It does <b>not</b> change the internal consistency of the scaling. The factor is a monomial in lambda and d, so its wavelength part is degenerate with the normalisation curve and its resolution part is constant within a reflection and cancels from every per-shell statistic.</li>
+      <li>It <b>does</b> re-weight the resolution shells in the overall statistics, and the effect can be large: on LADI-III the correction spans a factor of ~250 between 28 and 1.8 Angstrom, and overall R-merge moves from 0.444 to 0.829 while every shell value stays put. That is re-weighting, not a loss of quality.</li>
+    </ul>
+    <p>Observations with no usable wavelength or resolution cannot be corrected; they are rejected and counted in the log.</p>
     <h3>PROBE</h3>
     <pre>PROBE NEUTRON | XRAY   [TOF | QUASILAUE]</pre>
     <p>Radiation type and instrument class. Default <tt>XRAY</tt>; for <tt>NEUTRON</tt> the instrument class defaults to <tt>TOF</tt>.</p>
