@@ -1721,7 +1721,7 @@ int main(int argc, char* argv[])
   }
 
   if (output.doXmlout()) {
-    output.logTab(0, LXML,"</AIMLESS>");
+    output.logTab(0, LXML,"</LAWLESS>");
     output.unsetXmlout();
   }
 
