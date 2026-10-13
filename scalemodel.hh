@@ -204,7 +204,7 @@ namespace scala {
     // XML of the wavelength normalization fit ("" if no wavelength scale)
     std::string WavelengthNormalizationXML() const;
 
-    // gnuplot script (LAMBDANORM file content) for the Chebyshev wavelength
+    // gnuplot script (LAMBDANORM.plt file content) for the Chebyshev wavelength
     // normalization curve; "" if no wavelength scale
     std::string WavelengthGnuplot(const std::string& title,
                                   const std::string& version) const;
@@ -254,7 +254,7 @@ namespace scala {
     // XML of the GP wavelength normalization fit ("" if no GP scale)
     std::string GPRWavelengthNormalizationXML() const;
 
-    // gnuplot script (LAMBDANORM file content) for the GP wavelength
+    // gnuplot script (LAMBDANORM.plt file content) for the GP wavelength
     // normalization curve with 1-sigma band; "" if no GP scale
     std::string GPRWavelengthGnuplot(const std::string& title,
                                      const std::string& version) const;

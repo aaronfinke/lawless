@@ -570,7 +570,7 @@ namespace scala {
     // XML representation of the fit: ranges, coefficients, sampled w(lambda)
     std::string asXML() const;
 
-    // Self-contained gnuplot script (the LAMBDANORM file): w(lambda) curve, one
+    // Self-contained gnuplot script (the LAMBDANORM.plt file): w(lambda) curve, one
     // line segment per range.  title/version are embedded in the header.
     // (No uncertainty band: the Chebyshev fit carries no posterior covariance.)
     std::string GnuplotScript(const std::string& title,
@@ -685,7 +685,7 @@ namespace scala {
     // XML representation of the fit: range, hyperparameters, sampled w(lambda)
     std::string asXML() const;
 
-    // Self-contained gnuplot script (the LAMBDANORM file): w(lambda) curve with
+    // Self-contained gnuplot script (the LAMBDANORM.plt file): w(lambda) curve with
     // a 1-sigma uncertainty band.  title/version are embedded in the header.
     std::string GnuplotScript(const std::string& title,
                               const std::string& version) const;

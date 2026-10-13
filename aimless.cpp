@@ -862,12 +862,12 @@ int main(int argc, char* argv[])
       AllScales.PrintWavelengthNormalization(output);
       output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
 
-      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM.plt)
       {
         std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
         if (!lnscript.empty()) {
-          const std::string lnfile = "LAMBDANORM";
+          const std::string lnfile = "LAMBDANORM.plt";
           std::ofstream lns(lnfile.c_str());
           if (lns) {
             lns << lnscript;
@@ -1045,12 +1045,12 @@ int main(int argc, char* argv[])
 
       output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
 
-      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM)
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM.plt)
       {
         std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.GPRWavelengthGnuplot(runTitle, lnver);
         if (!lnscript.empty()) {
-          const std::string lnfile = "LAMBDANORM";
+          const std::string lnfile = "LAMBDANORM.plt";
           std::ofstream lns(lnfile.c_str());
           if (lns) {
             lns << lnscript;
