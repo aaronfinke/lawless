@@ -368,8 +368,10 @@ namespace scala
     if (plot) {
       std::string filename = "NORMPLOT";
       if (!controls.plotcontrol.xmgraceoutput) {filename = "";}
-      // Blank filename indicates no XMgrace output
-      NPPlot.init(filename, true, "Normal probability plot","");
+      std::string gnufile = "NORMPLOT.plt";
+      if (!controls.plotcontrol.gnuplotoutput) {gnufile = "";}
+      // Blank filename indicates no XMgrace (or gnuplot) output
+      NPPlot.init(filename, true, "Normal probability plot","", gnufile);
     }
 
     // Replot with corrections

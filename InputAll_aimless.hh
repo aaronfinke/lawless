@@ -44,7 +44,8 @@ namespace phaser_io {
     public CELL,
     public ICERING,
     public BFACTOR,
-    public LAUE
+    public LAUE,
+    public PROBE
   {
   public:
     InputAll(Preprocessor&); 

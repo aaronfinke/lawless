@@ -1162,7 +1162,9 @@ namespace scala {
     // Correlplot
     // plotxmgr true to write xmgr file
     bool plotxmgr = controls.plotcontrol.xmgraceoutput;
-    std::string s = halfDatasetScores.PlotCorrel(plotxmgr);
+    // plotgnu true to write gnuplot file
+    bool plotgnu = controls.plotcontrol.gnuplotoutput;
+    std::string s = halfDatasetScores.PlotCorrel(plotxmgr, plotgnu);
     if (s != "") {  // XML plot
       output.logTab(0,LXML,s);
     }

@@ -201,6 +201,64 @@ namespace scala {
     // Print wavelength normalization table and coefficients to log
     void PrintWavelengthNormalization(phaser_io::Output& output) const;
 
+    // XML of the wavelength normalization fit ("" if no wavelength scale)
+    std::string WavelengthNormalizationXML() const;
+
+    // gnuplot script (LAMBDANORM.plt file content) for the Chebyshev wavelength
+    // normalization curve; "" if no wavelength scale
+    std::string WavelengthGnuplot(const std::string& title,
+                                  const std::string& version) const;
+
+    // true if a Gaussian-process wavelength normalization was requested
+    bool HasGPRWavelengthScale() const {return gpr_requested;}
+    //! true if a separate residual w(lambda) is wanted for each run
+    bool HasPerRunGPRWavelength() const {return gpr_perrun;}
+    //! number of runs (size of the per-run residual list)
+    int NumberGPRRuns() const {return int(gpr_run_scales.size());}
+    //! true if run irun has a fitted residual curve
+    bool GPRRunActive(const int& irun) const {
+      return (irun >= 0 && irun < int(gpr_run_scales.size())
+              && gpr_run_scales[irun].IsActive());}
+    // true once the GP fit has succeeded and is being applied
+    bool GPRWavelengthActive() const {return gpr_scale.IsActive();}
+    // Fit the GP wavelength normalization from per-observation samples
+    //   lambdas[i]  wavelength of observation i
+    //   ratios[i]   I_i / <I>_symmetry-mates          (linear space)
+    //   weights[i]  <I>_symmetry-mates / sigma_i^2    (weight for the ratio)
+    // The fitted correction is then applied as a fixed factor in ScaleFactor.
+    void FitGPRWavelength(const std::vector<double>& lambdas,
+                          const std::vector<double>& ratios,
+                          const std::vector<double>& weights,
+                          phaser_io::Output& output);
+
+    // Current GP wavelength scale ws(lambda); 1.0 if no GP fit yet.
+    // Used to iterate the empirical response estimate.
+    double GPRWavelengthScaleAt(const double& lambda) const
+    {return gpr_scale.Scale(lambda);}
+    //! global w(lambda) times run irun's residual, ie the total GP correction
+    double GPRWavelengthScaleAt(const int& irun, const double& lambda) const {
+      double w = gpr_scale.Scale(lambda);
+      if (GPRRunActive(irun)) {w *= gpr_run_scales[irun].Scale(lambda);}
+      return w;}
+    //! fit the residual curve for one run
+    void FitGPRWavelengthRun(const int& irun,
+                             const std::vector<double>& lambdas,
+                             const std::vector<double>& ratios,
+                             const std::vector<double>& weights,
+                             phaser_io::Output& output);
+    //! log the per-run residual curves
+    void PrintGPRPerRunNormalization(phaser_io::Output& output) const;
+    // Print the GP wavelength normalization table to log
+    void PrintGPRWavelengthNormalization(phaser_io::Output& output) const;
+
+    // XML of the GP wavelength normalization fit ("" if no GP scale)
+    std::string GPRWavelengthNormalizationXML() const;
+
+    // gnuplot script (LAMBDANORM.plt file content) for the GP wavelength
+    // normalization curve with 1-sigma band; "" if no GP scale
+    std::string GPRWavelengthGnuplot(const std::string& title,
+                                     const std::string& version) const;
+
     // Print scale layout
     void PrintLayout(phaser_io::Output& output) const;
     // Print all scale parameters
@@ -439,6 +497,17 @@ namespace scala {
     int nwavscale;      // number of wavelength Chebyshev coefficients (0 if inactive)
     int idxwavscale;    // index into global parameter vector for wavelength params
     bool wavelength_only_mode_;  // when true, zero derivatives for non-wavelength params
+
+    // Gaussian-process wavelength normalization, shared across all runs.
+    // Fitted in a pre-pass and applied as a FIXED multiplicative correction
+    // (no refinable parameters, zero derivatives in ScaleFactorDeriv).
+    WavelengthGPRScale gpr_scale;
+    // per-run residual curves: total ws(lambda) = gpr_scale * gpr_run_scales[irun]
+    std::vector<WavelengthGPRScale> gpr_run_scales;
+    bool gpr_perrun;     // true if LAUE NORMGPRPERRUN was given
+    WavelengthGPRScale::GPRControl gpr_control; // user controls from LAUE NORMGPR
+    bool gpr_requested;  // true if LAUE NORMGPR was given
+    double gpr_lambda_ref;  // reference wavelength (NORMLAMREF) for GPR normalization
 
     // list of run indices which share scale index sclidx
     std::vector<int> runsWithScaleIndex(const int& sclidx) const;

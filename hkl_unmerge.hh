@@ -802,7 +802,7 @@ namespace scala {
     */
     std::pair<float, float> CalcSecondaryBeamPolar 
     (const int& batchNum, const Hkl& hkl_original, const float& phi,
-     DVect3& sPhi) const;
+     DVect3& sPhi, const double& lambda = -1.0) const;
 
     //! Calculate secondary beam directions
     /*! On entry
@@ -815,7 +815,7 @@ namespace scala {
     */
     DVect3 CalcSecondaryBeam
     (const int& batchNum, const Hkl& hkl_original, const float& phi,
-     DVect3& sPhi) const;
+     DVect3& sPhi, const double& lambda = -1.0) const;
       
     //! Reset all observation accepted flags
     /*! Reset all observation accepted flags to allow for acceptance of observations

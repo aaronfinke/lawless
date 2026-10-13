@@ -491,9 +491,10 @@ class PlotControl
 // Controls correlation plots and scatterplots 
 {
  public:
-  PlotControl() : xmgraceoutput(true) {}
+  PlotControl() : xmgraceoutput(true), gnuplotoutput(true) {}
 
   bool xmgraceoutput;  // true to output .xmgr files
+  bool gnuplotoutput;  // true to output gnuplot .plt files
 
  };
 //=================================================================

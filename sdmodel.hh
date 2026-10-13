@@ -142,6 +142,18 @@ namespace scala
     //! Reset SDadd for all runs
     void SetSDadd(const double& SDadd);
 
+    //! Laue: fit a wavelength exponent for each run's SD correction
+    /*! For every reflection measured more than once, the normalised deviation
+      of each observation from the mean of its mates is binned by wavelength;
+      chi^2 per bin is the ratio of observed to predicted variance, so a
+      weighted straight line of log(chi^2) against log(lambda/lambda_ref) has
+      slope 2*SDlam.  One parameter per run.  Returns the number of runs fitted. */
+    int FitLambdaSDcorrection(hkl_unmerge_list& hkl_list,
+                              const double& LambdaRef,
+                              const int& nbins,
+                              phaser_io::Output& output,
+                              const double& scale = 1.0);
+
     //! Apply appropriate SD correction to all valid observations in reflection
     //! Return vector of uncorrected sigmas, for all observations,
     //!  even unselected ones

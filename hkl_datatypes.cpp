@@ -1416,12 +1416,18 @@ namespace scala
     return R * DUB * hl;
   }
   //--------------------------------------------------------------
-  DVect3 Batch::HtoSr0(const Hkl& hkl) const
+  DVect3 Batch::HtoSr0(const Hkl& hkl, const double& lambda) const
   // reciprocal lattice index h -> s(r0) = [D][U][B]h zero rotation angle frame
+  //
+  // s_out = s_in + lambda * q, so the wavelength sets the scattering angle.
+  // lambda <= 0 means "use the batch wavelength": correct for monochromatic
+  // data, where every observation in the batch shares it.  For Laue data the
+  // per-observation wavelength must be passed in.
   {
+    const double lam = (lambda > 0.0) ? lambda : double(batchinfo.alambd);
     DVect3 hl;  // lambda * hkl
     for (int i=0;i<3;++i) {
-      hl[i] = batchinfo.alambd * hkl[i];
+      hl[i] = lam * hkl[i];
     }
     return DUB * hl;
   }

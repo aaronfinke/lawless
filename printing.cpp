@@ -7,6 +7,7 @@
 #include "halfdataset.hh"
 #include "string_util.hh"
 #include "anisotropy.hh"
+#include "probe.hh"
 
 using phaser_io::LOGFILE;
 using phaser_io::LXML;
@@ -44,31 +45,31 @@ float FractionN(const float& scale, const double& num, const int& den)
 //--------------------------------------------------------------
 void PrintTitle( phaser_io::Output& output)
 {
-  // Make version line
-  int sp = 52; // number of spaces in line
-  int n1 = (sp - PROGRAM_VERSION.size())/2;
-  int n2 = sp - PROGRAM_VERSION.size() - n1;
-  std::string pad1(n1,' ');
-  std::string pad2(n2,' ');
-  std::string line = "        *"+pad1+PROGRAM_VERSION+pad2+"*\n";
+  const int sp = 52; // interior width of the box (chars between the '*' borders)
+  // centre a string within the box interior, return the full bordered line
+  auto boxline = [&](const std::string& text) {
+    int len = int(text.size());
+    if (len > sp) len = sp;
+    int n1 = (sp - len)/2;
+    int n2 = sp - len - n1;
+    return std::string("        *") + std::string(n1,' ')
+         + text.substr(0,len) + std::string(n2,' ') + "*\n";
+  };
+  std::string border = "        " + std::string(sp+2,'*') + "\n";
 
-  output.logTabPrintf(0,LOGFILE,
-          "\n        ******************************************************\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                      AIMLESS                       *\n");
-  output.logTab(0,LOGFILE, line);
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *     Scaling & analysis of unmerged intensities     *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *     Phil Evans MRC LMB, Cambridge                  *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        *                                                    *\n");
-  output.logTabPrintf(0,LOGFILE,
-          "        ******************************************************\n\n");
+  output.logTab(0,LOGFILE, "\n"+border);
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, boxline("LAWLESS"));
+  output.logTab(0,LOGFILE, boxline("(it's AIMLESS for Laue data)"));
+  output.logTab(0,LOGFILE, boxline(PROGRAM_VERSION));
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, boxline("Scaling & analysis of unmerged intensities"));
+  output.logTab(0,LOGFILE, boxline("(now with wavelength normalization!)"));
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, boxline("Phil Evans MRC LMB, Cambridge"));
+  output.logTab(0,LOGFILE, boxline("(with tiny contribs from Aaron Finke, ESS, DK)"));
+  output.logTab(0,LOGFILE, boxline(""));
+  output.logTab(0,LOGFILE, border+"\n");
 }
 //--------------------------------------------------------------
 void PrintFileInfoToXML(const std::string& StreamName,
@@ -254,9 +255,19 @@ void PrintScalesByBatch(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Relative Bfactor & Decay v. batch");
-  description = "The relative B-factor is largely a radiation damage correction.";
-  description += " Negative values below perhaps -10 may indicate sever radiation damage.";
-  description += " Bdecay is a straight-line fit to the B-factors";
+  if (Probe::IsNeutron()) {
+    // Neutrons do not damage the crystal, so the relative B-factor is not a
+    // dose correction: it is a relative resolution-dependent scale, absorbing
+    // crystal slippage, centring and changes in illuminated volume
+    description = std::string("The relative B-factor is a relative resolution-dependent scale.")+
+      " For neutrons it is not a radiation damage correction; it absorbs crystal"+
+      " slippage, centring errors and changes in the illuminated volume."+
+      " Bdecay is a straight-line fit to the B-factors";
+  } else {
+    description = "The relative B-factor is largely a radiation damage correction.";
+    description += " Negative values below perhaps -10 may indicate sever radiation damage.";
+    description += " Bdecay is a straight-line fit to the B-factors";
+  }
   graph.SetDescription(description);
   graph.AddLine(TableGraphPlotline(1,8,"red","",symbolsize));  // Bfactor
   graph.AddLine(TableGraphPlotline(1,9,"blue","",symbolsize));  // Bdecay
@@ -400,8 +411,10 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   table.StoreID("Graph-StatsVsBatch");
 
   TableGraphPlot graph("Rmerge v Batch for all runs");
-  std::string description =
-    "Increase of Rmerge towards the end of a run probably indicates radiation damage";
+  std::string description = Probe::IsNeutron() ?
+    std::string("Increase of Rmerge towards the end of a run indicates that the data")+
+    " are not stable over the run" :
+    std::string("Increase of Rmerge towards the end of a run probably indicates radiation damage");
 
   if (smoothR) { // smoothed, 2 lines, smoothed first
     graph.AddLine(TableGraphPlotline(1,15,"red",
@@ -446,7 +459,9 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
   table.AddGraph(graph);
 
   graph.init("Cumulative %completeness & Anom%cmpl v Batch");
-  description = std::string("In conjunction with radiation damage indicators, ")+
+  description = std::string("In conjunction with ")+
+    (Probe::IsNeutron() ? std::string("the stability indicators, ")
+                        : std::string("radiation damage indicators, "))+
     "cumulative completeness may indicate a suitable point for cutting back poor data."+
     " The blue line is the completeness of anomalous differences";
   graph.SetDescription(description);
@@ -464,7 +479,9 @@ void PrintDeviationsByBatch(const PxdName& dataset_pxd,
     "The resolution limit estimate is the point at which I/sig(I) falls below "+
     StringUtil::Strip(StringUtil::ftos(MinimumIoverSigma,5,1))+
     ", red line smoothed over adjacent batches. "+
-    "A sharp increase probably indicates radiation damage";
+    (Probe::IsNeutron() ?
+     std::string("A sharp increase indicates that the data are not stable over the run") :
+     std::string("A sharp increase probably indicates radiation damage"));
   graph.SetDescription(description);
 
   if (smoothMaxRes) {

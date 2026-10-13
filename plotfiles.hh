@@ -1,7 +1,7 @@
 // plotfiles.hh
 
 // Classes for writing plotfiles
-//   currently these are all for Grace (alias xmgr)
+//   for Grace (alias xmgr), and as self-contained gnuplot scripts (.plt)
 
 #ifndef PLOTFILES_HEADER
 #define PLOTFILES_HEADER
@@ -172,20 +172,85 @@ private:
   int objectNumber;  // track graph object number, from 0
 };
 //--------------------------------------------------------------
+class GNUPLOT
+// Self-contained gnuplot script, written as a parallel to XMGRACE.
+// Points are buffered, since a gnuplot script needs its data (as inline
+// datablocks) before the plot command; the file is written in ClosePlot.
+// Colour numbers are the xmgr ones, so both files look alike.
+{
+public:
+  GNUPLOT() : diagonal(false), square(false), ticklabel(true) {}
+
+  // Return true if plotting is turned on
+  bool IsPlot() const {return (filename != "");}
+
+  // FileName        output file, written in ClosePlot
+  // title1, title2  titles
+  // xmin, xmax      range of coordinates
+  // ymin, ymax      range of coordinates
+  // xtick, ytick    tick intervals
+  // Ticklabel       true to label ticks
+  // xlabel, ylabel  axis labels
+  // WriteLegend     true to write legend
+  // Square          true for equal x and y scales
+  void Header(const std::string& FileName,
+	      const std::string& title1, const std::string& title2,
+	      const float& xmin, const float& xmax,
+	      const float& ymin, const float& ymax,
+	      const float& xtick, const float& ytick, const bool& Ticklabel,
+	      const std::string& xlabel, const std::string& ylabel,
+	      const bool& WriteLegend, const bool& Square);
+
+  // start new line, arguments as XMGRACE::Line
+  void Line(const std::string& legend,
+	    const int& lcolour, const int& Symbol, const bool& Join);
+
+  void Point(const std::string& fmt,
+	     const float& x, const float& y);
+
+  void EndLine() {}
+
+  // Draw a circle centred on 0,0
+  void Circle(const int& lcolour, const std::string& legend,
+	      const float& Radius, const int& Npoints);
+
+  // plot diagonal line and axes if diagonal true, then write the file
+  void ClosePlot(const bool& Diagonal);
+
+private:
+  struct Series {
+    std::string legend;
+    int colour;
+    int symbol;
+    bool join;
+    std::string data;
+  };
+  std::string filename;
+  std::string title1, title2;
+  float xmin, xmax, ymin, ymax, xtick, ytick;
+  std::string xlabel, ylabel;
+  bool writelegend, diagonal, square, ticklabel;
+  std::vector<Series> series;
+};
+//--------------------------------------------------------------
 class NormalProbPlot
 {
 public:
-  NormalProbPlot() :  file(0), Nlines(0), xmgr(true) {}
+  NormalProbPlot() :  file(0), Nlines(0), xmgr(true), gnu(false) {}
   // Create and write header
+  // FileName     xmgr file, "" for none
+  // GnuFileName  gnuplot file, "" for none
   NormalProbPlot(const std::string& FileName,
 		 const bool& WriteLegend,
 		 const std::string& title1,
-		 const std::string& title2);
+		 const std::string& title2,
+		 const std::string& GnuFileName="");
 
   void init(const std::string& FileName,
 	    const bool& WriteLegend,
 	    const std::string& title1,
-	    const std::string& title2);
+	    const std::string& title2,
+	    const std::string& GnuFileName="");
 
   // Set up sampling for plotting central region
   // Because the plot can contain a ridiculously large number of points,
@@ -211,7 +276,9 @@ private:
   int Nlines;
   float xmax, ymax;
   bool xmgr;  // true to write xmgr file
+  bool gnu;   // true to write gnuplot file
   XMGRACE xmgrplot;
+  GNUPLOT gnuplot;
   XMLplot xmlplot;
   PlotSample sample;  // sampling of points for plotting
   float limit;
@@ -243,7 +310,8 @@ public:
   
   void AddPoint(const int& mres, const float& I1, const float& I2);
   
-  std::string Plot(FILE* plotfile) const;  // returns XML
+  // returns XML; plotfile = NULL for no xmgr file, gnufile = "" for no gnuplot
+  std::string Plot(FILE* plotfile, const std::string& gnufile="") const;
   
 private:
   int nresbin;   // number of resolution bins
@@ -262,17 +330,20 @@ private:
 class RoguePlot {
   // Rogue plot
 public:
-  RoguePlot() : file(NULL) {}
+  RoguePlot() : file(NULL), xmgr(false), gnu(false) {}
 
   // Smax  maximum 4(sin theta/lambda)**2
   //                      = (d*max)**2 = 1/dmin**2
   // wavelength  
+  // FileName     xmgr file, "" for none
+  // GnuFileName  gnuplot file, "" for none
   RoguePlot(const std::string& FileName,
 	    const std::string& Title, const float& Smax,
-	    const float& wavelength, const scala::Rings& icerings);
+	    const float& wavelength, const scala::Rings& icerings,
+	    const std::string& GnuFileName="");
 
   // Return true if plotting is turned on
-  bool IsPlot() const {return xmgrplot.IsPlot();}
+  bool IsPlot() const {return xmgrplot.IsPlot() || gnuplot.IsPlot();}
 
   // Start points, symbols, no line
   void Start();
@@ -289,7 +360,9 @@ public:
 private:
   FILE* file;
   bool xmgr;  // true to write xmgr file
+  bool gnu;   // true to write gnuplot file
   XMGRACE xmgrplot;
+  GNUPLOT gnuplot;
   XMLplot xmlplot;
   std::vector<float> x;
   std::vector<float> y;

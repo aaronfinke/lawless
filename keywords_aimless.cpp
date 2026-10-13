@@ -56,6 +56,42 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+PROBE::PROBE() : CCP4base(), InputBase(),
+                 radiation(scala::Probe::XRAY),
+                 instrument(scala::Probe::TOF), given(false)
+{
+  Add_Key("PROB");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value PROBE::parse(std::istringstream& input_stream)
+// PROBE NEUTRON | XRAY [TOF | QUASILAUE]
+{
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NAME)) {
+      // keyIs() compares four characters and requires at least four, so
+      // compare the token directly: TOF is shorter than that
+      std::string sv = stoup(string_value);
+      if (sv.compare(0,4,"NEUT") == 0) {
+        radiation = scala::Probe::NEUTRON;
+      } else if (sv.compare(0,4,"XRAY") == 0) {
+        radiation = scala::Probe::XRAY;
+      } else if (sv == "TOF") {
+        instrument = scala::Probe::TOF;
+      } else if (sv.compare(0,4,"QUAS") == 0) {
+        instrument = scala::Probe::QUASILAUE;
+      } else {
+        ReportSyntaxError
+          (keywords, "key not NEUTRON, XRAY, TOF or QUASILAUE");
+      }
+      given = true;
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 SCALES::SCALES() : CCP4base(), InputBase()
 {
   Add_Key("SCAL");
@@ -109,12 +145,14 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec != 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & ROTATION)");}
         spec.batch = true;
+        spec.scalemodegiven = true;
         batch_spec = -1;
         expectingNumber = 0;
       } else if (keyIs("ROTATION")) {
         if (batch_spec < 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & ROTATION)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         batch_spec = +1;
         expectingNumber = -1;
       } else if (keyIs("SPACING") &&  bfac_spec == 0) {
@@ -123,6 +161,7 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec == +2) {ReportSyntaxError
             (keywords, "SCALES: can't have ROTATION number & SPACING)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         batch_spec = +3;
         expectingNumber = +1;
       } else if (keyIs("BFACTOR")) {
@@ -140,12 +179,14 @@ Token_value SCALES::parse(std::istringstream& input_stream)
         if (batch_spec < 0) {ReportSyntaxError
             (keywords, "SCALES: can't have BATCH & BROTATION)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         bfac_spec = +1;
         expectingNumber = -1;
       } else if (keyIs("SPACING")  &&  bfac_spec > 0) {
         if (bfac_spec == +2) {ReportSyntaxError
             (keywords, "SCALES: can't have BROTATION number & SPACING)");}
         spec.batch = false;
+        spec.scalemodegiven = true;
         bfac_spec = +3;
         expectingNumber = +1;
       } else if (keyIs("SECONDARY")) {
@@ -270,6 +311,26 @@ Token_value SCALES::parse(std::istringstream& input_stream)
   }
   nspecs = specs.size();
   return ENDLINE;
+}
+//--------------------------------------------------------------
+bool SCALES::setDefaultBatchMode()
+// Switch to batch mode any specification which did not choose a primary scale
+// mode for itself.  An explicit BATCH, ROTATION, SPACING, BROTATION or
+// CONSTANT always wins, and sets scalemodegiven.
+//
+// Without this, "SCALES BFACTOR ON" on stationary Laue exposures falls back to
+// rotation-smoothed scaling over a phi range which does not exist, and the
+// refinement aborts in samplemean().
+{
+  bool changed = false;
+  for (size_t i=0;i<specs.size();++i) {
+    if (specs[i].scalemodegiven) continue;  // user chose, leave alone
+    if (specs[i].batch) continue;           // already batch mode
+    specs[i].batch = true;
+    specs[i].nscales = -1;
+    changed = true;
+  }
+  return changed;
 }
 //--------------------------------------------------------------
 RUNSET::RUNSET() : CCP4base(), InputBase()
@@ -1181,6 +1242,9 @@ SDCORRECTION::SDCORRECTION() : CCP4base(), InputBase()
   refine_set = false;
   allsame = true;
   fixsdb = false;
+  sdlambda = false;
+  sdlamscale = 1.0;
+  sdlamnext = false;
   sdinput.clear();
   runnumbers.clear();
   damp = -1.0;
@@ -1260,6 +1324,13 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         allsame = true;
       } else if (keyIs("FIXSDB")) {
         fixsdb = true;
+      } else if (keyIs("SDLAMBDA")) {
+        // SDLAMBDA [<scale>]: optional multiplier on the fitted exponent.
+        // The loop's own NUMBER branch would consume a following number as an
+        // SD parameter, so take it here; if the next token is not a number the
+        // flag below leaves it for the normal path.
+        sdlambda = true;
+        sdlamnext = true;
       } else if (keyIs("RUN")) {
         expectingNumber = +1;
         irun = 0;
@@ -1326,6 +1397,9 @@ Token_value SDCORRECTION::parse(std::istringstream& input_stream)
         ReportSyntaxError
           (keywords, "unrecognised keyword");
       }
+    } else if (tokenIs(1,NUMBER) && sdlamnext) {
+      sdlamscale = number_value;   // SDLAMBDA <scale>
+      sdlamnext = false;
     } else if (tokenIs(1,NUMBER)) {
       if (expectingNumber == 0) {ReportSyntaxError
           (keywords, "SDCORRECTION: not expecting number"+
@@ -2130,13 +2204,15 @@ PLOT::PLOT() : CCP4base(), InputBase()
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
   xmgroutput = true;
+  gnuplotoutput = true;
 }
 //--------------------------------------------------------------
 Token_value PLOT::parse(std::istringstream& input_stream)
-// Option to suppress XMgrace file output
-//    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
+// Option to suppress XMgrace and/or gnuplot file output
+//    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT  (xmgr)
+//    the same with .plt, and LAMBDANORM.plt     (gnuplot)
 //
-// Syntax: PLOT [NOXMGR]
+// Syntax: PLOT [NOXMGR | XMGR] [NOGNUPLOT | GNUPLOT]
 {
   bool OK = true;
   while (get_token(input_stream) != ENDLINE) {
@@ -2145,6 +2221,10 @@ Token_value PLOT::parse(std::istringstream& input_stream)
         xmgroutput = false;
       } else if (keyIs("XMGR")) {
         xmgroutput = true;
+      } else if (keyIs("NOGNUPLOT")) {
+        gnuplotoutput = false;
+      } else if (keyIs("GNUPLOT")) {
+        gnuplotoutput = true;
       } else {
         OK = false;
       }
@@ -2154,7 +2234,7 @@ Token_value PLOT::parse(std::istringstream& input_stream)
   }
   if (!OK) {
     throw SyntaxError(keywords,
-                      "Unrecognised keyword, should be NOXMGR | XMGR");
+                      "Unrecognised keyword, should be NOXMGR | XMGR | NOGNUPLOT | GNUPLOT");
   }
 
   return ENDLINE;
@@ -2251,7 +2331,8 @@ Token_value BFACTOR::parse(std::istringstream& input_stream)
   return skip_line(input_stream);
 }
 //--------------------------------------------------------------
-LAUE::LAUE() : CCP4base(), InputBase(), islaue(false), lambda_ref(0.0)
+LAUE::LAUE() : CCP4base(), InputBase(), islaue(false), lambda_ref(0.0),
+               gprperrun(false)
 {
   Add_Key("LAUE");
   inputPtr iPtr(this);
@@ -2270,6 +2351,11 @@ Token_value LAUE::parse(std::istringstream& input_stream)
       // so keyIs("NORM...") matches both.  Disambiguate on character 5.
       std::string sv = stoup(string_value);
       if (sv.size() >= 5 && sv[4] == 'C' && keyIs("NORMCHEBYSHEV")) {
+        if (gprcontrol.enabled) {
+          Message::message(Message_fatal
+            ("LAUE NORMCHEBYSHEV and NORMGPR are mutually exclusive; "
+             "use only one wavelength normalization method"));
+        }
         scala::WavelengthChebyshevScale::WavelengthRange range;
         range.degree = Nint(get1num(input_stream));
         range.lam_min = get1num(input_stream);
@@ -2283,6 +2369,27 @@ Token_value LAUE::parse(std::istringstream& input_stream)
         }
       } else if (sv.size() >= 5 && sv[4] == 'L' && keyIs("NORMLAMREF")) {
         lambda_ref = get1num(input_stream);
+      } else if (sv.size() >= 5 && sv[4] == 'G') {
+        // GPR (Gaussian-process) normalization sub-keywords.  keyIs() only
+        // compares 4 chars ("NORM"), so disambiguate on the full token here.
+        if (sv == "NORMGPR") {
+          if (!ranges.empty()) {
+            Message::message(Message_fatal
+              ("LAUE NORMGPR and NORMCHEBYSHEV are mutually exclusive; "
+               "use only one wavelength normalization method"));
+          }
+          gprcontrol.enabled = true;
+          gprcontrol.lam_min = get1num(input_stream);
+          gprcontrol.lam_max = get1num(input_stream);
+        } else if (sv == "NORMGPRLENGTH") {
+          gprcontrol.lengthscale = get1num(input_stream);
+        } else if (sv == "NORMGPRBINS") {
+          gprcontrol.nbins = Nint(get1num(input_stream));
+        } else if (sv == "NORMGPRPERRUN") {
+          gprperrun = true;
+        } else if (sv == "NORMGPRMATERN") {
+          gprcontrol.kernel = scala::WavelengthGPRScale::MATERN32;
+        }
       }
     }
   }

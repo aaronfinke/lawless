@@ -30,7 +30,7 @@ g = ps × bs × ss × ds × ws
 | B-factor | `bs` | Isotropic B via `exp(-B·s²)` |
 | Secondary beam | `ss` | Angular correction |
 | Detector/tiling | `ds` | Detector gain correction |
-| **Wavelength** | `ws` | Chebyshev normalisation (Laue only) |
+| **Wavelength** | `ws` | Chebyshev *or* GP normalisation, optionally times a per-run residual (Laue only) |
 
 `ws = 1.0` when Laue mode is inactive (monochromatic data; backward-compatible).
 
@@ -93,6 +93,342 @@ std::string PrintNormalization(int npoints=12) const; // log table for output fi
 
 ---
 
+## Gaussian-process (GPR) wavelength normalisation
+
+Non-parametric alternative to the Chebyshev model. Selected with `LAUE NORMGPR`.
+**Mutually exclusive with `NORMCHEBYSHEV`** — the parser raises a fatal error if
+both are given (in either order). Use one method or the other.
+
+### Key difference from Chebyshev: it is NOT refined in BFGS
+
+The GP is fitted **once** in a dedicated pre-pass directly from the data, then
+applied as a **fixed multiplicative correction** (a precomputed lookup table).
+It contributes **zero parameters** to the scale-model parameter vector and has
+**zero derivatives** in `ScaleFactorDeriv`. So none of the parameter-management
+machinery (`CountParameters`, `GetParameters/SetParameters`, `GetParameterType`,
+`GetLargeShift`) is touched — much simpler than the Chebyshev integration.
+
+### Algorithm (`WavelengthGPRScale::Fit`, `scaletypes.cpp`)
+
+1. **Empirical response** (built in `aimless.cpp`, not via BFGS): for each
+   reflection with ≥2 accepted observations passing the I/σ cut, form the
+   **leave-one-out** ratio `ρ = I_obs / <I>_other-mates` at each observation's
+   wavelength, with weight `u = <I>_other-mates / σ²`. Leave-one-out avoids the
+   self-bias that a plain mean would introduce at low multiplicity. Weak and
+   negative intensities are kept — the ratio estimator handles them, and
+   cutting them biases the response at the spectrum edges.
+   The whole sample-building step is **iterated 3×**: each pass divides the
+   mates by the current `ws(λ)` before averaging, so the mates' mean is free of
+   wavelength response. Without this the raw ratio measures the response only
+   relative to the (wavelength-dependent) mixture of wavelengths at which the
+   mates happen to have been measured. The iteration converges on the same
+   consistency condition the Chebyshev refinement reaches by least squares
+   (typically converged by pass 2).
+2. **Bin** the sorted `(λ, ρ, u)` samples into **equal-count** bins, closing a
+   bin at whichever comes first: the nominal population `N/nbins`, or a cap of
+   `4·(log-λ span)/nbins` on the bin's width in `log λ`. Equal count alone
+   gives every training point comparable precision (uniform-width bins do not —
+   a Laue dataset has orders of magnitude more observations at the peak of the
+   spectrum than in its tails); the width cap stops the sparse tail collapsing
+   into one very wide bin whose centroid sits far from the end of the range.
+   Each bin gives one training point by the linear-space **ratio estimator**
+   `r = Σuρ/Σu` with the sandwich variance `Σu²(ρ−r)²/(Σu)²`; the target is
+   `h = log r`, `var(h) = var(r)/r²`. A mean of per-observation *log*-ratios
+   (the original estimator) is badly biased and heavy-tailed for weak data.
+3. **Fit** a GP to `h_b` in log-intensity space with a squared-exponential
+   (default) or Matérn-3/2 kernel, **a constant mean**, and the kernel
+   evaluated in the **warped coordinate `x = log λ`**. Length scale `ℓ`,
+   signal sdev `σ_f` and a **noise-inflation factor `α`** (multiplying the bin
+   variances) are chosen *together* by maximising the **log marginal
+   likelihood** over a grid. Solved via Eigen `LLT` (Cholesky) of
+   `σ_f²K + diag(α·var) + jitter`.
+4. **Lookup table**: evaluate the posterior mean `g(λ)` on a dense uniform grid,
+   **held constant outside the outermost training points** so the fit can never
+   run away where there is no data. The posterior SD is still evaluated at the
+   true λ, so the widening band keeps showing that the extremes are unsupported.
+
+`Scale(λ) = exp(g(λ) − g(λ_ref))` — log space guarantees `ws > 0`; reference
+normalisation makes `ws(λ_ref) = 1`. Returns `1.0` outside `[λmin, λmax]` or if
+the fit was skipped (too few samples/bins).
+
+#### Why these choices (measured, not assumed)
+
+The first implementation produced strongly oscillatory `w(λ)`. Diagnosis on
+`test_data/ca_thio`: the marginal likelihood pinned `ℓ` at the **lower** end of
+its search grid on nearly every trial, i.e. the GP was interpolating bin means.
+Two causes, both fixed above:
+
+- **Noise underestimated.** `SEM² = var/count` ignored that `1/σ²` weights make
+  the *effective* sample size several times smaller than the count (Kish
+  `n_eff = (Σw)²/Σw²` was as low as 5 for a 151-observation bin) — a noise
+  variance too small by up to ~25×.
+- **A single stationary kernel in λ cannot fit both ends.** The spectrum rises
+  steeply over a narrow interval at short λ and is broad and flat at long λ;
+  short `ℓ` was the only way to follow the rise, and it made everything else
+  wiggle. `x = log λ` makes the response near-stationary.
+
+Held-out cross-validation (fit on a random half of the observations, score
+against bins from the other half) gives **χ²/n = 4.34 for the original fit vs
+2.22 for the current one** — the oscillations did not reproduce on independent
+data. Note that the original fit gives a slightly *lower* Rmerge (0.218 vs
+0.226), which is what overfitting looks like: R-factors reward a curve that
+absorbs random variation. On the same test the current GP matches the Chebyshev
+model (Rmerge 0.226 vs 0.224, Rmeas 0.276 both, `<I/σ>` 14.6 vs 14.5) while
+staying smooth and flat where the Chebyshev diverges at long λ.
+
+### Integration in `ScaleModel`
+
+- Members `WavelengthGPRScale gpr_scale`, `GPRControl gpr_control`,
+  `bool gpr_requested`, `double gpr_lambda_ref`, and for the per-run option
+  `std::vector<WavelengthGPRScale> gpr_run_scales`, `bool gpr_perrun`.
+- `HasGPRWavelengthScale()` — triggers the GP pre-pass (parallel to
+  `HasWavelengthScale()` for Chebyshev).
+- `FitGPRWavelength(lambdas, logratios, weights, output)` — driver called from
+  the pre-pass; forwards to `gpr_scale.Fit`.
+- In `ScaleFactor`/`ScaleFactorDeriv`: `ws *= gpr_scale.Scale(obs.lambda())`,
+  then `*= gpr_run_scales[jscale].Scale(obs.lambda())` when the per-run residual
+  is active (`jscale` is the run index — see `GPRRunActive`).
+  In the deriv path the fixed factor `wsgpr` also scales the Chebyshev
+  derivative block (defensive: keeps the two correct if ever combined, though
+  the parser forbids that — they are mutually exclusive keywords).
+- `haveWavelength` in `init` is true when **either** Chebyshev ranges or GPR is
+  requested, so the constant-primary fallback (LAMBDAONLY without
+  `SCALES CONSTANT`) works for GPR too.
+
+### Per-run residual normalisation (`LAUE NORMGPRPERRUN`)
+
+A single global `w(λ)` is a compromise if the incident spectrum drifts between
+runs. `NORMGPRPERRUN` fits each run an **additional residual** curve, so the
+total correction is
+
+```
+ws(λ, run) = w_global(λ) × w_run(λ)
+```
+
+Fitting a residual rather than a full per-run spectrum is what keeps this well
+conditioned: the global curve carries the (large) spectral shape using all the
+data, and each run only has to explain its departure from it. A run with no
+departure fits flat at 1.0 and changes nothing; a run with too few samples
+degrades to the global curve rather than to noise.
+
+The residual samples are the same leave-one-out ratios as the global fit, with
+one change: **both the observation and its mates are first divided by the total
+correction already in force** (`ScaleModel::GPRWavelengthScaleAt(irun, λ)`).
+Samples are assigned to the run of the *observation*, while the mates may come
+from any run — that is what makes the residual relative to the common
+consensus rather than to the run itself. Two iterations (the global fit uses
+three).
+
+Because the GP contributes **no parameters** to the refinement vector, this
+needed no parameter-management changes at all — only the vector of
+`WavelengthGPRScale` indexed by run and the extra factor in the two scale
+paths.
+
+- `HasPerRunGPRWavelength()`, `GPRRunActive(irun)`, `NumberGPRRuns()`
+- `FitGPRWavelengthRun(irun, lambdas, ratios, weights, output)` — per-run driver
+- `PrintGPRPerRunNormalization(output)` — logs each run's residual table
+- The per-run loop lives in `aimless.cpp`, after the global GP loop, and only
+  runs if the global fit succeeded.
+
+**Diagnosing a null result:** compare the per-run `sigma_f` in the log against
+the global one. A per-run `sigma_f` two or more orders of magnitude smaller
+means the GP is reporting that there is no per-run drift to correct — which is
+a real answer, not a failed fit. Note also that this corrects *means*: a
+per-run wavelength effect that is an increase in **scatter** rather than a
+systematic shift will fit flat, and no wavelength normalisation of any kind can
+absorb it (only the SD correction can).
+
+### Log & XML output
+
+`WavelengthGPRScale::PrintNormalization` (via
+`ScaleModel::PrintGPRWavelengthNormalization`) writes to the log: the reference
+wavelength, range, kernel, length scale (in `log λ` units **and** its Å
+equivalent at `λ_ref`), `σ_f`, noise-inflation factor, training-bin count, a
+`w(λ)` sample table, and an ASCII line plot of `w(λ)`
+(`WavelengthGPRScale::AsciiPlot`, reference wavelength drawn as a `:` column).
+Each of the 3 fit passes logs its own one-line summary, plus a warning if the
+length scale lands on either end of its search grid (a sign the fit is
+following noise, or is featureless).
+
+`WavelengthGPRScale::asXML()` (via `ScaleModel::GPRWavelengthNormalizationXML()`,
+emitted from `aimless.cpp` after the log table) writes a
+`<WavelengthNormalisationGPR>` block to XMLOUT: `<ReferenceWavelength>`,
+`<LambdaMin>`/`<LambdaMax>`, `<Kernel>`, `<LengthScale>`, `<SigmaF>`,
+`<NoiseInflation>`, `<TrainingBins>`, and a `<Normalisation>` table of 21
+`<point>` (`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
+`<WavelengthNormalisation>` block on the `lawless` branch.
+
+### LAMBDANORM gnuplot file + uncertainties
+
+The GP fit also produces a **posterior SD** (`grid_sd`, computed in `Fit()` from
+the Cholesky factor: `var = k(λ,λ) − v·v`, `v = L⁻¹k_*`).
+`WavelengthGPRScale::Uncertainty(λ)` interpolates it; in log space this is the
+relative (fractional) uncertainty of `ws(λ)`. It appears as `<uncertainty>` in
+the XML and as column 3 of the LAMBDANORM file.
+
+`WavelengthGPRScale::GnuplotScript(title, version)` (via
+`ScaleModel::GPRWavelengthGnuplot()`) returns a **self-contained gnuplot script**
+written by `aimless.cpp` to a file named **`LAMBDANORM`** (in the GP pre-pass).
+It has a header comment (program/version from `version.hh`, run title, and the
+`gnuplot -p LAMBDANORM` open instruction), an inline `$LAMBDANORM` datablock
+(columns: `λ  w  rel_uncertainty  w_lo  w_hi`), a `$LAMBDABINS` datablock with
+the **binned observations the GP was fitted to** (`λ  w_bin  σ(w_bin)`), and a
+`plot` of the `w(λ)` line over a 1σ `filledcurves` band with the bins as
+error-bar points. The bins are the diagnostic that matters: the curve should
+follow them without chasing individual points.
+Gnuplot (≥5.0) is preferred over the deprecated
+loggraph plot files (ROGUES/SCALES/ANOMPLOT/CORRELPLOT). GPR-only; the
+Chebyshev model writes no LAMBDANORM.
+
+Advantage over Chebyshev: adapts to variable data density via the
+heteroscedastic noise model and avoids polynomial runaway at sparse wavelength
+extremes (outside the range it returns a flat `ws = 1`, never a divergent tail).
+
+Eigen3 lives at `${SRC}/eigen-3.4.0` and is added to `include_directories` in
+`CMakeLists.txt`; the dependency is confined to `scaletypes.cpp`.
+
+---
+
+## Secondary-beam / absorption geometry for Laue
+
+The secondary beam is `ŝ_out = ŝ_in + λ·q`, so the **wavelength sets the
+scattering angle**. `Batch::HtoSr0` used to form the diffraction vector from
+`batchinfo.alambd`, the batch wavelength — exact for monochromatic data, where
+every observation in the batch shares it, and wrong for Laue. Over a 2.10–3.90 Å
+band that misdirects the secondary beam by a **median 6.4°**, a quarter of
+observations by more than 10°, worst case 18°. The azimuth about the beam is
+unaffected; the whole error is in 2θ and is systematic in λ.
+
+`HtoSr0`, `CalcSecondaryBeam` and `CalcSecondaryBeamPolar` now take an optional
+wavelength, defaulting to `-1` meaning "use the batch wavelength", so every
+existing call is unchanged. The single caller, `CalcSecondaryBeams`, already
+holds the observation and passes `observation::lambda()` — which itself falls
+back to the batch wavelength when the file has no LAMBDA column, so
+monochromatic behaviour is preserved twice over.
+
+Each of those three functions has exactly one call site; the values they produce
+are consumed only by `obs.GetS2()` → the secondary/absorption scale in
+`scalemodel.cpp`, and `obs.GetS()` → the axes of the ROGUES plot.
+
+### What the batch header needs before any of this works
+
+`Batch::init` rejects orientation data if `det(U) <= 0.9` or `U == I`, and
+`ScaleModel` then refuses `SECONDARY`/`ABSORPTION` with "can't use Secondary
+Scale unless we have valid orientation information". To supply it:
+
+- `UMAT` is **column-major** (`MVutil::SetCMat33` reads `m[0],m[3],m[6]` as the
+  first row), and must satisfy `U·B = UB` with `B` exactly as `Scell::Bmat`
+  builds it from the **symmetry-constrained** cell — pointless constrains batch
+  cells on output, so a `U` paired with an unconstrained cell will not survive.
+- `SOURCE` is **anti-parallel to the beam**, `E1` is the principal rotation
+  axis. `MakePermutationMatrix(SOURCE, E1)` builds the Cambridge frame from
+  those two, putting z exactly on `E1` and x in the beam/`E1` plane, so the
+  header frame need not be canonical — it only has to be self-consistent and
+  to name the beam and the axis correctly.
+- **A `ROT` column is mandatory.** `mtz_unmerge_io.cpp` has
+  `if (col_sel.col_Rot < 0) {phi = batch;}` — with no ROT column aimless uses
+  the *batch number* as φ and back-rotates the source vector by hundreds of
+  degrees. For stills whose exposure-to-exposure rotation is carried in `U` and
+  `SOURCE`, write `ROT = 0`.
+
+---
+
+## Wavelength term in the SD correction (`SDCORRECTION SDLAMBDA`)
+
+`SDCORRECTION` fits `sigma' = SdFac*sqrt(sigma^2 + SdB*I + (SdAdd*I)^2)` — three
+terms, all functions of **intensity**. Laue data can carry a variance component
+that depends on **wavelength** instead, which none of them can represent.
+
+It is a variance, not a bias, so no wavelength normalisation can absorb it
+either: `LAUE NORMGPRPERRUN` correctly fits a flat residual against it, because
+a scale model corrects means. Giving the intensity-only model its own copy per
+run does not help either — `SDCORRECTION REFINE INDIVIDUAL` sends SdFac to
+0.46–1.77 and SdAdd to 0.10–0.61 in opposition (they trade off directly, since
+SdFac multiplies the SdAdd term) and trebles the pack-to-pack chi^2 spread. The
+missing ingredient is the *shape*, not the granularity.
+
+```
+SDCORRECTION ... SDLAMBDA [<scale>]     ->   sigma' *= (lambda/lambda_ref)^SdLam
+```
+
+One exponent per run, from `SDmodel::FitLambdaSDcorrection`. chi^2 is a variance
+ratio, so scaling sigma by F divides it by F^2; with `chi^2 ~ (lambda/lref)^m`
+the exponent is `m/2`, and the constant part is left to SdFac. `lambda_ref` is
+`LAUE NORMLAMREF`. The optional `<scale>` multiplies the fitted exponent and
+defaults to 1 — it is a manual damping knob, not normally needed.
+
+### Four things the fit has to get right
+
+These were all found the hard way; three of them produce a *plausible-looking*
+wrong answer rather than an obvious failure.
+
+1. **Scaled intensities.** Use `obs.kI()` / `obs.ksigI()` throughout, including
+   the leave-one-out mean. Mixing scaled and unscaled is wrong anywhere, but for
+   Laue it is wrong in a specifically wavelength-correlated way, because the
+   scale is itself a strong function of wavelength — it manufactures exactly
+   the trend the term then "corrects".
+2. **Fit within resolution bins.** lambda and resolution are correlated in Laue
+   data (`lambda = 2d sin(theta)`) and chi^2 has a strong resolution trend of
+   its own, so a raw slope against lambda silently absorbs part of it. The fit
+   bins by (resolution x lambda) and pools residuals centred within each
+   resolution bin.
+3. **Fit late.** It runs after the merge-stage outlier rejection in
+   `aimless.cpp`, not inside `AnalyseSD`. The residual before final scaling and
+   rejection is not the residual in the delivered data.
+4. **Leave-one-out.** The deviation is of an observation from the mean of its
+   *mates*, not from a mean it helped define.
+
+With 1 and 3 wrong the correction was not self-limiting: on a dataset with a
+flat residual it fitted exponents of -0.3 to -0.65 and *created* a wavelength
+trend.
+
+### Checking it on new data
+
+It should be a no-op when there is nothing to correct. Verified on two datasets:
+
+| dataset | residual | fitted exponents | outcome |
+|---|---|---|---|
+| dMPro-KB5 (C2, 15 packs, mult 3.4) | flat | -0.04 to +0.11 | chi^2 vs lambda unchanged to 2 dp |
+| CuZnSOD (P6522, 10 packs, mult 11.5) | +0.23 across the band | 0.12 to 0.35 | chi^2 vs lambda flattened to -0.02 |
+
+Merging statistics barely move either way — sigma enters the merged mean only
+through the weights. The value is error estimates that mean what they say, for
+refinement weights and resolution cuts, not better R-factors.
+
+**Before trusting it on a new dataset, check the residual is a variance and not
+a bias**: plot mean `I/<mates>` against lambda alongside chi^2 against lambda.
+If the *means* trend, the scaling is at fault and inflating sigma would hide it.
+Only if the means are flat and chi^2 trends does the error model own it.
+
+A single power law cannot represent a non-monotone wavelength dependence (a
+detector edge, a bandpass edge). If one turns up, `WavelengthGPRScale` is the
+natural generalisation — the same fit applied to log sigma instead of log I.
+
+---
+
+## What the input MTZ must contain
+
+Laue data arriving from outside CCP4 routinely lacks things aimless assumes.
+Three separate failures were hit feeding LAUEGEN `.mtz1` and laue-dials
+`integrated.mtz` to POINTLESS and lawless, none of which give an obvious error:
+
+| missing | symptom |
+|---|---|
+| `M/ISYM` column | POINTLESS reads the file as **merged**, collapses it (122 779 observations to 22 213) and silently drops the extra columns. This is what marks a file unmerged — `BATCH` alone is not enough. Write it as 1 throughout for unreduced indices. |
+| batch headers | POINTLESS reports one batch regardless of the `BATCH` column. Records must exist, with `LDTYPE = 3`, a cell, and a non-zero `PHIRANGE` so `Batch::valid_phi` passes. |
+| `HKL_base` dataset | reciprocalspaceship writes every column into dataset 0 with no base dataset; POINTLESS dies with `Dataset::pxdname, setid not found`. Base columns belong in dataset 0, data in dataset >= 1, and the batch `LBSETID` must point at the latter. |
+
+Converters that get all of this right: `/Volumes/Finke_NMX/Mandi/CuZnSOD/aaron/lauenorm2mtz.py`
+(LAUENORM ascii), and under `/Users/aaronfinke/LADI_files/TIM_2020/aaron/`,
+`mtz1tomtz.py` (LAUEGEN `.mtz1`) and `addbatches.py` (laue-dials).
+
+Also: **use a POINTLESS newer than 1.13.6**. The build shipped with CCP4 9 does
+not pass the wavelength column through to its output, which makes `LAUE` fatal
+downstream. 1.16.1 keeps it and says `Additional unrecognised columns passed
+unchanged to output file`.
+
+---
+
 ## Workflow for Laue data
 
 ### Wavelength pre-normalisation pass
@@ -113,6 +449,36 @@ The log shows, for each range:
 - Log-coefficients `a_k`
 - Table of `w(λ)` at 12 sample points across the range
 - Reference wavelength marked with `<- ref`
+- An ASCII line plot of `w(λ)` (via `WavelengthChebyshevScale::AsciiPlot`),
+  with the reference wavelength drawn as a `:` column
+
+### Wavelength normalisation XML output
+
+`WavelengthChebyshevScale::asXML()` (surfaced through
+`ScaleModel::WavelengthNormalizationXML()`) emits a `<WavelengthNormalisation>`
+block to the XMLOUT file, written from `aimless.cpp` right after the log table.
+It contains `<ReferenceWavelength>` and, per `<Range>`, the `<LambdaMin>`,
+`<LambdaMax>`, `<Degree>`, `<LogCoefficients>`, and a `<Normalisation>` table of
+21 `<point>` (`<lambda>`,`<w>`) samples.
+
+### Wavelength normalisation gnuplot file (LAMBDANORM)
+
+`WavelengthChebyshevScale::GnuplotScript(title, version)` (via
+`ScaleModel::WavelengthGnuplot()`) returns a self-contained gnuplot script
+written by `aimless.cpp` to a file named **`LAMBDANORM`** in the wavelength
+pre-pass. Header comment (program/version, run title, `gnuplot -p LAMBDANORM`
+hint), explicit `set xrange`/`set yrange`, then per-range datablocks and a
+`plot`. Each range is drawn **in full across the whole domain in its own
+colour**, using that range's own polynomial (`evalRange`): **solid** within the
+range's interval (`$LNs<ir>`, the used part) and **dashed** where the polynomial
+is extrapolated outside its interval (`$LNd<ir>`, not used). `yrange` is taken
+from the used portions only, so divergent extrapolations run off-screen and are
+clipped; non-finite extrapolated points are skipped. A single range collapses to
+one solid `w(λ)` line.
+**No uncertainty band** — the Chebyshev fit carries no posterior covariance
+(unlike the GP, whose LAMBDANORM has a 1σ band). Both methods write to the same
+`LAMBDANORM` filename, but `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive
+so only one path runs.
 
 ### Complete scaling workflow (Laue)
 
@@ -156,6 +522,40 @@ LAUE NORMLAMREF <lambda_ref>
 
 **Note:** both sub-keywords start with "NORM", but `keyIs()` only compares 4 characters. The parser disambiguates on character 5 (`C` vs `L`).
 
+#### GPR (Gaussian-process) alternative
+
+```
+LAUE NORMGPR <lam_min> <lam_max>   # enable GP normalisation over this range
+LAUE NORMGPRLENGTH <lengthscale>   # optional: fix GP length scale (Å); default auto
+LAUE NORMGPRBINS <nbins>           # optional: number of training bins; default 50
+LAUE NORMGPRMATERN                 # optional: Matérn-3/2 kernel; default squared-exp
+LAUE NORMGPRPERRUN                 # optional: residual w(λ) per run, on top of the global curve
+LAUE NORMLAMREF <lambda_ref>       # shared with Chebyshev
+```
+
+`NORMGPRBINS` is the *nominal* bin count — the width cap can add a few bins in
+sparse regions, so the reported "training bins" may slightly exceed it. Fewer
+bins is the lever if a fit still looks too free.
+`NORMGPRLENGTH` is given in Å but the kernel works in `log λ`, so the value is
+converted as `ℓ_x = ℓ / λ_ref`; the log reports both forms.
+
+The `NORMGPR*` sub-keywords share the 4-char key `NORM` with `keyIs()`, so the
+parser disambiguates on character 5 (`G`) and then on the **full token string**
+(`NORMGPR` vs `NORMGPRLENGTH` vs `NORMGPRBINS` vs `NORMGPRMATERN` vs
+`NORMGPRPERRUN`), since
+`keyIs("NORMGPR")` would also match the longer variants. One range only (the GP
+spans the whole `[lam_min, lam_max]`); no `degree`. Without an explicit length
+scale, it is chosen by log-marginal-likelihood. See the GPR section above.
+
+Typical GPR-only config:
+
+```
+LAMBDAONLY
+LAUE NORMGPR 0.780 6.300
+LAUE NORMLAMREF 1.0
+OUTPUT UNMERGED
+```
+
 ### Typical Laue configuration
 
 ```
@@ -185,9 +585,9 @@ OUTPUT UNMERGED
 
 `LAMBDAONLY` runs **only** the wavelength normalization and nothing else — no
 primary/B-factor/secondary/detector scaling, and no outlier rejection at any
-stage. The unmerged output contains the original intensities with `SCALEUSED`
-set purely from the wavelength scale `ws(λ)`; the full observation count is
-preserved (zero rejections).
+stage. `SCALEUSED` in the unmerged output is then purely the wavelength scale
+`ws(λ)` (see the note below on what that column means); the full observation
+count is preserved (zero rejections).
 
 Flow when active:
 
@@ -210,9 +610,254 @@ keyword must **not** collide with `ONLYMERGE` — both `ONLY…` forms map to th
 same 4-char key `ONLY` and dispatch to whichever class is inherited first in
 `InputAll`. This is why the keyword is `LAMBDAONLY` (`LAMB`), not `ONLYLAMBDA`.
 
+### The unmerged output file
+
+`writeunmerged.cpp` writes the **scaled** intensities, not the raw ones:
+
+```cpp
+data[ic++] = this_obs.kI();      // kI() = I_/gscale   -> the SCALED intensity
+float g = this_obs.Gscale();
+if (g != 0.0) g = 1.0f/g;
+data[ic++] = g;                  // SCALEUSED = 1/gscale
+```
+
+so `I_out = I_in × SCALEUSED`. `SCALEUSED` records the factor that **was
+applied**, not one still to apply — dividing by it a second time before
+computing merging statistics roughly doubles R-merge.
+
+`LAMBDA` is written back out whenever it was read in (`data_flags::is_lambda`),
+as an optional column immediately after `TIME` in the column list and in both
+the raw and summed-partials data paths. Without it, scaled Laue data could not
+be re-scaled or analysed against wavelength without going back to the input file
+and matching on `(h, k, l, M/ISYM, batch)`. The raw path's `ic == NumCol`
+assertion guards the column/data ordering if further columns are added.
+
 ### LAMBDA MTZ column
 
-aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflection inherits its batch wavelength via `Batch::Wavelength()`. With LAMBDA present, `obs.lambda()` returns the per-reflection wavelength used throughout the scale model.
+aimless reads a per-reflection wavelength column (type R) as an optional column.
+Three labels are accepted, tried **in this order of preference** and each matched
+**without regard to case**:
+
+| order | label |
+|-------|-------|
+| 1 | `LAMBDA` |
+| 2 | `LAM` |
+| 3 | `WAVELENGTH` |
+
+The first one present in the file is used; the others are ignored even if also
+present. So a file carrying both `Lambda` and `wavelength` uses `Lambda`.
+
+If none is present, each reflection inherits its batch wavelength via
+`Batch::Wavelength()`. When one is present, `obs.lambda()` returns the
+per-reflection wavelength used throughout the scale model.
+
+The chosen column is reported in the log:
+
+```
+Per-reflection wavelength taken from column Lambda
+```
+
+**Implementation** (`mtz_unmerge_io.cpp`): the logical column name stays
+`LAMBDA` throughout the program — only the file-to-program mapping in
+`MtzUnmrgFile::get_col_lookup` is affected. `CMtz::MtzColLookup` is still tried
+first (exact match); only if that fails does the alias list
+`WavelengthColumnAliases` get scanned via the local helper `ColLookupNoCase`,
+which walks every column of every dataset comparing `StringUtil::ToUpper`
+forms. On a hit, `CNL.label` is set to the actual file label so the log and
+`column_labels::Label("LAMBDA")` report what was really used. No other column
+gets alias treatment.
+
+---
+
+## Radiation type (`PROBE NEUTRON | XRAY`)
+
+lawless exists because LSCALE did, and LSCALE was for neutron Laue as much as
+X-ray. Its entire neutron provision was one switch, `POL_Type neutron`, whose
+whole effect (`Daresbury_laue/doc/lsm.txt` §2.3) is `fP = 1.0`.
+
+```
+PROBE  NEUTRON | XRAY            (default XRAY)
+PROBE  NEUTRON TOF | QUASILAUE   (default TOF)
+```
+
+The second axis is the **instrument**, not the radiation: time-of-flight
+separates diffraction orders in time, so there is nothing to deconvolute; a
+reactor quasi-Laue instrument does not, and would need the harmonic machinery
+LAUENORM has and this program does not.
+
+`PROBE` changes **defaults, guards and reporting only**. It never applies a
+correction that cannot be seen in the log or overridden by another keyword,
+everything it switches stays independently settable, and the log prints a block
+naming every default it changed. With `PROBE XRAY` (the default) the output is
+byte-identical to the same build without the keyword.
+
+### What `PROBE NEUTRON` changes
+
+| | Why |
+|---|---|
+| `ANOMALOUS OFF`, and not switched on automatically | Nuclear scattering has no anomalous signal outside a short list of isotopes (¹¹³Cd, Sm, Gd, ¹⁰B, ⁶Li, In). Without this, aimless turns anomalous on by itself whenever it thinks it sees one. `ANOMALOUS ON` overrides |
+| polarization factor set to zero | `fP = 1` for neutrons. (`UpdatePolarizationCorrections` is not called from aimless, so this is defensive) |
+| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. The hook is `SCALES::setDefaultBatchMode()`, which switches any specification that did not choose a mode for itself; an explicit `BATCH`, `ROTATION`, `SPACING`, `BROTATION` or `CONSTANT` sets `ScaleSpecification::scalemodegiven` and always wins. This also turns a pre-existing abort into a working default: `SCALES BFACTOR ON` with no mode falls back to rotation smoothing over a φ range that does not exist, and the refinement dies in `samplemean()` |
+| radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
+| the "significant anomalous signal" warning is reworded, not suppressed | Nuclear scattering lengths are real except for a few resonant isotopes (¹¹³Cd, ¹⁵⁷Gd, ¹⁴⁹Sm, ¹⁵¹Eu, ¹⁰B, ⁶Li, ¹¹³In), so it is almost never anomalous scattering — but Friedel mates that disagree still mean something. See below |
+| outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
+
+### Friedel mates are a wavelength-normalisation diagnostic, not an anomalous signal
+
+Unlike X-rays, neutron scattering lengths are **real** for all but a handful of
+resonant isotopes — ¹¹³Cd, ¹⁵⁷Gd, ¹⁴⁹Sm, ¹⁵¹Eu, ¹⁰B, ⁶Li, ¹¹³In. For everything
+else `b''` is negligible and essentially flat across a thermal band, so there is
+no edge to exploit and no anomalous signal to find. Cu and Zn, for instance,
+have no usable imaginary part.
+
+So aimless reporting "a significant anomalous signal" on neutron data is
+reporting something real about the *data* and mislabelling its cause. Under
+`PROBE NEUTRON` the message (`anomdistribution.cpp`, `ANOMALOUS_OFF_FOUND`) is
+therefore **reworded rather than suppressed**: it says the difference is real,
+that it is unlikely to be anomalous scattering, and that it should be read as a
+scaling diagnostic.
+
+**Why it is worth printing at all, rather than suppressing, is specific to
+Laue** — and this is deliberately not in the log, which stays terse.
+
+In a stationary Laue exposure `h` and `−h` essentially never both diffract: the
+reciprocal lattice point sits on the wrong side of the Ewald construction. So
+in a non-centrosymmetric group they come from **different exposures**, and each
+satisfies the Laue condition at **its own wavelength**. That stacks three
+independent error channels onto one statistic:
+
+1. the wavelength normalisation, evaluated at two different λ;
+2. absorption, along two different paths through the crystal;
+3. inter-pack scale and B-factor error on top.
+
+This inverts the X-ray rotation case, where Friedel mates are usually recorded
+at the same wavelength minutes apart and a false anomalous signal points almost
+exclusively at absorption. **For neutron Laue the wavelength curve is the first
+suspect, not absorption.** That makes this arguably the sharpest single test of
+the wavelength normalisation the program already computes — a neutron dataset
+showing "anomalous signal", with no resonant isotope present, is telling you the
+λ curve is wrong.
+
+One consequence worth knowing: `ANOMALOUS OFF` merges I+ and I−, so the merged
+data hide the discrepancy — but the analysis still runs and still reports it.
+The diagnostic survives without keeping the split.
+
+### Instruments this has been run on
+
+| instrument | geometry | datasets | notes |
+|---|---|---|---|
+| MaNDi, SNS | TOF Laue, stationary exposures, spherical Anger-camera array | CuZnSOD, dMPro-KB5, hCAII-Cu | `PROBE NEUTRON TOF`; 2.1-3.9 A band |
+| LADI-III, ILL | reactor quasi-Laue, **rotating crystal**, cylindrical image plate | TIM 2020 | `PROBE NEUTRON QUASILAUE`; 2.8-3.8 A band; C 1 2 1 |
+
+LADI is the useful counterpart to MaNDi: the crystal rotates between exposures,
+so the lab and crystal frames genuinely decouple, which the stationary MaNDi
+packs never do. That makes it the right dataset for anything involving
+`SECONDARY` or orientation.
+
+---
+
+### Checks after HKLIN is read
+
+These are gated on **`LAUE`, not on `PROBE`** — monochromatic neutron data is
+perfectly scalable and must not trip them.
+
+- **No `LAMBDA` column with a `LAUE` keyword is a fatal error.** Without it
+  `mtz_unmerge_io.cpp:1009` falls back to the batch header wavelength
+  (`ALAMBD`), so every observation in a batch shares one wavelength and the
+  normalisation has nothing to fit. Left to run it fails in two different bad
+  ways: `NORMGPR` completes and hands back badly scaled data (R-merge 0.316
+  against 0.223 on CuZnSOD) with only a misleading "length scale is at the lower
+  search limit" note, and `NORMCHEBYSHEV` aborts much later on
+  `assert(sigI > 0.0)` in `applyscales.cpp:72`. Stopping at the point of
+  diagnosis is the only sane behaviour.
+- Batches whose `LDTYPE` is not 3 (Laue) — a warning; the header may simply be
+  unset.
+
+Separately, `PROBE NEUTRON QUASILAUE` warns that harmonic deconvolution is not
+implemented.
+
+### Regression
+
+Adding `PROBE NEUTRON` to the established configuration for CuZnSOD, dMPro-KB5
+and hCAII-Cu gives byte-identical merged and unmerged MTZs, because those decks
+already set `SCALES BATCH`/`CONSTANT` and `ANOMALOUS OFF` explicitly. Dropping
+those explicit keywords and relying on the `PROBE NEUTRON` defaults reproduces
+the same files again on all three. With `PROBE XRAY` (the default) every output
+— MTZs, log, `SCALES`, `LAMBDANORM`, `ROGUES`, `NORMPLOT`, `CORRELPLOT`,
+`ANOMPLOT` — is byte-identical to the build without the keyword, once the MTZ
+run timestamps are masked.
+
+### Implementation
+
+`Probe` (`probe.hh/.cpp`) is a **static** class, like `SelectI` in
+`hkl_unmerge.hh`, so that reporting code deep in `printing.cpp` and
+`radiationdamageanalysis.cpp` can ask what the radiation is without threading a
+control object through every signature. It is set once in `aimless.cpp`
+immediately after the `ANOMALOUS` controls, and every guard is gated on
+`Probe::IsNeutron()`.
+
+### Why an angle term is the next thing (`tools/`)
+
+The four scripts in `tools/` are the measurement `PROBE` was built on. For
+every unique reflection with ≥3 observations they compare each observation with
+the leave-one-out mean of its symmetry mates; resolution is fixed within a
+reflection, so a purely resolution-dependent error cancels and what survives is
+a genuine systematic.
+
+On CuZnSOD, dMPro-KB5 and hCAII-Cu the residual bias is a reproducible function
+of **scattering angle**, about 9 % peak to peak, ~10σ against the null model in
+`null_test.py`. A cubic in 2θ explains 53 %, 53 % and 24 % of the weighted bias
+variance where a cubic in λ explains 31 %, 13 % and 33 %, and adding 2θ on top
+of λ takes all three to 63–74 %. `SECONDARY 6` with real UB matrices moves the
+high-angle deficit only from −9.2 % to −7.6 %: the spherical harmonics are in
+the **crystal** frame, and a stationary exposure maps a lab-frame 2θ effect onto
+a different part of that surface in every pack.
+
+A post-hoc `g(2θ)` applied to already-scaled data makes R-merge *worse* by
+0.5–1 % at every Chebyshev degree tried, because the batch scales, relative
+B-factors and λ curve were fitted with the systematic present and have partly
+compensated for it. The term has to be refined **jointly, inside the scale
+model**, and judged on χ²/CC½/maps rather than R-merge.
+
+Run `null_test.py` before believing any of the others.
+
+---
+
+## Comparing runs, and comparing with other programs
+
+Statistics from different programs are not comparable, and neither are runs with
+different error-model treatment. To compare anything with anything:
+
+1. scale each candidate however it wants, writing `UNMERGEDOUT`;
+2. re-merge **every** candidate's unmerged output through one identical pass —
+   `ONLYMERGE` at a fixed `RESOLUTION` — and read the statistics from that.
+
+For another program, get *its* unmerged output and put it through the same pass.
+SCALA will do this with `OUTPUT AVERAGE UNMERGED`. Scripts:
+`/Users/aaronfinke/LADI_files/TIM_2020/aaron/score_at.sh` and `stats.py`.
+
+Three traps, each of which produced a wrong conclusion before being caught:
+
+- **Mean(I)/sd(I) only compares between runs with the same SD treatment**, and
+  it does *not* rescale by sqrt(chi^2). The same data gave 12.4 at chi^2 1.78
+  unrefined and 4.0 at chi^2 0.89 refined — "corrected" values of 9.3 and 4.2,
+  which should agree and do not. `SdB` and `SdAdd` are intensity-dependent, so
+  refinement changes the *shape* of the error model, not just its scale. Compare
+  on R-pim and CC(1/2).
+- **Do not chase chi^2 = 1.** On LADI it could not be reached by any SD setting
+  (`REFINE`, `FIXSDB`, `TIE SDB` all give 0.70 identically — `SdB` and `SdFac`
+  are degenerate), and loosening `REJECT` to get there collapsed CC(1/2) from
+  0.889 to 0.627. A sub-1 chi^2 is the expected signature of 4-sigma rejection
+  truncating the deviation distribution at low multiplicity.
+- **Overall R-merge is not comparable between files on different Lorentz
+  scales.** A Lorentz factor is a monomial in lambda and d, so it cancels within
+  a reflection and leaves per-shell statistics alone — but it re-weights the
+  shells, and so moves the overall figure. Applying `sin^2(theta)` to the LADI
+  data moved overall R-merge 0.109 -> 0.135 while every shell stayed put.
+
+And a warning about completeness: on LADI, keeping all the weak data added 2 818
+unique reflections whose **median merged I/sigma was -0.20**. Completeness
+without information. Check the merged I/sigma of whatever a change adds.
 
 ---
 
@@ -220,14 +865,23 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 
 | File | Role |
 |------|------|
-| `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` class; log-Chebyshev algorithm |
-| `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management |
-| `aimless.cpp` | Laue pre-normalisation pass (before `FC.roughScale`); `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
-| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF disambiguation; `LAMBDAONLY` keyword |
+| `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` (log-Chebyshev); `WavelengthGPRScale` (Eigen GP fit, fixed lookup) |
+| `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management; GPR fit driver + fixed-correction application |
+| `aimless.cpp` | Laue Chebyshev pre-pass + GP pre-pass (leave-one-out log-ratio sampling) before `FC.roughScale`; `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
+| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
+| `probe.hh/.cpp` | `Probe` — static radiation type and instrument class, from `PROBE NEUTRON\|XRAY [TOF\|QUASILAUE]` |
+| `reject.hh/.cpp` | `RejectAngleStats` — outlier rejections counted against 2θ, active under `PROBE NEUTRON` |
+| `printing.cpp`, `radiationdamageanalysis.cpp` | Radiation-damage wording becomes stability wording under `PROBE NEUTRON` |
+| `tools/` | Leave-one-out bias diagnostics: `twotheta_probe.py`, `separability.py`, `null_test.py`, `twotheta_sim2.py` |
 | `globalcontrols_aimless.hh` | `FlowControl::SetOnlyLambda()`/`OnlyLambda()`; `OnlyMerge()` excludes onlyLambda |
 | `InputAll_aimless.hh` | Inherits `LAUE`, `LAMBDAONLY` into `InputAll` |
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
-| `mtz_unmerge_io.cpp` | Reads LAMBDA column; batch-wavelength fallback |
+| `mtz_unmerge_io.cpp` | Reads the wavelength column, accepting `LAMBDA`, `LAM` or `WAVELENGTH`, case-insensitively and in that order of preference (`WavelengthColumnAliases` / `ColLookupNoCase` in `get_col_lookup`); falls back to the batch `ALAMBD` when none is present, which `aimless.cpp` makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
+| `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
+| `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
+| `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
+| `sdctypes.hh/.cpp` | `SDcorrection` — the `(lambda/lambda_ref)^SdLam` factor, applied in `Correct(observation&, Iav)` |
+| `sdmodel.hh/.cpp` | `SDmodel::FitLambdaSDcorrection` — per-run wavelength exponent from binned chi^2 |
 | `columnlabels.hh/.cpp` | `col_lambda` column index; `is_lambda` flag in `DataFlags` |
 | `openinputfile.cpp` | Registers LAMBDA as optional MTZ column |
 | `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs |
@@ -248,4 +902,69 @@ aimless reads `LAMBDA` (type R) as an optional column. If absent, each reflectio
 
 ## To do
 
-- **GPR wavelength normalisation** — replace or supplement the Chebyshev pre-pass with a Gaussian Process smoother. Eigen3 (already in include path) provides the required Cholesky decomposition. Intended as a non-parametric pre-pass: bin reflections by λ, compute normalised bin means, fit GP with squared-exponential or Matérn-3/2 kernel, apply correction as a fixed lookup table before iterative scaling. Hyperparameter selection via marginal likelihood or heuristic length-scale. Advantage over Chebyshev: naturally adapts to variable data density and avoids polynomial runaway at sparse wavelength extremes.
+- **No angular correction is implemented, and this is settled.** `SCALES ...
+  TWOTHETA` was written, tested on all three MaNDi datasets and reverted. It
+  reduced R-merge and raised CC(1/2) on two of three and was demonstrably not
+  fitting noise (null control 4-6 % against 39-55 % real), but no physical
+  generator could be named: the Lorentz factor is a monomial so no error in it
+  can make a lambda x d interaction, thermal diffuse scattering is a function of
+  sin(theta)/lambda and cancels, detector efficiency is wavelength only, and
+  crystal absorption is `SECONDARY`'s frame. The implementation is on the tag
+  `twotheta-abandoned` (local only). Reopen only on an instrument whose crystal
+  rotates.
+
+- **`SECONDARY` on by default under `PROBE NEUTRON` when UB is present** — for a
+  1 mm crystal in D₂O the attenuation is μ ≈ 0.195 mm⁻¹ hydrogenous, 0.071 mm⁻¹
+  perdeuterated, dominated by the incoherent cross section of hydrogen
+  (80.3 barn against 0.33 barn for absorption). That is a 13 % (5 %)
+  transmission spread across orientation, which is real and is `SECONDARY`'s
+  job. It needs a guard that refuses to fit 48 coefficients when the batch
+  headers carry an identity UMAT. Note the *wavelength dependence* of that
+  absorption is negligible — the 1/v term is ~1 % of μ and transmission changes
+  0.2 % across a 2.1–3.9 Å band — so a λ-dependent secondary surface is not
+  worth building.
+
+- **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
+
+- **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). `σ_f` and a noise-inflation factor are now optimised jointly with the length scale, and merging statistics have been compared against the Chebyshev model on `ca_thio` (they agree). Possible follow-ups: full marginal-likelihood *gradient* optimisation instead of the 3-D grid search; a proper CC½/half-dataset comparison; the held-out χ²/n is still ~2, suggesting the bin variances remain slightly optimistic (samples from the same reflection are correlated across bins) — a per-reflection random effect would tighten this.
+
+- **Fit SDLAMBDA after rebuilding, on more datasets** — the wavelength term in
+  the SD correction (`SDCORRECTION SDLAMBDA`) is self-limiting on the two
+  datasets it has been run on (one with a wavelength residual, one without),
+  but both are MaNDi. A non-monotone residual would defeat the single power
+  law; see the SDLAMBDA section for what to check first.
+
+- **Per-run GPR on a dataset that actually drifts** — `NORMGPRPERRUN` is
+  implemented and regression-clean, but the only dataset it has been run on
+  (CuZnSOD, 10 packs) has no per-run spectral drift: per-run `σ_f` comes out at
+  0.002–0.018 in log space against 1.66 for the global fit. It has therefore
+  never been exercised against a real non-flat residual.
+
+- **The LADI internal-consistency gap is unexplained.** On the TIM 2020 data,
+  lawless from raw LAUEGEN matches LSCALE+SCALA per resolution shell and leads
+  on completeness and multiplicity, but trails on R-pim and CC(1/2) overall
+  (0.199 / 0.915 against 0.091 / 0.982 at 2.53 A, SD refined both sides). Two
+  candidates were tested and cleared: nothing is lost in conversion (the
+  permissive file contains 100 % of LSCALE's observations), and the wavelength
+  model is not the difference (GP and a 10-coefficient Chebyshev agree to 5 %).
+  Absorption remains untested — see below.
+
+- **`SECONDARY` on LADI needs the orientation problem solved first.** `U` fits
+  per image from the Laue condition to machine precision, but `lambda =
+  -2(s0.q)/|q|^2` is invariant under rotation about the beam, so each image's
+  azimuth is undetermined and a per-image `U` would put every exposure in a
+  different crystal frame. Tying the images through the `.ldm` SPINDLE angles
+  did not converge (median |dlambda| 0.51 A against 0.000 free). The proper fix
+  is to use the `XF`/`YF` spot positions with the cylinder geometry (`CTOF`,
+  `TWIST/TILT/BULGE`) to break the degeneracy. Converter work, not a lawless
+  change.
+
+- **A detector-position systematic is present on LADI and is not the flat-panel
+  approximation** (branch `lawless_cylinder`, plan only, no commits). Leave-one-
+  out bias against the cylinder-axis coordinate is a symmetric arch peaked at
+  the centre: rms 8.1 % for laue-dials (85 flat panels) and **16.6 % for LAUEGEN
+  with true cylindrical support**, against null controls of 1.3 %. So the
+  approximation is not the cost. The shape points at obliquity — LSM's
+  `fOb = exp(ut/cos 2theta)`, which neither pipeline applied. If built, the term
+  wanted is a low-order curve in the height coordinate pinned at the centre, not
+  a general 2D surface.

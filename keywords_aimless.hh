@@ -12,6 +12,7 @@
 #include "globalcontrols.hh"
 #include "scaletypes.hh"
 #include "weighttype.hh"
+#include "probe.hh"
 
 using scala::ResoRange;
 
@@ -41,6 +42,30 @@ namespace phaser_io {
     bool given;      // true if ON or OFF were given
   };
   //--------------------------------------------------------------
+  class PROBE: public InputBase, virtual public CCP4base
+    // Radiation type and instrument class
+    //  PROBE NEUTRON | XRAY  [TOF | QUASILAUE]
+    // Default XRAY; for NEUTRON the instrument class defaults to TOF.
+    // See probe.hh: this changes defaults and reporting only.
+  {
+  public:
+    PROBE();
+    virtual ~PROBE() {}
+    Token_value parse(std::istringstream&);
+
+    void analyse(){}
+
+    scala::Probe::Radiation  getProbe() const {return radiation;}
+    scala::Probe::Instrument getInstrument() const {return instrument;}
+    // return true if the PROBE keyword was given
+    bool ProbeGiven() const {return given;}
+
+  private:
+    scala::Probe::Radiation  radiation;
+    scala::Probe::Instrument instrument;
+    bool given;
+  };
+  //--------------------------------------------------------------
   class SCALES: public InputBase, virtual public CCP4base
     // SCALES [RUN <irun>]
     // [BATCH || ROTATION [<nscales> || SPACING <spacing>]
@@ -61,7 +86,13 @@ namespace phaser_io {
     {return specs;}
 
     bool noTile() const {return notile;}  // true if explicit NOTILE is given
-    
+
+    // Switch the default specification to batch mode, unless an explicit
+    // SCALES command has already replaced it (PROBE NEUTRON: stationary
+    // exposures, so rotation-based smoothing is meaningless)
+    // returns true if anything was changed
+    bool setDefaultBatchMode();
+
   private:
     int nspecs;
     // 1st specification is always the default one (run -1)
@@ -422,7 +453,7 @@ namespace phaser_io {
     //
     // Read parameters for SD correction
     // Syntax:
-    //   SDCORRECTION [[NO]REFINE] [INDIVIDUAL|SAME] [FIXSDB]
+    //   SDCORRECTION [[NO]REFINE] [INDIVIDUAL|SAME] [FIXSDB] [SDLAMBDA]
     //     [RUN <RunNumber>] [FULL | PARTIAL] <SdFac> [<SdB>] <SdAdd>
     //     DAMP <dampfactor>
     //     TIE [<parameter> <value> <sd>] | NOTIE
@@ -453,6 +484,10 @@ namespace phaser_io {
     bool SDC_AllRunsSame() const {return allsame;}
     //! return true if fixed SdB = 0.0
     bool SDC_NoSDb() const {return fixsdb;}
+    //! true if a Laue wavelength term is wanted in the SD correction
+    bool SDC_Lambda() const {return sdlambda;}
+    //! multiplier on the fitted wavelength exponent (default 1)
+    double SDC_LambdaScale() const {return sdlamscale;}
 
     //! return number of input corrections, = 0 none, = -1 overall
     int SDC_NumberInput() const;
@@ -486,6 +521,9 @@ namespace phaser_io {
     bool refine_set; // true if explicit refine flag set
     bool allsame; // true for all runs the same
     bool fixsdb;  // true for fixed SdB = 0.0
+    bool sdlambda; // true for SDCORRECTION SDLAMBDA (Laue)
+    double sdlamscale;    // multiplier on the fitted exponent
+    bool sdlamnext;       // next number, if any, is SDLAMBDA's
     // list of given SD corrections (full, partial)
     std::vector<std::pair<scala::SDcorrection,scala::SDcorrection> > sdinput;
     std::vector<int> runnumbers;       // corresponding run numbers, = -1 all  
@@ -867,10 +905,11 @@ namespace phaser_io {
   //--------------------------------------------------------------
   class PLOT : public InputBase, virtual public CCP4base
   {
-    // Option to suppress XMgrace file output 
-    //    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
-    //    
-    // Syntax: PLOT NOXMGR | XMGR
+    // Option to suppress XMgrace and/or gnuplot file output
+    //    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT  (xmgr)
+    //    the same with .plt, and LAMBDANORM.plt     (gnuplot)
+    //
+    // Syntax: PLOT [NOXMGR | XMGR] [NOGNUPLOT | GNUPLOT]
   public:
     PLOT();
     virtual ~PLOT() {}
@@ -878,10 +917,12 @@ namespace phaser_io {
 
     bool XMGRoutput() const {return xmgroutput;}
     void setXMGRoutput(const bool& xmgrout) {xmgroutput = xmgrout;}
+    bool GNUPLOToutput() const {return gnuplotoutput;}
     void analyse(){}
 
   private:
     bool xmgroutput;
+    bool gnuplotoutput;
 
 };
   //--------------------------------------------------------------
@@ -950,10 +991,15 @@ namespace phaser_io {
   //--------------------------------------------------------------
   class LAUE : public InputBase, virtual public CCP4base
   {
-    // Chebyshev wavelength normalization for Laue (and general) data
+    // Wavelength normalization for Laue (and general) data
     // Syntax: LAUE
     //   NORMCHEBYSHEV <degree> <lam_min> <lam_max>  [repeat for each range]
     //   NORMLAMREF <lambda_ref>
+    //   NORMGPR <lam_min> <lam_max>     [Gaussian-process normalization]
+    //   NORMGPRLENGTH <lengthscale>     [optional GP length scale, A]
+    //   NORMGPRBINS <nbins>             [optional number of training bins]
+    //   NORMGPRMATERN                   [use Matern-3/2 kernel (default sq-exp)]
+    //   NORMGPRPERRUN                   [fit a residual w(lambda) for each run]
   public:
     LAUE();
     virtual ~LAUE() {}
@@ -963,6 +1009,9 @@ namespace phaser_io {
     std::vector<scala::WavelengthChebyshevScale::WavelengthRange>
       getWavelengthRanges() const {return ranges;}
     double getLambdaRef() const {return lambda_ref;}
+    scala::WavelengthGPRScale::GPRControl getGPRControl() const {return gprcontrol;}
+    bool HasGPR() const {return gprcontrol.enabled;}
+    bool HasGPRPerRun() const {return gprperrun;}
 
     void analyse(){}
 
@@ -970,6 +1019,8 @@ namespace phaser_io {
     bool islaue;
     std::vector<scala::WavelengthChebyshevScale::WavelengthRange> ranges;
     double lambda_ref;
+    scala::WavelengthGPRScale::GPRControl gprcontrol;
+    bool gprperrun;   // LAUE NORMGPRPERRUN
   };
 } // phaser_io
 

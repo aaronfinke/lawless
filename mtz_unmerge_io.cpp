@@ -412,6 +412,12 @@ namespace MtzIO
       output += FormatOutput::logTab(0,
    "**** WARNING: missing or empty ROT column in input file, BATCH number will be used instead");
     }
+    if (col_select.col_lambda >= 0) {
+      // per-reflection wavelength, may have been found under an alternative label
+      output += FormatOutput::logTab(0,
+        "Per-reflection wavelength taken from column "
+        + column_label_list.Label("LAMBDA"));
+    }
 
     // Extract selected dataset & batch information from mtz file,
     //  including unit cell things ready for resolution calculations
@@ -1224,6 +1230,31 @@ namespace MtzIO
     mode = NONE;
   }
   //--------------------------------------------------------------
+  namespace {
+    // Accepted labels for the per-reflection wavelength column (Laue data),
+    // in order of preference. Matched without regard to case.
+    const char* WavelengthColumnAliases[3] = {"LAMBDA", "LAM", "WAVELENGTH"};
+    const int NWavelengthColumnAliases = 3;
+
+    CMtz::MTZCOL* ColLookupNoCase(CMtz::MTZ* mtz, const std::string& label)
+    // Search all columns of all datasets for a label, ignoring case.
+    // Returns 0 if not found.
+    {
+      std::string want = StringUtil::ToUpper(label);
+      for (int x=0; x < CMtz::MtzNxtal(mtz); x++) {
+        CMtz::MTZXTAL* xtl = CMtz::MtzIxtal(mtz,x);
+        for (int s=0; s < CMtz::MtzNsetsInXtal(xtl); s++) {
+          CMtz::MTZSET* set = CMtz::MtzIsetInXtal(xtl,s);
+          for (int c=0; c < CMtz::MtzNcolsInSet(set); c++) {
+            CMtz::MTZCOL* mc = CMtz::MtzIcolInSet(set,c);
+            if (StringUtil::ToUpper(std::string(mc->label)) == want) {return mc;}
+          }
+        }
+      }
+      return 0;
+    }
+  }
+  //--------------------------------------------------------------
   void MtzUnmrgFile::get_col_lookup(column_labels& ColumnLabels)
   // Get file column numbers for labels in column list
   // Updates ColumnLabels
@@ -1243,6 +1274,17 @@ namespace MtzIO
     while (ColumnLabels.next(CNL)) {
       CMtz::MTZCOL * col_data =
         CMtz::MtzColLookup(mtzin, CNL.label.c_str());  // lookup label in MTZ structure
+      if (!col_data && CNL.loglabel == "LAMBDA") {
+        // Wavelength column: accept alternative labels, first match in the
+        // order LAMBDA, LAM, WAVELENGTH, each compared without regard to case
+        for (int i=0;i<NWavelengthColumnAliases;++i) {
+          col_data = ColLookupNoCase(mtzin, WavelengthColumnAliases[i]);
+          if (col_data) {
+            CNL.label = std::string(col_data->label);  // actual label in file
+            break;
+          }
+        }
+      }
       if (col_data) {
         // Column found, store index (from 1)
         CNL.number = col_data->source;

@@ -35,6 +35,7 @@
 #include "report_errors.hh"
 #include "secondaryscalestats.hh"
 #include "comparetoreference.hh"
+#include "probe.hh"
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -47,6 +48,8 @@
 
 #include "version.hh"
 #include "ccp4/ccp4_program.h"
+
+#include <fstream>
 
 using namespace scala;
 using phaser_io::LOGFILE;
@@ -224,6 +227,49 @@ int main(int argc, char* argv[])
     // True if "Anomalous" command given
     controls.anomalouscontrol.FlagInput = input.AnomalousFlagInput();
 
+    // PROBE NEUTRON | XRAY  [TOF | QUASILAUE]
+    // Radiation type & instrument class. This changes defaults, guards and
+    // reporting only: everything it switches can be set back by its own
+    // keyword, and every change is listed in the log below.
+    Probe::Set(input.getProbe(), input.getInstrument());
+    if (Probe::IsNeutron()) {
+      std::vector<std::string> probechanges;
+      // Nuclear scattering has no anomalous signal outside a short list of
+      // isotopes (113Cd, Sm, Gd, 10B, 6Li, In). Without this, aimless turns
+      // anomalous on by itself whenever it thinks it sees a signal
+      if (!controls.anomalouscontrol.FlagInput) {
+        controls.anomalouscontrol.Anomalous = false;
+        controls.anomalouscontrol.FlagInput = true;  // treat as an explicit OFF
+        probechanges.push_back
+          ("ANOMALOUS OFF, and not switched on automatically."
+           " Give ANOMALOUS ON to override");
+      }
+      // fP = 1 for neutrons, as LSCALE had it (LSM POL_Type neutron)
+      controls.polarizationcontrol.setFraction(0.0);
+      probechanges.push_back
+        ("polarization factor set to zero:"
+         " there is no polarization factor for neutrons");
+      // Laue exposures are stationary, so phi is not a scaling variable and
+      // rotation-based smoothing has nothing to smooth over
+      if (input.setDefaultBatchMode()) {
+        probechanges.push_back
+          ("SCALES BATCH by default: exposures are stationary,"
+           " so rotation smoothing is meaningless");
+      }
+      std::string s = "\n\nRadiation type: " + Probe::Name() + "\n";
+      s += "----------------------------------------\n";
+      if (probechanges.empty()) {
+        s += "No defaults changed.\n";
+      } else {
+        s += "The following defaults have been changed."
+          " Each can be set back by its own keyword:\n";
+        for (size_t i=0;i<probechanges.size();++i) {
+          s += "   * " + probechanges[i] + "\n";
+        }
+      }
+      output.logTab(0,LOGFILE, s);
+    }
+
     controls.partials = partial_controls(input.getFracLimMin(),
                                          input.getFracLimMax(),
                                          input.getSclMinLim(),
@@ -265,6 +311,7 @@ int main(int argc, char* argv[])
     MtzIO::column_labels column_list = MtzIO::setup_columns();
 
     controls.plotcontrol.xmgraceoutput = input.XMGRoutput();
+    controls.plotcontrol.gnuplotoutput = input.GNUPLOToutput();
 
     //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
     // Construct reflection list by reading MTZ file
@@ -290,6 +337,48 @@ int main(int argc, char* argv[])
                   "\nTime for reading HKLIN: "+timer.format(true));
 
     hkl_list.ResetObsAccept(ObsFlagControlRejectall);
+
+    // Checks which can only be made once the file has been read.
+    // These are gated on LAUE, not on PROBE: monochromatic neutron data is
+    // perfectly scalable and must not trip them
+    if (input.IsLaue()) {
+      if (!hkl_list.DataFlags().is_lambda) {
+        // Without a LAMBDA column mtz_unmerge_io falls back to the batch
+        // header wavelength (ALAMBD), so every observation in a batch gets the
+        // same one and the normalisation has almost nothing to fit.  Left to
+        // run it fails silently: NORMGPR completes and returns badly scaled
+        // data, NORMCHEBYSHEV aborts much later inside applyscales.  Stop here
+        ReportErrors::printFatalError(std::string(
+          "LAUE requires a wavelength for every observation, but HKLIN has no\n")+
+          "wavelength column. Accepted labels are LAMBDA, LAM or WAVELENGTH,\n"+
+          "matched without regard to case.\n\n"+
+          "Without one, each observation takes the wavelength of its batch header\n"+
+          "(ALAMBD), so all observations in a batch share one wavelength and the\n"+
+          "wavelength normalisation has nothing to fit.\n\n"+
+          "Either add a wavelength column to HKLIN, or remove the LAUE keyword to\n"+
+          "scale these data monochromatically.");
+      }
+      // LDTYPE = 3 marks Laue data in the MTZ batch header.  A warning only:
+      // the data may be fine and the header merely unset
+      std::vector<Batch> bats = hkl_list.Batches();
+      int nnonlaue = 0;
+      for (size_t i=0;i<bats.size();++i) {
+        if (bats[i].Ldtype() != 3) {nnonlaue++;}
+      }
+      if (nnonlaue > 0) {
+        output.logWarning(LOGFILE,
+          "\nWARNING: " + StringUtil::itos(nnonlaue) + " of " +
+          StringUtil::itos(int(bats.size())) +
+          " batches do not have LDTYPE = 3 (Laue) in the batch header\n");
+      }
+    }
+
+    if (Probe::IsQuasiLaue()) {
+      output.logWarning(LOGFILE, std::string(
+        "\nWARNING: PROBE NEUTRON QUASILAUE: diffraction orders are not separated\n")+
+        "         in time on a reactor instrument, and harmonic deconvolution is\n"+
+        "         not implemented in this program\n");
+    }
 
     // Do we need to change symmetry?
     if (SpaceGroup != "" || GC.IsReindexSet()) {
@@ -772,12 +861,216 @@ int main(int argc, char* argv[])
       }
       AllScales.SetWavelengthOnlyMode(false);
       AllScales.PrintWavelengthNormalization(output);
+      output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
+
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM.plt)
+      {
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
+        std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
+        if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
+          const std::string lnfile = "LAMBDANORM.plt";
+          std::ofstream lns(lnfile.c_str());
+          if (lns) {
+            lns << lnscript;
+            lns.close();
+            output.logTabPrintf(0, LOGFILE,
+              "\nWavelength normalization curve written to %s"
+              " (gnuplot format; open with: gnuplot -p %s)\n",
+              lnfile.c_str(), lnfile.c_str());
+          } else {
+            output.logTabPrintf(0, LOGFILE,
+              "\nWarning: could not open %s for writing\n", lnfile.c_str());
+          }
+        }
+      }
       output.logTab(0, LOGFILE,
                     "\nTime for wavelength pre-normalisation: "+timer.format(true));
 
       // ONLYLAMBDA: apply wavelength scale only (ps=bs=ss=ds=1, no outlier
       // rejection) and skip all further scaling so the unmerged output
       // contains intensities corrected purely by the wavelength normalization.
+      if (FC.OnlyLambda()) {
+        hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
+        applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+        overallmeankI = applyscales.meanI();
+      }
+      output.logFlush();
+    }
+
+    // ----- Laue wavelength GP (Gaussian process) normalisation
+    // Non-parametric alternative to the Chebyshev pre-pass.  We build an
+    // empirical wavelength response directly from the data: for each reflection
+    // with >=2 accepted observations, the leave-one-out ratio
+    // I_obs / <I>_other-mates at each observation's wavelength is a sample of
+    // the spectral response.  A Gaussian process fitted to the binned samples
+    // gives a smooth ws(lambda) which is then applied as a FIXED multiplicative
+    // correction (no refinable parameters) for all later scaling.
+    //
+    // The estimate is ITERATED.  On the first pass the mates' mean carries the
+    // wavelength response of the wavelengths at which the mates happen to have
+    // been measured, so the raw ratio measures the response only relative to
+    // that (wavelength-dependent) mixture.  Dividing the mates by the current
+    // ws(lambda) before averaging removes that contamination, and the iteration
+    // converges on the fixed point where the corrected mates are consistent --
+    // the same condition the Chebyshev refinement reaches by least squares.
+    if (AllScales.HasGPRWavelengthScale()) {
+      timer.Start();
+      output.logTabPrintf(0, LOGFILE,
+          "\n========= Laue wavelength GP normalisation =========\n");
+      double IovSDmin = controls.refinecontrol.IovSDmin();
+
+      const int NGPRITER = 3;
+      std::vector<double> gpr_lam, gpr_ratio, gpr_wt;
+      for (int iter = 0; iter < NGPRITER; ++iter) {
+        gpr_lam.clear(); gpr_ratio.clear(); gpr_wt.clear();
+        reflection this_refl;
+        for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+          this_refl = hkl_list.get_reflection(jref);
+          int nobs = this_refl.num_observations();
+          if (nobs < 2) continue;
+          // accepted observations passing the I/sigma cut.  Weak and negative
+          // intensities are kept: the ratio estimator in the fit handles them,
+          // and cutting them out biases the response at the spectrum edges.
+          std::vector<double> oI, oIc, oL, oW;
+          double sumw = 0.0, sumwi = 0.0;
+          for (int i=0; i<nobs; ++i) {
+            observation obs = this_refl.get_observation(i);
+            if (!obs.IsAccepted()) continue;
+            double I = obs.I();
+            double s = obs.sigI();
+            if (s <= 0.0) continue;
+            if (I/s < IovSDmin) continue;
+            double lam = obs.lambda();
+            double w = 1.0/(s*s);
+            // remove the wavelength response already established (identity on
+            // the first pass) so the mates' mean is wavelength-free
+            double ws = AllScales.GPRWavelengthScaleAt(lam);
+            if (!(ws > 0.0)) ws = 1.0;
+            double Ic = I/ws;
+            oI.push_back(I); oIc.push_back(Ic); oL.push_back(lam); oW.push_back(w);
+            sumw += w; sumwi += w*Ic;
+          }
+          if (oI.size() < 2 || sumw <= 0.0) continue;
+          // leave-one-out weighted mean avoids self-bias of the ratio
+          for (size_t i=0; i<oI.size(); ++i) {
+            double sw  = sumw  - oW[i];
+            double swi = sumwi - oW[i]*oIc[i];
+            if (sw <= 0.0) continue;
+            double mean_i = swi/sw;
+            if (mean_i <= 0.0) continue;
+            gpr_lam.push_back(oL[i]);
+            gpr_ratio.push_back(oI[i]/mean_i);
+            // weight appropriate to the ratio I/M:  var(I/M) = sigma^2/M^2,
+            // and the ratio estimator sums u*rho with u = M/sigma^2
+            gpr_wt.push_back(mean_i*oW[i]);
+          }
+        }
+        output.logTabPrintf(0, LOGFILE, "\n Fit cycle %d of %d:\n",
+                            iter+1, NGPRITER);
+        AllScales.FitGPRWavelength(gpr_lam, gpr_ratio, gpr_wt, output);
+        if (!AllScales.GPRWavelengthActive()) break;  // fit failed; stop here
+      }
+      AllScales.PrintGPRWavelengthNormalization(output);
+
+      // ----- per-run residual wavelength response (LAUE NORMGPRPERRUN)
+      // The global curve above is a compromise if the incident spectrum drifts
+      // between runs.  Fit each run a RESIDUAL curve: exactly the same
+      // leave-one-out ratio, except that both the observation and its mates are
+      // first divided by the total correction already in force, so a run whose
+      // spectrum matches the global one fits flat at 1.0 and changes nothing.
+      // Samples are assigned to the run of the observation, but the mates may
+      // come from any run - that is what makes the residual relative to the
+      // common consensus rather than to the run itself.
+      if (AllScales.HasPerRunGPRWavelength() && AllScales.GPRWavelengthActive()) {
+        int nrunsgpr = hkl_list.num_runs();
+        output.logTabPrintf(0, LOGFILE,
+          "\n----- Per-run residual wavelength response, %d runs -----\n",
+          nrunsgpr);
+        const int NGPRRUNITER = 2;
+        for (int iter = 0; iter < NGPRRUNITER; ++iter) {
+          std::vector<std::vector<double> > rlam(nrunsgpr), rratio(nrunsgpr),
+                                            rwt(nrunsgpr);
+          reflection this_refl;
+          for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+            this_refl = hkl_list.get_reflection(jref);
+            int nobs = this_refl.num_observations();
+            if (nobs < 2) continue;
+            std::vector<double> oI, oIc, oL, oW;
+            std::vector<int> oR;
+            double sumw = 0.0, sumwi = 0.0;
+            for (int i=0; i<nobs; ++i) {
+              observation obs = this_refl.get_observation(i);
+              if (!obs.IsAccepted()) continue;
+              double I = obs.I();
+              double s = obs.sigI();
+              if (s <= 0.0) continue;
+              if (I/s < IovSDmin) continue;
+              double lam = obs.lambda();
+              int ir = obs.run();
+              double w = 1.0/(s*s);
+              // total correction in force for THIS observation's run
+              double ws = AllScales.GPRWavelengthScaleAt(ir, lam);
+              if (!(ws > 0.0)) ws = 1.0;
+              double Ic = I/ws;
+              oI.push_back(I); oIc.push_back(Ic); oL.push_back(lam);
+              oW.push_back(w); oR.push_back(ir);
+              sumw += w; sumwi += w*Ic;
+            }
+            if (oI.size() < 2 || sumw <= 0.0) continue;
+            for (size_t i=0; i<oI.size(); ++i) {
+              int ir = oR[i];
+              if (ir < 0 || ir >= nrunsgpr) continue;
+              double sw  = sumw  - oW[i];
+              double swi = sumwi - oW[i]*oIc[i];
+              if (sw <= 0.0) continue;
+              double mean_i = swi/sw;
+              if (mean_i <= 0.0) continue;
+              // ratio of the ALREADY-CORRECTED observation to the corrected
+              // mates: unity if the global curve is right for this run
+              rlam[ir].push_back(oL[i]);
+              rratio[ir].push_back(oIc[i]/mean_i);
+              rwt[ir].push_back(mean_i*oW[i]);
+            }
+          }
+          output.logTabPrintf(0, LOGFILE, "\n Residual cycle %d of %d:\n",
+                              iter+1, NGPRRUNITER);
+          for (int ir=0; ir<nrunsgpr; ++ir) {
+            output.logTabPrintf(0, LOGFILE, "  run %d: %d samples\n",
+                                ir+1, int(rlam[ir].size()));
+            AllScales.FitGPRWavelengthRun(ir, rlam[ir], rratio[ir], rwt[ir],
+                                          output);
+          }
+        }
+        AllScales.PrintGPRPerRunNormalization(output);
+      }
+
+      output.logTab(0, LXML, AllScales.GPRWavelengthNormalizationXML());
+
+      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM.plt)
+      {
+        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
+        std::string lnscript = AllScales.GPRWavelengthGnuplot(runTitle, lnver);
+        if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
+          const std::string lnfile = "LAMBDANORM.plt";
+          std::ofstream lns(lnfile.c_str());
+          if (lns) {
+            lns << lnscript;
+            lns.close();
+            output.logTabPrintf(0, LOGFILE,
+              "\nWavelength normalization curve written to %s"
+              " (gnuplot format; open with: gnuplot -p %s)\n",
+              lnfile.c_str(), lnfile.c_str());
+          } else {
+            output.logTabPrintf(0, LOGFILE,
+              "\nWarning: could not open %s for writing\n", lnfile.c_str());
+          }
+        }
+      }
+      output.logTab(0, LOGFILE,
+                    "\nTime for wavelength GP normalisation: "+timer.format(true));
+
+      // ONLYLAMBDA: apply wavelength scale only (ps=bs=ss=ds=1, no outlier
+      // rejection) and skip all further scaling.
       if (FC.OnlyLambda()) {
         hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
         applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
@@ -1149,8 +1442,10 @@ int main(int argc, char* argv[])
                              runTitle, hkl_list.Srange().max(), wavelength,
 			     ploticerings,
                              controls.outlierMerge,
-                             controls.plotcontrol.xmgraceoutput);
+                             controls.plotcontrol.xmgraceoutput,
+                             controls.plotcontrol.gnuplotoutput);
       //  hkl_list is updated for status, but SDs are not changed
+      RejectAngleStats::Clear();
       RejectOutlier(hkl_list, SD_model, NormRes,
                     controls.anomalouscontrol.Anomalous,
                     controls.outlierMerge, RoguesList);
@@ -1167,6 +1462,9 @@ int main(int argc, char* argv[])
                           "Number of rejected outliers within I+ || I- sets: %6d,  between I+ & I- %6d, on |E|max %6d\n",
                           nrejs[0], nrejs[1], nrejs[2]);
       output.logTab(0,LXML,CountOutliersXML(nrejs));
+      if (RejectAngleStats::Active()) {
+        output.logTab(0,LOGFILE, RejectAngleStats::format());
+      }
       output.logFlush();
       if (doRoguePlot) {
         // ROGUEPLOT to XML
@@ -1177,6 +1475,25 @@ int main(int argc, char* argv[])
     }
 
     output.logTab(0,LXML, controls.outlierMerge.formatXML());
+
+    // ----- Laue: wavelength term in the SD correction
+    // Fitted HERE, after the final scaling and after merge-stage outlier
+    // rejection, because this is the state the data are delivered in.  Fitting
+    // it earlier (inside AnalyseSD) measures a residual that the remaining
+    // scaling and rejection then change: on one test dataset the intermediate
+    // trend was twice as steep as the delivered one, and on another it had the
+    // opposite sign, so the correction created a wavelength trend where there
+    // was none.  Fitted here a flat residual gives a slope of zero and the
+    // correction is self-limiting.
+    if (input.SDC_Lambda()) {
+      double lamref = input.getLambdaRef();
+      if (!(lamref > 0.0)) lamref = 1.0;
+      // SD corrections are applied lazily by every later consumer (merging,
+      // statistics, output), each reading SD_model, so setting the exponent
+      // here is enough - nothing needs re-applying.
+      SD_model.FitLambdaSDcorrection(hkl_list, lamref, 12, output,
+                                     input.SDC_LambdaScale());
+    }
 
     // for each dataset
     std::vector<Analyseoverlaps>  analyseoverlaps(hkl_list.num_datasets());
@@ -1384,7 +1701,7 @@ int main(int argc, char* argv[])
   }
 
   if (output.doXmlout()) {
-    output.logTab(0, LXML,"</AIMLESS>");
+    output.logTab(0, LXML,"</LAWLESS>");
     output.unsetXmlout();
   }
 

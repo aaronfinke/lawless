@@ -40,6 +40,20 @@ namespace scala
 
     void SetSDadd(const double& SDadd) {sdadd = SDadd;} // set SDadd
 
+    //! Laue: wavelength dependence of the sigma correction
+    /*! sigma' is multiplied by (lambda/lambda_ref)^SDlam.  The measured
+      residual on Laue data is a variance that grows smoothly with wavelength
+      and is not a function of intensity, so it has no slot in SdFac/SdB/SdAdd;
+      one exponent per run is far better conditioned than giving an
+      intensity-only model its own copy per run.  SDlam = 0 is a no-op, so
+      monochromatic and un-fitted cases are unchanged. */
+    void SetLambdaPower(const double& SDlam, const double& LambdaRef)
+    {sdlam = SDlam; lamref = LambdaRef;}
+    double SDlam() const {return sdlam;}
+    double LambdaRef() const {return lamref;}
+    //! (lambda/lambda_ref)^SDlam, or 1.0 if not set
+    double LambdaFactor(const double& lambda) const;
+
     // Correct sigma
     // sigma  uncorrected sigma(Ihl)
     // gscale inverse scale for Ihl
@@ -54,6 +68,8 @@ namespace scala
     IsigI Correct(const IsigI& Is, const double& gscale, const float& Iav) const;
 
     std::string format() const;
+    //! format of the wavelength term, empty if it is not in use
+    std::string formatLambda() const;
     // Range of values applied
     std::pair<double,double> MinMax() const
     {return std::pair<double,double>(mincorr, maxcorr);}
@@ -118,6 +134,8 @@ namespace scala
     // = = = 
     
   private:
+    double sdlam;  // Laue wavelength exponent (0 = not in use)
+    double lamref; // reference wavelength for the exponent
     double sdfac;  // NB number of parameters in Npar() above
     double sdb;
     double sdadd;

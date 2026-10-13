@@ -72,8 +72,9 @@ namespace scala {
     double RMScorrelRatioCen(const int& mres) const;
     double RMScorrelRatioCen() const;  // overall
 
-    // plot stuff, returns XML, writes xmgr file if plotxmgr true
-    std::string PlotCorrel(const bool& plotxmgr) const;
+    // plot stuff, returns XML, writes xmgr file if plotxmgr true,
+    // gnuplot file if plotgnu true
+    std::string PlotCorrel(const bool& plotxmgr, const bool& plotgnu) const;
 
     // Add into sums, for anisotropy analysis along three directions
     void AddAniso(const int& mres, const int& jaxis,
