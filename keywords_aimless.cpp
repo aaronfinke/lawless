@@ -2204,13 +2204,15 @@ PLOT::PLOT() : CCP4base(), InputBase()
   inputPtr iPtr(this);
   possible_fns.push_back(iPtr);
   xmgroutput = true;
+  gnuplotoutput = true;
 }
 //--------------------------------------------------------------
 Token_value PLOT::parse(std::istringstream& input_stream)
-// Option to suppress XMgrace file output
-//    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
+// Option to suppress XMgrace and/or gnuplot file output
+//    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT  (xmgr)
+//    the same with .plt, and LAMBDANORM.plt     (gnuplot)
 //
-// Syntax: PLOT [NOXMGR]
+// Syntax: PLOT [NOXMGR | XMGR] [NOGNUPLOT | GNUPLOT]
 {
   bool OK = true;
   while (get_token(input_stream) != ENDLINE) {
@@ -2219,6 +2221,10 @@ Token_value PLOT::parse(std::istringstream& input_stream)
         xmgroutput = false;
       } else if (keyIs("XMGR")) {
         xmgroutput = true;
+      } else if (keyIs("NOGNUPLOT")) {
+        gnuplotoutput = false;
+      } else if (keyIs("GNUPLOT")) {
+        gnuplotoutput = true;
       } else {
         OK = false;
       }
@@ -2228,7 +2234,7 @@ Token_value PLOT::parse(std::istringstream& input_stream)
   }
   if (!OK) {
     throw SyntaxError(keywords,
-                      "Unrecognised keyword, should be NOXMGR | XMGR");
+                      "Unrecognised keyword, should be NOXMGR | XMGR | NOGNUPLOT | GNUPLOT");
   }
 
   return ENDLINE;

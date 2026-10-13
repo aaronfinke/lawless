@@ -7,6 +7,7 @@
 #include "jiffy.hh"
 #include "icering.hh"
 #include "report_errors.hh"
+#include "version.hh"
 
 // Clipper
 #include <clipper/clipper.h>
@@ -89,32 +90,40 @@ void DrawCircle(XMGRACE& xmgrplot, const int& lcolour, const std::string& legend
 NormalProbPlot::NormalProbPlot(const std::string& FileName,
                                const bool& WriteLegend,
                                const std::string& title1,
-                               const std::string& title2)
+                               const std::string& title2,
+                               const std::string& GnuFileName)
   : Nlines(0)
 {
-  init(FileName, WriteLegend, title1, title2);
+  init(FileName, WriteLegend, title1, title2, GnuFileName);
 }
 //--------------------------------------------------------------
 void NormalProbPlot::init(const std::string& FileName,
                           const bool& WriteLegend,
                           const std::string& title1,
-                          const std::string& title2)
+                          const std::string& title2,
+                          const std::string& GnuFileName)
 {
   xmgr = true;
   if (FileName == "") {
     // No XMGR output
     xmgr = false;
   }
+  gnu = (GnuFileName != "");
+  xmax = 4.0;
+  ymax = 5.0;
 
   // Initialise file for XMgrace
   if (xmgr) {
     file = OpenFile(FileName, true);  // open write file for xmgrace
-    xmax = 4.0;
-    ymax = 5.0;
     xmgrplot.Header(file, title1, title2, -xmax, xmax, -ymax, ymax,
                     0.6, 0.7,
                     1.0, 1.0, true,
                     "Delta(expected)", "Delta(observed)", 0.8, 0.0, true);
+  }
+  if (gnu) {
+    gnuplot.Header(GnuFileName, title1, title2, -xmax, xmax, -ymax, ymax,
+                   1.0, 1.0, true,
+                   "Delta(expected)", "Delta(observed)", true, false);
   }
   // Always initialise XML output
   xmlplot.Header(title1, -xmax, xmax, -ymax, ymax,
@@ -149,6 +158,7 @@ void NormalProbPlot::NewLine(const std::string& legend)
   int maxlin = lcolour.size();
   int icol = Nlines%maxlin;  // wrap round after maxlin
   if (xmgr) {xmgrplot.Line(legend, lcolour[icol], +2, false);}
+  if (gnu) {gnuplot.Line(legend, lcolour[icol], +2, false);}
   // start XML line, with a legend, not connected
   xmlplot.StartLine(legend, 0, 1, lcolour[icol]);
 }
@@ -159,6 +169,7 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
   if (std::abs(x) < limit && std::abs(y) < limit) {
     if (sample.Keep(Max(std::abs(x), std::abs(y)))) {
       if (xmgr) {xmgrplot.Point("%10.4f %9.4f\n", x, y);}
+      if (gnu) {gnuplot.Point("%10.4f %9.4f\n", x, y);}
       xmlplot.Point(x, y, 9, 4);
     }
   }
@@ -167,6 +178,7 @@ void NormalProbPlot::OutputPoint(const float& x, const float& y)
 void NormalProbPlot::EndLine()
 {
   if (xmgr) {xmgrplot.EndLine();}
+  if (gnu) {gnuplot.EndLine();}
   xmlplot.EndLine();
   Nlines++;  // increment line number
 }
@@ -176,6 +188,7 @@ void NormalProbPlot::ClosePlot()
 {
   float range = xmax;
   if (xmgr) {xmgrplot.ClosePlot(range, true);}
+  if (gnu) {gnuplot.ClosePlot(true);}
   // XML
   xmlplot.DrawLine(-range, +range, -range, +range, 9,4,
                    1,1,7); // black
@@ -251,14 +264,17 @@ void CorrelPlot::AddPoint(const int& mres, const float& I1, const float& I2)
   }
 }
 // ------------------------------------------------------------
-std::string CorrelPlot::Plot(FILE* plotfile) const
+std::string CorrelPlot::Plot(FILE* plotfile, const std::string& gnufile) const
 // returns XML representation
 // If plotfile = NULL, don't write xmgr file
+// If gnufile = "", don't write gnuplot file
 {
   if (x.size() <= 0) return "";
   XMLplot xmlplot;
   XMGRACE xmgr;
+  GNUPLOT gnuplot;
   bool bxmgr = (plotfile != NULL);
+  bool bgnu = (gnufile != "");
 
   // Limits on axes
   float lowlimit = valrange.min();
@@ -271,6 +287,12 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
                 0.6, 0.7,
                 2.0, 2.0, true,
                 "", "", 0.6, 0.0, true);
+  }
+  if (bgnu) {
+    gnuplot.Header(gnufile, title, pxd_title,
+                   lowlimit, limit, lowlimit, limit,
+                   2.0, 2.0, true,
+                   "", "", true, equallimit);
   }
   xmlplot.Header(title,
               lowlimit, limit, lowlimit, limit,
@@ -292,6 +314,7 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
       }
     }
     if (bxmgr) {xmgr.Line(legend, lcolour[iset], +3, false);}
+    if (bgnu) {gnuplot.Line(legend, lcolour[iset], +3, false);}
     xmlplot.StartLine(legend, 0, 1, lcolour[iset]);
     int iresmin = iset*(nresbin/nres);
     int iresmax = (iset+1)*(nresbin/nres);
@@ -300,15 +323,18 @@ std::string CorrelPlot::Plot(FILE* plotfile) const
     for (size_t i=0;i<x.size();++i) {
       if (resbin[i] >= iresmin && resbin[i] < iresmax) {
         if (bxmgr) {xmgr.Point("%8.3f %8.3f\n", x[i], y[i]);}
+        if (bgnu) {gnuplot.Point("%8.3f %8.3f\n", x[i], y[i]);}
         xmlplot.Point( x[i], y[i], 8, 3);
         np++;
       }
     }
     if (np > 0) iline++;
     if (bxmgr) {xmgr.EndLine();}
+    if (bgnu) {gnuplot.EndLine();}
     xmlplot.EndLine();
   }
   if (bxmgr) {xmgr.ClosePlot(limit, true);}
+  if (bgnu) {gnuplot.ClosePlot(true);}
 
   // XML
   xmlplot.DrawLine(-limit, +limit, -limit, +limit, 9,4,
@@ -333,13 +359,16 @@ double RingRadius(const double& dstar)
 // ------------------------------------------------------------
 RoguePlot::RoguePlot(const std::string& FileName,
                      const std::string& Title, const float& Smax,
-		     const float& wavelength, const scala::Rings& icerings)
+		     const float& wavelength, const scala::Rings& icerings,
+                     const std::string& GnuFileName)
 // Smax  maximum 4(sin theta/lambda)**2
 //                      = (d*max)**2 = 1/dmin**2
-
+// FileName     xmgr file, "" for none
+// GnuFileName  gnuplot file, "" for none
 {
   xmgr = true;
   if (FileName == "") {xmgr = false;}
+  gnu = (GnuFileName != "");
   if (xmgr) {file = OpenFile(FileName, true);}  // open write file
 
   x.clear(); y.clear(); sclass.clear();  // clear arrays
@@ -355,6 +384,12 @@ RoguePlot::RoguePlot(const std::string& FileName,
                     radius, radius, false,
                     "", "", legx, legy, true);
   }
+  if (gnu) {
+    gnuplot.Header(GnuFileName, "Outliers on detector (horizontal rotation axis)",
+                   Title, -radius, +radius, -radius, +radius,
+                   radius, radius, false,
+                   "", "", true, true);
+  }
   xmlplot.Header("Outliers on detector (horizontal rotation axis)",
                  -radius, +radius, -radius, +radius,
                  radius, radius, false,
@@ -364,6 +399,7 @@ RoguePlot::RoguePlot(const std::string& FileName,
   int npoint = 96;  // sampling of circle
   int lcol = 1;     // black
   if (xmgr) {DrawCircle(xmgrplot, lcol, "", radius, npoint);}
+  if (gnu) {gnuplot.Circle(lcol, "", radius, npoint);}
   xmlplot.DrawCircle(0.0, 0.0, radius, 8, 4, 1, 1, lcol);
 
   // Draw ice rings
@@ -378,6 +414,7 @@ RoguePlot::RoguePlot(const std::string& FileName,
         first = false;
       }
       if (xmgr) {DrawCircle(xmgrplot, lcol, label, rad, npoint);}
+      if (gnu) {gnuplot.Circle(lcol, label, rad, npoint);}
       xmlplot.DrawCircle(0.0, 0.0, rad, 8, 4, 1, 1, lcol);
     }
   }
@@ -392,6 +429,16 @@ RoguePlot::RoguePlot(const std::string& FileName,
     xmgrplot.Point("%8.4f %8.4f\n", 0.0, -radius);
     xmgrplot.Point("%8.4f %8.4f\n", 0.0, +radius);
     xmgrplot.EndLine();
+  }
+  if (gnu) {
+    gnuplot.Line("", lcol, 0, true); // X axis
+    gnuplot.Point("%8.4f %8.4f\n", -radius, 0.0);
+    gnuplot.Point("%8.4f %8.4f\n", +radius, 0.0);
+    gnuplot.EndLine();
+    gnuplot.Line("", lcol, 0, true); // Y axis
+    gnuplot.Point("%8.4f %8.4f\n", 0.0, -radius);
+    gnuplot.Point("%8.4f %8.4f\n", 0.0, +radius);
+    gnuplot.EndLine();
   }
   xmlplot.DrawLine(-radius, +radius, 0.0, 0.0, 8,4);
   xmlplot.DrawLine(0.0, 0.0, -radius, +radius, 8,4);
@@ -432,19 +479,23 @@ void RoguePlot::End()
         legend = "Emax";
       }
       if (xmgr) {xmgrplot.Line(legend, lcol, -1, false);}
+      if (gnu) {gnuplot.Line(legend, lcol, -1, false);}
       xmlplot.StartLine(legend, 0, 0, lcol);
       for (size_t k=0; k<sclass.size(); k++) {
         if (sclass[k] == j) {
           // a point in this class
           if (xmgr) {xmgrplot.Point("%10.4f %10.4f\n", x[k], y[k]);}
+          if (gnu) {gnuplot.Point("%10.4f %10.4f\n", x[k], y[k]);}
           xmlplot.Point(x[k], y[k], 10, 4);
         }
       }
       if (xmgr) {xmgrplot.EndLine();}
+      if (gnu) {gnuplot.EndLine();}
       xmlplot.EndLine();
     }
   }
   if (xmgr) {xmgrplot.ClosePlot(0.0, false);}
+  if (gnu) {gnuplot.ClosePlot(false);}
   xmlplot.ClosePlot();
 }
 // ------------------------------------------------------------
@@ -806,5 +857,175 @@ void XMGRACE::ClosePlot(const float& range,
     EndLine();
     objectNumber++;
   }
+}
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+namespace {
+  // gnuplot double-quoted string
+  std::string GnuQuote(const std::string& str)
+  {
+    std::string q = "\"";
+    for (size_t i=0;i<str.size();++i) {
+      if (str[i] == '\n') {q += "\\n"; continue;}
+      if (str[i] == '"' || str[i] == '\\') q += '\\';
+      q += str[i];
+    }
+    return q + "\"";
+  }
+  // xmgr colour number to rgb
+  std::string GnuColour(const int& lcolour)
+  {
+    static const char* colours[] = {
+      "#ffffff", "#000000", "#e41a1c", "#00a000", "#1f4ed8", "#d4a017",
+      "#8b4513", "#808080", "#8a2be2", "#00b4c8", "#d020d0", "#ff8c00",
+      "#4b0082", "#800000", "#40c8b0", "#008b00"};
+    int ic = (lcolour >= 0 && lcolour <= 15) ? lcolour : 1;
+    return GnuQuote(colours[ic]);
+  }
+}
+//--------------------------------------------------------------
+void GNUPLOT::Header(const std::string& FileName,
+                     const std::string& Title1, const std::string& Title2,
+                     const float& Xmin, const float& Xmax,
+                     const float& Ymin, const float& Ymax,
+                     const float& Xtick, const float& Ytick,
+                     const bool& Ticklabel,
+                     const std::string& Xlabel, const std::string& Ylabel,
+                     const bool& WriteLegend, const bool& Square)
+{
+  filename = FileName;
+  title1 = Title1;  title2 = Title2;
+  xmin = Xmin;  xmax = Xmax;  ymin = Ymin;  ymax = Ymax;
+  xtick = Xtick;  ytick = Ytick;  ticklabel = Ticklabel;
+  xlabel = Xlabel;  ylabel = Ylabel;
+  writelegend = WriteLegend;
+  square = Square;
+  diagonal = false;
+  series.clear();
+}
+//--------------------------------------------------------------
+void GNUPLOT::Line(const std::string& legend,
+                   const int& lcolour, const int& Symbol, const bool& Join)
+// Symbol    !=0 draw symbols, if < 0 fill symbol, >1 scale symbol size
+// Join = true to draw line as well as points
+{
+  Series sr;
+  sr.legend = legend;
+  sr.colour = lcolour;
+  sr.symbol = Symbol;
+  sr.join = Join;
+  series.push_back(sr);
+}
+//--------------------------------------------------------------
+void GNUPLOT::Point(const std::string& fmt,
+                    const float& x, const float& y)
+{
+  if (series.empty()) return;
+  char buf[64];
+  snprintf(buf, sizeof(buf), fmt.c_str(), x, y);
+  series.back().data += buf;
+}
+//--------------------------------------------------------------
+void GNUPLOT::Circle(const int& lcolour, const std::string& legend,
+                     const float& Radius, const int& Npoints)
+// Draw circle centred on 0,0, radius Radius, sampled into Npoints
+{
+  const int maxpnt = 200;
+  const int minpnt = 16;
+  int npoints = Min(Max(minpnt, Npoints), maxpnt);
+  double delang = 8.*atan(1.0)/double(npoints);
+  Line(legend, lcolour, 0, true);
+  for (int i=0;i<=npoints;++i) {
+    double a = delang * double(i);
+    Point("%8.4f %8.4f\n", Radius*cos(a), Radius*sin(a));
+  }
+  EndLine();
+}
+//--------------------------------------------------------------
+void GNUPLOT::ClosePlot(const bool& Diagonal)
+// plot diagonal line and axes if Diagonal true, then write the file
+{
+  if (filename == "") return;
+  diagonal = Diagonal;
+
+  std::string s;
+  s += "# " + filename + " - " + title1 + "\n";
+  s += "# Generated by " + PROGRAM_NAME + " " + PROGRAM_VERSION + "\n";
+  if (title2 != "") {
+    std::string t2 = title2;  // keep the comment on one line
+    for (size_t i=0;i<t2.size();++i) {if (t2[i] == '\n') t2[i] = ' ';}
+    s += "# " + t2 + "\n";
+  }
+  s += "#\n";
+  s += "# View this plot with gnuplot (5.0 or later):\n";
+  s += "#     gnuplot -p " + filename + "\n";
+  s += "# (the -p flag keeps the plot window open after drawing)\n";
+  s += "#\n";
+  s += "set termoption noenhanced\n";
+  std::string title = title1;
+  if (title2 != "") title += "\n" + title2;
+  if (title != "") s += "set title " + GnuQuote(title) + "\n";
+  if (xlabel != "") s += "set xlabel " + GnuQuote(xlabel) + "\n";
+  if (ylabel != "") s += "set ylabel " + GnuQuote(ylabel) + "\n";
+  char buf[200];
+  snprintf(buf, sizeof(buf), "set xrange [%g:%g]\nset yrange [%g:%g]\n",
+           xmin, xmax, ymin, ymax);
+  s += buf;
+  if (xtick > 0.0) {snprintf(buf, sizeof(buf), "set xtics %g\n", xtick); s += buf;}
+  if (ytick > 0.0) {snprintf(buf, sizeof(buf), "set ytics %g\n", ytick); s += buf;}
+  if (!ticklabel) s += "set format x \"\"\nset format y \"\"\n";
+  s += "set grid\n";
+  if (square) s += "set size ratio -1\n";
+  if (diagonal) s += "set xzeroaxis lt -1\nset yzeroaxis lt -1\n";
+  bool anylegend = false;
+  for (size_t i=0;i<series.size();++i) {
+    if (series[i].legend != "" && series[i].data != "") anylegend = true;
+  }
+  if (writelegend && anylegend) {
+    s += "set key outside right top\n";
+  } else {
+    s += "unset key\n";
+  }
+  s += "\n";
+
+  // Data, one datablock per series
+  std::vector<std::string> clauses;
+  for (size_t i=0;i<series.size();++i) {
+    const Series& sr = series[i];
+    if (sr.data == "") continue;  // gnuplot complains about empty data
+    std::string name = "$S" + StringUtil::Strip(clipper::String(int(i)));
+    s += name + " << EOD\n" + sr.data + "EOD\n";
+
+    std::string c = name + " using 1:2 with ";
+    if (sr.symbol != 0) {
+      c += sr.join ? "linespoints" : "points";
+      int pt = (sr.symbol < 0) ? 5 : 4;  // filled or open square
+      float ps = Max(0.25f, 0.25f*float(std::abs(sr.symbol)));
+      snprintf(buf, sizeof(buf), " pt %d ps %.2f", pt, ps);
+      c += buf;
+    } else {
+      c += "lines";
+    }
+    c += " lc rgb " + GnuColour(sr.colour);
+    c += (sr.legend != "") ? " title " + GnuQuote(sr.legend) : " notitle";
+    clauses.push_back(c);
+  }
+  if (diagonal) {
+    clauses.push_back("x with lines lc rgb \"#000000\" notitle");
+  }
+  s += "\n";
+  if (!clauses.empty()) {
+    s += "plot ";
+    for (size_t i=0;i<clauses.size();++i) {
+      if (i > 0) s += ", \\\n     ";
+      s += clauses[i];
+    }
+    s += "\n";
+  }
+
+  FILE* file = OpenFile(filename, true);
+  fputs(s.c_str(), file);
+  fclose(file);
 }
 //--------------------------------------------------------------

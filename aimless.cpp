@@ -311,6 +311,7 @@ int main(int argc, char* argv[])
     MtzIO::column_labels column_list = MtzIO::setup_columns();
 
     controls.plotcontrol.xmgraceoutput = input.XMGRoutput();
+    controls.plotcontrol.gnuplotoutput = input.GNUPLOToutput();
 
     //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
     // Construct reflection list by reading MTZ file
@@ -866,7 +867,7 @@ int main(int argc, char* argv[])
       {
         std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
-        if (!lnscript.empty()) {
+        if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
           const std::string lnfile = "LAMBDANORM.plt";
           std::ofstream lns(lnfile.c_str());
           if (lns) {
@@ -1049,7 +1050,7 @@ int main(int argc, char* argv[])
       {
         std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
         std::string lnscript = AllScales.GPRWavelengthGnuplot(runTitle, lnver);
-        if (!lnscript.empty()) {
+        if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
           const std::string lnfile = "LAMBDANORM.plt";
           std::ofstream lns(lnfile.c_str());
           if (lns) {
@@ -1441,7 +1442,8 @@ int main(int argc, char* argv[])
                              runTitle, hkl_list.Srange().max(), wavelength,
 			     ploticerings,
                              controls.outlierMerge,
-                             controls.plotcontrol.xmgraceoutput);
+                             controls.plotcontrol.xmgraceoutput,
+                             controls.plotcontrol.gnuplotoutput);
       //  hkl_list is updated for status, but SDs are not changed
       RejectAngleStats::Clear();
       RejectOutlier(hkl_list, SD_model, NormRes,

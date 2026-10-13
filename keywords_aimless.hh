@@ -905,10 +905,11 @@ namespace phaser_io {
   //--------------------------------------------------------------
   class PLOT : public InputBase, virtual public CCP4base
   {
-    // Option to suppress XMgrace file output 
-    //    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT
-    //    
-    // Syntax: PLOT NOXMGR | XMGR
+    // Option to suppress XMgrace and/or gnuplot file output
+    //    NORMPLOT, ANOMPLOT, ROGUEPLOT, CORRELPLOT  (xmgr)
+    //    the same with .plt, and LAMBDANORM.plt     (gnuplot)
+    //
+    // Syntax: PLOT [NOXMGR | XMGR] [NOGNUPLOT | GNUPLOT]
   public:
     PLOT();
     virtual ~PLOT() {}
@@ -916,10 +917,12 @@ namespace phaser_io {
 
     bool XMGRoutput() const {return xmgroutput;}
     void setXMGRoutput(const bool& xmgrout) {xmgroutput = xmgrout;}
+    bool GNUPLOToutput() const {return gnuplotoutput;}
     void analyse(){}
 
   private:
     bool xmgroutput;
+    bool gnuplotoutput;
 
 };
   //--------------------------------------------------------------

@@ -74,7 +74,8 @@ namespace scala {
 		const float& dstarMax, const float& wavelength,
 		const Rings& icerings,
 		const OutlierControl& outliercontrol,
-		const bool& xmgraceoutput);
+		const bool& xmgraceoutput,
+		const bool& gnuplotoutput);
 
     bool Open() const {return (rogues != NULL);}
 

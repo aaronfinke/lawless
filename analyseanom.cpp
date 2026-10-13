@@ -36,8 +36,10 @@ namespace scala
     if (plot) {
       std::string filename = "ANOMPLOT";
       if (!controls.plotcontrol.xmgraceoutput) {filename = "";}
+      std::string gnufile = "ANOMPLOT.plt";
+      if (!controls.plotcontrol.gnuplotoutput) {gnufile = "";}
 
-      NPPlot.init(filename, true, "Anomalous differences","");
+      NPPlot.init(filename, true, "Anomalous differences","", gnufile);
     }
 
     std::vector<NormalProbAnal> normalprobanal;

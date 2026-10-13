@@ -653,7 +653,8 @@ namespace scala {
                            const float& wavelength,
 			   const Rings& icerings,
 			   const OutlierControl& outliercontrol,
-                           const bool& xmgraceoutput)
+                           const bool& xmgraceoutput,
+                           const bool& gnuplotoutput)
   // Open ROGUES file & write header if Start true
   // Open ROGUESPLOT file & write header if Plot true
   // If filename = "", no xmgr output
@@ -661,6 +662,7 @@ namespace scala {
   // title & maximum resolution d* = lambda/d
   //  outliercontrol   parameters for rejection
   // xmgraceoutput if true, write xmgr file ROGUEPLOT
+  // gnuplotoutput if true, write gnuplot file ROGUEPLOT.plt
   {
     if (Start) {
       rogues = OpenFile(filename, true);  // open ROGUES file
@@ -711,8 +713,10 @@ namespace scala {
     if (Plot) {
       std::string roguefilename = "ROGUEPLOT";
       if (!xmgraceoutput) {roguefilename = "";}
+      std::string roguegnufile = "ROGUEPLOT.plt";
+      if (!gnuplotoutput) {roguegnufile = "";}
       rogueplot = RoguePlot(roguefilename, title, dstarMax,
-			    wavelength, icerings);
+			    wavelength, icerings, roguegnufile);
       rogueplot.Start();
     }
   }
