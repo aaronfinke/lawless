@@ -258,27 +258,28 @@ emitted from `aimless.cpp` after the log table) writes a
 `<point>` (`<lambda>`,`<w>`,`<uncertainty>`) samples. Mirrors the Chebyshev
 `<WavelengthNormalisation>` block on the `lawless` branch.
 
-### LAMBDANORM gnuplot file + uncertainties
+### LAMBDANORM.plt gnuplot file + uncertainties
 
 The GP fit also produces a **posterior SD** (`grid_sd`, computed in `Fit()` from
 the Cholesky factor: `var = k(λ,λ) − v·v`, `v = L⁻¹k_*`).
 `WavelengthGPRScale::Uncertainty(λ)` interpolates it; in log space this is the
 relative (fractional) uncertainty of `ws(λ)`. It appears as `<uncertainty>` in
-the XML and as column 3 of the LAMBDANORM file.
+the XML and as column 3 of the LAMBDANORM.plt file.
 
 `WavelengthGPRScale::GnuplotScript(title, version)` (via
 `ScaleModel::GPRWavelengthGnuplot()`) returns a **self-contained gnuplot script**
-written by `aimless.cpp` to a file named **`LAMBDANORM`** (in the GP pre-pass).
+written by `aimless.cpp` to a file named **`LAMBDANORM.plt`** (in the GP pre-pass).
 It has a header comment (program/version from `version.hh`, run title, and the
-`gnuplot -p LAMBDANORM` open instruction), an inline `$LAMBDANORM` datablock
+`gnuplot -p LAMBDANORM.plt` open instruction), an inline `$LAMBDANORM` datablock
 (columns: `λ  w  rel_uncertainty  w_lo  w_hi`), a `$LAMBDABINS` datablock with
 the **binned observations the GP was fitted to** (`λ  w_bin  σ(w_bin)`), and a
 `plot` of the `w(λ)` line over a 1σ `filledcurves` band with the bins as
 error-bar points. The bins are the diagnostic that matters: the curve should
 follow them without chasing individual points.
 Gnuplot (≥5.0) is preferred over the deprecated
-loggraph plot files (ROGUES/SCALES/ANOMPLOT/CORRELPLOT). GPR-only; the
-Chebyshev model writes no LAMBDANORM.
+loggraph/xmgrace plot files (ROGUEPLOT/NORMPLOT/ANOMPLOT/CORRELPLOT).
+**Convention:** gnuplot scripts carry the extension `.plt`; the extensionless
+plot files are the inherited xmgrace/loggraph format.
 
 Advantage over Chebyshev: adapts to variable data density via the
 heteroscedastic noise model and avoids polynomial runaway at sparse wavelength
@@ -286,6 +287,25 @@ extremes (outside the range it returns a flat `ws = 1`, never a divergent tail).
 
 Eigen3 lives at `${SRC}/eigen-3.4.0` and is added to `include_directories` in
 `CMakeLists.txt`; the dependency is confined to `scaletypes.cpp`.
+
+---
+
+## gnuplot copies of the inherited plots
+
+`NORMPLOT`, `ANOMPLOT`, `CORRELPLOT` and `ROGUEPLOT` are also written as
+`NORMPLOT.plt` etc. All four go through one class, `XMGRACE` in
+`plotfiles.cpp`; `GNUPLOT` beside it has the same `Header`/`Line`/`Point`/
+`EndLine`/`ClosePlot` shape and is called next to every `XMGRACE` call in
+`NormalProbPlot`, `CorrelPlot` and `RoguePlot`. It buffers points and writes
+the whole script in `ClosePlot`, because gnuplot needs the datablocks before
+the `plot` command. Colour numbers are the xmgr ones, mapped to RGB.
+
+`PLOT NOGNUPLOT | GNUPLOT` (default on, `PlotControl::gnuplotoutput`) is
+independent of `PLOT NOXMGR | XMGR` and also gates `LAMBDANORM.plt`. The xmgr
+files and the log are byte-identical to the build without this (checked on
+`test_data/gal`). One side effect: `RoguePlot::IsPlot()` is now true if
+*either* file is wanted, so under `PLOT NOXMGR` the ROGUEPLOT XML block is now
+filled in rather than empty (unless `NOGNUPLOT` too).
 
 ---
 
@@ -461,12 +481,12 @@ It contains `<ReferenceWavelength>` and, per `<Range>`, the `<LambdaMin>`,
 `<LambdaMax>`, `<Degree>`, `<LogCoefficients>`, and a `<Normalisation>` table of
 21 `<point>` (`<lambda>`,`<w>`) samples.
 
-### Wavelength normalisation gnuplot file (LAMBDANORM)
+### Wavelength normalisation gnuplot file (LAMBDANORM.plt)
 
 `WavelengthChebyshevScale::GnuplotScript(title, version)` (via
 `ScaleModel::WavelengthGnuplot()`) returns a self-contained gnuplot script
-written by `aimless.cpp` to a file named **`LAMBDANORM`** in the wavelength
-pre-pass. Header comment (program/version, run title, `gnuplot -p LAMBDANORM`
+written by `aimless.cpp` to a file named **`LAMBDANORM.plt`** in the wavelength
+pre-pass. Header comment (program/version, run title, `gnuplot -p LAMBDANORM.plt`
 hint), explicit `set xrange`/`set yrange`, then per-range datablocks and a
 `plot`. Each range is drawn **in full across the whole domain in its own
 colour**, using that range's own polynomial (`evalRange`): **solid** within the
@@ -476,8 +496,8 @@ from the used portions only, so divergent extrapolations run off-screen and are
 clipped; non-finite extrapolated points are skipped. A single range collapses to
 one solid `w(λ)` line.
 **No uncertainty band** — the Chebyshev fit carries no posterior covariance
-(unlike the GP, whose LAMBDANORM has a 1σ band). Both methods write to the same
-`LAMBDANORM` filename, but `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive
+(unlike the GP, whose LAMBDANORM.plt has a 1σ band). Both methods write to the same
+`LAMBDANORM.plt` filename, but `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive
 so only one path runs.
 
 ### Complete scaling workflow (Laue)
@@ -783,7 +803,7 @@ and hCAII-Cu gives byte-identical merged and unmerged MTZs, because those decks
 already set `SCALES BATCH`/`CONSTANT` and `ANOMALOUS OFF` explicitly. Dropping
 those explicit keywords and relying on the `PROBE NEUTRON` defaults reproduces
 the same files again on all three. With `PROBE XRAY` (the default) every output
-— MTZs, log, `SCALES`, `LAMBDANORM`, `ROGUES`, `NORMPLOT`, `CORRELPLOT`,
+— MTZs, log, `SCALES`, `LAMBDANORM.plt`, `ROGUES`, `NORMPLOT`, `CORRELPLOT`,
 `ANOMPLOT` — is byte-identical to the build without the keyword, once the MTZ
 run timestamps are masked.
 
@@ -868,7 +888,8 @@ without information. Check the merged I/sigma of whatever a change adds.
 | `scaletypes.hh/.cpp` | `WavelengthChebyshevScale` (log-Chebyshev); `WavelengthGPRScale` (Eigen GP fit, fixed lookup) |
 | `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management; GPR fit driver + fixed-correction application |
 | `aimless.cpp` | Laue Chebyshev pre-pass + GP pre-pass (leave-one-out log-ratio sampling) before `FC.roughScale`; `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
-| `keywords_aimless.hh/.cpp` | `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
+| `plotfiles.hh/.cpp` | `XMGRACE` and `GNUPLOT` writers for NORMPLOT/ANOMPLOT/CORRELPLOT/ROGUEPLOT (`.plt` = gnuplot) |
+| `keywords_aimless.hh/.cpp` | `PLOT [NO]XMGR [NO]GNUPLOT`; `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
 | `probe.hh/.cpp` | `Probe` — static radiation type and instrument class, from `PROBE NEUTRON\|XRAY [TOF\|QUASILAUE]` |
 | `reject.hh/.cpp` | `RejectAngleStats` — outlier rejections counted against 2θ, active under `PROBE NEUTRON` |
 | `printing.cpp`, `radiationdamageanalysis.cpp` | Radiation-damage wording becomes stability wording under `PROBE NEUTRON` |
@@ -897,74 +918,3 @@ without information. Check the merged I/sigma of whatever a change adds.
 - `NormaliseParameters()` returns early when `nprimaryscale == 0` (e.g. `SCALES CONSTANT`) to avoid an assertion on `scalenormbatch`.
 - `ScaleModel::init` builds the wavelength scale even if primary `setup()` reports `status < 0`, by falling back to constant primary scaling (enables `LAMBDAONLY` without explicit `SCALES CONSTANT`).
 - `FormatSave`/`Restore` on `WavelengthChebyshevScale` handle persistence in aimless checkpoint files (note: save format stores log-coefficients `a_k`).
-
----
-
-## To do
-
-- **No angular correction is implemented, and this is settled.** `SCALES ...
-  TWOTHETA` was written, tested on all three MaNDi datasets and reverted. It
-  reduced R-merge and raised CC(1/2) on two of three and was demonstrably not
-  fitting noise (null control 4-6 % against 39-55 % real), but no physical
-  generator could be named: the Lorentz factor is a monomial so no error in it
-  can make a lambda x d interaction, thermal diffuse scattering is a function of
-  sin(theta)/lambda and cancels, detector efficiency is wavelength only, and
-  crystal absorption is `SECONDARY`'s frame. The implementation is on the tag
-  `twotheta-abandoned` (local only). Reopen only on an instrument whose crystal
-  rotates.
-
-- **`SECONDARY` on by default under `PROBE NEUTRON` when UB is present** — for a
-  1 mm crystal in D₂O the attenuation is μ ≈ 0.195 mm⁻¹ hydrogenous, 0.071 mm⁻¹
-  perdeuterated, dominated by the incoherent cross section of hydrogen
-  (80.3 barn against 0.33 barn for absorption). That is a 13 % (5 %)
-  transmission spread across orientation, which is real and is `SECONDARY`'s
-  job. It needs a guard that refuses to fit 48 coefficients when the batch
-  headers carry an identity UMAT. Note the *wavelength dependence* of that
-  absorption is negligible — the 1/v term is ~1 % of μ and transmission changes
-  0.2 % across a 2.1–3.9 Å band — so a λ-dependent secondary surface is not
-  worth building.
-
-- **Update wavelength normalisation during scaling refinement** — investigate whether continuing to update the wavelength normalisation throughout determination of the scaling parameters (including the pre-pass) improves overall statistics, versus fixing `ws(λ)` after the pre-pass and holding it constant during joint refinement. (Applies to both the Chebyshev pre-pass and the new GPR pre-pass, which currently fixes `ws(λ)` after fitting.)
-
-- **GPR refinement / hyperparameters** — the GPR (`LAUE NORMGPR`) is implemented as a fixed non-parametric pre-pass (see "Gaussian-process wavelength normalisation"). `σ_f` and a noise-inflation factor are now optimised jointly with the length scale, and merging statistics have been compared against the Chebyshev model on `ca_thio` (they agree). Possible follow-ups: full marginal-likelihood *gradient* optimisation instead of the 3-D grid search; a proper CC½/half-dataset comparison; the held-out χ²/n is still ~2, suggesting the bin variances remain slightly optimistic (samples from the same reflection are correlated across bins) — a per-reflection random effect would tighten this.
-
-- **Fit SDLAMBDA after rebuilding, on more datasets** — the wavelength term in
-  the SD correction (`SDCORRECTION SDLAMBDA`) is self-limiting on the two
-  datasets it has been run on (one with a wavelength residual, one without),
-  but both are MaNDi. A non-monotone residual would defeat the single power
-  law; see the SDLAMBDA section for what to check first.
-
-- **Per-run GPR on a dataset that actually drifts** — `NORMGPRPERRUN` is
-  implemented and regression-clean, but the only dataset it has been run on
-  (CuZnSOD, 10 packs) has no per-run spectral drift: per-run `σ_f` comes out at
-  0.002–0.018 in log space against 1.66 for the global fit. It has therefore
-  never been exercised against a real non-flat residual.
-
-- **The LADI internal-consistency gap is unexplained.** On the TIM 2020 data,
-  lawless from raw LAUEGEN matches LSCALE+SCALA per resolution shell and leads
-  on completeness and multiplicity, but trails on R-pim and CC(1/2) overall
-  (0.199 / 0.915 against 0.091 / 0.982 at 2.53 A, SD refined both sides). Two
-  candidates were tested and cleared: nothing is lost in conversion (the
-  permissive file contains 100 % of LSCALE's observations), and the wavelength
-  model is not the difference (GP and a 10-coefficient Chebyshev agree to 5 %).
-  Absorption remains untested — see below.
-
-- **`SECONDARY` on LADI needs the orientation problem solved first.** `U` fits
-  per image from the Laue condition to machine precision, but `lambda =
-  -2(s0.q)/|q|^2` is invariant under rotation about the beam, so each image's
-  azimuth is undetermined and a per-image `U` would put every exposure in a
-  different crystal frame. Tying the images through the `.ldm` SPINDLE angles
-  did not converge (median |dlambda| 0.51 A against 0.000 free). The proper fix
-  is to use the `XF`/`YF` spot positions with the cylinder geometry (`CTOF`,
-  `TWIST/TILT/BULGE`) to break the degeneracy. Converter work, not a lawless
-  change.
-
-- **A detector-position systematic is present on LADI and is not the flat-panel
-  approximation** (branch `lawless_cylinder`, plan only, no commits). Leave-one-
-  out bias against the cylinder-axis coordinate is a symmetric arch peaked at
-  the centre: rms 8.1 % for laue-dials (85 flat panels) and **16.6 % for LAUEGEN
-  with true cylindrical support**, against null controls of 1.3 %. So the
-  approximation is not the cost. The shape points at obliquity — LSM's
-  `fOb = exp(ut/cos 2theta)`, which neither pipeline applied. If built, the term
-  wanted is a low-order curve in the height coordinate pinned at the centre, not
-  a general 2D surface.

@@ -37,7 +37,7 @@ Lawless is intended as a replacement for **LSCALE** from the Daresbury Laue suit
 | scale model | `primary × B-factor × secondary × detector` | `… × wavelength normalisation` |
 | error model | `SdFac √(σ² + SdB·I + (SdAdd·I)²)` | optional wavelength term on top |
 | radiation | X-ray assumed throughout | `PROBE NEUTRON` changes defaults, guards and reporting |
-| output | unmerged MTZ | unmerged MTZ now carries `LAMBDA`; adds `LAMBDANORM` |
+| output | unmerged MTZ | unmerged MTZ now carries `LAMBDA`; adds `LAMBDANORM.plt` |
 
 ### Requirements for the input file
 
@@ -95,7 +95,7 @@ The log parameterisation guarantees `w > 0` for any coefficients, so the refinem
 
 **Which to use.** The GPR is the better default: it follows structure a low-order polynomial cannot, and because it is fixed after its pre-pass it cannot trade against the other scale terms. Chebyshev normalisation is preferable when you want the wavelength term refined together with everything else, or when the band is narrow and smooth. NORMGPR and NORMCHEBYSHEV are mutually exclusive.
 
-Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM`.
+Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM.plt`.
 
 ### Radiation type
 
@@ -120,7 +120,7 @@ REJECT 4
 OUTPUT MERGED UNMERGED
 ```
 
-4. **Check the normalisation curve** in `LAMBDANORM` before believing the statistics. A curve with structure finer than the physics can justify usually means too many GP training bins.
+4. **Check the normalisation curve** in `LAMBDANORM.plt` before believing the statistics. A curve with structure finer than the physics can justify usually means too many GP training bins.
 5. **Check χ²** by resolution and intensity, and the analysis against batch. See the notes on the error model below.
 
 ### Sections inherited from aimless.html
@@ -260,7 +260,8 @@ Note that intensities in the unmerged output are **scaled** — `I_out = I_in ×
 
 | file | |
 |---|---|
-| `LAMBDANORM` | self-contained gnuplot script drawing the fitted wavelength normalisation curve. The GP fit carries a 1σ band; the Chebyshev fit does not, having no posterior covariance. Open with `gnuplot -p LAMBDANORM`. |
+| `LAMBDANORM.plt` | self-contained gnuplot script drawing the fitted wavelength normalisation curve. The GP fit carries a 1σ band; the Chebyshev fit does not, having no posterior covariance. Open with `gnuplot -p LAMBDANORM.plt`. |
+| `NORMPLOT.plt`, `ANOMPLOT.plt`, `CORRELPLOT.plt`, `ROGUEPLOT.plt` | the same plots as the xmgr files of those names, as self-contained gnuplot scripts. Open with `gnuplot -p <file>`. Suppress with `PLOT NOGNUPLOT`, which also suppresses `LAMBDANORM.plt`. |
 
 ---
 
