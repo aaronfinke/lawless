@@ -37,7 +37,8 @@ Lawless is intended as a replacement for **LSCALE** from the Daresbury Laue suit
 | scale model | `primary × B-factor × secondary × detector` | `… × wavelength normalisation` |
 | error model | `SdFac √(σ² + SdB·I + (SdAdd·I)²)` | optional wavelength term on top |
 | radiation | X-ray assumed throughout | `PROBE NEUTRON` changes defaults, guards and reporting |
-| output | unmerged MTZ | unmerged MTZ now carries `LAMBDA`; adds `LAMBDANORM` |
+| Lorentz | assumed already applied | optional `LORENTZ` correction on input, for data where it is not |
+| output | unmerged MTZ | unmerged MTZ now carries `LAMBDA`; adds `LAMBDANORM.plt` |
 
 ### Requirements for the input file
 
@@ -95,7 +96,7 @@ The log parameterisation guarantees `w > 0` for any coefficients, so the refinem
 
 **Which to use.** The GPR is the better default: it follows structure a low-order polynomial cannot, and because it is fixed after its pre-pass it cannot trade against the other scale terms. Chebyshev normalisation is preferable when you want the wavelength term refined together with everything else, or when the band is narrow and smooth. NORMGPR and NORMCHEBYSHEV are mutually exclusive.
 
-Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM`.
+Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM.plt`.
 
 ### Radiation type
 
@@ -105,7 +106,7 @@ See the [PROBE](#probe) keyword below for the full list.
 
 ### Workflow for Laue data
 
-1. **Integrate**, applying the Lorentz factor and any absorption correction at that stage, as usual. lawless does not apply a Lorentz factor.
+1. **Integrate**, applying any absorption correction at that stage. If the integration program applied the Lorentz factor, nothing more is needed; if it did not, give lawless the `LORENTZ` keyword (see below). Check which — the programs differ, and applying it twice is as wrong as not applying it at all.
 2. **Sort and set symmetry with POINTLESS**, supplying `LAUEGROUP` and `CHOOSE SPACEGROUP` explicitly (see above). Check that the wavelength column survives into the sorted file — older versions of POINTLESS drop it, and lawless will then refuse to run. See [Requirements for the input file](#requirements-for-the-input-file).
 3. **Scale with lawless.** A reasonable starting point for a neutron time-of-flight Laue dataset:
 
@@ -120,7 +121,7 @@ REJECT 4
 OUTPUT MERGED UNMERGED
 ```
 
-4. **Check the normalisation curve** in `LAMBDANORM` before believing the statistics. A curve with structure finer than the physics can justify usually means too many GP training bins.
+4. **Check the normalisation curve** in `LAMBDANORM.plt` before believing the statistics. A curve with structure finer than the physics can justify usually means too many GP training bins.
 5. **Check χ²** by resolution and intensity, and the analysis against batch. See the notes on the error model below.
 
 ### Sections inherited from aimless.html
@@ -169,6 +170,59 @@ Enables Laue wavelength normalisation. Each sub-keyword may be given on its own 
 `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive keywords; giving both is a fatal error.
 
 **A per-observation wavelength column in HKLIN is required** — `LAMBDA`, `LAM` or `WAVELENGTH`, case-insensitive. See [Requirements on the input file](#requirements-on-the-input-file).
+
+### LORENTZ
+
+```
+LORENTZ [<p>]
+
+LORENTZ          I' = I * sin^2(theta)             geometric Laue factor (p = 0)
+LORENTZ 4        I' = I * sin^2(theta) / lambda^4  time-of-flight convention
+LORENTZ <p>      I' = I * sin^2(theta) / lambda^p
+```
+
+Applies the Laue Lorentz correction to the intensities **on input, before
+anything else is done with them**. The optional number `p` is the power of
+wavelength; it defaults to 0. Without the keyword no correction is made (the
+default).
+
+**Off unless you ask for it, and nothing infers it** — not even `PROBE`.
+Integration programs differ over whether they have already applied it (LAUEGEN
+has not; LSCALE has; some TOF pipelines apply it at integration), and applying
+it twice is as wrong as not applying it at all. Whether the correction is
+already present is a property of the file, not of the radiation, so you have to
+say.
+
+`sin(theta) = lambda/2d`, so `sin^2(theta) = lambda^2/4d^2`.
+
+**Choosing the power matters less than it looks.** `p = 0` and `p = 4` describe
+the same physics — for a Laue spot,
+`I ∝ Phi(lambda) * lambda^4 * |F|^2 / (2 sin^2 theta)` — and differ only in
+where the `lambda^4` is booked. LAUEGEN and LSCALE fold it into the wavelength
+normalisation curve and correct only the geometric `sin^2(theta)`; the
+time-of-flight convention separates it out because the incident spectrum is
+measured independently. Since `lambda^p` is a pure function of wavelength, the
+normalisation curve absorbs whichever you leave in: on LADI-III the two settings
+give R-merge 0.829 and 0.828, and the fitted curve simply tilts to compensate
+(0.136 → 0.137 across the band with `p = 0`, 0.254 → 0.079 with `p = 4`).
+
+What the correction really supplies is the **`sin^2(theta)` part**, which carries
+the only resolution dependence and which no other term in the scale model can
+absorb — the relative B-factor has the wrong functional form.
+
+Two consequences worth expecting:
+
+- It does **not** change the internal consistency of the scaling. The factor is a
+  monomial in lambda and d, so its wavelength part is degenerate with the
+  normalisation curve and its resolution part is constant within a reflection and
+  cancels from every per-shell statistic.
+- It **does** re-weight the resolution shells in the overall statistics, and the
+  effect can be large: on LADI-III the correction spans a factor of ~250 between
+  28 and 1.8 Angstrom, and overall R-merge moves from 0.444 to 0.829 while every
+  shell value stays put. That is re-weighting, not a loss of quality.
+
+Observations with no usable wavelength or resolution cannot be corrected; they
+are rejected and counted in the log.
 
 ### PROBE
 
@@ -260,7 +314,8 @@ Note that intensities in the unmerged output are **scaled** — `I_out = I_in ×
 
 | file | |
 |---|---|
-| `LAMBDANORM` | self-contained gnuplot script drawing the fitted wavelength normalisation curve. The GP fit carries a 1σ band; the Chebyshev fit does not, having no posterior covariance. Open with `gnuplot -p LAMBDANORM`. |
+| `LAMBDANORM.plt` | self-contained gnuplot script drawing the fitted wavelength normalisation curve. The GP fit carries a 1σ band; the Chebyshev fit does not, having no posterior covariance. Open with `gnuplot -p LAMBDANORM.plt`. |
+| `NORMPLOT.plt`, `ANOMPLOT.plt`, `CORRELPLOT.plt`, `ROGUEPLOT.plt` | the same plots as the xmgr files of those names, as self-contained gnuplot scripts. Open with `gnuplot -p <file>`. Suppress with `PLOT NOGNUPLOT`, which also suppresses `LAMBDANORM.plt`. |
 
 ---
 

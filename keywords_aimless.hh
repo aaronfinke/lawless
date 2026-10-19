@@ -42,6 +42,28 @@ namespace phaser_io {
     bool given;      // true if ON or OFF were given
   };
   //--------------------------------------------------------------
+  class LORENTZ: public InputBase, virtual public CCP4base
+    // Laue Lorentz correction applied to the intensities on input
+    //   LORENTZ [<p>]          I *= sin^2(theta)/lambda^p
+    // p defaults to 0, ie sin^2(theta) only.  LORENTZ 4 gives the
+    // time-of-flight form sin^2(theta)/lambda^4.
+    // Absent, no correction is made.  See hkl_controls.hh.
+  {
+  public:
+    LORENTZ();
+    virtual ~LORENTZ() {}
+    Token_value parse(std::istringstream&);
+
+    void analyse(){}
+
+    bool getLORENTZ() const {return lorentz;}
+    double getLorentzPower() const {return power;}
+
+  private:
+    bool lorentz;
+    double power;
+  };
+  //--------------------------------------------------------------
   class PROBE: public InputBase, virtual public CCP4base
     // Radiation type and instrument class
     //  PROBE NEUTRON | XRAY  [TOF | QUASILAUE]

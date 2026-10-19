@@ -41,6 +41,8 @@ namespace scala {
     nrej_reso = 0;
     nrej_mflag = 0;
     inputscale = 1.0;
+    lorentz = false;      // off unless LORENTZ is given
+    lorentzpower = 0.0;
     // fraction of maximum resolution to use in test for blank batches
     nullResolutionfraction = -1.0;
     // Threshold on proportion of negative reflections

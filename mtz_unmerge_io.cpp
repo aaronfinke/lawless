@@ -835,6 +835,7 @@ namespace MtzIO
   //
   // Returns number of observation parts read
   {
+    int nrej_lorentz = 0;   // observations with no usable Laue geometry
     Hkl hkl;
     int misym, batch;
     Rtype I, sigI, Ipr, sigIpr,
@@ -1009,6 +1010,34 @@ namespace MtzIO
       } else {
         lambda = batches[batch_lookup.lookup(batch)].Wavelength();
       }
+      // Laue Lorentz correction, before anything else is done with the
+      // intensity.  Only if explicitly requested: integration programs differ
+      // over whether they have already applied it.
+      //   I' = I * sin^2(theta) / lambda^power,   sin(theta) = lambda/2d
+      // The factor is a monomial in lambda and d, so its wavelength part is
+      // indistinguishable from the wavelength normalisation curve and its
+      // resolution part cancels within a reflection -- it does not change the
+      // internal consistency of the scaling.  It does set the scale the merged
+      // intensities come out on, and it re-weights the resolution shells in the
+      // overall merging statistics.
+      if (file_sel.Lorentz()) {
+        double sintheta = 0.5 * lambda * std::sqrt(s);   // s = 1/d^2
+        if (sintheta > 0.0 && sintheta < 1.0 && lambda > 0.0) {
+          double lor = sintheta * sintheta;
+          double p = file_sel.LorentzPower();
+          if (p != 0.0) lor /= std::pow(lambda, p);
+          I *= lor;
+          sigI *= lor;
+          if (col_sel.col_Ipr > 0) {
+            Ipr *= lor;
+            sigIpr *= lor;
+          }
+        } else {
+          nrej_lorentz++;
+          continue;     // no usable geometry, cannot correct it
+        }
+      }
+
       // Possible input scale
       sigscale = check_column(cols, col_mnf, col_sel.col_sigscale, StatusFlag);
       if (col_sel.col_scale >= 0) {
@@ -1166,6 +1195,11 @@ namespace MtzIO
       output += "File contains original hkl indices, all ISYM = 1\n";
     }
 
+    if (file_sel.Lorentz() && nrej_lorentz > 0) {
+      output += "WARNING: " + StringUtil::itos(nrej_lorentz) +
+        " observations rejected by the Lorentz correction: no usable"
+        " wavelength or resolution\n";
+    }
     return nread;
   }
   //--------------------------------------------------------------
