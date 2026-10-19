@@ -45,7 +45,8 @@ namespace phaser_io {
     public ICERING,
     public BFACTOR,
     public LAUE,
-    public PROBE
+    public PROBE,
+    public LORENTZ
   {
   public:
     InputAll(Preprocessor&); 

@@ -56,6 +56,36 @@ Token_value ANOMALOUS::parse(std::istringstream& input_stream)
   return ENDLINE;
 }
 //--------------------------------------------------------------
+LORENTZ::LORENTZ() : CCP4base(), InputBase(),
+                     lorentz(false), power(0.0)
+{
+  Add_Key("LORE");
+  //Add to CCP4base;
+  inputPtr iPtr(this);
+  possible_fns.push_back(iPtr);
+}
+//--------------------------------------------------------------
+Token_value LORENTZ::parse(std::istringstream& input_stream)
+// LORENTZ [<power>]
+{
+  lorentz = true;
+  power = 0.0;             // the bare keyword means sin^2(theta) only
+  int nnumber = 0;
+  while (get_token(input_stream) != ENDLINE) {
+    if (tokenIs(1,NUMBER)) {
+      if (++nnumber > 1) {
+        ReportSyntaxError
+          (keywords, "LORENTZ takes at most one number, the power of lambda");
+      }
+      power = number_value;
+    } else {
+      ReportSyntaxError
+        (keywords, "LORENTZ takes only an optional power of lambda");
+    }
+  }
+  return skip_line(input_stream);
+}
+//--------------------------------------------------------------
 PROBE::PROBE() : CCP4base(), InputBase(),
                  radiation(scala::Probe::XRAY),
                  instrument(scala::Probe::TOF), given(false)

@@ -426,6 +426,80 @@ natural generalisation — the same fit applied to log sigma instead of log I.
 
 ---
 
+## Lorentz correction on input (`LORENTZ`)
+
+```
+LORENTZ [<p>]            I' = I * sin^2(theta) / lambda^p
+
+LORENTZ                  p = 0: geometric Laue factor, I' = I * sin^2(theta)
+LORENTZ 4                time-of-flight form, I' = I * sin^2(theta) / lambda^4
+(absent)                 no correction (the default)
+```
+
+**Off unless asked for.** Integration programs differ over whether they have
+already applied it — LAUEGEN has not, LSCALE has, the MaNDi pipeline applies it
+at integration — and applying it twice is as wrong as not applying it at all.
+Nothing infers it, including `PROBE`: whether the correction is already in the
+data is a property of the file, not of the radiation.
+
+`sin(theta) = lambda/2d`, so `sin^2(theta) = lambda^2/4d^2`.
+
+**`p = 0` and `p = 4` are the same physics booked differently, not two different
+corrections.** For a Laue spot
+`I ∝ Phi(lambda) * lambda^4 * |F|^2 / (2 sin^2 theta)`; LAUEGEN and LSCALE fold
+the `lambda^4` into the wavelength normalisation curve and correct only the
+geometric `sin^2(theta)`, while the TOF convention separates it out because the
+spectrum is measured independently. Since `lambda^p` is a pure function of
+wavelength the curve absorbs whichever is left in, so **the choice of power
+barely matters** when a `LAUE` normalisation is in use: on LADI the two give
+R-merge 0.829 and 0.828, and the fitted curve tilts to compensate (0.136 ->
+0.137 across the band with `p = 0`, 0.254 -> 0.079 with `p = 4`). What the
+keyword really supplies is `sin^2(theta)`, the only resolution dependence, which
+no other term can absorb.
+
+Parsed by `LORENTZ` in `keywords_aimless.cpp`: the bare keyword sets `p = 0`,
+one number sets `p`; anything else (a name, or a second number) is a syntax
+error. Applied in `MtzUnmrgFile::get_refs` (`mtz_unmerge_io.cpp`) immediately
+before the input-scale block, to `I`, `sigI` and the profile-fitted pair, so it
+precedes every other step. `s = hkl.invresolsq()` and `lambda` are both already
+in scope there. Observations with no usable wavelength or resolution are counted
+and reported. The control lives on `file_select` (`hkl_controls.hh`) alongside
+`InputScale`, which is the same kind of on-read transformation.
+
+### What it does and does not change
+
+The factor is a **monomial** in lambda and d, so:
+
+- its wavelength part is indistinguishable from the wavelength normalisation
+  curve, which will absorb it;
+- its resolution part is constant within a reflection, so it cancels from every
+  per-shell merging statistic.
+
+It therefore does **not** change the internal consistency of the scaling. What it
+does change is the scale the merged intensities come out on — which is the point
+— and the **weighting of the resolution shells in the overall statistics**, which
+can be dramatic. On LADI the correction spans a factor of ~250 from 28 A to
+1.8 A, and overall R-merge moves 0.444 -> 0.829 while the per-shell values stay
+put. Do not read that as the correction making the data worse.
+
+### Verification
+
+On `test_data/ca_thio` under `ONLYMERGE` with `SDCORRECTION NOREFINE 1 0 0`, the
+unmerged `I` and `SIGI` divided by the uncorrected run equal
+`sin^2(theta)/lambda^p` to float32 round-off (max deviation 2e-7) for `p` = 0,
+2.5 and 4. With the default `SdAdd` the `SIGI` ratio is not exact, and should
+not be: the SD correction uses the reflection mean `<I>`, and the factor differs
+between the mates of a reflection because their wavelengths do. With the
+keyword absent, a full Chebyshev scaling run is byte-identical to the build
+without the feature, MTZ timestamps aside.
+
+The original `LORENTZ [LAUE | TOF | POWER <p> | NONE]` form (branch
+`lawless_lorentz`) was also checked against the same correction applied by hand
+in the converter: merged intensities agreeing to better than 1e-6 for 98.9 % of
+reflections, signed mean offset -9e-07.
+
+---
+
 ## What the input MTZ must contain
 
 Laue data arriving from outside CCP4 routinely lacks things aimless assumes.
@@ -889,7 +963,7 @@ without information. Check the merged I/sigma of whatever a change adds.
 | `scalemodel.hh/.cpp` | Integrates wavelength scale; wavelength-only mode; parameter management; GPR fit driver + fixed-correction application |
 | `aimless.cpp` | Laue Chebyshev pre-pass + GP pre-pass (leave-one-out log-ratio sampling) before `FC.roughScale`; `LAMBDAONLY` wiring (apply ws-only scales, force no-reject) |
 | `plotfiles.hh/.cpp` | `XMGRACE` and `GNUPLOT` writers for NORMPLOT/ANOMPLOT/CORRELPLOT/ROGUEPLOT (`.plt` = gnuplot) |
-| `keywords_aimless.hh/.cpp` | `PLOT [NO]XMGR [NO]GNUPLOT`; `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
+| `keywords_aimless.hh/.cpp` | `PLOT [NO]XMGR [NO]GNUPLOT`; `LORENTZ [<p>]`; `LAUE` keyword parser; NORMCHEBYSHEV/NORMLAMREF/NORMGPR* disambiguation; `LAMBDAONLY` keyword; `PROBE` parser and `SCALES::setDefaultBatchMode()` |
 | `probe.hh/.cpp` | `Probe` — static radiation type and instrument class, from `PROBE NEUTRON\|XRAY [TOF\|QUASILAUE]` |
 | `reject.hh/.cpp` | `RejectAngleStats` — outlier rejections counted against 2θ, active under `PROBE NEUTRON` |
 | `printing.cpp`, `radiationdamageanalysis.cpp` | Radiation-damage wording becomes stability wording under `PROBE NEUTRON` |
@@ -899,6 +973,7 @@ without information. Check the merged I/sigma of whatever a change adds.
 | `hkl_unmerge.hh/.cpp` | `lambda_` on `observation_part` and `observation`; `store_part` passes lambda |
 | `mtz_unmerge_io.cpp` | Reads the wavelength column, accepting `LAMBDA`, `LAM` or `WAVELENGTH`, case-insensitively and in that order of preference (`WavelengthColumnAliases` / `ColLookupNoCase` in `get_col_lookup`); falls back to the batch `ALAMBD` when none is present, which `aimless.cpp` makes fatal under `LAUE`; substitutes the batch number for φ if there is no ROT column |
 | `writeunmerged.cpp` | Unmerged output; writes scaled I with `SCALEUSED = 1/gscale`, and `LAMBDA` when present |
+| `hkl_controls.hh/.cpp` | `file_select` — the `LORENTZ` control, next to `InputScale` |
 | `hkl_datatypes.hh/.cpp` | `Batch::HtoSr0` — diffraction vector, takes the per-observation wavelength for Laue; `Batch::Ldtype()` |
 | `hkl_unmerge.cpp` | `CalcSecondaryBeams` and friends — pass `observation::lambda()` down to `HtoSr0` |
 | `sdctypes.hh/.cpp` | `SDcorrection` — the `(lambda/lambda_ref)^SdLam` factor, applied in `Correct(observation&, Iav)` |
