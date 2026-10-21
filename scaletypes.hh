@@ -648,8 +648,10 @@ namespace scala {
       double lengthscale;      // GP length scale; <=0 => optimise by marginal likelihood
       int nbins;               // number of wavelength bins for the training set
       KernelType kernel;
+      bool expectedsigma;      // weight samples by the model-expected sigma
       GPRControl() : enabled(false), lam_min(0.0), lam_max(0.0),
-                     lengthscale(0.0), nbins(50), kernel(SQEXP) {}
+                     lengthscale(0.0), nbins(50), kernel(SQEXP),
+                     expectedsigma(true) {}
     };
 
     WavelengthGPRScale() : active(false), lam_min(0.0), lam_max(0.0),

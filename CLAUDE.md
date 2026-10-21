@@ -180,6 +180,57 @@ absorbs random variation. On the same test the current GP matches the Chebyshev
 model (Rmerge 0.226 vs 0.224, Rmeas 0.276 both, `<I/σ>` 14.6 vs 14.5) while
 staying smooth and flat where the Chebyshev diverges at long λ.
 
+### Sample weights: expected, not measured, sigma (`NORMGPRWEIGHT`)
+
+The training ratio `r = Σuρ/Σu` with `u = M/σ²` has a flaw wherever σ² grows
+with I (counting statistics): an observation that came out low by chance also
+has a small measured σ, so `u ∝ 1/ρ` and `r` becomes a **harmonic mean**
+dominated by the weakest observations. On the rubredoxin McStas simulations
+this produced a fake cliff below 2.0 Å, bins jumping by ±30 %, the length scale
+pinned near its lower limit, and R-merge 0.43–0.65.
+
+The default (`LAUE NORMGPRWEIGHT EXPECTED`) takes the weight from the variance
+the observation would have had at the model's predicted intensity:
+
+```
+sigma_exp^2 = max(sigma^2 - b*I, 0) + b*max(I_pred, 0),   I_pred = ws(λ)·M
+```
+
+so each observation keeps its own background term and only its counting term
+is replaced. `b(λ)` is fitted in 8 equal-count wavelength bins from the medians
+of σ² in 10 quantiles of I (`GPRVarianceModel` in `aimless.cpp`, logged as a
+table); b = 0 (σ independent of I, e.g. ca_thio, chymotrypsin) gives back the
+measured σ. The mates' mean `M` is itself re-weighted by `ws²/σ_exp²`
+(`GPRExpectedSamples`). `NORMGPRWEIGHT MEASURED` restores the old weights
+exactly.
+
+**Validated on 9 datasets** (MaNDi Mantid and DIALS, LADI, ca_thio,
+chymotrypsin, MPro, hCAII, two rubredoxin sims) by re-merging every mode's
+unmerged output on the **common** surviving observation set through one
+`ONLYMERGE` pass with no rejection and no SD correction — rejection counts
+differ between modes, so the runs' own summary statistics are not comparable:
+
+| dataset | CC½ measured → expected | Rpim measured → expected |
+|---|---|---|
+| real data (7 sets) | −0.007 to +0.015 (3 up, 2 down, 2 equal) | lower or equal on 6, +0.002 on ca_thio |
+| rubr_old (sim) | 0.390 → 0.948 | 1.245 → 0.130 |
+| rubr_new (sim) | 0.388 → 0.976 | 1.427 → 0.093 (Chebyshev 0.081) |
+
+Two alternatives were tried and rejected. A non-parametric `V(I)` (median σ²
+vs I, isotonic) applied as `σ²·V(Î)/V(I)` was neutral on real data but left
+rubr_new at CC½ 0.69. The additive form `σ² − V(I) + V(Î)` was worse
+everywhere: when `Î < I` it subtracts, hits the floor, and gives high outliers
+huge weights.
+
+On DIALS profile-fitted data (σ² ∝ I^1.2) the linear `b` takes the whole of
+σ² (`b·I/σ²` = 1.00 in every bin), the bins become very precise and the noise
+inflation lands at its upper grid limit (15.8), which now triggers a warning.
+On the fair score that dataset is nonetheless the best of all modes
+(CC½ 0.933 vs 0.921 measured), so the warning flags this, it is not a failure.
+
+The fix is in the weights, not the estimator. The fair-scoring recipe is the
+one under "Comparing runs".
+
 ### Integration in `ScaleModel`
 
 - Members `WavelengthGPRScale gpr_scale`, `GPRControl gpr_control`,
@@ -628,6 +679,7 @@ LAUE NORMGPRLENGTH <lengthscale>   # optional: fix GP length scale (Å); default
 LAUE NORMGPRBINS <nbins>           # optional: number of training bins; default 50
 LAUE NORMGPRMATERN                 # optional: Matérn-3/2 kernel; default squared-exp
 LAUE NORMGPRPERRUN                 # optional: residual w(λ) per run, on top of the global curve
+LAUE NORMGPRWEIGHT EXPECTED|MEASURED  # sample weights from expected (default) or measured σ
 LAUE NORMLAMREF <lambda_ref>       # shared with Chebyshev
 ```
 

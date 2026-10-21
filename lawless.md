@@ -95,7 +95,7 @@ w(λ)  = exp( h(λ) − h(λ_ref) )
 
 The log parameterisation guarantees `w > 0` for any coefficients, so the refinement cannot step into a negative scale. The coefficients are refined jointly with the rest of the scale model. Up to five non-overlapping wavelength ranges are supported, each with its own degree; reflections outside all ranges get `w = 1`.
 
-**Gaussian process regression** (`LAUE NORMGPR`). A non-parametric alternative, fitted in a pre-pass from leave-one-out log-ratios and then held **fixed** — it contributes no refinable parameters. The length scale, signal variance and a noise inflation factor are chosen by marginal likelihood unless the length scale is set explicitly.
+**Gaussian process regression** (`LAUE NORMGPR`). A non-parametric alternative, fitted in a pre-pass from leave-one-out intensity ratios and then held **fixed** — it contributes no refinable parameters. The length scale, signal variance and a noise inflation factor are chosen by marginal likelihood unless the length scale is set explicitly.
 
 **Which to use.** The GPR is the better default: it follows structure a low-order polynomial cannot, and because it is fixed after its pre-pass it cannot trade against the other scale terms. Chebyshev normalisation is preferable when you want the wavelength term refined together with everything else, or when the band is narrow and smooth. NORMGPR and NORMCHEBYSHEV are mutually exclusive.
 
@@ -158,6 +158,7 @@ LAUE NORMGPRLENGTH <lengthscale>
 LAUE NORMGPRBINS   <nbins>
 LAUE NORMGPRMATERN
 LAUE NORMGPRPERRUN
+LAUE NORMGPRWEIGHT EXPECTED | MEASURED
 ```
 
 Enables Laue wavelength normalisation. Each sub-keyword may be given on its own `LAUE` line or several on one line.
@@ -167,9 +168,10 @@ Enables Laue wavelength normalisation. Each sub-keyword may be given on its own 
 | `NORMCHEBYSHEV <degree> <lam_min> <lam_max>` | add a wavelength range fitted by a Chebyshev polynomial of the given degree. Repeat for up to 5 non-overlapping ranges. |
 | `NORMLAMREF <lambda_ref>` | reference wavelength, at which `w = 1` by definition. Choose a wavelength near the centre of the band where the data are strong. |
 | `NORMGPR <lam_min> <lam_max>` | fit the normalisation as a Gaussian process over this range instead. Values ≤ 0 take the limits from the data. |
-| `NORMGPRLENGTH <lengthscale>` | fix the GP length scale, in Å. Omit (or give ≤ 0) to optimise it by marginal likelihood. |
-| `NORMGPRBINS <nbins>` | number of wavelength bins in the GP training set. Default **50**. Reduce it if the log warns that the length scale has reached its lower search limit. |
-| `NORMGPRMATERN` | use a Matérn-3/2 kernel instead of the default squared-exponential. Less smooth; appropriate if the true curve has kinks. |
+| `NORMGPRLENGTH <lengthscale>` | fix the GP length scale, in Å. Omit (or give ≤ 0) to optimise it by marginal likelihood. Rarely needs to be changed. |
+| `NORMGPRBINS <nbins>` | number of wavelength bins in the GP training set. Default **50**. Rarely needs to be changed; reduce it if the log warns that the length scale has reached its lower search limit. |
+| `NORMGPRMATERN` | use a Matérn-3/2 kernel instead of the default squared-exponential. Less smooth; appropriate if the true curve has kinks. Rarely needs to be changed. |
+| `NORMGPRWEIGHT EXPECTED \| MEASURED` | how the GP training samples are weighted. `EXPECTED` (the default) uses the standard deviation each observation would have at the intensity the model predicts for it; `MEASURED` uses the measured one. When σ grows with I, measured weights favour observations that came out low by chance, so each bin becomes a harmonic mean biased low and the curve oscillates (seen on simulated data); expected weights remove this, and are the same as measured where σ does not depend on I. The default is good in general and rarely needs to be changed. |
 | `NORMGPRPERRUN` | **Experimental.** After the global GP fit, fit a residual `w(λ)` for each run. It has never been exercised on a dataset with real per-run spectral drift. Use only when runs are expected to differ spectrally — on a stable source they will not, and the per-run curves come out flat. |
 
 `NORMCHEBYSHEV` and `NORMGPR` are mutually exclusive keywords; giving both is a fatal error.
@@ -274,7 +276,7 @@ Adds a wavelength-dependent factor to the corrected standard deviation:
 σ' = SdFac · (λ/λ_ref)^SdLam · √(σ² + SdB·I + (SdAdd·I)²)
 ```
 
-`SdLam` is **fitted from the data**, not given: lawless bins the normalised deviations by resolution and wavelength, fits the slope of log χ² against log(λ/λ_ref), and takes half of it. The optional `<scale>` multiplies the fitted exponent — `SDLAMBDA 0` disables the term, `SDLAMBDA 0.5` applies half of it. The exponent is clamped to ±2.
+`SdLam` is **fitted from the data**, not given: lawless bins the normalised deviations by resolution and wavelength, fits the slope of log χ² against log(λ/λ_ref), and takes half of it. The optional `<scale>` multiplies the fitted exponent — `SDLAMBDA 0` disables the term, `SDLAMBDA 0.5` applies half of it; it rarely needs to be changed from the default of 1. The exponent is clamped to ±2.
 
 The fit is made **after** merge-stage outlier rejection, so it describes the data that will actually be merged.
 

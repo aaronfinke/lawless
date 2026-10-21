@@ -1022,6 +1022,8 @@ namespace phaser_io {
     //   NORMGPRBINS <nbins>             [optional number of training bins]
     //   NORMGPRMATERN                   [use Matern-3/2 kernel (default sq-exp)]
     //   NORMGPRPERRUN                   [fit a residual w(lambda) for each run]
+    //   NORMGPRWEIGHT EXPECTED|MEASURED [sample weights from the expected
+    //                                    (default) or the measured sigma]
   public:
     LAUE();
     virtual ~LAUE() {}
