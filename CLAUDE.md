@@ -12,6 +12,7 @@ make -C build -j4             # compile -> build/lawless
 
 The CMake target and binary are named `lawless` (it was `aimless` before
 0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
+A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
 
 CMakePresets.json in the project root defines all library paths. Headers come from `~/ccp4-8.0-src/checkout`; dylibs from `/Applications/ccp4-9/lib`; `libcctbx.dylib` from `~/miniforge3/envs/cctbx/lib`. A POST_BUILD rule patches Jenkins-originated rpath entries automatically.
 

@@ -106,4 +106,10 @@ foreach(_lib
     COMMENT "Fixing rpath: ${_lib}")
 endforeach()
 
+# build/aimless -> lawless, so scripts that still call the old name keep working.
+add_custom_command(TARGET lawless POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink lawless
+    $<TARGET_FILE_DIR:lawless>/aimless
+  COMMENT "Linking aimless -> lawless")
+
 install(TARGETS lawless DESTINATION bin)
