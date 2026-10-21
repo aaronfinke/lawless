@@ -10,8 +10,8 @@ cmake --preset default        # configure (uses CMakePresets.json)
 make -C build -j4             # compile -> build/lawless
 ```
 
-The CMake target and binary are named `lawless` (it was `aimless` before
-0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
+The CMake target and binary are named `lawless` (it was `aimless` up to
+and including 0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
 A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
 
 CMakePresets.json in the project root defines all library paths. Headers come from `~/ccp4-8.0-src/checkout`; dylibs from `/Applications/ccp4-9/lib`; `libcctbx.dylib` from `~/miniforge3/envs/cctbx/lib`. A POST_BUILD rule patches Jenkins-originated rpath entries automatically.
@@ -1049,3 +1049,4 @@ without information. Check the merged I/sigma of whatever a change adds.
 - `NormaliseParameters()` returns early when `nprimaryscale == 0` (e.g. `SCALES CONSTANT`) to avoid an assertion on `scalenormbatch`.
 - `ScaleModel::init` builds the wavelength scale even if primary `setup()` reports `status < 0`, by falling back to constant primary scaling (enables `LAMBDAONLY` without explicit `SCALES CONSTANT`).
 - `FormatSave`/`Restore` on `WavelengthChebyshevScale` handle persistence in aimless checkpoint files (note: save format stores log-coefficients `a_k`).
+- User-visible changes go in `CHANGELOG.md` (Keep a Changelog format) under `[Unreleased]`; at a release, rename that heading to the version, bump `version.hh` to match, and tag `v<version>` (annotated, message `lawless <version>`).
