@@ -7,8 +7,12 @@
 **Build:**
 ```bash
 cmake --preset default        # configure (uses CMakePresets.json)
-make -C build -j4             # compile
+make -C build -j4             # compile -> build/lawless
 ```
+
+The CMake target and binary are named `lawless` (it was `aimless` before
+0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
+A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
 
 CMakePresets.json in the project root defines all library paths. Headers come from `~/ccp4-8.0-src/checkout`; dylibs from `/Applications/ccp4-9/lib`; `libcctbx.dylib` from `~/miniforge3/envs/cctbx/lib`. A POST_BUILD rule patches Jenkins-originated rpath entries automatically.
 
@@ -980,7 +984,7 @@ without information. Check the merged I/sigma of whatever a change adds.
 | `sdmodel.hh/.cpp` | `SDmodel::FitLambdaSDcorrection` — per-run wavelength exponent from binned chi^2 |
 | `columnlabels.hh/.cpp` | `col_lambda` column index; `is_lambda` flag in `DataFlags` |
 | `openinputfile.cpp` | Registers LAMBDA as optional MTZ column |
-| `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs |
+| `CMakeLists.txt` | Build configuration with source-tree headers and CCP4-9 dylibs; target `lawless` |
 | `CMakePresets.json` | All library paths for debug/release builds |
 | `.vscode/` | VSCode tasks, settings, IntelliSense config |
 | `test_data/run_aimless.sh` | Test script for `combined_sorted.mtz` |

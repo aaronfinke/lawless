@@ -87,9 +87,9 @@ set(SHARED_SOURCES
     zone.cpp tablegraph.cpp runcorrelations.cpp report_errors.cpp
 )
 
-add_executable(aimless ${AIMLESS_SOURCES} ${SHARED_SOURCES} ${MINLIB_SOURCES})
+add_executable(lawless ${AIMLESS_SOURCES} ${SHARED_SOURCES} ${MINLIB_SOURCES})
 
-target_link_libraries(aimless ${CCP4_LIBRARIES})
+target_link_libraries(lawless ${CCP4_LIBRARIES})
 
 # The CCP4-9 dylibs have Jenkins build-machine paths as their install names.
 # Remap them to the actual locations at post-build so the binary runs directly from build/.
@@ -98,12 +98,18 @@ set(CCP4_LIB    /Applications/ccp4-9/lib)
 foreach(_lib
     libclipper-ccp4.2    libclipper-contrib.2  libclipper-minimol.2
     libclipper-mmdb.2    libclipper-core.2     libccp4c.8.0          libmmdb2.0)
-  add_custom_command(TARGET aimless POST_BUILD
+  add_custom_command(TARGET lawless POST_BUILD
     COMMAND install_name_tool -change
       ${JENKINS_LIB}/${_lib}.dylib
       ${CCP4_LIB}/${_lib}.dylib
-      $<TARGET_FILE:aimless>
+      $<TARGET_FILE:lawless>
     COMMENT "Fixing rpath: ${_lib}")
 endforeach()
 
-install(TARGETS aimless DESTINATION bin)
+# build/aimless -> lawless, so scripts that still call the old name keep working.
+add_custom_command(TARGET lawless POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink lawless
+    $<TARGET_FILE_DIR:lawless>/aimless
+  COMMENT "Linking aimless -> lawless")
+
+install(TARGETS lawless DESTINATION bin)
