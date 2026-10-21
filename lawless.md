@@ -23,7 +23,8 @@ lawless HKLIN foo_in.mtz HKLOUT foo_out.mtz
 **lawless** is the Laue branch of **aimless**. It retains the full features of **aimless**: scaling, outlier rejection, error-model correction, merging, and full statistical analysis; and adds tasks specific to Laue data:
 
 - a **wavelength normalisation** term in the scale model, which corrects for the incident spectrum and the wavelength dependence of the detector, fitted either as a Chebyshev polynomial or as a Gaussian process;
-- a **radiation-type switch**, `PROBE`, which sets defaults and guards appropriate to neutrons.
+- a **radiation-type switch**, `PROBE`, which sets defaults and guards appropriate to neutrons;
+- an optional **Lorentz correction** on input, `LORENTZ`, `sin²θ/λᵖ` with a choice of wavelength power, for data whose integration program did not apply it.
 
 Monochromatic data are scaled exactly as by aimless: with no `LAUE` keyword the wavelength term is absent and the program behaves identically.
 
@@ -77,6 +78,8 @@ g = g_primary(batch or φ) × g_B(batch, 1/d²) × g_secondary(ŝ₂) × g_detec
 
 The first four are as described in `aimless.html`. `w(λ)` is the wavelength normalisation described in the next section. The corrected intensity is `I / g`.
 
+The Lorentz correction (`LORENTZ`) is not part of `g`. When requested it is applied to the intensities and their standard deviations as the file is read, before any scaling, and it is not refined. See [LORENTZ](#lorentz).
+
 ### Wavelength normalisation
 
 The measured intensity of a Laue reflection is a function of the probe wavelength, together with the wavelength dependence of the detector efficiency and of everything else in the beam. `w(λ)` absorbs all of this into a single empirical curve, normalised so that `w(λ_ref) = 1`.
@@ -120,6 +123,8 @@ SDCORRECTION NOREFINE 1.0 0.0 0.0
 REJECT 4
 OUTPUT MERGED UNMERGED
 ```
+
+   Add `LORENTZ 4` (or `LORENTZ` alone) only if the integration program did not apply the Lorentz factor. The MaNDi pipeline does apply it, so the deck above omits it.
 
 4. **Check the normalisation curve** in `LAMBDANORM.plt` before believing the statistics. A curve with structure finer than the physics can justify usually means too many GP training bins.
 5. **Check χ²** by resolution and intensity, and the analysis against batch. See the notes on the error model below.
@@ -182,7 +187,8 @@ LORENTZ <p>      I' = I * sin^2(theta) / lambda^p
 ```
 
 Applies the Laue Lorentz correction to the intensities **on input, before
-anything else is done with them**. The optional number `p` is the power of
+anything else is done with them**: to `I` and `SIGI`, and to the profile-fitted
+pair `IPR` and `SIGIPR` when present. The optional number `p` is the power of
 wavelength; it defaults to 0. Without the keyword no correction is made (the
 default).
 
@@ -306,7 +312,7 @@ The following behave exactly as documented in `aimless.html`:
 
 **[inherited]**, with one addition: the unmerged output file (`UNMERGEDOUT`) now carries a `LAMBDA` column whenever the input had a wavelength column — always written out under the logical name `LAMBDA`, whatever it was labelled on input — so the scaled data can be re-analysed against wavelength without going back to the input.
 
-Note that intensities in the unmerged output are **scaled** — `I_out = I_in × SCALEUSED`, where `SCALEUSED = 1/g`. Do not divide by `SCALEUSED` again.
+Note that intensities in the unmerged output are **scaled** — `I_out = I_in × SCALEUSED`, where `SCALEUSED = 1/g`. Do not divide by `SCALEUSED` again. With `LORENTZ`, `I_in` is the Lorentz-corrected intensity: `SCALEUSED` holds the scale only, not the Lorentz factor.
 
 #### Other output files
 
