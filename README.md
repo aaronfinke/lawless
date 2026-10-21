@@ -18,9 +18,7 @@ cmake --preset default        # configure (uses CMakePresets.json)
 make -C build -j4             # compile -> build/lawless
 ```
 
-The CMake target and binary are named `lawless`; sources, keyword classes and the CMake project name keep `aimless`. A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
-
-CMakePresets.json in the project root defines all library paths. Headers come from `~/ccp4-8.0-src/checkout`; dylibs from `/Applications/ccp4-9/lib`; `libcctbx.dylib` from `~/miniforge3/envs/cctbx/lib` (on Mac). A POST_BUILD rule patches Jenkins-originated rpath entries automatically.
+CMakePresets.json in the project root defines all library paths.
 
 ### Where it differs from aimless
 
@@ -35,12 +33,14 @@ CMakePresets.json in the project root defines all library paths. Headers come fr
 
 ### Changed requirements for the input file
 
-The mtz input requirements for lawless are the same as aimless: the input file must be an unmerged batch mtz sorted on H K L M/ISYM BATCH. In addition, **a per-observation wavelength column is mandatory whenever the `LAUE` keyword is given.** It may be labelled `LAMBDA`, `LAM` or `WAVELENGTH` (case insensitive); lawless will search for those columns in order. The most convenient method for doing this is by running unmerged data through **POINTLESS**, however, the current version does not output wavelength columns. This will be fixed in the next major CCP4 release. 
+The mtz input requirements for lawless are the same as aimless: the input file must be an unmerged batch mtz sorted on H K L M/ISYM BATCH. In addition, **a per-observation wavelength column is mandatory whenever the `LAUE` keyword is given.** It may be labelled `LAMBDA`, `LAM` or `WAVELENGTH` (case insensitive); lawless will search for those columns in order. 
+
+The most convenient method for doing this is by running unmerged data through **POINTLESS**, however, the current version does not output wavelength columns. This will be fixed in the next major CCP4 release. 
 
 **Batch headers** should carry:
 
 | field | needed for |
-|---|---|---|
+|---|---|
 | `LDTYPE = 3` | marks the data as Laue | 
 | `UMAT` (orientation) | `SCALES SECONDARY` / `ABSORPTION` |
 | `ROT` column (optional) | per-batch φ |
