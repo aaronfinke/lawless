@@ -1,6 +1,6 @@
 # lawless: aimless with wavelength normalization
 
-lawless is a modification of CCP4 aimless. It adds tools relevant to scaling of Laue data, including:
+lawless is a modification of CCP4 [aimless](https://www.ccp4.ac.uk/html/aimless.html) \[1\]. It adds tools relevant to scaling of Laue data, including:
 
 - **wavelength normalisation** `w(λ)` in the scale model, as a Chebyshev
   polynomial (`LAUE NORMCHEBYSHEV`) or a Gaussian process (`LAUE NORMGPR`);
@@ -119,3 +119,6 @@ pair `IPR` and `SIGIPR` when present. The optional number `p` is the power of
 wavelength; it defaults to 0. Without the keyword no correction is made (the
 default). Default is no Lorentz correction. This is for certain routines that
 do not perform Lorentz corrections after integration.
+
+### References
+[1] P.R. Evans and G. N. Murshudov, "How good are my data and what is the resolution?", *Acta Cryst.* (2013) **D69**, 1204-1214. doi: [10.1107/S0907444913000061](https://doi.org/10.1107/S0907444913000061)
