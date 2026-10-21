@@ -1,0 +1,83 @@
+# Changelog
+
+User-visible changes to **lawless**, newest first. lawless is the Laue branch of
+aimless; changes to aimless itself up to the fork (0.8.3) are in the release
+notes in `aimless.html`.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Each version is tagged `v<version>` in git, and `version.hh` carries the same
+number.
+
+## [Unreleased]
+
+## [0.1.1] - 2026-10-21
+
+### Changed
+- **GP wavelength normalisation now weights its training samples by the
+  expected standard deviation, not the measured one** (`LAUE NORMGPRWEIGHT
+  EXPECTED`, the new default). Where σ grows with I, measured weights favour
+  observations that came out low by chance, so the binned ratios became
+  harmonic means biased low and `w(λ)` oscillated. On simulated data this gave
+  CC½ below 0.4; with expected weights it is 0.95–0.98. On real data from
+  MaNDi, LADI-III and others the results are essentially unchanged.
+- The binary is now named `lawless` (`build/lawless`). A `build/aimless` symlink
+  is made for local compatibility.
+
+### Added
+- `LAUE NORMGPRWEIGHT EXPECTED | MEASURED`. `MEASURED` reproduces the 0.1.0
+  weights exactly. The default rarely needs to be changed.
+- A log warning when the GP noise inflation factor reaches the upper limit of
+  its search grid.
+
+### Documentation
+- `lawless.md`: `LORENTZ` described in the overview, the scale model and the
+  unmerged output; `NORMGPRWEIGHT` added; parameters that rarely need changing
+  are marked as such.
+
+## [0.1.0] - 2026-10-19
+
+First release of lawless, forked from aimless 0.8.3. With no `LAUE` keyword,
+monochromatic data are scaled exactly as by aimless.
+
+### Added
+- **Wavelength normalisation** `w(λ)` as a factor in the scale model, through
+  the `LAUE` keyword:
+  - `NORMCHEBYSHEV <degree> <lam_min> <lam_max>`: a Chebyshev polynomial in
+    log space, up to 5 ranges, refined with the rest of the scale model after
+    a wavelength-only pre-pass;
+  - `NORMGPR <lam_min> <lam_max>`: a Gaussian process fitted once in a
+    pre-pass and then held fixed, with `NORMGPRLENGTH`, `NORMGPRBINS` and
+    `NORMGPRMATERN` options;
+  - `NORMGPRPERRUN` (experimental): a residual `w(λ)` for each run on top of
+    the global curve;
+  - `NORMLAMREF <lambda_ref>`: the wavelength at which `w = 1`.
+- `LAMBDAONLY`: fit and apply the wavelength normalisation only, with no other
+  scaling and no outlier rejection.
+- A per-observation wavelength column, read from `LAMBDA`, `LAM` or
+  `WAVELENGTH` (any case). It is required with `LAUE`, and missing it is now a
+  fatal error.
+- `SDCORRECTION ... SDLAMBDA [<scale>]`: a fitted wavelength term
+  `(λ/λ_ref)^SdLam` in the SD correction.
+- `PROBE NEUTRON | XRAY [TOF | QUASILAUE]`: neutron defaults and guards.
+  Anomalous is off and not switched on automatically, `SCALES BATCH` is the
+  default, radiation-damage wording becomes stability wording, the anomalous
+  signal warning is reworded, and outlier rejections are reported against 2θ.
+  Every change is printed in the log.
+- `LORENTZ [<p>]`: Lorentz correction `sin²θ/λᵖ` applied on input. Off unless
+  asked for.
+- Output of the wavelength normalisation: a table and ASCII plot in the log, a
+  block in XMLOUT, and a gnuplot script `LAMBDANORM.plt`. The GP version also
+  has a 1σ band and the binned training data.
+- gnuplot copies (`.plt`) of `NORMPLOT`, `ANOMPLOT`, `CORRELPLOT` and
+  `ROGUEPLOT`, switched by `PLOT [NO]GNUPLOT`.
+- Documentation in `lawless.md`.
+
+### Changed
+- The secondary-beam direction is computed from each observation's own
+  wavelength instead of the batch wavelength. This matters for `SECONDARY` and
+  `ABSORPTION` on Laue data.
+- The unmerged output file carries a `LAMBDA` column when the input had one.
+
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/aaronfinke/lawless/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/aaronfinke/lawless/releases/tag/v0.1.0

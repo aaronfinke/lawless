@@ -219,6 +219,8 @@ namespace scala {
     bool GPRRunActive(const int& irun) const {
       return (irun >= 0 && irun < int(gpr_run_scales.size())
               && gpr_run_scales[irun].IsActive());}
+    //! true if the GP samples are weighted by the model-expected sigma
+    bool GPRExpectedSigma() const {return gpr_control.expectedsigma;}
     // true once the GP fit has succeeded and is being applied
     bool GPRWavelengthActive() const {return gpr_scale.IsActive();}
     // Fit the GP wavelength normalization from per-observation samples

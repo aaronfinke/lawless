@@ -2419,6 +2419,18 @@ Token_value LAUE::parse(std::istringstream& input_stream)
           gprperrun = true;
         } else if (sv == "NORMGPRMATERN") {
           gprcontrol.kernel = scala::WavelengthGPRScale::MATERN32;
+        } else if (sv == "NORMGPRWEIGHT") {
+          // NORMGPRWEIGHT MEASURED | EXPECTED
+          std::string w;
+          if (get_token(input_stream) == NAME) w = stoup(string_value);
+          if (w.substr(0,4) == "MEAS") {
+            gprcontrol.expectedsigma = false;
+          } else if (w.substr(0,4) == "EXPE") {
+            gprcontrol.expectedsigma = true;
+          } else {
+            Message::message(Message_fatal
+              ("LAUE NORMGPRWEIGHT must be MEASURED or EXPECTED"));
+          }
         }
       }
     }

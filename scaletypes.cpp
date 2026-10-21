@@ -2188,6 +2188,10 @@ namespace scala {
                   " is nearly featureless\n";
       }
     }
+    if (noisescale > 0.99 * alfcand.back()) {
+      fitlog += "   WARNING: noise inflation is at the upper search limit; the bin"
+                " scatter is much larger than the sigmas predict\n";
+    }
     return B;
   }
   //--------------------------------------------------------------

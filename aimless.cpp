@@ -65,6 +65,168 @@ bool IsOnline()
     return true;
 }
 //--------------------------------------------------------------
+// Expected-variance weighting of the GP wavelength samples
+// (LAUE NORMGPRWEIGHT EXPECTED).
+//
+// A measured sigma carries the noise of the intensity it was computed from.
+// Where sigma^2 grows with I (counting statistics), an observation that came
+// out low by chance also gets a small sigma and so a large weight, and the
+// weighted ratio I/<I>_mates turns into a harmonic mean dominated by the
+// weakest observations.  The measured variance is split into a part that does
+// not depend on the intensity and a part b*I, and I in the latter is replaced
+// by the model's prediction:
+//
+//   sigma_exp^2 = max(sigma^2 - b*I, 0) + b*max(I_pred, 0)
+//
+// so the background term of each observation is kept and only its own counting
+// noise is taken out of the weight.  b(lambda) is fitted per wavelength bin
+// from the medians of sigma^2 in quantiles of I, which is robust against the
+// heavy tails of both; b = 0 (no intensity dependence) gives back the measured
+// sigma.
+class GPRVarianceModel
+{
+public:
+  GPRVarianceModel() {}
+  // Fit b(lambda) from the accepted observations passing the I/sigma cut
+  void Fit(hkl_unmerge_list& hkl_list, const double& IovSDmin,
+           phaser_io::Output& output)
+  {
+    const int NLAMBIN = 8;     // wavelength bins
+    const int NIBIN = 10;      // intensity quantiles per wavelength bin
+    struct IV {double lam, I, v;};
+    std::vector<IV> data;
+    reflection this_refl;
+    for (int jref=0; jref<hkl_list.num_reflections(); ++jref) {
+      this_refl = hkl_list.get_reflection(jref);
+      for (int i=0; i<this_refl.num_observations(); ++i) {
+        observation obs = this_refl.get_observation(i);
+        if (!obs.IsAccepted()) continue;
+        double I = obs.I();
+        double s = obs.sigI();
+        if (s <= 0.0 || I/s < IovSDmin || I <= 0.0) continue;
+        IV d = {obs.lambda(), I, s*s};
+        data.push_back(d);
+      }
+    }
+    lamedge.clear(); bval.clear();
+    int N = int(data.size());
+    if (N < NLAMBIN*NIBIN*5) return;    // too few: b = 0 everywhere
+    std::sort(data.begin(), data.end(),
+              [](const IV& a, const IV& b) {return a.lam < b.lam;});
+    output.logTabPrintf(0, LOGFILE,
+      "\n Expected-sigma weighting: sigma_exp^2 = (sigma^2 - b*I) + b*I_pred\n"
+      "   lambda range       b       median b*I/sigma^2\n");
+    for (int k=0; k<NLAMBIN; ++k) {
+      int i0 = (k*N)/NLAMBIN;
+      int i1 = ((k+1)*N)/NLAMBIN;
+      std::vector<IV> bin(data.begin()+i0, data.begin()+i1);
+      std::sort(bin.begin(), bin.end(),
+                [](const IV& a, const IV& b) {return a.I < b.I;});
+      int n = int(bin.size());
+      // median I and median sigma^2 in each intensity quantile
+      std::vector<double> mI, mV;
+      for (int q=0; q<NIBIN; ++q) {
+        int j0 = (q*n)/NIBIN;
+        int j1 = ((q+1)*n)/NIBIN;
+        std::vector<double> vv;
+        for (int j=j0; j<j1; ++j) vv.push_back(bin[j].v);
+        std::nth_element(vv.begin(), vv.begin()+vv.size()/2, vv.end());
+        mI.push_back(bin[(j0+j1)/2].I);
+        mV.push_back(vv[vv.size()/2]);
+      }
+      // straight line sigma^2 = a + b I through the medians
+      double sx=0.0, sy=0.0, sxx=0.0, sxy=0.0;
+      for (int q=0; q<NIBIN; ++q) {
+        sx += mI[q]; sy += mV[q]; sxx += mI[q]*mI[q]; sxy += mI[q]*mV[q];
+      }
+      double den = NIBIN*sxx - sx*sx;
+      double b = (den > 0.0) ? (NIBIN*sxy - sx*sy)/den : 0.0;
+      if (!(b > 0.0)) b = 0.0;
+      std::vector<double> share;
+      for (int j=0; j<n; ++j) share.push_back(std::min(1.0, b*bin[j].I/bin[j].v));
+      std::nth_element(share.begin(), share.begin()+n/2, share.end());
+      lamedge.push_back(data[i0].lam);
+      bval.push_back(b);
+      output.logTabPrintf(0, LOGFILE, "   %6.3f - %6.3f  %10.4g   %6.2f\n",
+                          data[i0].lam, data[i1-1].lam, b, share[n/2]);
+    }
+  }
+  // b at wavelength lambda: piecewise constant over the fitted bins
+  double B(const double& lambda) const
+  {
+    if (bval.empty()) return 0.0;
+    int k = int(std::upper_bound(lamedge.begin(), lamedge.end(), lambda)
+                - lamedge.begin()) - 1;
+    if (k < 0) k = 0;
+    return bval[k];
+  }
+  // expected variance of an observation with measured I, sigma^2, given the
+  // predicted (uncorrected) intensity Ipred
+  double Variance(const double& lambda, const double& I, const double& var,
+                  const double& Ipred) const
+  {
+    double b = B(lambda);
+    double v = std::max(var - b*I, 0.0) + b*std::max(Ipred, 0.0);
+    return std::max(v, 0.01*var);
+  }
+private:
+  std::vector<double> lamedge, bval;
+};
+//--------------------------------------------------------------
+// Leave-one-out GP samples for one reflection, weighted by the expected sigma.
+//   I, var, lam, ws  - measured intensity, variance, wavelength and the
+//                      wavelength correction currently in force
+//   corrected        - true if the sample ratio is of the corrected observation
+//                      (the per-run residual), false for the raw one
+// For each observation i the mates' mean M is first formed with measured
+// weights, the mates are then reweighted by their expected variance at that
+// mean, and the sample is rho = I_i/M (or I_i/ws_i/M) with weight
+// u = M/sigma_exp_i^2 (times ws_i^2 for the corrected ratio).
+void GPRExpectedSamples(const std::vector<double>& I,
+                        const std::vector<double>& var,
+                        const std::vector<double>& lam,
+                        const std::vector<double>& ws,
+                        const bool& corrected,
+                        const GPRVarianceModel& vmodel,
+                        std::vector<int>& index,
+                        std::vector<double>& rho,
+                        std::vector<double>& u)
+{
+  index.clear(); rho.clear(); u.clear();
+  const size_t n = I.size();
+  for (size_t i=0; i<n; ++i) {
+    // measured-weight leave-one-out mean of the corrected mates
+    double sw = 0.0, swi = 0.0;
+    for (size_t j=0; j<n; ++j) {
+      if (j == i) continue;
+      double w = ws[j]*ws[j]/var[j];
+      sw += w; swi += w*I[j]/ws[j];
+    }
+    if (sw <= 0.0) continue;
+    double J = swi/sw;
+    if (J <= 0.0) continue;
+    // reweight the mates by their expected variance at J
+    sw = 0.0; swi = 0.0;
+    for (size_t j=0; j<n; ++j) {
+      if (j == i) continue;
+      double w = ws[j]*ws[j]/vmodel.Variance(lam[j], I[j], var[j], ws[j]*J);
+      sw += w; swi += w*I[j]/ws[j];
+    }
+    if (sw <= 0.0) continue;
+    double M = swi/sw;
+    if (M <= 0.0) continue;
+    double ve = vmodel.Variance(lam[i], I[i], var[i], ws[i]*M);
+    index.push_back(int(i));
+    if (corrected) {
+      rho.push_back(I[i]/ws[i]/M);
+      u.push_back(M*ws[i]*ws[i]/ve);
+    } else {
+      rho.push_back(I[i]/M);
+      u.push_back(M/ve);
+    }
+  }
+}
+//--------------------------------------------------------------
 int main(int argc, char* argv[])
 {
   Timer overalltime;
@@ -941,6 +1103,10 @@ int main(int argc, char* argv[])
           "\n========= Laue wavelength GP normalisation =========\n");
       double IovSDmin = controls.refinecontrol.IovSDmin();
 
+      const bool gprexpected = AllScales.GPRExpectedSigma();
+      GPRVarianceModel gprvmodel;
+      if (gprexpected) gprvmodel.Fit(hkl_list, IovSDmin, output);
+
       const int NGPRITER = 3;
       std::vector<double> gpr_lam, gpr_ratio, gpr_wt;
       for (int iter = 0; iter < NGPRITER; ++iter) {
@@ -973,6 +1139,22 @@ int main(int argc, char* argv[])
             sumw += w; sumwi += w*Ic;
           }
           if (oI.size() < 2 || sumw <= 0.0) continue;
+          if (gprexpected) {
+            std::vector<double> oV(oI.size()), oWs(oI.size());
+            for (size_t i=0; i<oI.size(); ++i) {
+              oV[i] = 1.0/oW[i];
+              oWs[i] = AllScales.GPRWavelengthScaleAt(oL[i]);
+              if (!(oWs[i] > 0.0)) oWs[i] = 1.0;
+            }
+            std::vector<int> idx; std::vector<double> r, u;
+            GPRExpectedSamples(oI, oV, oL, oWs, false, gprvmodel, idx, r, u);
+            for (size_t k=0; k<idx.size(); ++k) {
+              gpr_lam.push_back(oL[idx[k]]);
+              gpr_ratio.push_back(r[k]);
+              gpr_wt.push_back(u[k]);
+            }
+            continue;
+          }
           // leave-one-out weighted mean avoids self-bias of the ratio
           for (size_t i=0; i<oI.size(); ++i) {
             double sw  = sumw  - oW[i];
@@ -1039,6 +1221,24 @@ int main(int argc, char* argv[])
               sumw += w; sumwi += w*Ic;
             }
             if (oI.size() < 2 || sumw <= 0.0) continue;
+            if (gprexpected) {
+              std::vector<double> oV(oI.size()), oWs(oI.size());
+              for (size_t i=0; i<oI.size(); ++i) {
+                oV[i] = 1.0/oW[i];
+                oWs[i] = AllScales.GPRWavelengthScaleAt(oR[i], oL[i]);
+                if (!(oWs[i] > 0.0)) oWs[i] = 1.0;
+              }
+              std::vector<int> idx; std::vector<double> r, u;
+              GPRExpectedSamples(oI, oV, oL, oWs, true, gprvmodel, idx, r, u);
+              for (size_t k=0; k<idx.size(); ++k) {
+                int ir = oR[idx[k]];
+                if (ir < 0 || ir >= nrunsgpr) continue;
+                rlam[ir].push_back(oL[idx[k]]);
+                rratio[ir].push_back(r[k]);
+                rwt[ir].push_back(u[k]);
+              }
+              continue;
+            }
             for (size_t i=0; i<oI.size(); ++i) {
               int ir = oR[i];
               if (ir < 0 || ir >= nrunsgpr) continue;
