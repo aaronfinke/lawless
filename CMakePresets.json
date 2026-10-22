@@ -3,18 +3,17 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Debug (CCP4-9 macOS)",
-      "description": "Debug build — headers from ccp4-8.0-src, libs from CCP4-9",
+      "displayName": "Debug",
+      "description": "Debug build in build/; dependency paths from CCP4_DIR, CCP4_SRC, CCTBX_DIR (see README)",
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
       "name": "release",
-      "displayName": "Release (CCP4-9 macOS)",
+      "displayName": "Release",
       "inherits": "default",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"

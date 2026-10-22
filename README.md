@@ -10,17 +10,87 @@ lawless is a modification of CCP4 [aimless](https://www.ccp4.ac.uk/html/aimless.
 - a **radiation-type switch** (`PROBE NEUTRON | XRAY`) that sets neutron
   defaults and guards.
 
-If these keywords are not used, it behaves the same as aimless. It is intended as a replacement for **LSCALE/LAUENORM** from the Daresbury Laue suite, and SCALA, which is the predecessor to aimless. It is tailored toward neutron Laue experiments
+If these keywords are not used, it behaves the same as aimless. It is intended as a replacement for **LSCALE/LAUENORM** from the Daresbury Laue suite, and SCALA, which is the predecessor to aimless.
 
 ### Building
+
+lawless needs a C++11 compiler, CMake 3.21 or newer, and these libraries:
+
+| dependency | used for | Ubuntu package | macOS source |
+|---|---|---|---|
+| clipper 2.1 | cell, symmetry, MTZ classes | `libclipper-dev` | CCP4 (library), headers separately |
+| libccp4 8.0 | MTZ file I/O | `libccp4-dev` | CCP4 (library), headers separately |
+| mmdb2 2.0 | needed by clipper | `libmmdb2-dev` | CCP4 (library), headers separately |
+| cctbx | space groups | `libcctbx-dev` | conda `cctbx-base` |
+| boost (headers) | | `libboost-dev` | Homebrew `boost` |
+| Eigen 3.4 (headers) | GP wavelength normalisation | `libeigen3-dev` | CCP4 |
+| TNT/JAMA (headers) | eigenvalues | `libtnt-dev`, `libjama-dev` | CCP4 |
+
+Nothing from CCP4 is needed at run time except the libraries themselves. The
+warning `CLIBD not set` that appears when run outside a CCP4 environment can be
+ignored.
+
+#### Linux (Ubuntu 24.04)
+
+Everything comes from the distribution, and no CCP4 installation is needed:
+
 ```bash
-cmake --preset default        # configure (uses CMakePresets.json)
-make -C build -j4             # compile -> build/lawless
+sudo apt install build-essential cmake libboost-dev libeigen3-dev \
+    libccp4-dev libmmdb2-dev libclipper-dev libcctbx-dev libtnt-dev libjama-dev
+cmake --preset release
+cmake --build --preset release              # -> build/lawless
+sudo cmake --install build                  # -> /usr/local/bin/lawless
 ```
 
-CMakePresets.json in the project root defines all library paths.
+#### macOS
 
-### Where it differs from aimless
+A CCP4 installation supplies the clipper, libccp4 and mmdb2 libraries, Eigen
+and TNT/JAMA. It does not supply cctbx as a library, or the clipper, libccp4
+and mmdb2 headers, so these come from elsewhere:
+
+1. [CCP4](https://www.ccp4.ac.uk/download/) 9. The newest
+   `/Applications/ccp4-*` is found automatically.
+2. CMake and boost: `brew install cmake boost`.
+3. cctbx, in a conda environment:
+   `conda create -n cctbx -c conda-forge cctbx-base`. The binary links to
+   `libcctbx` in this environment, so keep it.
+4. The clipper, libccp4 and mmdb2 headers, by either route:
+   - from the brewsci/bio tap:
+     `brew install brewsci/bio/libccp4 brewsci/bio/mmdb2 brewsci/bio/clipper4coot`;
+     these are found in `/opt/homebrew/include` with no further setting; or
+   - from the CCP4 source tarballs at <https://ftp.ccp4.ac.uk/opensource/>:
+     `libccp4-8.0.0.tar.gz`, `mmdb2-2.0.22.tar.gz` and
+     `clipper-2.1.20201109.tar.gz`. Unpack all three into one directory and
+     set `CCP4_SRC` to it. Nothing in them needs to be built.
+
+```bash
+export CCTBX_DIR=~/miniforge3/envs/cctbx    # wherever the env is
+export CCP4_SRC=~/ccp4-headers              # tarball route only
+cmake --preset release
+cmake --build --preset release              # -> build/lawless
+cmake --install build --prefix ~/.local     # -> ~/.local/bin/lawless
+```
+
+The Xcode compiler has no OpenMP, so the macOS build runs on one thread.
+
+#### Telling CMake where things are
+
+| variable | default | |
+|---|---|---|
+| `CCP4_DIR` | `$CCP4`, then the newest `/Applications/ccp4-*` | CCP4 installation |
+| `CCP4_SRC` | none | directory holding the clipper, libccp4 and mmdb2 sources, unpacked tarballs or a CCP4 source checkout |
+| `CCTBX_DIR` | `$CONDA_PREFIX` | conda environment with `cctbx-base` |
+
+Each can be set as an environment variable or as `-D<name>=...` on the
+`cmake` command line. Exporting them (in `~/.zshrc`, say) means they survive a
+deleted `CMakeCache.txt`. CMake prints every path it used, and stops with a
+list of whatever it could not find.
+
+The `default` preset is a Debug build in the same `build/` directory. Every
+build also makes `build/aimless` a symlink to `lawless`; `cmake --install`
+installs `lawless` only.
+
+### How it differs from aimless
 
 | | aimless | lawless |
 |---|---|---|

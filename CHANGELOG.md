@@ -10,6 +10,22 @@ number.
 
 ## [Unreleased]
 
+### Changed
+- **The build no longer depends on paths on the author's machine.** CMake now
+  searches for every dependency. On Ubuntu 24.04 it builds from distribution
+  packages alone. On macOS it uses the libraries from a CCP4 installation,
+  cctbx from conda and boost from Homebrew; the clipper, libccp4 and mmdb2
+  headers, which CCP4 does not install, come from Homebrew (brewsci/bio) or
+  from the CCP4 source tarballs. Locations can be given with `CCP4_DIR`,
+  `CCP4_SRC` and `CCTBX_DIR`. See "Building" in `README.md`.
+- CMake 3.16 or newer is required (3.21 to use the presets).
+
+### Fixed
+- `cmake --install` on macOS produced a binary that could not find
+  `libcctbx.dylib`.
+- Builds against recent boost (1.92 tested), where `boost/timer.hpp` is
+  otherwise an error.
+
 ## [0.1.1] - 2026-10-21
 
 ### Changed
