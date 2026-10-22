@@ -10,6 +10,8 @@ number.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-22
+
 ### Changed
 - **The build no longer depends on paths on the author's machine.** CMake now
   searches for every dependency. On Ubuntu 24.04 it builds from distribution
@@ -94,6 +96,7 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/aaronfinke/lawless/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/aaronfinke/lawless/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/aaronfinke/lawless/releases/tag/v0.1.0
