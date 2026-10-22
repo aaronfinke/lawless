@@ -14,7 +14,20 @@ The CMake target and binary are named `lawless` (it was `aimless` up to
 and including 0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
 A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
 
-CMakePresets.json in the project root defines all library paths. Headers come from `~/ccp4-8.0-src/checkout`; dylibs from `/Applications/ccp4-9/lib`; `libcctbx.dylib` from `~/miniforge3/envs/cctbx/lib`. A POST_BUILD rule patches Jenkins-originated rpath entries automatically.
+`CMakeLists.txt` finds every dependency with `find_path`/`find_library`,
+guided by three cache variables that also read the environment: `CCP4_DIR`
+(default `$CCP4`, then newest `/Applications/ccp4-*`), `CCP4_SRC` (clipper,
+mmdb2, libccp4 headers: a source checkout or unpacked tarballs) and `CCTBX_DIR`
+(default `$CONDA_PREFIX`). On Ubuntu everything is apt packages on system paths
+and none is needed. Here: `CCP4_SRC=~/ccp4-8.0-src/checkout`,
+`CCTBX_DIR=~/miniforge3/envs/cctbx`; without `CCP4_SRC` the brewsci/bio headers
+in `/opt/homebrew/include` are picked up instead (also verified identical). The
+VSCode rebuild task deletes `CMakeCache.txt`, so these must be in the
+environment, not only `-D`. On macOS a POST_BUILD rule rewrites any library
+install name that points at a nonexistent path (CCP4's Jenkins paths) to the
+library's real directory; `CMAKE_INSTALL_RPATH_USE_LINK_PATH` keeps
+`@rpath/libcctbx.dylib` resolvable after `cmake --install`. Full user-facing
+instructions are under "Building" in `README.md`.
 
 In VSCode: `Cmd+Shift+B` runs the default build task.
 
