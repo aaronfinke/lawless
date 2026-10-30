@@ -1441,7 +1441,8 @@ namespace scala {
                                                std::vector<double>& dgdp) const
   // Log parameterisation: h(lambda) = sum_k a_k T_k(z)
   // ws = exp(h(lambda) - h(lambda_ref))
-  // d(ws)/d(a_k) = ws * (T_k(z) - T_k(z_ref))
+  // d(ws)/d(a_k) = ws * (T_k(z) - T_k(z_ref)), the T_k(z) term for the
+  // observation's range and the T_k(z_ref) term for the reference range
   {
     dgdp.assign(ncoeffs, 0.0);
     if (ncoeffs == 0) return 1.0;
@@ -1460,17 +1461,19 @@ namespace scala {
     std::vector<double> Tz;
     chebbasis(deg, z, Tz);
 
-    // Chebyshev basis at z_ref (same range)
-    std::vector<double> Tzref;
-    if (ref_range == ir) {
-      double zref = mapToZ(lambda_ref, ir);
-      chebbasis(deg, zref, Tzref);
-    } else {
-      Tzref.assign(deg+1, 0.0);
-    }
-
     for (int k=0; k<=deg; ++k) {
-      dgdp[off+k] = w * (Tz[k] - Tzref[k]);
+      dgdp[off+k] = w * Tz[k];
+    }
+    // h_ref depends on the reference range's coefficients wherever lambda
+    // lies, so those always get -w * T_k(z_ref), also from another range
+    if (ref_range >= 0) {
+      std::vector<double> Tzref;
+      int offref = ranges[ref_range].offset;
+      int degref = ranges[ref_range].degree;
+      chebbasis(degref, mapToZ(lambda_ref, ref_range), Tzref);
+      for (int k=0; k<=degref; ++k) {
+        dgdp[offref+k] -= w * Tzref[k];
+      }
     }
     return w;
   }
@@ -1800,7 +1803,7 @@ namespace scala {
     }
     FR.ReadTag("Coefficients"); coeffs = FR.DoubleVec(ncoeffs);
     ref_range = rangeIndex(lambda_ref);
-    f_ref = (ref_range >= 0) ? evalRange(lambda_ref, ref_range) : 1.0;
+    f_ref = (ref_range >= 0) ? evalRange(lambda_ref, ref_range) : 0.0;
     if (!FR.CheckEnd()) {
       Message::message(Message_warn
         ("WavelengthChebyshevScale::Restore unexpected tag "+FR.Tag()));

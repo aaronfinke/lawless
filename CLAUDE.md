@@ -73,9 +73,15 @@ Derivative for least-squares refinement:
 dws/da_k = ws · (T_k(z) − T_k(z_ref))
 ```
 
+The `T_k(z)` term belongs to the observation's range and the `T_k(z_ref)` term
+to the reference wavelength's range. When they differ, the reference range's
+coefficients still get `−ws·T_k(z_ref)`, because `h(λ_ref)` normalises every
+range. (Before 0.1.3 that term was dropped; a finite-difference check on a
+two-range model now agrees to 1e-10.)
+
 Initial coefficients `[0, 0, 0, ...]` give `ws = 1` everywhere (flat spectrum).
 
-Up to 5 wavelength ranges supported, each with its own polynomial degree and coefficient set. Ranges are non-overlapping; reflections outside all ranges get `ws = 1.0`.
+Up to 5 wavelength ranges supported, each with its own polynomial degree and coefficient set. Ranges must not overlap (the parser makes overlap, `lam_min >= lam_max` and a negative degree fatal; touching ends are allowed, and the first range wins at the shared point); reflections outside all ranges get `ws = 1.0`. `NORMLAMREF` outside every range gives a warning after HKLIN is read: `h_ref` is then 0 and the curve is not normalised to 1 anywhere.
 
 ### Class: `WavelengthChebyshevScale` (`scaletypes.hh/.cpp`)
 

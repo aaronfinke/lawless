@@ -542,6 +542,26 @@ int main(int argc, char* argv[])
           "Either add a wavelength column to HKLIN, or remove the LAUE keyword to\n"+
           "scale these data monochromatically.");
       }
+      // ws(lambda_ref) = 1 only means something if lambda_ref is inside a
+      // range: otherwise the curve is left unnormalised (h_ref = 0)
+      std::vector<scala::WavelengthChebyshevScale::WavelengthRange>
+        lamranges = input.getWavelengthRanges();
+      if (!lamranges.empty()) {
+        double lamref = input.getLambdaRef();
+        bool inrange = false;
+        for (size_t i=0;i<lamranges.size();++i) {
+          if (lamref >= lamranges[i].lam_min && lamref <= lamranges[i].lam_max) {
+            inrange = true;
+          }
+        }
+        if (!inrange) {
+          ReportErrors::printWarning
+            ("LAUE NORMLAMREF "+clipper::String(lamref,8,4)+
+             " is outside every NORMCHEBYSHEV range,\n"+
+             "so the wavelength normalisation is not normalised to 1 there",
+             "LambdaRefOutsideRangesWarning");
+        }
+      }
       // LDTYPE = 3 marks Laue data in the MTZ batch header.  A warning only:
       // the data may be fine and the header merely unset
       std::vector<Batch> bats = hkl_list.Batches();
