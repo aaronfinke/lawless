@@ -2391,6 +2391,28 @@ Token_value LAUE::parse(std::istringstream& input_stream)
         range.lam_min = get1num(input_stream);
         range.lam_max = get1num(input_stream);
         range.offset = 0;  // set in WavelengthChebyshevScale constructor
+        if (range.degree < 0) {
+          Message::message(Message_fatal
+            ("LAUE NORMCHEBYSHEV: polynomial degree must be 0 or more"));
+        }
+        if (range.degree > 10) {
+          Message::message(Message_warn
+            ("LAUE NORMCHEBYSHEV: degree "+clipper::String(range.degree)+
+             " is high, the polynomial may follow noise"));
+        }
+        if (!(range.lam_min < range.lam_max)) {
+          Message::message(Message_fatal
+            ("LAUE NORMCHEBYSHEV: lam_min must be less than lam_max"));
+        }
+        // rangeIndex takes the first range containing lambda, so an overlap
+        // would hide part of a range from the data. Touching ends are allowed
+        for (size_t i=0; i<ranges.size(); ++i) {
+          if (range.lam_min < ranges[i].lam_max &&
+              ranges[i].lam_min < range.lam_max) {
+            Message::message(Message_fatal
+              ("LAUE NORMCHEBYSHEV: wavelength ranges must not overlap"));
+          }
+        }
         if (int(ranges.size()) < scala::WavelengthChebyshevScale::MAXRANGES) {
           ranges.push_back(range);
         } else {

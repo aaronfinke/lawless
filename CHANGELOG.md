@@ -25,6 +25,19 @@ number.
   refused for no reason. They now need a `ROT` column and valid orientation
   instead; without `ROT`, phi is taken from the batch number and the geometry
   would be wrong.
+- **Chebyshev wavelength normalisation with more than one range refined with
+  a wrong gradient.** `ws(lambda)` is normalised at `NORMLAMREF`, so it depends
+  on the coefficients of the reference wavelength's range wherever `lambda`
+  lies, but those derivatives were set to zero for observations in the other
+  ranges. On `ca_thio` with two ranges, re-merged through one identical pass,
+  R-merge goes 0.345 -> 0.341 and CC(1/2) 0.917 -> 0.924. Single-range runs
+  are unchanged.
+- A Chebyshev model restored from a file, with `NORMLAMREF` outside every
+  range, was scaled by a factor e.
+- `LAUE NORMCHEBYSHEV` now rejects a range with `lam_min >= lam_max`, ranges
+  that overlap (ranges may touch) and a negative degree, and warns about a
+  degree above 10. A warning is given when `NORMLAMREF` lies outside every
+  range, since the curve is then not normalised to 1 anywhere.
 
 ## [0.1.2] - 2026-10-22
 
