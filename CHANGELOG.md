@@ -10,6 +10,37 @@ number.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-30
+
+### Fixed
+- **`SCALES BATCH` no longer aborts on runs with a single batch.** Laue files
+  in which every exposure (pack) has its own non-contiguous batch number, as
+  DIALS writes for MaNDi, are split into one run per batch, and BATCH scaling
+  stopped with "run 1 has no useful batch information for BATCH scaling". A
+  single-batch run now gets one scale (and B-factor, if requested) for the
+  run, as `SCALES CONSTANT` would give it, and the log says so for each run.
+  This also makes the `PROBE NEUTRON` default (`SCALES BATCH`) work on such
+  files.
+- **`SECONDARY` and `ABSORPTION` no longer require a non-zero batch phi
+  range.** The secondary-beam geometry uses only each observation's `ROT` and
+  the batch orientation, so stills, which legitimately have a zero range, were
+  refused for no reason. They now need a `ROT` column and valid orientation
+  instead; without `ROT`, phi is taken from the batch number and the geometry
+  would be wrong.
+- **Chebyshev wavelength normalisation with more than one range refined with
+  a wrong gradient.** `ws(lambda)` is normalised at `NORMLAMREF`, so it depends
+  on the coefficients of the reference wavelength's range wherever `lambda`
+  lies, but those derivatives were set to zero for observations in the other
+  ranges. On `ca_thio` with two ranges, re-merged through one identical pass,
+  R-merge goes 0.345 -> 0.341 and CC(1/2) 0.917 -> 0.924. Single-range runs
+  are unchanged.
+- A Chebyshev model restored from a file, with `NORMLAMREF` outside every
+  range, was scaled by a factor e.
+- `LAUE NORMCHEBYSHEV` now rejects a range with `lam_min >= lam_max`, ranges
+  that overlap (ranges may touch) and a negative degree, and warns about a
+  degree above 10. A warning is given when `NORMLAMREF` lies outside every
+  range, since the curve is then not normalised to 1 anywhere.
+
 ## [0.1.2] - 2026-10-22
 
 ### Changed
@@ -96,7 +127,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/aaronfinke/lawless/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/aaronfinke/lawless/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/aaronfinke/lawless/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/aaronfinke/lawless/releases/tag/v0.1.0

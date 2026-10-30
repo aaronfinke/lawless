@@ -778,7 +778,7 @@ namespace scala {
   }
   //--------------------------------------------------------------
   std::string ScaleModel::SetupScale(const int& irun,
-                                     const ScaleSpecification& scaleSpec,
+                                     const ScaleSpecification& scaleSpecIn,
                                      const Run& run,
                                      const ValidScaleModel&  validscalemodel,
                                      phaser_io::Output& output)
@@ -786,6 +786,22 @@ namespace scala {
   // returns any warning messages
   {
     std::string s = ""; // warning messages
+    // Local copy, as a single-batch run may be switched from BATCH to constant
+    ScaleSpecification scaleSpec(scaleSpecIn);
+    if (scaleSpec.batch && run.Nbatches() == 1) {
+      // BATCH scaling of a run with one batch is one scale (and B-factor)
+      // for the run, ie SCALES CONSTANT. This is the normal layout for Laue
+      // data, where each exposure (pack) becomes its own run
+      scaleSpec.batch = false;
+      if (scaleSpec.nscales != 0) {scaleSpec.nscales = 1;}
+      if (scaleSpec.nbfac != 0) {scaleSpec.nbfac = 1;}
+      scaleSpec.spacing = 0.0;
+      scaleSpec.bspacing = 0.0;
+      s += FormatOutput::logTabPrintf(0,
+     "Run %3d has a single batch: BATCH scaling uses one scale%s for the run, as SCALES CONSTANT\n",
+                                      run.RunNumber(),
+                                      (scaleSpec.nbfac != 0) ? " and B-factor" : "");
+    }
     bool batchscale = scaleSpec.batch; // true if BATCH mode
     // Check for valid smooth scaling if requested, fail is not
     if (scaleSpec.nscales > 1 ||
@@ -853,7 +869,7 @@ namespace scala {
     }
     // Secondary scales
     if (scaleSpec.sec_abs != SecondaryScale::NONE) {
-      // Check for valid data: note that if primary data is missing, then so must be secondary
+      // Check for valid data: needs ROT and a valid orientation, not a phi range
       if (!validscalemodel.ValidSecondary(irun)) {
           s += FormatOutput::logTabPrintf(0,
      "WARNING: Run %3d has insufficient information for secondary beam scaling\n",
@@ -2708,8 +2724,9 @@ namespace scala {
     validprimary.assign(nruns,colflags.is_Rot);
     // batch number
     validbatch.assign(nruns,colflags.is_batch);
-    // secondary beam, ie full geometry
-    validsecondary.assign(nruns,true);
+    // secondary beam, ie full geometry: needs the observation's rotation
+    // angle (ROT), since without it phi is taken from the batch number
+    validsecondary.assign(nruns,colflags.is_Rot);
     // tile information
     validtile.assign(nruns,(colflags.is_Xdet && colflags.is_Ydet));
 
@@ -2728,9 +2745,10 @@ namespace scala {
       if (irun >= 0) {  // only for batches assigned to a run
         // For smooth primary beam corrections (scale & B-factor) we need valid Phi values
         if (!batches[ib].ValidPhi() || std::abs(batches[ib].PhiRange()) < 0.0001) {
+          // Secondary beam does not need a phi range: the geometry uses only
+          // the observation's ROT and the batch orientation, and stills
+          // (eg Laue exposures) legitimately have a zero range
           validprimary.at(irun) = false;
-          // Primary data missing implies secondary as well
-          validsecondary.at(irun) = false;
         }
         // For valid secondary beam calculation, we need full geometry
         if (!batches[ib].ValidOrientation()) {

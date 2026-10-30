@@ -73,9 +73,15 @@ Derivative for least-squares refinement:
 dws/da_k = ws · (T_k(z) − T_k(z_ref))
 ```
 
+The `T_k(z)` term belongs to the observation's range and the `T_k(z_ref)` term
+to the reference wavelength's range. When they differ, the reference range's
+coefficients still get `−ws·T_k(z_ref)`, because `h(λ_ref)` normalises every
+range. (Before 0.1.3 that term was dropped; a finite-difference check on a
+two-range model now agrees to 1e-10.)
+
 Initial coefficients `[0, 0, 0, ...]` give `ws = 1` everywhere (flat spectrum).
 
-Up to 5 wavelength ranges supported, each with its own polynomial degree and coefficient set. Ranges are non-overlapping; reflections outside all ranges get `ws = 1.0`.
+Up to 5 wavelength ranges supported, each with its own polynomial degree and coefficient set. Ranges must not overlap (the parser makes overlap, `lam_min >= lam_max` and a negative degree fatal; touching ends are allowed, and the first range wins at the shared point); reflections outside all ranges get `ws = 1.0`. `NORMLAMREF` outside every range gives a warning after HKLIN is read: `h_ref` is then 0 and the curve is not normalised to 1 anywhere.
 
 ### Class: `WavelengthChebyshevScale` (`scaletypes.hh/.cpp`)
 
@@ -417,7 +423,13 @@ Scale unless we have valid orientation information". To supply it:
   `if (col_sel.col_Rot < 0) {phi = batch;}` — with no ROT column aimless uses
   the *batch number* as φ and back-rotates the source vector by hundreds of
   degrees. For stills whose exposure-to-exposure rotation is carried in `U` and
-  `SOURCE`, write `ROT = 0`.
+  `SOURCE`, write `ROT = 0`. `ValidScaleModel::init` now enforces this
+  (`validsecondary` starts from `colflags.is_Rot`).
+- **A batch phi range is not needed.** Nothing in the secondary-beam geometry
+  reads it, so a zero range (stills) no longer disables `SECONDARY`; it only
+  disables rotation-smoothed primary scales. Checked on a MaNDi file: zero
+  range and a fake 1° range give identical logs and `SCALES` apart from the
+  φ labels.
 
 ---
 
@@ -860,7 +872,7 @@ byte-identical to the same build without the keyword.
 |---|---|
 | `ANOMALOUS OFF`, and not switched on automatically | Nuclear scattering has no anomalous signal outside a short list of isotopes (¹¹³Cd, Sm, Gd, ¹⁰B, ⁶Li, In). Without this, aimless turns anomalous on by itself whenever it thinks it sees one. `ANOMALOUS ON` overrides |
 | polarization factor set to zero | `fP = 1` for neutrons. (`UpdatePolarizationCorrections` is not called from aimless, so this is defensive) |
-| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. The hook is `SCALES::setDefaultBatchMode()`, which switches any specification that did not choose a mode for itself; an explicit `BATCH`, `ROTATION`, `SPACING`, `BROTATION` or `CONSTANT` sets `ScaleSpecification::scalemodegiven` and always wins. This also turns a pre-existing abort into a working default: `SCALES BFACTOR ON` with no mode falls back to rotation smoothing over a φ range that does not exist, and the refinement dies in `samplemean()` |
+| `SCALES BATCH` by default | Laue exposures are stationary, so φ is not a scaling variable and rotation smoothing has nothing to smooth over. The hook is `SCALES::setDefaultBatchMode()`, which switches any specification that did not choose a mode for itself; an explicit `BATCH`, `ROTATION`, `SPACING`, `BROTATION` or `CONSTANT` sets `ScaleSpecification::scalemodegiven` and always wins. This also turns a pre-existing abort into a working default: `SCALES BFACTOR ON` with no mode falls back to rotation smoothing over a φ range that does not exist, and the refinement dies in `samplemean()`. A run with one batch (each MaNDi pack becomes its own run, since `AutoSetRun` splits on non-contiguous batch numbers) is switched by `SetupScale` to one scale/B for the run, as `SCALES CONSTANT`, with a log line per run, rather than failing `ValidScaleModel`'s ≥2-batch test |
 | radiation-damage wording becomes stability wording | Neutrons do not damage the crystal. The relative B-factor is *not* a dose correction; it is a relative resolution-dependent scale absorbing crystal slippage, centring and illuminated-volume drift |
 | the "significant anomalous signal" warning is reworded, not suppressed | Nuclear scattering lengths are real except for a few resonant isotopes (¹¹³Cd, ¹⁵⁷Gd, ¹⁴⁹Sm, ¹⁵¹Eu, ¹⁰B, ⁶Li, ¹¹³In), so it is almost never anomalous scattering — but Friedel mates that disagree still mean something. See below |
 | outlier rejections reported against 2θ | `REJECT` tests against the weighted mean, and for Laue data the weights vary systematically with λ and d, ie with 2θ. On CuZnSOD the rejection rate runs from 13.5 % in the 15–30° bin to 0.4 % at 90–105°, and switching rejection off moves the measured high-angle intensity deficit from −9.2 % to −5.1 % |
