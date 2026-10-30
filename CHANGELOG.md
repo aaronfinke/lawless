@@ -10,6 +10,22 @@ number.
 
 ## [Unreleased]
 
+### Fixed
+- **`SCALES BATCH` no longer aborts on runs with a single batch.** Laue files
+  in which every exposure (pack) has its own non-contiguous batch number, as
+  DIALS writes for MaNDi, are split into one run per batch, and BATCH scaling
+  stopped with "run 1 has no useful batch information for BATCH scaling". A
+  single-batch run now gets one scale (and B-factor, if requested) for the
+  run, as `SCALES CONSTANT` would give it, and the log says so for each run.
+  This also makes the `PROBE NEUTRON` default (`SCALES BATCH`) work on such
+  files.
+- **`SECONDARY` and `ABSORPTION` no longer require a non-zero batch phi
+  range.** The secondary-beam geometry uses only each observation's `ROT` and
+  the batch orientation, so stills, which legitimately have a zero range, were
+  refused for no reason. They now need a `ROT` column and valid orientation
+  instead; without `ROT`, phi is taken from the batch number and the geometry
+  would be wrong.
+
 ## [0.1.2] - 2026-10-22
 
 ### Changed
