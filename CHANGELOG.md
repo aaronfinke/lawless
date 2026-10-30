@@ -10,6 +10,8 @@ number.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-30
+
 ### Fixed
 - **`SCALES BATCH` no longer aborts on runs with a single batch.** Laue files
   in which every exposure (pack) has its own non-contiguous batch number, as
@@ -125,7 +127,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/aaronfinke/lawless/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/aaronfinke/lawless/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/aaronfinke/lawless/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/aaronfinke/lawless/releases/tag/v0.1.0
