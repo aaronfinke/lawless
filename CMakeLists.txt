@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(aimless C CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # ---------------------------------------------------------------------------
@@ -9,12 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 #
 # Linux (Ubuntu/Debian): everything comes from distribution packages on the
 #   system paths, and none of the variables below is needed.
-# macOS: the clipper, ccp4c and mmdb2 libraries, Eigen and the tntbx headers
-#   come from a CCP4 installation (CCP4_DIR); cctbx from a conda env with
-#   cctbx-base (CCTBX_DIR); boost headers from Homebrew. CCP4 does not install
-#   the clipper, mmdb2 or libccp4 headers, so CCP4_SRC must point at a
-#   directory holding them: a CCP4 source checkout, or the unpacked libccp4,
-#   mmdb2 and clipper tarballs from https://ftp.ccp4.ac.uk/opensource/.
+# macOS: the clipper, ccp4c and mmdb2 libraries and headers, boost and Eigen
+#   all come from Homebrew (the first three from the brewsci/bio tap), and
+#   cctbx from a conda env with cctbx-base (CCTBX_DIR). Alternatively the
+#   libraries and Eigen can come from a CCP4 installation (CCP4_DIR); CCP4
+#   does not install the clipper, mmdb2 or libccp4 headers, so these then come
+#   from Homebrew or from CCP4_SRC: a CCP4 source checkout, or the unpacked
+#   libccp4, mmdb2 and clipper tarballs from https://ftp.ccp4.ac.uk/opensource/.
 #
 # Each variable may also be given as an environment variable of the same
 # name. CCP4_DIR falls back to $CCP4 and then to the newest /Applications/ccp4-*;
@@ -40,7 +41,7 @@ if(NOT DEFINED CCTBX_DIR)
     set(_cctbxdir "$ENV{CONDA_PREFIX}")
   endif()
 endif()
-set(CCP4_DIR  "${_ccp4dir}"     CACHE PATH "CCP4 installation (libraries, Eigen, tntbx)")
+set(CCP4_DIR  "${_ccp4dir}"     CACHE PATH "CCP4 installation (libraries, Eigen)")
 set(CCP4_SRC  "$ENV{CCP4_SRC}"  CACHE PATH "Directory holding the clipper, mmdb2 and libccp4 headers")
 set(CCTBX_DIR "${_cctbxdir}"    CACHE PATH "Prefix of a conda env containing cctbx-base")
 
@@ -48,8 +49,7 @@ set(CCTBX_DIR "${_cctbxdir}"    CACHE PATH "Prefix of a conda env containing cct
 # one level down (clipper/, mmdb2-2.0.22/, ...), so each subdirectory is a hint.
 set(_hints)
 if(CCP4_SRC)
-  foreach(_d clipper libccp4 mmdb2 boost_1_74_0 eigen-3.4.0
-             cctbx-packages/tntbx/include)
+  foreach(_d clipper libccp4 mmdb2 boost_1_74_0 eigen-3.4.0)
     list(APPEND _hints ${CCP4_SRC}/${_d})
   endforeach()
   file(GLOB _tarballs LIST_DIRECTORIES true
@@ -59,10 +59,6 @@ endif()
 set(_ccp4hints)
 set(_cctbxhints)
 if(CCP4_DIR)
-  # tntbx is only installed inside CCP4's Python (a framework on macOS)
-  file(GLOB _ccp4hints LIST_DIRECTORIES true
-       ${CCP4_DIR}/Frameworks/Python.framework/Versions/*/lib/python*/site-packages/tntbx/include
-       ${CCP4_DIR}/lib/python*/site-packages/tntbx/include)
   list(APPEND _ccp4hints ${CCP4_DIR}/include)
 endif()
 if(CCTBX_DIR)
@@ -78,10 +74,6 @@ find_path(BOOST_INCLUDE_DIR   boost/version.hpp       HINTS ${_hints}
           PATHS /opt/homebrew/opt/boost/include /usr/local/opt/boost/include)
 find_path(EIGEN3_INCLUDE_DIR  Eigen/Core              HINTS ${_hints} ${_ccp4hints}
           PATH_SUFFIXES eigen3)
-find_path(TNT_INCLUDE_DIR     tnt_array1d.h           HINTS ${_hints} ${_ccp4hints}
-          PATH_SUFFIXES tnt)
-find_path(JAMA_INCLUDE_DIR    jama_eig.h              HINTS ${_hints} ${_ccp4hints}
-          PATH_SUFFIXES jama)
 find_path(CCTBX_INCLUDE_DIR   cctbx/sgtbx/basic.h     HINTS ${_cctbxhints})
 find_path(SCITBX_INCLUDE_DIR  scitbx/math/eigensystem.h HINTS ${_cctbxhints})
 
@@ -98,7 +90,7 @@ list(APPEND _libvars CCTBX_LIBRARY)
 
 set(_missing)
 foreach(_v CLIPPER_INCLUDE_DIR CCP4C_INCLUDE_DIR MMDB2_INCLUDE_DIR
-           BOOST_INCLUDE_DIR EIGEN3_INCLUDE_DIR TNT_INCLUDE_DIR JAMA_INCLUDE_DIR
+           BOOST_INCLUDE_DIR EIGEN3_INCLUDE_DIR
            CCTBX_INCLUDE_DIR SCITBX_INCLUDE_DIR ${_libvars})
   if(${_v})
     message(STATUS "${_v}: ${${_v}}")
@@ -130,7 +122,7 @@ endif()
 
 # Boost comes before cctbx: a conda include/ can hold a partial boost tree
 include_directories(${MMDB2_INCLUDE_DIR} ${CLIPPER_INCLUDE_DIR} ${CCP4C_INCLUDE_DIR}
-                    ${BOOST_INCLUDE_DIR} ${TNT_INCLUDE_DIR} ${JAMA_INCLUDE_DIR})
+                    ${BOOST_INCLUDE_DIR})
 # Eigen3 (header-only) for GPR wavelength normalisation
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${CCTBX_INCLUDE_DIR} ${SCITBX_INCLUDE_DIR})

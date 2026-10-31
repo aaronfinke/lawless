@@ -14,17 +14,19 @@ If these keywords are not used, it behaves the same as aimless. It is intended a
 
 ### Building
 
-lawless needs a C++11 compiler, CMake 3.21 or newer, and these libraries:
+lawless needs a C++14 compiler, CMake 3.21 or newer, and these libraries:
 
 | dependency | used for | Ubuntu package | macOS source |
 |---|---|---|---|
-| clipper 2.1 | cell, symmetry, MTZ classes | `libclipper-dev` | CCP4 (library), headers separately |
-| libccp4 8.0 | MTZ file I/O | `libccp4-dev` | CCP4 (library), headers separately |
-| mmdb2 2.0 | needed by clipper | `libmmdb2-dev` | CCP4 (library), headers separately |
+| clipper 2.1 | cell, symmetry, MTZ classes | `libclipper-dev` | Homebrew `brewsci/bio/clipper4coot` |
+| libccp4 8.0 | MTZ file I/O | `libccp4-dev` | Homebrew `brewsci/bio/libccp4` |
+| mmdb2 2.0 | needed by clipper | `libmmdb2-dev` | Homebrew `brewsci/bio/mmdb2` |
 | cctbx | space groups | `libcctbx-dev` | conda `cctbx-base` |
 | boost (headers) | | `libboost-dev` | Homebrew `boost` |
-| Eigen 3.4 (headers) | GP wavelength normalisation | `libeigen3-dev` | CCP4 |
-| TNT/JAMA (headers) | eigenvalues | `libtnt-dev`, `libjama-dev` | CCP4 |
+| Eigen 3.4 or 5 (headers) | GP wavelength normalisation | `libeigen3-dev` | Homebrew `eigen` |
+
+On macOS the clipper, libccp4 and mmdb2 libraries and Eigen can instead come
+from a CCP4 installation; see below.
 
 Nothing from CCP4 is needed at run time except the libraries themselves. The
 warning `CLIBD not set` that appears when run outside a CCP4 environment can be
@@ -36,7 +38,7 @@ Everything comes from the distribution, and no CCP4 installation is needed:
 
 ```bash
 sudo apt install build-essential cmake libboost-dev libeigen3-dev \
-    libccp4-dev libmmdb2-dev libclipper-dev libcctbx-dev libtnt-dev libjama-dev
+    libccp4-dev libmmdb2-dev libclipper-dev libcctbx-dev
 cmake --preset release
 cmake --build --preset release              # -> build/lawless
 sudo cmake --install build                  # -> /usr/local/bin/lawless
@@ -44,38 +46,37 @@ sudo cmake --install build                  # -> /usr/local/bin/lawless
 
 #### macOS
 
-A CCP4 installation supplies the clipper, libccp4 and mmdb2 libraries, Eigen
-and TNT/JAMA. It does not supply cctbx as a library, or the clipper, libccp4
-and mmdb2 headers, so these come from elsewhere:
+Everything except cctbx comes from Homebrew, and no CCP4 installation is
+needed:
 
-1. [CCP4](https://www.ccp4.ac.uk/download/) 9. The newest
-   `/Applications/ccp4-*` is found automatically.
-2. CMake and boost: `brew install cmake boost`.
-3. cctbx, in a conda environment:
+1. `brew install cmake boost eigen brewsci/bio/libccp4 brewsci/bio/mmdb2 brewsci/bio/clipper4coot`.
+   These are found in `/opt/homebrew` with no further setting.
+2. cctbx, in a conda environment:
    `conda create -n cctbx -c conda-forge cctbx-base`. The binary links to
    `libcctbx` in this environment, so keep it.
-4. The clipper, libccp4 and mmdb2 headers, by either route:
-   - from the brewsci/bio tap:
-     `brew install brewsci/bio/libccp4 brewsci/bio/mmdb2 brewsci/bio/clipper4coot`;
-     these are found in `/opt/homebrew/include` with no further setting; or
-   - from the CCP4 source tarballs at <https://ftp.ccp4.ac.uk/opensource/>:
-     `libccp4-8.0.0.tar.gz`, `mmdb2-2.0.22.tar.gz` and
-     `clipper-2.1.20201109.tar.gz`. Unpack all three into one directory and
-     set `CCP4_SRC` to it. Nothing in them needs to be built.
 
 ```bash
 export CCTBX_DIR=~/miniforge3/envs/cctbx    # wherever the env is
-export CCP4_SRC=~/ccp4-headers              # tarball route only
 cmake --preset release
 cmake --build --preset release              # -> build/lawless
 cmake --install build --prefix ~/.local     # -> ~/.local/bin/lawless
 ```
 
+If a [CCP4](https://www.ccp4.ac.uk/download/) installation is present (the
+newest `/Applications/ccp4-*` is found automatically, or set `CCP4_DIR`), its
+clipper, libccp4 and mmdb2 libraries and its Eigen are used instead. CCP4 does
+not install the clipper, libccp4 and mmdb2 headers, so these still come from
+the brewsci/bio formulae above, or from the CCP4 source tarballs at
+<https://ftp.ccp4.ac.uk/opensource/> (`libccp4-8.0.0.tar.gz`,
+`mmdb2-2.0.22.tar.gz` and `clipper-2.1.20201109.tar.gz`, unpacked into one
+directory with `CCP4_SRC` set to it; nothing in them needs to be built). Both
+routes give identical output.
+
 #### Telling CMake where things are
 
 | variable | default | |
 |---|---|---|
-| `CCP4_DIR` | `$CCP4`, then the newest `/Applications/ccp4-*` | CCP4 installation |
+| `CCP4_DIR` | `$CCP4`, then the newest `/Applications/ccp4-*` | CCP4 installation, optional |
 | `CCP4_SRC` | none | directory holding the clipper, libccp4 and mmdb2 sources, unpacked tarballs or a CCP4 source checkout |
 | `CCTBX_DIR` | `$CONDA_PREFIX` | conda environment with `cctbx-base` |
 

@@ -19,7 +19,11 @@ guided by three cache variables that also read the environment: `CCP4_DIR`
 (default `$CCP4`, then newest `/Applications/ccp4-*`), `CCP4_SRC` (clipper,
 mmdb2, libccp4 headers: a source checkout or unpacked tarballs) and `CCTBX_DIR`
 (default `$CONDA_PREFIX`). On Ubuntu everything is apt packages on system paths
-and none is needed. Here: `CCP4_SRC=~/ccp4-8.0-src/checkout`,
+and none is needed. On macOS everything except cctbx can come from Homebrew
+(brewsci/bio for clipper, libccp4, mmdb2), with no CCP4 install: that build and
+the CCP4 one give identical output. C++14 is required (Homebrew Eigen 5).
+TNT/JAMA are not a dependency: MinLib's `TNT::Vector`/`Fortran_Matrix` are its
+own copies in `vec.h`/`fmat.h`, and the eigen solve is scitbx. Here: `CCP4_SRC=~/ccp4-8.0-src/checkout`,
 `CCTBX_DIR=~/miniforge3/envs/cctbx`; without `CCP4_SRC` the brewsci/bio headers
 in `/opt/homebrew/include` are picked up instead (also verified identical). The
 VSCode rebuild task deletes `CMakeCache.txt`, so these must be in the
