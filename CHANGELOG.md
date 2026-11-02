@@ -10,6 +10,15 @@ number.
 
 ## [Unreleased]
 
+### Changed
+- **lawless builds on macOS from Homebrew packages, without a CCP4
+  installation.** The TNT/JAMA headers, which only CCP4 supplied, were
+  included but never used, and are no longer needed. clipper, libccp4, mmdb2,
+  boost and Eigen now all come from Homebrew; cctbx still comes from conda. A
+  CCP4 installation, if present, is still used, with identical output. See
+  "Building" in `README.md`.
+- A C++14 compiler is required, for Homebrew's Eigen 5.
+
 ## [0.1.3] - 2026-10-30
 
 ### Fixed

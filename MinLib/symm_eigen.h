@@ -1,8 +1,5 @@
 #include <scitbx/math/eigensystem.h>
 #include <scitbx/array_family/shared.h>
-#include <tnt_array1d.h>
-#include <tnt_array2d.h>
-#include <jama_eig.h>
 
 namespace phaser {
 
