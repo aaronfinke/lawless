@@ -10,6 +10,8 @@ number.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-02
+
 ### Changed
 - **lawless builds on macOS from Homebrew packages, without a CCP4
   installation.** The TNT/JAMA headers, which only CCP4 supplied, were
@@ -136,7 +138,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/aaronfinke/lawless/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/aaronfinke/lawless/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/aaronfinke/lawless/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/aaronfinke/lawless/compare/v0.1.0...v0.1.1
