@@ -10,7 +10,18 @@ number.
 
 ## [Unreleased]
 
+### Changed
+- **The default build is now optimised, about 12 times faster.** The
+  `default` CMake preset, which the VSCode build task uses, was a Debug build;
+  it is now the same as `release`, and a `cmake` with no build type gives it
+  too. Assertions stay on in optimised builds. A Debug build is the new
+  `debug` preset, in `build-debug/`. Optimised and Debug builds agree to
+  rounding (about 1e-5 relative in merged intensities), not bit for bit.
+
 ### Fixed
+- **OpenMP was never enabled on macOS**, so `REFINE PARALLEL` did nothing.
+  Apple's compiler needs Homebrew's `libomp`, which CMake now finds by itself,
+  and the link failed even when it was found. CMake warns if it is missing.
 - **An HKLIN that cannot be read is now a fatal error at once.** A file with
   no batch headers (eg laue-dials `integrated.mtz`, written by
   reciprocalspaceship) was silently skipped, and the run went on with no data:

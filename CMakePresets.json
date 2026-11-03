@@ -3,20 +3,28 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Debug",
-      "description": "Debug build in build/; dependency paths from CCP4_DIR, CCP4_SRC, CCTBX_DIR (see README)",
+      "displayName": "Release",
+      "description": "Optimised build (asserts kept) in build/; dependency paths from CCP4_DIR, CCP4_SRC, CCTBX_DIR (see README)",
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "release",
       "displayName": "Release",
+      "description": "Same as default",
+      "inherits": "default"
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Unoptimised build with debug symbols in build-debug/ (about 12 times slower)",
       "inherits": "default",
+      "binaryDir": "${sourceDir}/build-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     }
   ],
@@ -29,6 +37,11 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "jobs": 4
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
       "jobs": 4
     }
   ]

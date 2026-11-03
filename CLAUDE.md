@@ -10,6 +10,18 @@ cmake --preset default        # configure (uses CMakePresets.json)
 make -C build -j4             # compile -> build/lawless
 ```
 
+`default` (= `release`, and what a bare `cmake` gives) is an optimised `-O3`
+build **with asserts kept** (CMakeLists strips `-DNDEBUG`; costs nothing
+measurable). `debug` builds `-g` into `build-debug/`, ~12x slower. OpenMP: on
+macOS Apple clang needs Homebrew `libomp` (keg-only); CMakeLists sets
+`OpenMP_ROOT` to it and links `OpenMP::OpenMP_CXX` (`OpenMP_EXE_LINKER_FLAGS`
+is empty for libomp, so linking by flags fails). Threads are still used only
+with `REFINE PARALLEL [n]` (`nprocs` defaults to 1, `controls.cpp`). Measured on
+a 116-batch Laue set: old Debug 190 s, `-O3` 15 s, `-O3` + 8 threads 8 s.
+**Byte-identical regression checks only hold between builds of the same type
+and thread count**: `-O3` (FMA contraction) and thread count move ~1 % of MTZ
+values by up to ~1e-5 relative; statistics and rejection counts are unchanged.
+
 The CMake target and binary are named `lawless` (it was `aimless` up to
 and including 0.1.0); sources, keyword classes and the CMake project name keep `aimless`.
 A POST_BUILD rule also makes `build/aimless` a symlink to `lawless`.
