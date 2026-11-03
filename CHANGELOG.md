@@ -10,6 +10,22 @@ number.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-03
+
+### Changed
+- **lawless is now licensed under the BSD 3-Clause License**, copyright Phil
+  Evans and Aaron Finke, replacing the CCP4 Program Suite Licence. See
+  `LICENSE`. Files carrying their own copyright notice keep their own terms;
+  `COPYING` lists them.
+- Releases are archived on Zenodo with a DOI. `CITATION.cff` gives the
+  citation metadata, also shown by GitHub as "Cite this repository".
+
+### Removed
+- The residual-systematic diagnostic scripts in `tools/`. They are post-hoc
+  analyses of lawless output, beyond the scope of the program.
+
+No change to the program's behaviour: results are identical to 0.1.5.
+
 ## [0.1.5] - 2026-11-03
 
 ### Changed
@@ -158,7 +174,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/aaronfinke/lawless/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/aaronfinke/lawless/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/aaronfinke/lawless/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/aaronfinke/lawless/compare/v0.1.2...v0.1.3
