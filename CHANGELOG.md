@@ -10,6 +10,13 @@ number.
 
 ## [Unreleased]
 
+### Fixed
+- **An HKLIN that cannot be read is now a fatal error at once.** A file with
+  no batch headers (eg laue-dials `integrated.mtz`, written by
+  reciprocalspaceship) was silently skipped, and the run went on with no data:
+  under `LAUE` it then stopped claiming there was no wavelength column, even
+  when there was one. The error now says the batch headers are missing.
+
 ## [0.1.4] - 2026-11-02
 
 ### Changed

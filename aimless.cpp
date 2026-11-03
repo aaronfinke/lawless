@@ -511,11 +511,24 @@ int main(int argc, char* argv[])
     std::string outputstring;
     timer.Start();
     Scell inputcell = input.getCELL();
-    mtzin.AddHklList(fileSeries,
-                     hklin_filename, file_sel, column_selection, column_list,
-                     controls, InputPxdName, inputcell,
-                     Tolerance, outputstring, verbose,
-                     hkl_list);
+    scala::FileRead fileread =
+      mtzin.AddHklList(fileSeries,
+                       hklin_filename, file_sel, column_selection, column_list,
+                       controls, InputPxdName, inputcell,
+                       Tolerance, outputstring, verbose,
+                       hkl_list);
+    if (!fileread.Opened()) {
+      // Without this the run carries on with an empty list and fails later
+      // with a misleading message (eg the LAUE "no wavelength column" check)
+      if (mtzin.Merged()) {
+        ReportErrors::printFatalError(std::string(
+          "HKLIN has no batch headers, so it cannot be read as an unmerged file.\n")+
+          "Unmerged MTZ files need one batch header per BATCH number (files\n"+
+          "written by reciprocalspaceship, eg laue-dials integrated.mtz, have none).\n"+
+          "Add batch headers (LDTYPE 3, a cell and a non-zero PHIRANGE) first.");
+      }
+      ReportErrors::printFatalError("Failed to open HKLIN file " + hklin_filename);
+    }
     output.logTab(0,LOGFILE,outputstring);
     output.logTab(0,LOGFILE,
                   "\nTime for reading HKLIN: "+timer.format(true));
