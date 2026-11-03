@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use lawless, please cite it using the metadata below."
+title: "Lawless: aimless with wavelength normalization for Laue data"
+type: software
+authors:
+  - family-names: Evans
+    given-names: Phil
+    affiliation: MRC Laboratory of Molecular Biology
+    orcid: "https://orcid.org/0000-0002-8810-1337"
+  - family-names: Finke
+    given-names: Aaron
+    affiliation: European Spallation Source ERIC
+    orcid: "https://orcid.org/0000-0002-6842-1122"
+repository-code: "https://github.com/aaronfinke/lawless"
+license: BSD-3-Clause
+keywords:
+  - crystallography
+  - Laue diffraction
+  - neutron crystallography
+  - scaling
+  - merging
+  - wavelength normalization
+references:
+  - type: article
+    title: "How good are my data and what is the resolution?"
+    authors:
+      - family-names: Evans
+        given-names: Philip R.
+      - family-names: Murshudov
+        given-names: Garib N.
+    journal: "Acta Crystallographica Section D"
+    volume: 69
+    start: 1204
+    end: 1214
+    year: 2013
+    doi: "10.1107/S0907444913000061"
