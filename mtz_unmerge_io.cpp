@@ -68,6 +68,7 @@ namespace MtzIO
     mode = NONE;
     mtzsym.spcgrp = -1;  // set to null
     mtzin = NULL;
+    merged = false;
     nlatticecolumns = 0;
     nlattices = 0;
     nlatticesall = 0;

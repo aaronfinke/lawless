@@ -49,8 +49,10 @@ sudo cmake --install build                  # -> /usr/local/bin/lawless
 Everything except cctbx comes from Homebrew, and no CCP4 installation is
 needed:
 
-1. `brew install cmake boost eigen brewsci/bio/libccp4 brewsci/bio/mmdb2 brewsci/bio/clipper4coot`.
-   These are found in `/opt/homebrew` with no further setting.
+1. `brew install cmake boost eigen libomp brewsci/bio/libccp4 brewsci/bio/mmdb2 brewsci/bio/clipper4coot`.
+   These are found in `/opt/homebrew` with no further setting. `libomp` is
+   optional: it is the OpenMP runtime, which Apple's compiler lacks, and
+   without it `REFINE PARALLEL` has no effect (CMake warns).
 2. cctbx, in a conda environment:
    `conda create -n cctbx -c conda-forge cctbx-base`. The binary links to
    `libcctbx` in this environment, so keep it.
@@ -85,9 +87,17 @@ Each can be set as an environment variable or as `-D<name>=...` on the
 deleted `CMakeCache.txt`. CMake prints every path it used, and stops with a
 list of whatever it could not find.
 
-The `default` preset is a Debug build in the same `build/` directory. Every
+The `default` and `release` presets are the same optimised build in `build/`;
+a plain `cmake` with no build type gives it too. The `debug` preset builds
+unoptimised, with symbols, in `build-debug/`, and runs about 12 times slower.
+All of them keep the program's internal consistency checks (`assert`). Each
 build also makes `build/aimless` a symlink to `lawless`; `cmake --install`
 installs `lawless` only.
+
+Scale refinement runs on one thread unless asked otherwise: `REFINE PARALLEL`
+uses as many as it judges useful, `REFINE PARALLEL <n>` uses `n`. On a
+116-batch Laue dataset, 8 threads halve the run time. Results agree with a
+single-threaded run to rounding (about 1e-5 relative), not bit for bit.
 
 ## How it differs from aimless
 

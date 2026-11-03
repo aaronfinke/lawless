@@ -4,6 +4,19 @@ project(aimless C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
+# An unoptimised build is about 12 times slower, so optimise unless told not to
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+# Keep assert() in optimised builds: the program relies on its ~300 asserts to
+# stop on bad data, and they cost nothing measurable
+foreach(_cfg RELEASE RELWITHDEBINFO MINSIZEREL)
+  string(REGEX REPLACE "(^| )[-/]DNDEBUG( |$)" " " CMAKE_CXX_FLAGS_${_cfg}
+         "${CMAKE_CXX_FLAGS_${_cfg}}")
+  string(REGEX REPLACE "(^| )[-/]DNDEBUG( |$)" " " CMAKE_C_FLAGS_${_cfg}
+         "${CMAKE_C_FLAGS_${_cfg}}")
+endforeach()
+
 # ---------------------------------------------------------------------------
 # Dependencies
 #
@@ -113,11 +126,21 @@ endforeach()
 # boost/timer.hpp is an #error in recent boost unless this is defined
 add_compile_definitions(BOOST_TIMER_ENABLE_DEPRECATED)
 
-#OpenMP
-FIND_PACKAGE(OpenMP)
-if(OPENMP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+# OpenMP, for the threaded scale refinement (REFINE PARALLEL). Apple clang
+# has no OpenMP runtime of its own: it comes from Homebrew's libomp, which is
+# keg-only and so has to be pointed at.
+if(APPLE AND NOT DEFINED OpenMP_ROOT AND NOT DEFINED ENV{OpenMP_ROOT})
+  foreach(_p /opt/homebrew/opt/libomp /usr/local/opt/libomp)
+    if(EXISTS ${_p}/include/omp.h)
+      set(OpenMP_ROOT ${_p})
+      break()
+    endif()
+  endforeach()
+endif()
+find_package(OpenMP COMPONENTS CXX)
+if(NOT OpenMP_CXX_FOUND)
+  message(WARNING "OpenMP not found: REFINE PARALLEL will have no effect. "
+    "On macOS, brew install libomp (or set OpenMP_ROOT).")
 endif()
 
 # Boost comes before cctbx: a conda include/ can hold a partial boost tree
@@ -186,6 +209,11 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 add_executable(lawless ${AIMLESS_SOURCES} ${SHARED_SOURCES} ${MINLIB_SOURCES})
 
 target_link_libraries(lawless ${CCP4_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+  # The imported target carries the compile flag, include path and runtime
+  # library; OpenMP_EXE_LINKER_FLAGS is empty for libomp, so link would fail
+  target_link_libraries(lawless OpenMP::OpenMP_CXX)
+endif()
 
 # The CCP4 macOS dylibs carry the build machine's paths as their install
 # names. Where such a path does not exist here, point the binary at the
