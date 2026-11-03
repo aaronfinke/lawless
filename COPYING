@@ -1,9 +1,18 @@
-C
-C     AIMLESS
-C     Copyright (C) 2010 Phil Evans
-C
-C     This code is distributed under the terms and conditions of the
-C     CCP4 Program Suite Licence Agreement as a CCP4 Application.
-C     A copy of the CCP4 licence can be obtained by writing to the
-C     CCP4 Secretary, Daresbury Laboratory, Warrington WA4 4AD, UK.
+LAWLESS (derived from AIMLESS)
+Copyright (c) 2010-2026 Phil Evans and Aaron Finke
 
+This program is distributed under the terms of the BSD 3-Clause License.
+See the file LICENSE for the full text.
+
+Files that carry their own copyright notice and licence remain under those
+terms, which are stated in the file headers:
+
+  Kevin Cowtan and University of York (LGPL 2.1 with additional clause):
+    alt_hkl_datatypes.h  intensity_scale.h  intensity_target.h
+    rotation.cpp  rotation.hh
+  Kevin Cowtan and University of York:
+    simplex-lib.cpp  simplex-lib.h
+  Norman Stein, Charles Ballard (CCP4 Program Suite Licence):
+    intensity_scale.cpp
+  NIST Template Numerical Toolkit (public domain):
+    MinLib/fmat.h  MinLib/subscript.h  MinLib/vec.h
