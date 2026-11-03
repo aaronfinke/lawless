@@ -10,6 +10,8 @@ number.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-03
+
 ### Changed
 - **The default build is now optimised, about 12 times faster.** The
   `default` CMake preset, which the VSCode build task uses, was a Debug build;
@@ -156,7 +158,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/aaronfinke/lawless/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/aaronfinke/lawless/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/aaronfinke/lawless/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/aaronfinke/lawless/compare/v0.1.1...v0.1.2
