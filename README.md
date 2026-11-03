@@ -1,6 +1,6 @@
 # lawless: aimless with wavelength normalization
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23929956.svg)](https://doi.org/10.5281/zenodo.23929956)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23929955.svg)](https://doi.org/10.5281/zenodo.23929955)
 
 lawless is a modification of CCP4 [aimless](https://www.ccp4.ac.uk/html/aimless.html) [1]. It adds tools relevant to scaling of Laue data, including:
 
