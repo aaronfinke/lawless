@@ -10,6 +10,16 @@ number.
 
 ## [Unreleased]
 
+### Fixed
+- **`LAUE NORMGPR` was silently not applied when the scale model had nothing to
+  refine.** If primary scaling cannot be set up (for example `SCALES ROTATION`
+  on a file without a ROT column, where smooth scaling is refused) or is
+  `SCALES CONSTANT` with no B-factor, lawless falls back to merging only. The GP
+  curve was still fitted and printed, but no scaling stage ran to apply it, so
+  the output was unscaled (SCALEUSED = 1) while the log said the wavelength
+  normalisation was in use. The fixed GP curve is now applied in that case, and
+  the log says so.
+
 ## [0.1.6] - 2026-11-03
 
 ### Changed
