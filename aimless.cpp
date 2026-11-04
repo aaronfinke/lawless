@@ -798,6 +798,10 @@ int main(int argc, char* argv[])
     normicerings.SetRejectAll(false);
 
     ApplyScales applyscales;
+    // set if ONLYMERGE was forced because the scale model has nothing to
+    // refine (not given explicitly): any fixed GP wavelength curve must
+    // then still be applied, as no scaling stage will do it
+    bool noRefinableScales = false;
 
     // Restoring scales from file?
     FC.restore = input.Restore();
@@ -867,12 +871,17 @@ int main(int argc, char* argv[])
 	  if (!controls.refinecontrol.Reference()) {
 	    // but not refine reference
 	    FC.SetOnlyMerge();
+	    noRefinableScales = true;
 	    AllScales.SetConstant(hkl_list, output);
 	    // turn off sd optimisation unless explicit
 	    if (!input.SDC_RefineSet()) {
 	      FC.sdoptimise = false;
 	    }
 	    std::string s = "No scaling done, "+AllScales.whyNotRefineable();
+	    if (AllScales.HasGPRWavelengthScale()) {
+	      s += "; constant primary scale, only the fixed GP wavelength"
+		" normalisation will be applied";
+	    }
 	    output.logTab(0,LOGFILE, s);
 	    output.logTab(0,LXML,
 			  StringUtil::MakeXMLwithclass("ScaleModelFail",
@@ -1330,6 +1339,15 @@ int main(int argc, char* argv[])
         hkl_list.ResetReflAccept();  // accept everything, no outlier rejection
         applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
         overallmeankI = applyscales.meanI();
+      } else if (noRefinableScales && AllScales.GPRWavelengthActive()) {
+        // Nothing else to refine (eg smooth scaling refused for want of a
+        // ROT column): ONLYMERGE skips every scaling stage, so the fixed GP
+        // curve would otherwise never be applied
+        applyscales.scale(AllScales, hkl_list, onlyUseSingletons);
+        overallmeankI = applyscales.meanI();
+        output.logTab(0, LOGFILE,
+          "\nNo refinable scale parameters: constant primary scale,"
+          " GP wavelength normalisation applied\n");
       }
       output.logFlush();
     }
