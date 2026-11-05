@@ -10,6 +10,14 @@ number.
 
 ## [Unreleased]
 
+### Fixed
+- **The Chebyshev wavelength normalisation is reported after scaling.** The
+  log table, the XMLOUT block and `LAMBDANORM.plt` showed the coefficients from
+  the wavelength-only pre-pass, although scaling refines them further, so the
+  reported curve was not the one applied. The pre-pass values are still
+  printed, labelled as starting values. With no scaling after the pre-pass
+  (`ONLYLAMBDA`, `ONLYMERGE`) they are final and are reported there.
+
 ## [0.1.6] - 2026-11-03
 
 ### Changed

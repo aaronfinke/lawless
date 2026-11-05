@@ -99,7 +99,7 @@ The log parameterisation guarantees `w > 0` for any coefficients, so the refinem
 
 **Which to use.** The GPR is the better default: it follows structure a low-order polynomial cannot, and because it is fixed after its pre-pass it cannot trade against the other scale terms. Chebyshev normalisation is preferable when you want the wavelength term refined together with everything else, or when the band is narrow and smooth. NORMGPR and NORMCHEBYSHEV are mutually exclusive.
 
-Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM.plt`.
+Normalisation results are reported in the log as a table and an ASCII plot, in the XML, and as a self-contained gnuplot script in the file `LAMBDANORM.plt`. For Chebyshev normalisation these are the final coefficients, refined with the other scales; the pre-pass values are printed earlier in the log as starting values.
 
 ### Radiation type
 
