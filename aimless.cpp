@@ -1054,6 +1054,33 @@ int main(int argc, char* argv[])
 
     bool anomOn = false;  // no anomalous for scaling
 
+    // Chebyshev wavelength normalization report: log table, XML block and
+    // gnuplot script (LAMBDANORM.plt).  Called once, with the final coefficients:
+    // after the pre-pass if no scaling follows, otherwise after scaling.
+    const bool laterScaling = FC.roughScale || FC.mainScale;
+    auto reportChebyshev = [&]() {
+      AllScales.PrintWavelengthNormalization(output);
+      output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
+
+      std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
+      std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
+      if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
+        const std::string lnfile = "LAMBDANORM.plt";
+        std::ofstream lns(lnfile.c_str());
+        if (lns) {
+          lns << lnscript;
+          lns.close();
+          output.logTabPrintf(0, LOGFILE,
+            "\nWavelength normalization curve written to %s"
+            " (gnuplot format; open with: gnuplot -p %s)\n",
+            lnfile.c_str(), lnfile.c_str());
+        } else {
+          output.logTabPrintf(0, LOGFILE,
+            "\nWarning: could not open %s for writing\n", lnfile.c_str());
+        }
+      }
+    };
+
     // ----- Laue wavelength pre-normalisation (before any other scaling)
     // Refine only the Chebyshev wavelength coefficients with all other
     // parameters held at their initial values.  This decorrelates the
@@ -1077,28 +1104,15 @@ int main(int argc, char* argv[])
         ScaleRefineFH(hkl_list, AllScales, controls, NWAV_CYCLES, output);
       }
       AllScales.SetWavelengthOnlyMode(false);
-      AllScales.PrintWavelengthNormalization(output);
-      output.logTab(0, LXML, AllScales.WavelengthNormalizationXML());
-
-      // Write the wavelength normalization curve as a gnuplot script (LAMBDANORM.plt)
-      {
-        std::string lnver = PROGRAM_NAME + " " + PROGRAM_VERSION;
-        std::string lnscript = AllScales.WavelengthGnuplot(runTitle, lnver);
-        if (!lnscript.empty() && controls.plotcontrol.gnuplotoutput) {
-          const std::string lnfile = "LAMBDANORM.plt";
-          std::ofstream lns(lnfile.c_str());
-          if (lns) {
-            lns << lnscript;
-            lns.close();
-            output.logTabPrintf(0, LOGFILE,
-              "\nWavelength normalization curve written to %s"
-              " (gnuplot format; open with: gnuplot -p %s)\n",
-              lnfile.c_str(), lnfile.c_str());
-          } else {
-            output.logTabPrintf(0, LOGFILE,
-              "\nWarning: could not open %s for writing\n", lnfile.c_str());
-          }
-        }
+      if (laterScaling) {
+        // The coefficients are refined further with all the other scale
+        // parameters; the final curve is reported after scaling
+        output.logTab(0, LOGFILE,
+          "\nChebyshev coefficients after the pre-pass (starting values for"
+          " scaling; final values are reported after scaling):");
+        AllScales.PrintWavelengthNormalization(output);
+      } else {
+        reportChebyshev();
       }
       output.logTab(0, LOGFILE,
                     "\nTime for wavelength pre-normalisation: "+timer.format(true));
@@ -1494,6 +1508,14 @@ int main(int argc, char* argv[])
       secondaryscalestats.PrintSecondaryCorrections(output);
       AllScales.WriteImage("TILEIMAGE", output);
 
+      output.logFlush();
+    }
+
+    // Final Chebyshev wavelength normalization, as refined with the other scales
+    if (AllScales.HasWavelengthScale() && laterScaling) {
+      output.logTab(0, LOGFILE,
+        "\n========= Laue wavelength normalization after scaling =========\n");
+      reportChebyshev();
       output.logFlush();
     }
 
