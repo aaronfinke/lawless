@@ -10,6 +10,8 @@ number.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-11-15
+
 ### Fixed
 - **The Chebyshev wavelength normalisation is reported after scaling.** The
   log table, the XMLOUT block and `LAMBDANORM.plt` showed the coefficients from
@@ -190,7 +192,8 @@ monochromatic data are scaled exactly as by aimless.
   `ABSORPTION` on Laue data.
 - The unmerged output file carries a `LAMBDA` column when the input had one.
 
-[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/aaronfinke/lawless/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/aaronfinke/lawless/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/aaronfinke/lawless/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/aaronfinke/lawless/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/aaronfinke/lawless/compare/v0.1.3...v0.1.4
